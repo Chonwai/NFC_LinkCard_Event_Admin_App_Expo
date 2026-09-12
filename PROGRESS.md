@@ -1,11 +1,11 @@
 # LinkCard Event Admin App — PROGRESS
 
-> 更新：2026-09-12（Review + Web 實測後）
+> 更新：2026-09-12（完整端到端實測 + 4 bugs 修復）
 > 藍圖依據：`docs/LinkCard Event related/20260911_LinkCard_Event_Admin_App_Deep_Research_v2.md` + `20260912_LinkCard_Batch_Write_Trigger_Admin_App_Design.md`
 
 ---
 
-## ✅ 完成狀態（12 commits）
+## ✅ 完成狀態（16 commits）
 
 | # | Commit | 內容 | 驗證 |
 |---|---|---|---|
@@ -19,23 +19,34 @@
 | 8 | `e590209` | **fix**：react-hooks pattern 對齊 Promoter + lint 全綠 | tsc+eslint ✅ |
 | 9 | `a3b7d2e` | **fix**：nfc-utils web-safe（dynamic import）+ ScreenHeader paths + staging env | ✅ |
 | 10 | `e7112af` | **fix**：Logo branding（Promoter→Event Admin）+ CORS port 對齊 | ✅ |
+| 11 | `99ace15` | **fix**：service 路徑 `/api` prefix + `_meta` unwrap + 隱藏 `[eventId]` tab | tsc+eslint ✅ |
+| 12 | `e647ddb` | **fix**：check-in 錯誤碼 unwrap（getApiErrorCode） | tsc+eslint ✅ |
+| 13 | `040ebd4` | **fix**：overview 已報到統計真實查詢 CHECKED_IN | tsc+eslint ✅ |
 
-## 🧪 Web 實測（2026-09-12）
+## 🧪 完整端到端實測（2026-09-12，staging 真實帳號 chonwaiun@gmail.com）
 
-| 測試 | 結果 | 發現 |
-|---|---|---|
-| Expo Web 啟動（port 8088/8082） | ✅ | — |
-| 登入頁渲染 | ✅ | 修復前 web 崩潰（nfc-manager top-level import）→ 已修 |
-| Login API 呼叫 staging | ✅ | CORS 錯誤（port 8088 不在 allowlist）→ 改用 8082 ✅ |
-| 401 錯誤處理 | ✅ | 正確顯示「帳號或密碼錯誤」（InlineBanner） |
-| Logo 品牌 | ✅ | 「LinkCard Event Admin」 |
+| # | 測試 | 結果 | 備註 |
+|---|---|---|---|
+| 1 | 登入（email/password → staging） | ✅ | 成功導向 /home |
+| 2 | My Events 列表 | ✅ | 4 活動顯示（role/報名人數正確）——修復 `/api` prefix bug |
+| 3 | Tab bar | ✅ | 只剩 我的活動/設定（`[eventId]` 隱藏） |
+| 4 | Event Overview | ✅ | 統計卡 + 快速操作（Check-in/NFC 寫卡/Badge） |
+| 5 | Check-in 手動輸入（CONFIRMED code） | ✅ | 「報到成功」 |
+| 6 | Check-in 重複報到 | ✅ | 「此報名已報到過」 |
+| 7 | Check-in PENDING_PAYMENT | ✅ | 「此報名尚未確認」——修復錯誤碼 unwrap |
+| 8 | Overview 已報到統計 | ✅ | 0→1 即時更新——修復硬編碼 0 |
+| 9 | Badge 頁（空狀態） | ✅ | 「尚無 Badge」+ tagUid 查詢錯誤處理 |
+| 10 | NFC 寫卡（查詢→選類型→寫入） | ✅ | Web 正確顯示「不支援」提示；重新輸入返回 |
+| 11 | Settings + 登出 | ✅ | 回到登入頁 |
+| 12 | 重新登入（auth guard） | ✅ | 完整 loop 通過 |
 
 ## 🔄 已知限制 / 待辦
 
-- [ ] **登入測試帳號**：staging 需建立 QA 帳號（`marcus.cheung@test.com` 等 seed 不存在於 staging-api）
+- [x] **登入測試帳號**：staging 真實帳號驗證通過
+- [ ] **Badge 綁定實測**：staging 4 活動皆無 badge 資料，待建立批次後驗證列表/綁定
+- [ ] **真機 NFC 寫卡**：需 Android + NTAG 卡（web 只能顯示不支援）
 - [ ] **P1 功能**：離線模式、Attendee 搜尋、現場統計
 - [ ] **app icon/splash 客製化**：目前用 Promoter 資產（`assets/` 複製）
-- [ ] **真機 NFC 測試**：需 Android + NTAG 卡（TC1-TC7 清單）
 - [ ] **EAS Build → TestFlight**：需 Apple Developer 帳號
 
 ## 🔗 相關文件
