@@ -17,10 +17,11 @@ import { hairline, layout, semantic, space, spacing, type } from '@/constants/th
 export type BackFallbackPath =
     | '/'
     | '/(auth)/home'
-    | '/(auth)/scan'
-    | '/(auth)/inventory'
-    | '/(auth)/leads'
-    | '/(auth)/settings';
+    | '/(auth)/settings'
+    | '/(auth)/[eventId]/overview'
+    | '/(auth)/[eventId]/check-in'
+    | '/(auth)/[eventId]/nfc-bind'
+    | '/(auth)/[eventId]/badges';
 
 export interface ScreenHeaderProps {
     title: string;
