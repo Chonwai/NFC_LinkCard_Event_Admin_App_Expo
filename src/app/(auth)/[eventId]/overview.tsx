@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -44,27 +44,35 @@ export default function EventOverviewScreen() {
 
     const event = events.find(e => e.id === eventId);
 
-    const load = useCallback(async () => {
-        if (!eventId) return;
-        setLoading(true);
-        setBanner(null);
-        try {
-            const { pagination } = await eventService.getRegistrations(eventId, { limit: 1 });
-            setStats([
-                { key: 'registrations', label: copy.event.registrations, value: pagination?.total ?? 0, icon: 'users' },
-                { key: 'checkedIn', label: copy.event.checkedIn, value: 0, icon: 'check-circle' },
-                { key: 'exhibitors', label: copy.event.exhibitors, value: event?.exhibitorCount ?? 0, icon: 'archive' },
-            ]);
-        } catch {
-            setBanner({ tone: 'danger', message: copy.home.loadFailed });
-        } finally {
-            setLoading(false);
-        }
-    }, [eventId, event?.exhibitorCount]);
-
     useEffect(() => {
+        let active = true;
+
+        async function load() {
+            if (!eventId) return;
+            setLoading(true);
+            setBanner(null);
+            try {
+                const { pagination } = await eventService.getRegistrations(eventId, { limit: 1 });
+                if (!active) return;
+                setStats([
+                    { key: 'registrations', label: copy.event.registrations, value: pagination?.total ?? 0, icon: 'users' },
+                    { key: 'checkedIn', label: copy.event.checkedIn, value: 0, icon: 'check-circle' },
+                    { key: 'exhibitors', label: copy.event.exhibitors, value: event?.exhibitorCount ?? 0, icon: 'archive' },
+                ]);
+            } catch {
+                if (!active) return;
+                setBanner({ tone: 'danger', message: copy.home.loadFailed });
+            } finally {
+                if (active) setLoading(false);
+            }
+        }
+
         void load();
-    }, [load]);
+
+        return () => {
+            active = false;
+        };
+    }, [eventId, event?.exhibitorCount]);
 
     return (
         <View style={[styles.screen, { paddingTop: insets.top }]}>

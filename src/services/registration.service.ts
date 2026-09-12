@@ -1,5 +1,4 @@
-import type { ApiResponse } from '@/types/api.types';
-import type { Registration } from '@/types/api.types';
+import type { ApiResponse, Registration } from '@/types/api.types';
 
 import { apiClient } from './api';
 

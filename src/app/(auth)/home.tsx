@@ -36,28 +36,38 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function HomeScreen() {
     const insets = useSafeAreaInsets();
-    const { events, loading, error, loadEvents } = useEventStore();
+    const { events, loading, loadEvents } = useEventStore();
     const [banner, setBanner] = useState<{ tone: InlineBannerTone; message: string } | null>(null);
     const [refreshing, setRefreshing] = useState(false);
-
-    const load = useCallback(async () => {
-        setBanner(null);
-        try {
-            await loadEvents();
-        } catch (err) {
-            setBanner({ tone: 'danger', message: copy.home.loadFailed });
-        }
-    }, [loadEvents]);
+    const [reloadKey, setReloadKey] = useState(0);
 
     useEffect(() => {
+        let active = true;
+
+        async function load() {
+            setBanner(null);
+            try {
+                await loadEvents();
+                if (!active) return;
+            } catch {
+                if (!active) return;
+                setBanner({ tone: 'danger', message: copy.home.loadFailed });
+            }
+        }
+
         void load();
-    }, [load]);
+
+        return () => {
+            active = false;
+        };
+    }, [loadEvents, reloadKey]);
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
-        await load();
+        await loadEvents();
         setRefreshing(false);
-    }, [load]);
+        setBanner(null);
+    }, [loadEvents]);
 
     const renderEvent = ({ item }: { item: (typeof events)[number] }) => {
         const tone = STATUS_TONE[item.status] ?? 'neutral';
@@ -143,7 +153,7 @@ export default function HomeScreen() {
                     description={copy.home.emptyHint}
                     actionLabel={copy.home.retry}
                     onAction={() => {
-                        void load();
+                        setReloadKey(key => key + 1);
                     }}
                 />
             ) : (

@@ -6,7 +6,6 @@ import { useLocalSearchParams } from 'expo-router';
 
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Icon } from '@/components/ui/Icon';
 import { InlineBanner, type InlineBannerTone } from '@/components/ui/InlineBanner';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -81,8 +80,37 @@ export default function BadgesScreen() {
     );
 
     useEffect(() => {
-        void loadList(1, true);
-    }, [loadList]);
+        let active = true;
+
+        async function initial() {
+            if (!eventId) return;
+            setListLoading(true);
+            setBanner(null);
+            try {
+                const { badges: list, pagination } = await nfcService.listBadges(eventId, {
+                    page: 1,
+                    pageSize: PAGE_SIZE,
+                });
+                if (!active) return;
+                const items = (list ?? []) as unknown as BadgeListItem[];
+                setBadges(items);
+                const total = pagination?.total ?? 0;
+                setHasMore(1 * PAGE_SIZE < total);
+                setPage(1);
+            } catch {
+                if (!active) return;
+                setBanner({ tone: 'danger', message: copy.home.loadFailed });
+            } finally {
+                if (active) setListLoading(false);
+            }
+        }
+
+        void initial();
+
+        return () => {
+            active = false;
+        };
+    }, [eventId]);
 
     const doLookup = useCallback(async () => {
         if (!eventId || !lookupUid.trim()) return;
