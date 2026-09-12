@@ -20,6 +20,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { copy } from '@/constants/copy.zh-TW';
 import { layout, radius, semantic, space, spacing, type } from '@/constants/theme';
 import { registrationService } from '@/services/registration.service';
+import { getApiErrorCode, getApiErrorMessage } from '@/utils/api-error';
 
 type CheckInState =
     | { phase: 'idle' }
@@ -61,8 +62,10 @@ export default function CheckInScreen() {
                 await registrationService.checkIn(eventId, code.trim());
                 setState({ phase: 'result', ok: true, message: copy.checkIn.checkedIn, code: code.trim() });
             } catch (err) {
-                const codeKey = (err as { code?: string })?.code;
-                const message = ERROR_MESSAGES[codeKey ?? ''] ?? copy.checkIn.registrationNotFound;
+                const codeKey = getApiErrorCode(err);
+                const message =
+                    (codeKey != null && ERROR_MESSAGES[codeKey]) ||
+                    getApiErrorMessage(err, copy.checkIn.registrationNotFound);
                 setState({ phase: 'result', ok: false, message, code: code.trim() });
             }
 
