@@ -34,4 +34,4 @@ yarn-error.*
 *.tsbuildinfo
 
 # EAS
-.eas/
+.eas/dist/
