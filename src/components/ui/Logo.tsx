@@ -8,11 +8,13 @@ export type LogoSize = 'sm' | 'md' | 'lg';
 export interface LogoProps {
     /** sm 24 / md 40 / lg 64 */
     size?: LogoSize;
-    /** 是否顯示「LinkCard Promoter」文字 */
+    /** 是否顯示「LinkCard Event Admin」文字 */
     withWordmark?: boolean;
+    /** 品牌文字（預設「LinkCard Event Admin」） */
+    wordmark?: string;
     /** 文字方向 */
     direction?: 'row' | 'column';
-    /** 無障礙標籤；預設「LinkCard Promoter」 */
+    /** 無障礙標籤；預設「LinkCard Event Admin」 */
     accessibilityLabel?: string;
     testID?: string;
 }
@@ -49,6 +51,7 @@ const TILE_RADIUS_RATIO = 0.25;
 export function Logo({
     size = 'md',
     withWordmark = true,
+    wordmark = 'LinkCard Event Admin',
     direction = 'row',
     accessibilityLabel,
     testID,
@@ -62,7 +65,7 @@ export function Logo({
             testID={testID}
             accessible
             accessibilityRole="image"
-            accessibilityLabel={accessibilityLabel ?? 'LinkCard Promoter'}
+            accessibilityLabel={accessibilityLabel ?? 'LinkCard Event Admin'}
         >
             <View
                 style={{
@@ -85,7 +88,7 @@ export function Logo({
                     numberOfLines={1}
                     maxFontSizeMultiplier={layout.maxFontScaleFixed}
                 >
-                    LinkCard Promoter
+                    {wordmark}
                 </Text>
             ) : null}
         </View>
