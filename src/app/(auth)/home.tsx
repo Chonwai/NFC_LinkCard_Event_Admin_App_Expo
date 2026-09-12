@@ -1,0 +1,231 @@
+import { useCallback, useEffect, useState } from 'react';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { router } from 'expo-router';
+
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Icon } from '@/components/ui/Icon';
+import { InlineBanner, type InlineBannerTone } from '@/components/ui/InlineBanner';
+import { Logo } from '@/components/ui/Logo';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { copy } from '@/constants/copy.zh-TW';
+import { layout, semantic, space, spacing, type } from '@/constants/theme';
+import { useEventStore } from '@/stores/event.store';
+
+/** 活動狀態 → 徽章色（對應 semantic.status tokens） */
+const STATUS_TONE: Record<string, keyof typeof semantic.status> = {
+    PUBLISHED: 'available',
+    REGISTRATION_OPEN: 'success',
+    ONGOING: 'success',
+    DRAFT: 'neutral',
+    COMPLETED: 'neutral',
+    CANCELLED: 'warning',
+};
+
+/** 活動狀態 → 顯示文字 */
+const STATUS_LABEL: Record<string, string> = {
+    PUBLISHED: '已發布',
+    REGISTRATION_OPEN: '報名中',
+    ONGOING: '進行中',
+    DRAFT: '草稿',
+    COMPLETED: '已結束',
+    CANCELLED: '已取消',
+};
+
+export default function HomeScreen() {
+    const insets = useSafeAreaInsets();
+    const { events, loading, error, loadEvents } = useEventStore();
+    const [banner, setBanner] = useState<{ tone: InlineBannerTone; message: string } | null>(null);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const load = useCallback(async () => {
+        setBanner(null);
+        try {
+            await loadEvents();
+        } catch (err) {
+            setBanner({ tone: 'danger', message: copy.home.loadFailed });
+        }
+    }, [loadEvents]);
+
+    useEffect(() => {
+        void load();
+    }, [load]);
+
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        await load();
+        setRefreshing(false);
+    }, [load]);
+
+    const renderEvent = ({ item }: { item: (typeof events)[number] }) => {
+        const tone = STATUS_TONE[item.status] ?? 'neutral';
+        const label = STATUS_LABEL[item.status] ?? item.status ?? copy.event.unknownStatus;
+        const statusToken = semantic.status[tone];
+
+        return (
+            <Pressable
+                onPress={() => {
+                    useEventStore.getState().selectEvent(item.id);
+                    router.push({
+                        pathname: '/(auth)/[eventId]/overview',
+                        params: { eventId: item.id },
+                    });
+                }}
+                style={({ pressed }) => [styles.eventCard, pressed && styles.eventCardPressed]}
+                accessibilityRole="button"
+                accessibilityLabel={item.name}
+            >
+                <View style={styles.eventCardHeader}>
+                    <Text style={type.h3} numberOfLines={1}>
+                        {item.name}
+                    </Text>
+                    <View style={[styles.statusBadge, { backgroundColor: statusToken.bg }]}>
+                        <Text style={[type.badge, { color: statusToken.fg }]}>{label}</Text>
+                    </View>
+                </View>
+
+                <View style={styles.eventMeta}>
+                    {item.userRole ? (
+                        <View style={styles.metaItem}>
+                            <Icon name="users" size={layout.icon.sm} color={semantic.text.muted} />
+                            <Text style={[type.caption, styles.metaText]}>
+                                {item.userRole.replace(/_/g, ' ')}
+                            </Text>
+                        </View>
+                    ) : null}
+                    <View style={styles.metaItem}>
+                        <Icon name="check-circle" size={layout.icon.sm} color={semantic.text.muted} />
+                        <Text style={[type.caption, styles.metaText]}>
+                            {item.registrationCount ?? 0} {copy.event.registrations}
+                        </Text>
+                    </View>
+                    <View style={styles.metaItem}>
+                        <Icon name="users" size={layout.icon.sm} color={semantic.text.muted} />
+                        <Text style={[type.caption, styles.metaText]}>
+                            {item.exhibitorCount ?? 0} {copy.event.exhibitors}
+                        </Text>
+                    </View>
+                </View>
+            </Pressable>
+        );
+    };
+
+    return (
+        <View style={[styles.screen, { paddingTop: insets.top }]}>
+            <View style={styles.brandRow}>
+                <Logo size="md" />
+                <View style={styles.brandText}>
+                    <Text style={type.h2}>{copy.home.title}</Text>
+                    <Text style={[type.caption, styles.tagline]}>{copy.app.tagline}</Text>
+                </View>
+            </View>
+
+            <ScreenHeader title={copy.home.title} subtitle={copy.app.tagline} onRefresh={onRefresh} isRefreshing={refreshing} />
+
+            {banner ? (
+                <View style={styles.bannerWrapper}>
+                    <InlineBanner tone={banner.tone} message={banner.message} />
+                </View>
+            ) : null}
+
+            {loading && events.length === 0 ? (
+                <View style={styles.skeletonWrapper}>
+                    <Skeleton width="100%" height={96} radius={12} />
+                    <Skeleton width="100%" height={96} radius={12} />
+                    <Skeleton width="100%" height={96} radius={12} />
+                </View>
+            ) : events.length === 0 ? (
+                <EmptyState
+                    icon="empty-card"
+                    title={copy.home.emptyTitle}
+                    description={copy.home.emptyHint}
+                    actionLabel={copy.home.retry}
+                    onAction={() => {
+                        void load();
+                    }}
+                />
+            ) : (
+                <FlatList
+                    data={events}
+                    keyExtractor={item => item.id}
+                    renderItem={renderEvent}
+                    contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + spacing.safeFooter }]}
+                    ItemSeparatorComponent={() => <View style={{ height: spacing.gap }} />}
+                    onRefresh={onRefresh}
+                    refreshing={refreshing}
+                />
+            )}
+        </View>
+    );
+}
+
+const styles = StyleSheet.create({
+    screen: {
+        flex: 1,
+        backgroundColor: semantic.bg.canvas,
+    },
+    brandRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: spacing.screen,
+        paddingTop: spacing.card,
+        gap: spacing.gap,
+    },
+    brandText: {
+        flex: 1,
+    },
+    tagline: {
+        color: semantic.text.muted,
+        marginTop: 2,
+    },
+    bannerWrapper: {
+        paddingHorizontal: spacing.screen,
+        marginTop: spacing.gap,
+    },
+    skeletonWrapper: {
+        paddingHorizontal: spacing.screen,
+        marginTop: spacing.section,
+        gap: spacing.gap,
+    },
+    listContent: {
+        paddingHorizontal: spacing.screen,
+        paddingTop: spacing.section,
+    },
+    eventCard: {
+        backgroundColor: semantic.bg.surface,
+        borderRadius: 12,
+        padding: spacing.card,
+        gap: space[3],
+        borderWidth: 1,
+        borderColor: semantic.border.decorative,
+    },
+    eventCardPressed: {
+        backgroundColor: semantic.bg.pressedOnLight,
+    },
+    eventCardHeader: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        gap: space[3],
+    },
+    eventMeta: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: space[4],
+    },
+    metaItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: space[1],
+    },
+    metaText: {
+        color: semantic.text.muted,
+    },
+    statusBadge: {
+        borderRadius: 999,
+        paddingHorizontal: space[3],
+        paddingVertical: space[1],
+    },
+});
