@@ -22,6 +22,13 @@ export const copy = {
         accountSuspended: '此帳號已停用，請聯絡管理員',
         sessionExpired: '登入狀態已過期，請重新登入',
         loggedOut: '已登出',
+        errorEmpty: '請輸入 Email 和密碼。',
+        errorEmail: '請輸入有效的 Email 格式。',
+        errorSuspended: '此帳號已被停用，請聯絡管理員。',
+        errorNetwork: '無法連線至伺服器。請確認網路連線後重試。',
+        errorServer: (status: number | null) =>
+            `伺服器暫時無法回應（${status ?? '未知'}），請稍後再試。`,
+        errorUnknown: '登入失敗，請稍後再試。',
     },
     home: {
         title: '我的活動',
