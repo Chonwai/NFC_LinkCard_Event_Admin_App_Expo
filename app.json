@@ -1,0 +1,73 @@
+{
+    "expo": {
+        "name": "LinkCard Event Admin",
+        "slug": "linkcard-event-admin",
+        "version": "1.0.0",
+        "scheme": "linkcard-event-admin",
+        "orientation": "portrait",
+        "icon": "./assets/icon.png",
+        "userInterfaceStyle": "light",
+        "backgroundColor": "#F9FAFB",
+        "ios": {
+            "supportsTablet": true,
+            "bundleIdentifier": "xyz.linkcard.event-admin",
+            "infoPlist": {
+                "NSCameraUsageDescription": "LinkCard Event Admin 使用相機掃描報名 QR code 進行報到",
+                "NFCReaderUsageDescription": "LinkCard Event Admin 使用 NFC 將入場憑證寫入空白 NFC 卡",
+                "ITSAppUsesNonExemptEncryption": false
+            }
+        },
+        "android": {
+            "package": "xyz.linkcard.event_admin",
+            "adaptiveIcon": {
+                "backgroundColor": "#7C3AED",
+                "foregroundImage": "./assets/android-icon-foreground.png",
+                "monochromeImage": "./assets/android-icon-monochrome.png"
+            },
+            "predictiveBackGestureEnabled": false,
+            "permissions": [
+                "CAMERA",
+                "NFC",
+                "android.permission.CAMERA",
+                "android.permission.NFC"
+            ]
+        },
+        "web": {
+            "favicon": "./assets/favicon.png",
+            "bundler": "metro"
+        },
+        "plugins": [
+            [
+                "expo-router",
+                {
+                    "root": "./src/app",
+                    "origin": "https://linkcard.xyz"
+                }
+            ],
+            "expo-secure-store",
+            "expo-status-bar",
+            [
+                "expo-camera",
+                {
+                    "cameraPermission": "LinkCard Event Admin 使用相機掃描報名 QR code 進行報到"
+                }
+            ],
+            [
+                "react-native-nfc-manager",
+                {
+                    "nfcPermission": "LinkCard Event Admin 使用 NFC 將入場憑證寫入空白 NFC 卡",
+                    "includeNdefEntitlement": false
+                }
+            ]
+        ],
+        "experiments": {
+            "typedRoutes": true
+        },
+        "extra": {
+            "router": {
+                "root": "./src/app",
+                "origin": "https://linkcard.xyz"
+            }
+        }
+    }
+}
