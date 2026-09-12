@@ -10,7 +10,7 @@ export const registrationService = {
      */
     async getByCode(eventId: string, code: string): Promise<{ registration: Registration }> {
         const res = await apiClient.get<ApiResponse<{ registration: Registration }>>(
-            `/v1/events/${encodeURIComponent(eventId)}/registrations/by-code/${encodeURIComponent(code)}`
+            `/api/v1/events/${encodeURIComponent(eventId)}/registrations/by-code/${encodeURIComponent(code)}`
         );
         return res.data.data;
     },
@@ -18,7 +18,7 @@ export const registrationService = {
     /** POST /v1/events/:eventId/registrations/checkin — 執行報到（需 OPERATOR+） */
     async checkIn(eventId: string, code: string): Promise<{ registration: Registration }> {
         const res = await apiClient.post<ApiResponse<{ registration: Registration }>>(
-            `/v1/events/${encodeURIComponent(eventId)}/registrations/checkin`,
+            `/api/v1/events/${encodeURIComponent(eventId)}/registrations/checkin`,
             { registrationCode: code }
         );
         return res.data.data;

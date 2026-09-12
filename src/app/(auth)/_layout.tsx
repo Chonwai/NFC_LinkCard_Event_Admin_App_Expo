@@ -35,6 +35,8 @@ export default function AuthLayout() {
                     ),
                 }}
             />
+            {/* 動態活動路由不是 tab：從 tab bar 隱藏 */}
+            <Tabs.Screen name="[eventId]" options={{ href: null }} />
         </Tabs>
     );
 }

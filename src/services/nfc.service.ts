@@ -17,7 +17,7 @@ export const nfcService = {
         if (opts.uid) params.set('uid', opts.uid);
         if (opts.qr) params.set('qr', opts.qr);
         const res = await apiClient.get<ApiResponse<{ badge?: BadgeInfo }>>(
-            `/v1/events/${encodeURIComponent(eventId)}/nfc/lookup?${params.toString()}`
+            `/api/v1/events/${encodeURIComponent(eventId)}/nfc/lookup?${params.toString()}`
         );
         return res.data.data;
     },
@@ -34,7 +34,7 @@ export const nfcService = {
         if (params?.batchId) query.set('batchId', params.batchId);
         if (params?.all) query.set('all', 'true');
         const res = await apiClient.get<ApiResponse<BadgeListResponse>>(
-            `/v1/events/${encodeURIComponent(eventId)}/nfc/badges?${query.toString()}`
+            `/api/v1/events/${encodeURIComponent(eventId)}/nfc/badges?${query.toString()}`
         );
         return res.data.data;
     },
@@ -47,7 +47,7 @@ export const nfcService = {
         opts?: { badgeType?: 'WRISTBAND' | 'CARD' | 'QR_ONLY'; colorCode?: string }
     ): Promise<{ badge: BadgeInfo }> {
         const res = await apiClient.post<ApiResponse<{ badge: BadgeInfo }>>(
-            `/v1/events/${encodeURIComponent(eventId)}/nfc/bind`,
+            `/api/v1/events/${encodeURIComponent(eventId)}/nfc/bind`,
             { registrationId, tagUid, ...opts }
         );
         return res.data.data;
