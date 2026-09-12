@@ -44,6 +44,8 @@ export const copy = {
         checkedIn: '已報到',
         exhibitors: '參展商',
         unknownStatus: '未知狀態',
+        quickActions: '快速操作',
+        badgesTitle: 'Badge',
     },
     checkIn: {
         scanHint: '掃描報名 QR code',
