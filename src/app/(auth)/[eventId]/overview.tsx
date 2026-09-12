@@ -52,11 +52,14 @@ export default function EventOverviewScreen() {
             setLoading(true);
             setBanner(null);
             try {
-                const { pagination } = await eventService.getRegistrations(eventId, { limit: 1 });
+                const [totalRes, checkedInRes] = await Promise.all([
+                    eventService.getRegistrations(eventId, { limit: 1 }),
+                    eventService.getRegistrations(eventId, { limit: 1, status: 'CHECKED_IN' }),
+                ]);
                 if (!active) return;
                 setStats([
-                    { key: 'registrations', label: copy.event.registrations, value: pagination?.total ?? 0, icon: 'users' },
-                    { key: 'checkedIn', label: copy.event.checkedIn, value: 0, icon: 'check-circle' },
+                    { key: 'registrations', label: copy.event.registrations, value: totalRes.pagination?.total ?? 0, icon: 'users' },
+                    { key: 'checkedIn', label: copy.event.checkedIn, value: checkedInRes.pagination?.total ?? 0, icon: 'check-circle' },
                     { key: 'exhibitors', label: copy.event.exhibitors, value: event?.exhibitorCount ?? 0, icon: 'archive' },
                 ]);
             } catch {
