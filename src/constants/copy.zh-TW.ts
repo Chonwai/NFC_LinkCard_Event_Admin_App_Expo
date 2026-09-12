@@ -61,6 +61,13 @@ export const copy = {
         notEnoughPermission: '權限不足，無法執行報到',
         cameraUnavailable: '無法取得相機權限',
         autoResetIn: '即將自動重置',
+        switchToManual: '改用輸入模式',
+        switchToScan: '改用掃描模式',
+        attendeeName: '姓名',
+        attendeeEmail: 'Email',
+        attendeeCompany: '公司',
+        attendeeType: '類型',
+        resultTitle: '報到結果',
     },
     nfc: {
         writeTitle: 'NFC 寫卡',
