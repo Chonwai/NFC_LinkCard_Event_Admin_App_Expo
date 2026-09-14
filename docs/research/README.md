@@ -22,6 +22,8 @@
 | `01-completion-audit.md` | 藍圖 vs 完成度**對照矩陣**（Engineering Spec §4/§5 + 批量設計軌道 3 + API 消費清單） | 「完成多少？」 |
 | `02-verification-gaps.md` | **驗證層級盤點**（有代碼/E2E/真機三層）+ P0/P1/P2 **空缺清單** | 「有進行到開發嗎？哪些可信？」 |
 | `03-restart-roadmap.md` | **重啟路徑 8 步**（含 EAS/TestFlight/CORS/品牌資產）+ 風險表 | 「怎麼重啟？」 |
+| `04-loop-state-appendix.md` | 5 個歷史 loop state 摘要 + 完整時間線 | 「之前發生過什麼？」 |
+| `05-handover-blueprint.md` | **交接前開發藍圖**：Web vs App 差距矩陣 + 未開發功能盤點 + Sprint 計畫 + 證據清單 | 「下一步做什麼？交接前補哪些？」 |
 
 ---
 
@@ -29,13 +31,30 @@
 
 | 面向 | 現況 | 證據 |
 |---|---|---|
-| Commits | 22（scaffold→docs snapshot） | `git log` @ `6ca3057` |
+| Commits | 27+5（scaffold→docs snapshot + handover blueprint） | `git log` @ `3e038a2` |
 | Build 健康度 | ✅ tsc 0 / eslint 0 / web export 成功 | 2026-09-14 實測 |
 | P0 功能代碼 | ✅ 8/10 頁面 + 全部 service | `src/app/` 22 檔案 |
 | E2E 驗證 | 🟡 12 項全為 web+staging（9/12） | `PROGRESS.md` |
 | 真機驗證 | ❌ 0 項（NFC/相機/SecureStore/bind） | PROGRESS 自認 + 代碼掃描 |
 | Deploy | ❌ EAS 未初始化、icon 為 Promoter 複製 | `app.json` 無 projectId |
 | 上次 loop 狀態 | active（VERIFY stage）但實質閉合 | `.edison/state/loop-event-admin-app-dev.md` |
+| **Web 後台功能** | ✅ 12/13 個 manage 頁全在 | `LinkCard_Frontend` `find` 實測 |
+
+---
+
+## 交接前重點（2026-09-14 補充）
+
+> 完整分析見 `05-handover-blueprint.md`
+
+**下一步策略**：Web 後台功能已完整（不需大改）；**Admin App 補強現場功能 + Deploy 基建**是主軸。
+
+**交接前必做 4 件事**（~10 小時）：
+1. `[eventId]/settings.tsx` 補頁（30 分）
+2. Registrations 列表頁（status filter + 分頁 + 查看，2 小時）— service 已存在
+3. EAS 初始化 + projectId（30 分）
+4. 真機 E2E（Android + iOS，3 小時）
+
+**關鍵發現**：後端 `GET /registrations` **無 search 參數**（只支援 page/limit/status/ticketTypeId/visibility/depositRefunded）— by name/email 搜尋需新建 backend API，建議留給下個工程師。
 
 ---
 
