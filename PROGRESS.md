@@ -1,7 +1,25 @@
 # LinkCard Event Admin App — PROGRESS
 
-> 更新：2026-09-12（完整端到端實測 + 4 bugs 修復）
+> 更新：2026-09-14（交接前開發藍圖 — 見 `docs/research/05-handover-blueprint.md`）
 > 藍圖依據：`docs/LinkCard Event related/20260911_LinkCard_Event_Admin_App_Deep_Research_v2.md` + `20260912_LinkCard_Batch_Write_Trigger_Admin_App_Design.md`
+
+---
+
+## 📌 交接前狀態（2026-09-14 審計更新）
+
+> 完整分析見 `docs/research/`（05 份報告 + 本藍圖）
+
+**現況一行**：Web 後台功能完整（12 個 manage 頁全在），Admin App 骨架完成（10 頁面、tsc/eslint/web export 全過）；**真機驗證 0、Deploy 0**。
+
+**交接前必做 4 件事**（~10 小時）：
+1. `[eventId]/settings.tsx` 補頁（登出 + Event 切換 + 版本 + NFC 狀態檢查，30 分）
+2. Registrations 列表頁（status filter + 分頁 + 查看，2 小時）— `eventService.getRegistrations` 已存在
+3. EAS 初始化 + projectId（30 分）
+4. 真機 E2E（Android 優先：Check-in QR → NFC 寫卡 → 綁定 → Badge 查詢 → Registrations 列表；3 小時）
+
+**關鍵發現**：後端 `GET /registrations` 無 search 參數（只支援 page/limit/status/ticketTypeId/visibility/depositRefunded，`EventRegistrationController.ts:70-150`）— by name/email 搜尋需新建 backend API，留給下個工程師。
+
+**不適合移植到 App 的 Web 功能**（桌面管理面）：org-roles / ticket-types / bank-transfers / content / polls / profile / badges 批次管理。
 
 ---
 
