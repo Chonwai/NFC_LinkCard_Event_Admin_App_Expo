@@ -18,3 +18,26 @@
 - android.package 用 `xyz.linkcard.event_admin`（Expo 不允許連字號）
 
 <!-- 每個 commit 完成後在此追加記錄 -->
+
+## 2026-09-14 — 交接前開發藍圖研究
+
+### 研究目的
+評估下一步策略（Web 後台 vs Admin App），盤點未開發功能，產出交接前開發藍圖。
+
+### 研究過程
+- Neo Loop B（DISCOVER → PLAN → VERIFY → DELIVER），Quality = strict(93) / L3 Deep Dive
+- Snapshot Pre-Flight：Admin App HEAD `2aaf7f2`（27 commits）+ Web Frontend HEAD `7138800`（27 commits），snapshot 皆 2026-09-13 FRESH
+- morpheus dispatch：3 次全部失敗（2 次 `ERR_NETWORK_CHANGED` + 1 次 rate limit）→ Neo DEGRADED 接手
+- Neo 直接掃描驗證：`find`（頁面結構）、`grep`（service 調用）、`read_file`（backend controller API 規格）— 全部有 file:line 證據
+
+### 關鍵發現
+1. **Web 後台 12/13 個 manage 頁已全在**（badges/bank-transfers/content/exhibitors/org-roles/polls/profile/registrations/sessions/settings/ticket-types + 主頁）→ 功能已非常完整
+2. **Admin App 缺 2 個「應移植」功能**：Registrations 列表（service 已存在）+ Settings 補頁
+3. **後端 `GET /registrations` 無 search 參數**（`EventRegistrationController.ts:70-150` 只支援 page/limit/status/ticketTypeId/visibility/depositRefunded）→ by name/email 搜尋需新建 API
+4. **Admin App `eventService.getRegistrations` 已存在**（`event.service.ts:50`），overview 頁已消費（`overview.tsx:56-57`）→ 註冊列表頁只需建 UI
+
+### 交付
+- `docs/research/05-handover-blueprint.md`（交接前開發藍圖）
+- `docs/research/README.md` 更新（索引入口 + 交接摘要）
+- `PROGRESS.md` 更新（交接前狀態 + todo）
+- 4 個 hackathon commits：`3e038a2` → `d77f041`（branch `main`）
