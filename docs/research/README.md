@@ -40,10 +40,10 @@
 
 | 文件 | 位置 | 讀者 | 用途 |
 |---|---|---|---|
-| **前端施工計畫** | `docs/20260915_AdminApp_Handoff_for_feiteng2015.md` | feiteng2015 | 17 個 W-ID × 三批次 × 前置條件 × mock 策略 |
+| **前端施工計畫** | `docs/20260915_AdminApp_Handoff_for_feiteng2015.md` | feiteng2015 | **23 個 W-ID** × 三批次 × 前置條件 × mock 策略 |
 | **API 契約凍結規格 v1** | `docs/20260915_AdminApp_API_Contract_Freeze_v1.md` | 雙方 | 25 端點 🟢🟡🔴 + 錯誤碼 + 權限矩陣 |
 | **可行性複審** | `docs/research/09-feasibility-review.md` | 用戶 | 裁決依據 + 待決策清單 |
-| **後端待辦** | `LinkCard_ExpressJS_Backend/docs/20260915_AdminApp_Backend_TODOs.md` | 用戶 | 5 阻斷項施工化 + 排序論證 |
+| **後端待辦** | `LinkCard_ExpressJS_Backend/docs/20260915_AdminApp_Backend_TODOs.md` | 用戶 | 5 阻斷項 + 2 交付判定項（**B-6 / B-7**）施工化 + 排序論證 |
 
 **核心結論**：
 - ✅ **5 個 P0 可立即開工**（7.0 人日，零後端依賴）：F-03 名單 / F-04 四大卡 / F-05 詳情 / F-08 EAS / F-10 Badge

@@ -13,7 +13,8 @@
 | 🟢 | **已存在且契約穩定**（live 驗證過） |
 | 🟡 | **已存在但契約有問題**（附具體修正內容） |
 | 🔴 | **待新建**（附 request/response 草案） |
-| 📌 | **規劃建議**（非實作事實） |
+| �+🔴 | **已存在但本次將新增欄位（additive）**：既有欄位不得改名、不得移除；新增欄位前端可先忽略（向後相容） |
+| �📌 | **規劃建議**（非實作事實） |
 | ⚠️ | **未驗證**（需用戶確認） |
 
 ---
@@ -34,10 +35,10 @@
 
 ### 1.1 Base URL 與前綴（⚠️ 後端有兩套前綴）
 
-| 群組 | 前綴 | 證據 |
+| 群組 | 前綴 | 證據（以函式名為準、行號為輔） |
 |---|---|---|
-| 認證 / 用戶 | `/api/auth/*`、`/api/users/*` | `auth.service.ts:12,20` |
-| 活動模組 | `/api/v1/events/*` | `event.service.ts:25,47,57` |
+| 認證 / 用戶 | `/api/auth/*`、`/api/users/*` | `auth.service.ts` 的 `login()` / `getMe()`（≈ :12 / :20） |
+| 活動模組 | `/api/v1/events/*` | `event.service.ts` 的 `getMyManaged()` / `getEventById()`（≈ :25 / :47） |
 
 > 📌 **規劃建議**：此雙前綴為歷史遺留，v1.0 **不動它**（改動成本 > 收益）。前端只需記住：**認證走 `/api`，活動走 `/api/v1`**。
 
@@ -47,9 +48,9 @@
 |---|---|
 | 機制 | JWT Bearer（`Authorization: Bearer <token>`） |
 | 取得 | `POST /api/auth/login` → `{ token, user }` |
-| 儲存 | `expo-secure-store`（`utils/storage.ts`） |
-| 注入 | axios request interceptor 自動附加（`api.ts:17-24`） |
-| 逾時處理 | 非 login 端點的 401 → 清 token + 導回登入（`api.ts:26-44`） |
+| 儲存 | `expo-secure-store`（`utils/storage.ts` 的 token 讀寫） |
+| 注入 | axios **request interceptor** 自動附加 `Authorization`（`api.ts`） |
+| 逾時處理 | 非 login 端點的 401 → 清 token + 導回登入（`api.ts` 的 response interceptor） |
 
 ### 1.3 統一 Response Envelope
 
@@ -63,8 +64,8 @@
 
 | 項 | 狀態 | 證據 |
 |---|:---:|---|
-| 成功 envelope | 🟢 | `api.types.ts:16-21` 已對齊 |
-| 錯誤 envelope | 🟡 **有分歧** | 後端 `ApiResponse.error(res, message, code, data, status)`；Admin App 型別宣告 `error: { code, message }`（`api.types.ts:24-29`）。實測前端用 `getApiErrorCode`（`utils/api-error.ts`）以**結構型別**讀取，不 import axios → **目前可運作** |
+| 成功 envelope | 🟢 | `api.types.ts` 的 `ApiSuccess<T>` 已對齊 |
+| 錯誤 envelope | 🟡 **有分歧** | 後端由 `ApiResponse.error()`（`utils/apiResponse.ts`）發出；Admin App 由 `api.types.ts` 的 `ApiFailure` 宣告 `error: { code, message }`。實測前端用 `getApiErrorCode()`（`utils/api-error.ts`）以**結構型別**讀取，不 import axios → **目前可運作** |
 
 > 📌 **v1.0 起以 `error.code` 為唯一錯誤碼來源。** `message` 只供顯示參考，不作為程式判斷依據。
 
@@ -73,16 +74,17 @@
 ## 2. 端點總表
 
 > 全部掛於 `{BASE}/api/v1/events/:eventId`（除認證群組）。
-> `:eventId` 可為 **id 或 slug**（後端 `resolveEventId`，`EventRegistrationController.ts:72-75`）。
+> `:eventId` 可為 **id 或 slug**（後端 `EventRegistrationController.resolveEventId()`）。
+> **引用慣例（本文件全域有效）**：一律以**函式名 / 路由字串**定位；`file.ts:NN` 僅為 2026-09-15 的輔助行號，會隨開發漂移。
 
 ### 2.A 認證與活動上下文
 
 | # | Mark | Method & Path | 用途 | Auth | 證據 |
 |---|:---:|---|---|---|---|
-| A-1 | 🟢 | `POST /api/auth/login` | 登入 | public | `auth.service.ts:12` |
-| A-2 | 🟢 | `GET /api/users/me` | 當前用戶 | JWT | `auth.service.ts:20` |
-| A-3 | 🟢 | `GET /api/v1/events/my-managed` | 我的活動（含 `_meta.userRole`） | JWT | `event.service.ts:25`；`EventService.ts:543-548` |
-| A-4 | 🟢 | `GET /api/v1/events/by-id/:eventId` | 單一活動 | JWT | `event.service.ts:47` |
+| A-1 | 🟢 | `POST /api/auth/login` | 登入 | public | `auth.service.ts` 的 `login()`（≈ :12） |
+| A-2 | 🟢 | `GET /api/users/me` | 當前用戶 | JWT | `auth.service.ts` 的 `getMe()`（≈ :20） |
+| A-3 | 🟢 | `GET /api/v1/events/my-managed` | 我的活動（含 `_meta.userRole`） | JWT | `event.service.ts` 的 `getMyManaged()`；後端 `EventService.getMyManagedEvents()` 回 `_meta.userRole` |
+| A-4 | 🟢 | `GET /api/v1/events/by-id/:eventId` | 單一活動 | JWT | `event.service.ts` 的 `getEventById()`（≈ :47） |
 
 ---
 
@@ -90,8 +92,8 @@
 
 | # | Mark | Method & Path | 用途 | Auth | 證據 |
 |---|:---:|---|---|---|---|
-| CHK-01 | 🟡 | `GET /registrations/by-code/:code` | 掃碼查詢（簽到第一步） | **public**（限流） | `registrations.routes.ts:62-67` |
-| CHK-02 | 🟡 | `POST /registrations/checkin` | 執行報到 | `getEventOperatorAccess`（owner/SA/CO/**OP**） | `EventRegistrationController.ts:182-216` |
+| CHK-01 | 🟡 | `GET /registrations/by-code/:code` | 掃碼查詢（簽到第一步） | **public**（限流） | 路由 `router.get('/by-code/:code'`（`registrations.routes.ts:67-71`）；限流 `registrationCodeLookupRateLimiter` |
+| CHK-02 | 🟡 | `POST /registrations/checkin` | 執行報到 | `EventService.getEventOperatorAccess()`（owner/SA/CO/**OP**） | 路由 `router.post('/checkin'`；handler `EventRegistrationController.checkIn()` |
 | CHK-03 | 🔴📌 | `POST /registrations/checkin/override` | 重複簽到覆核放行 | COORDINATOR+ | 新增 |
 | CHK-04 | 🔴📌 | `GET /checkin-stats` | 單日/單場簽到計數 | operator+ | 新增 |
 
@@ -103,8 +105,8 @@
 | **Auth** | Public（**無需 JWT**） |
 | **Query** | 無 |
 | **Response** | `{ registration: {...} }` |
-| **❌ 問題 1** | **限流 20 次 / 5 分鐘 / IP**（`registrations.routes.ts:15-33`）→ `REGISTRATION_LOOKUP_RATE_LIMITED` (429) |
-| **❌ 問題 2** | `registration` 回 **flat** `firstName`/`lastName`/`company`/`jobTitle`（`EventRegistrationService.ts:1088-1098`），但 Admin App 型別宣告 `profile.fullName`（`api.types.ts:70-78`） |
+| **❌ 問題 1** | **限流 20 次 / 5 分鐘 / IP**（`registrationCodeLookupRateLimiter`：`windowMs: 5*60*1000`、`limit: 20`、`keyGenerator: ipKeyGenerator(req.ip)`；`registrations.routes.ts:12-26`）→ `REGISTRATION_LOOKUP_RATE_LIMITED` (429) |
+| **❌ 問題 2** | `registration` 回 **flat** `firstName`/`lastName`/`company`/`jobTitle`（`EventRegistrationService.getRegistrationByCode()` 的 select），但 Admin App 型別（`api.types.ts` 的 `Registration`）宣告 `profile.fullName` |
 | **修正建議** | ① 限流改為**認證後以 userId 計 key**；未認證才退回 IP。理由：展館 WiFi NAT 共用出口 IP，20 次/5min 在開場尖峰必然誤殺（會議 §五：5 分鐘 500 人）。② 型別二選一 → §6 裁決 **C-2** |
 | **前端文案** | 429 → 「查詢過於頻繁，請稍候 3 秒再掃」+ 自動退避重試 |
 
@@ -116,8 +118,8 @@
 | **Auth** | JWT + `getEventOperatorAccess` → owner / SUPER_ADMIN / COORDINATOR / OPERATOR |
 | **Request** | `{ registrationCode: string }` |
 | **Response** | `{ registration: {...} }`（flat 欄位） |
-| **❌ 問題 1** | `checkIn` **無條件**拋 `ALREADY_CHECKED_IN`（`EventRegistrationService.ts:1042-1044`），**無 override 參數** → 會議「主管覆核後二次放行」無法實作 |
-| **❌ 問題 2** | 寫入只有 `checkedInAt` / `checkedInBy`（`schema.prisma:802-803`）→ **無閘口/地點** |
+| **❌ 問題 1** | `EventRegistrationService.checkIn()` **無條件**拋 `ALREADY_CHECKED_IN`（`EventRegistrationService.ts:1044`），且 DTO `CheckInDto` 只有 `registrationCode`、**無 override 參數** → 會議「主管覆核後二次放行」無法實作 |
+| **❌ 問題 2** | `EventRegistration` model 只有 `checkedInAt` / `checkedInBy` 兩欄（`schema.prisma`）→ **無閘口/地點** |
 | **修正** | 見後端待辦 B-2 / B-3 |
 
 #### CHK-03 🔴 — 重複簽到覆核（草案）
@@ -167,8 +169,8 @@
 }
 ```
 
-> ⚠️ **替代方案（若後端來不及）**：用既有 `GET /registrations?status=CHECKED_IN&limit=1` 讀 `pagination.total`（`overview.tsx:60-67` 已用此法）→ 得 **總簽到數**而非**今日數**。**語意降級但可用**，需在 UI 標示清楚。
-> **此為 PM 決策點** → 裁決 **C-7**。
+> ⚠️ **替代方案（若後端來不及）**：用既有 `GET /registrations?status=CHECKED_IN&limit=1` 讀 `pagination.total`（`overview.tsx` 的統計卡已用此法）→ 得 **總簽到數**而非**今日數**。**語意降級但可用**，需在 UI 標示清楚。
+> **此為 PM 決策點** → 裁決 **C-7**（語意）＋ **C-12**（是否本批交付）。
 
 ---
 
@@ -176,7 +178,7 @@
 
 | # | Mark | Method & Path | 用途 | Auth | 證據 |
 |---|:---:|---|---|---|---|
-| REG-01 | 🟡 | `GET /registrations` | 名單列表 | `getEventWriteAccess`（owner/SA/**CO only**） | `EventRegistrationController.ts:80`；`EventService.ts:375` |
+| REG-01 | 🟡 | `GET /registrations` | 名單列表 | `EventService.getEventWriteAccess()`（owner/SA/**CO only**） | 路由 `router.get('/'`（`registrations.routes.ts:64`）→ `EventRegistrationController.listRegistrations()`；guard 實作 `EventService.ts:352` |
 | REG-02 | 🔴📌 | `GET /registrations`（新增 query） | 搜尋 / 排序 | 同上 | 新增參數 |
 
 #### REG-01 🟡 — 名單列表
@@ -187,10 +189,10 @@
 | **Query（現況）** | `page`（預設 1）、`limit`（預設 20，上限 100）、`status`、`ticketTypeId`、`visibility`（all/active/hidden/archived）、`depositRefunded`（all/refunded/not_refunded） |
 | **Query（❌ 缺）** | `search`、`sortBy`、`sortOrder` |
 | **Response** | `{ registrations: [...], pagination: { total, page, limit, totalPages } }` |
-| **❌ 問題 1** | **OPERATOR 被擋**：`listRegistrations` 用 `getEventWriteAccess`（僅 owner/SA/CO，`EventService.ts:375`），但 `checkin` 用 `getEventOperatorAccess`（含 OP）。→ **閘口 staff 能簽到卻看不到名單** |
-| **❌ 問題 2** | 無 `search` / `sortBy`（`EventRegistrationService.ts:1213-1222`），排序**硬寫** `createdAt desc`（`:1271`） |
+| **❌ 問題 1** | **OPERATOR 被擋**：`EventRegistrationController.listRegistrations()` 用 `EventService.getEventWriteAccess()`（僅 owner/SA/CO），但 `checkIn()` 用 `EventService.getEventOperatorAccess()`（含 OP）。→ **閘口 staff 能簽到卻看不到名單** |
+| **❌ 問題 2** | 無 `search` / `sortBy`：`EventRegistrationService.listRegistrations()` 只接受 `page` / `limit` / `status` / `ticketTypeId` / `visibility` / `depositRefunded`，排序**硬寫** `createdAt desc` |
 | **❌ 問題 3** | pagination 欄位名與文件不符（`totalPages` vs 文件 `pages`） |
-| **Pagination 精確契約** | `{ "total": number, "page": number, "limit": number, "totalPages": number }` ← **以實作為準** |
+| **Pagination 精確契約** | `{ "total": number, "page": number, "limit": number, "totalPages": number }` ← **以 `EventRegistrationService.listRegistrations()` 回傳為準** |
 | **修正** | 見後端待辦 B-4（權限）+ REG-02（參數）+ 裁決 **C-1**（pagination） |
 
 #### REG-02 🔴 — 搜尋 / 排序（草案）
@@ -211,7 +213,7 @@
 // 400 INVALID_SORT_FIELD / INVALID_SEARCH_QUERY
 ```
 
-> 📌 **索引建議**：`search` 用 `contains` + `mode: 'insensitive'`。`event_registrations(email)` 已有索引（`schema.prisma:836`），但 `firstName`/`lastName` **無索引**。活動規模（數百至數千筆/場）下 `ILIKE` 全表掃描可接受，**不建議**為此加 trigram 索引（無信號、增加 migration 風險）。
+> 📌 **索引建議**：`search` 用 `contains` + `mode: 'insensitive'`。`event_registrations` 的 `email` 已有索引（`schema.prisma` 的 `@@index([email])`），但 `firstName`/`lastName` **無索引**。活動規模（數百至數千筆/場）下 `ILIKE` 全表掃描可接受，**不建議**為此加 trigram 索引（無信號、增加 migration 風險）。
 
 ---
 
@@ -219,10 +221,10 @@
 
 | # | Mark | Method & Path | 用途 | Auth（v11.3 §4.3） | 證據 |
 |---|:---:|---|---|---|---|
-| WAL-01 | 🟢+🔴 | `GET /wallet/:registrationId/balance` | 查餘額 | `PART` ‖ `OWNER/SA/CO/OP`（⚠D12） | `premium.routes.ts:13` |
-| WAL-02 | 🟢+🔴 | `GET /wallet/:registrationId/transactions` | 查流水 | 同上 | `premium.routes.ts:14-18` |
-| WAL-03 | 🟡 | `POST /wallet/:registrationId/top-up` | 現場增值 | **OP+ only**（收緊） | `premium.routes.ts:19` |
-| WAL-04 | 🟡 | `POST /wallet/:registrationId/deduct` | （deprecated） | **OP+** + 白名單 + reasonCode | `premium.routes.ts:20` |
+| WAL-01 | 🟢+🔴 | `GET /wallet/:registrationId/balance` | 查餘額 | `PART` ‖ `OWNER/SA/CO/OP`（⚠D12） | `premium.routes.ts` 的 `walletRouter.get('/:registrationId/balance'`（≈ :13） |
+| WAL-02 | 🟢+🔴 | `GET /wallet/:registrationId/transactions` | 查流水 | 同上 | `premium.routes.ts` 的 `walletRouter.get('/:registrationId/transactions'` |
+| WAL-03 | 🟡 | `POST /wallet/:registrationId/top-up` | 現場增值 | **OP+ only**（收緊） | `premium.routes.ts` 的 `walletRouter.post('/:registrationId/top-up'`；handler `EventWalletController.topUp()` |
+| WAL-04 | 🟡 | `POST /wallet/:registrationId/deduct` | （deprecated） | **OP+** + 白名單 + reasonCode | `premium.routes.ts` 的 `walletRouter.post('/:registrationId/deduct'`；handler `EventWalletController.deduct()` |
 | WAL-05 | 🔴 | `POST /wallet/:registrationId/redeem` | 核銷消費 | OP+ | 新增 |
 | WAL-06 | 🔴 | `POST /wallet/:registrationId/adjust` | 管理調整 | OWNER/SA（maker） | 新增 |
 | WAL-07 | 🔴 | `GET /wallet/adjustments` | 審批佇列 | OWNER/SA/CO | 新增 |
@@ -233,6 +235,7 @@
 > **設計依據全文**：`LinkCard_ExpressJS_Backend/docs/development-cycles/v11.3-event-token-system/04-design-plan.md`
 > §4.3（端點 + 權限）、§4.4（冪等 + 正負號）、§5.2（畫面規格）。
 > 🔴 端點的完整 schema 以該文件為**唯一權威**，本文件只摘錄**前端所需欄位**。
+> 📌 **範圍邊界（本表只列「前端消費」端點）**：`POST /wallet/:registrationId/allocate-initial`（OP+，報名確認後配發初始 Token）與 `POST /internal/cron/events/token-expire`（EXPIRY 排程）**不在 Admin App 範圍**——前者由報名流程觸發、後者由 cron 觸發，**App 不呼叫、不顯示**（因此不列入 WAL-xx，也不列在 C-11/C-12 的交付判定中）。
 
 #### WAL-01 🟢+🔴 — 查餘額
 
@@ -359,16 +362,16 @@
 
 | # | Mark | Method & Path | 用途 | Auth | 證據 |
 |---|:---:|---|---|---|---|
-| NFC-01 | 🟢 | `GET /nfc/lookup?uid=&qr=` | 查 badge | **public** | `event-ops.routes.ts:43` |
-| NFC-02 | 🟢 | `POST /nfc/bind` | 綁定 badge ↔ registration | JWT（operator+） | `event-ops.routes.ts:44` |
-| NFC-03 | 🟢 | `GET /nfc/badges` | badge 列表 | `checkAccess('write')` = owner/SA/CO | `event-ops.routes.ts:60`；`EventNfcBatchController.ts:83` |
-| NFC-04 | 🟢 | `GET /nfc/badges/export` | CSV 匯出 | 同上 | `event-ops.routes.ts:61` |
-| NFC-05 | 🟢 | `POST /nfc/batch` | 建立批次 | 同上 | `event-ops.routes.ts:62` |
-| NFC-06 | 🟢 | `POST /nfc/batch/:batchId/complete` | 完成批次 | `checkAccess('operator')` = +OP | `event-ops.routes.ts:63`；`:125` |
-| NFC-07 | 🟢 | `POST /nfc/batch/claim` | 指派 badge 予展商 | write | `event-ops.routes.ts:64` |
+| NFC-01 | 🟢 | `GET /nfc/lookup?uid=&qr=` | 查 badge | **public** | `eventOpsRouter.get('/nfc/lookup'`（`event-ops.routes.ts:60`） |
+| NFC-02 | 🟢 | `POST /nfc/bind` | 綁定 badge ↔ registration | JWT（operator+） | `eventOpsRouter.post('/nfc/bind'`（`event-ops.routes.ts:61`） |
+| NFC-03 | 🟢 | `GET /nfc/badges` | badge 列表 | `checkAccess('write')` = owner/SA/CO | `eventOpsRouter.get('/nfc/badges'`（`event-ops.routes.ts:66`）；`EventNfcBatchController.listBadges()` |
+| NFC-04 | 🟢 | `GET /nfc/badges/export` | CSV 匯出 | 同上 | `eventOpsRouter.get('/nfc/badges/export'`（`event-ops.routes.ts:67`） |
+| NFC-05 | 🟢 | `POST /nfc/batch` | 建立批次 | 同上 | `eventOpsRouter.post('/nfc/batch'`（`event-ops.routes.ts:68`） |
+| NFC-06 | 🟢 | `POST /nfc/batch/:batchId/complete` | 完成批次 | `checkAccess('operator')` = +OP | `eventOpsRouter.post('/nfc/batch/:batchId/complete'`（`event-ops.routes.ts:69`）；`EventNfcBatchController.completeBatch()` |
+| NFC-07 | 🟢 | `POST /nfc/batch/claim` | 指派 badge 予展商 | write | `eventOpsRouter.post('/nfc/batch/claim'`（`event-ops.routes.ts:70`） |
 | NFC-08 | 🔴📌 | `GET /nfc/badges?registrationId=` | 查某用戶的 badge | write | 新增參數 |
 
-> 📌 **重要**：NFC-01..07 **實作已完成**（`EventNfcBatchController.ts:52-167`，程式碼審查 96/100），但 **`docs/api/**` 內零文件覆蓋**（實測 grep 0 命中）。本節為首次書面化。
+> 📌 **重要**：NFC-01..07 **實作已完成**（`EventNfcBatchController` 的 `listBadges()` / `createBatch()` / `completeBatch()` / `claimBadge()`，程式碼審查 96/100），但 **`docs/api/**` 內零文件覆蓋**（實測 grep 0 命中）。本節為首次書面化。
 
 #### NFC-03 🟢 — badge 列表（**注意參數名與 REG-01 不同**）
 
@@ -376,7 +379,7 @@
 |---|---|
 | **Query** | `page`（預設 1）、`pageSize`（預設 20，上限 200）、`status`、`batchId`、`boundOnly`、`all` |
 | **Response** | `{ badges: [...], pagination: { total, page, pageSize } }` |
-| **⚠️ 關鍵** | **參數名是 `pageSize`，不是 `limit`**；且回應**無** `totalPages`（`EventNfcBatchService.ts:130,146`） |
+| **⚠️ 關鍵** | **參數名是 `pageSize`，不是 `limit`**；且回應**無** `totalPages`（`EventNfcBatchService.listBadges()` 回傳，`EventNfcBatchService.ts:146`；`all=true` 分支為 `:130`） |
 
 > 🔴 **紅字警告**：同一個後端，`/registrations` 用 `limit` 且回 `totalPages`，`/nfc/badges` 用 `pageSize` 且不回 `totalPages`。
 > **前端必須為兩者寫不同的型別**（或用 §6 C-1 的統一方案）。**這是本契約最容易寫錯的地方。**
@@ -389,7 +392,7 @@
 ```
 
 > **為什麼需要**：F-05 用戶詳情頁要顯示「綁定 NFC 編號」。現有 `nfc/lookup` 需要 `uid` 或 `qr`（我們不知道），`nfc/badges` 無 `registrationId` 篩選 → **目前拼不出來**。
-> ⚠️ 替代：DB 有 `EventNfcBadge.registrationId @unique`（`schema.prisma:876`），後端加這個 filter 成本極低（📌 ≤ 0.25 人日）→ 裁決 **C-9**。
+> ⚠️ 替代：DB 有 `EventNfcBadge.registrationId @unique`（`schema.prisma`），後端加這個 filter 成本極低（📌 ≤ 0.25 人日）→ 裁決 **C-9**。
 
 ---
 
@@ -413,7 +416,7 @@
 | U-2 | `getTransactionHistory` 的 pagination 欄位名 | 未實測該函式回傳 | 前端型別可能錯 |
 | U-3 | `wallet/report/summary` 是否 P0 交付 | 設計有列，實作進度未知 | 批次 2 是否含報表 |
 | U-4 | 現場「收款方式」是否含 `MPAY` | 會議 §五 說 11 月只做記帳，但 UI 要預留「已收款」勾選 | W-22 欄位設計 |
-| **U-5** | `by-code` 路由是否已解析 `req.user` | 該路由**無 auth 中間件**（`registrations.routes.ts:62-67` 為 public），`req.user` 可能 undefined | **B-5.1 的前置驗證項** |
+| **U-5** | `by-code` 路由是否已解析 `req.user` | 路由 `router.get('/by-code/:code'`（`registrations.routes.ts:67-71`）**未掛 auth 中間件**，僅掛限流（**連 `optionalAuthMiddleware` 都沒有**）→ `req.user` 可能 undefined | **B-5.1 的前置驗證項** |
 
 ---
 
@@ -430,24 +433,24 @@
 | （未使用） | `VOLUNTEER` | 🔴 **無任何授權引用** |
 | （未使用） | `MEDIA` | 會議未提 |
 
-後端 enum 實證：`schema.prisma:1245-1251`（5 值）。
+後端 enum 實證：`EventOrgRoleType`（`schema.prisma:1245-1251`，**5 值**：`SUPER_ADMIN` / `COORDINATOR` / `OPERATOR` / `VOLUNTEER` / `MEDIA`）。**event owner 不在 enum 內**，由 `Event.orgId` / 關聯判定（`EventService.getEventWriteAccess()` 同時接受 owner 與 SA/CO）。
 
 ### 3.2 操作 × 角色（**live 實測**）
 
 | 操作 | owner | SUPER_ADMIN | COORDINATOR | OPERATOR | VOLUNTEER | PART（本人） | 證據 |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|---|
-| 登入 / 看我的活動 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `EventService.ts:528-548` |
-| 掃碼查詢（by-code） | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | public |
-| **執行簽到** | ✅ | ✅ | ✅ | ✅ | ❌ | ✅（本人） | `EventService.ts:440-446` |
-| **看重名單** | ✅ | ✅ | ✅ | 🔴 **❌** | ❌ | ❌ | `EventService.ts:375` |
+| 登入 / 看我的活動 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `EventService.getMyManagedEvents()` |
+| 掃碼查詢（by-code） | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 路由 `router.get('/by-code/:code'`（**public**，無 auth 中間件） |
+| **執行簽到** | ✅ | ✅ | ✅ | ✅ | ❌ | ✅（本人） | `EventService.getEventOperatorAccess()`（含 OP） |
+| **看重名單** | ✅ | ✅ | ✅ | 🔴 **❌** | ❌ | ❌ | `EventService.getEventWriteAccess()`（**不含 OP**） |
 | 名單篩選（status/ticketType） | ✅ | ✅ | ✅ | 🔴 ❌ | ❌ | ❌ | 同上 |
-| 建立/看 badge 批次 | ✅ | ✅ | ✅ | 🔴 ❌ | ❌ | ❌ | `EventNfcBatchController.ts:83` |
-| 完成 badge 批次 | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | `EventNfcBatchController.ts:125` |
-| NFC 綁定 | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | `registrationAccess.ts:18-35` |
-| 查 Token 餘額 | ✅ | ✅ | ✅ | ✅（⚠D12） | ❌ | ✅（本人） | `registrationAccess.ts:30` |
+| 建立/看 badge 批次 | ✅ | ✅ | ✅ | 🔴 ❌ | ❌ | ❌ | `EventNfcBatchController.checkAccess(..., 'write')` |
+| 完成 badge 批次 | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | `EventNfcBatchController.checkAccess(..., 'operator')` |
+| NFC 綁定 | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | `assertRegistrationOwnershipOrOperator()`（`registrationAccess.ts`） |
+| 查 Token 餘額 | ✅ | ✅ | ✅ | ✅（⚠D12） | ❌ | ✅（本人） | 同上（`registrationAccess.ts`） |
 | 查 Token 流水 | ✅ | ✅ | ✅ | ✅（⚠D12） | ❌ | ✅（本人） | 同上 |
-| **Token 增值** | ✅ | ✅ | ✅ | ✅ | ❌ | 🔴 **✅（漏洞）** | `EventWalletController.ts:59-68` |
-| Token 扣減 | ✅ | ✅ | ✅ | ✅ | ❌ | 🔴 **✅（漏洞）** | `EventWalletController.ts:94-131` |
+| **Token 增值** | ✅ | ✅ | ✅ | ✅ | ❌ | 🔴 **✅（漏洞）** | `EventWalletController.topUp()`（`EventWalletController.ts:51`） |
+| Token 扣減 | ✅ | ✅ | ✅ | ✅ | ❌ | 🔴 **✅（漏洞）** | `EventWalletController.deduct()`（`EventWalletController.ts:94`） |
 | Token 核銷（redeem） | 🔴 待建 | 🔴 | 🔴 | 🔴 | ❌ | ❌ | v11.3 §4.3 |
 | Token 調整（提出） | 🔴 待建（僅 OWNER/SA） | 🔴 | ❌ | ❌ | ❌ | ❌ | v11.3 §4.3 |
 | 審批 / 駁回 | 🔴 待建（OWNER/SA） | 🔴 | ❌ | ❌ | ❌ | ❌ | v11.3 §4.3 |
@@ -471,7 +474,7 @@
 | 錯誤碼 | HTTP | 觸發情境 | **前端文案建議（zh-Hant）** | 來源 |
 |---|:---:|---|---|---|
 | `INVALID_AMOUNT` | 400 | 非正整數 / ≤ 0 | 「金額需為大於 0 的整數」 | v11.3 §4.3 |
-| `INSUFFICIENT_TOKEN_BALANCE` | 400 | 餘額不足 | 「餘額不足，尚差 N 點」 | `EventWalletController.ts:126-131` |
+| `INSUFFICIENT_TOKEN_BALANCE` | 400 | 餘額不足 | 「餘額不足，尚差 N 點」 | `EventWalletController.deduct()`（`:126-131`） |
 | `REGISTRATION_NOT_FOUND` | 404 | 報名不存在 / 跨活動 | 「找不到此報名紀錄」 | 既有 |
 | `INSUFFICIENT_PERMISSION` | 403 | guard 拒絕 | 「你的角色無此操作權限」 | 既有 |
 | ➕ `EVENT_TOKEN_FROZEN` | 409 | T1（endDate+24h）後嘗試消費 | 「活動已結算，停止代幣消費」 | v11.3 §4.3 |
@@ -483,15 +486,15 @@
 | ➕ `TOPUP_LIMIT_EXCEEDED` | 400 | 超單筆/每日上限 | 「已達增值上限，請聯絡主管」 | v11.3 §4.3（門檻待 D14） |
 | ➕ `MAKER_CHECKER_SAME_USER` | 403 | 提出人 = 覆核人 | 「不可覆核自己提出的調整」 | v11.3 §4.3 |
 | ➕ `IDEMPOTENCY_CONFLICT` | 409 | 同 key 但 payload 不同 | 「此操作已送出，請重新整理後確認」 | v11.3 §4.3 |
-| `ALREADY_CHECKED_IN` | 400 | 重複簽到 | 「此報名已完成入場」＋顯示首次時間 | `EventRegistrationController.ts:768-769` |
-| `REGISTRATION_NOT_CONFIRMED` | 400 | 未確認報名 | 「此報名尚未確認」 | `EventRegistrationService.ts:1047-1049` |
-| `REGISTRATION_LOOKUP_RATE_LIMITED` | 429 | by-code 限流 | 「查詢過於頻繁，請 3 秒後重試」 | `registrations.routes.ts:17-26` |
+| `ALREADY_CHECKED_IN` | 400 | 重複簽到 | 「此報名已完成入場」＋顯示首次時間 | `EventRegistrationService.checkIn()`（`:1044`） |
+| `REGISTRATION_NOT_CONFIRMED` | 400 | 未確認報名 | 「此報名尚未確認」 | `EventRegistrationService.checkIn()`（`REGISTRATION_NOT_CONFIRMED` 分支） |
+| `REGISTRATION_LOOKUP_RATE_LIMITED` | 429 | by-code 限流 | 「查詢過於頻繁，請 3 秒後重試」 | `registrationCodeLookupRateLimiter`（`registrations.routes.ts:12-26`） |
 | 🔴 `INVALID_SORT_FIELD` 📌 | 400 | sortBy 非法 | （不應出現；前端鎖選項） | 草案 |
 | 🔴 `INVALID_SEARCH_QUERY` 📌 | 400 | search 過長 | （不應出現） | 草案 |
 | 🔴 `CHECKIN_NOT_IN_CONFLICT` 📌 | 409 | override 但原本無衝突 | 「此人尚未簽到，請走一般簽到」 | 草案 |
 | `EVENT_NOT_FOUND` | 404 | 活動不存在 | 「活動不存在或已刪除」 | 既有 |
 | `REGISTRATION_FIELD_IMAGE_TOO_LARGE` | 400 | 圖片 > 5MB | 「附件不能超過 5MB」 | 既有 |
-| `BANK_TRANSFER_PROOF_SUBMIT_RATE_LIMITED` | 429 | 憑證提交限流 | 「提交過於頻繁」 | `event-ops.routes.ts:26-32` |
+| `BANK_TRANSFER_PROOF_SUBMIT_RATE_LIMITED` | 429 | 憑證提交限流 | 「提交過於頻繁」 | `bankTransferProofSubmitRateLimiter`（`event-ops.routes.ts:18-32`） |
 
 ### 4.1 前端錯誤處理守則
 
@@ -511,11 +514,11 @@
 
 | # | 來源 | 形狀 | 證據 |
 |:---:|---|---|---|
-| 1 | `GET /registrations` | `{ total, page, limit, totalPages }` | `EventRegistrationService.ts:1333` |
-| 2 | `GET /my-managed` | `{ page, limit, total, totalPages }` | `EventService.ts:560` |
-| 3 | `GET /nfc/badges` | `{ total, page, pageSize }`（**query 參數亦為 `pageSize`**） | `EventNfcBatchService.ts:130,146` |
-| 4 | **文件** `03-registration-payment-api.md:140` | `{ total, page, limit, pages }` | ❌ 與實作不符 |
-| 5 | **Admin App 型別** | `{ total, page, pageSize, pages? }` | ❌ 與兩者皆不符（`event.service.ts:6-11` / `nfc.service.ts:8`） |
+| 1 | `GET /registrations` | `{ total, page, limit, totalPages }` | `EventRegistrationService.listRegistrations()` 回傳（≈ :1333） |
+| 2 | `GET /my-managed` | `{ page, limit, total, totalPages }` | `EventService.getMyManagedEvents()` 回傳 |
+| 3 | `GET /nfc/badges` | `{ total, page, pageSize }`（**query 參數亦為 `pageSize`**） | `EventNfcBatchService.listBadges()` 回傳（≈ :146） |
+| 4 | **文件** `docs/api/v11.0-event-module/03-registration-payment-api.md` | `{ total, page, limit, pages }` | ❌ 與實作不符（pagination 範例段，≈ :140） |
+| 5 | **Admin App 型別** | `{ total, page, pageSize, pages? }` | ❌ 與兩者皆不符（`event.service.ts` 的 registrations pagination 型別 / `nfc.service.ts` 的 badges pagination 型別） |
 
 **規則（v1.0 有效）**：
 - 以**實作為準**：`/registrations` 與 `/my-managed` 用 `totalPages`；`/nfc/badges` 用 `pageSize` 且**無** `totalPages`（分頁要自己算 `Math.ceil(total / pageSize)`）。
@@ -529,7 +532,7 @@
 | 後端 `by-code` / `checkin` / list | **flat**：`firstName`、`lastName`、`company`、`jobTitle`、`phone`、`email`、`registrantType`、`tokenBalance`、`checkedInAt`、`formData`、`ticketType{...}` |
 | Admin App 型別 | `profile: { fullName, email, phone, company, jobTitle }` + `customFields` |
 
-**證據**：`EventRegistrationService.ts:1088-1098`（by-code select）vs `api.types.ts:66-79`。
+**證據**：`EventRegistrationService.getRegistrationByCode()` 的 select（flat）vs `api.types.ts` 的 `Registration` 型別（`profile`）。
 
 **現況風險**：`check-in.tsx` 目前能運作，因為它**可能沒實際讀 `profile.*`**。**一旦 W-03/W-05 開始讀姓名，就會拿到 `undefined`。**
 
@@ -557,7 +560,7 @@
 
 | ID | 裁決點 | 選項 | 建議 | 阻塞 |
 |:---:|---|---|---|:---:|
-| **C-1** | Pagination 長期方案 | (a) 維持現狀 + **改正文件** + App 用兩個型別<br/>(b) 後端統一為 `{total,page,limit,totalPages}`（含 `/nfc/badges` 改參數名 → **breaking**）<br/>(c) 文件與 App 都對齊實作，另立 v11.x 統一 | **(a)** — 變更成本最低；`/nfc/badges` 改參數名會破壞已上線的 Promoter/Frontend 呼叫。**但文件必須改**（`03-registration-payment-api.md:140`） | 🚫 W-01 |
+| **C-1** | Pagination 長期方案 | (a) 維持現狀 + **改正文件** + App 用兩個型別<br/>(b) 後端統一為 `{total,page,limit,totalPages}`（含 `/nfc/badges` 改參數名 → **breaking**）<br/>(c) 文件與 App 都對齊實作，另立 v11.x 統一 | **(a)** — 變更成本最低；`/nfc/badges` 改參數名會破壞已上線的 Promoter/Frontend 呼叫。**但文件必須改**（`docs/api/v11.0-event-module/03-registration-payment-api.md` 的 pagination 範例段） | 🚫 W-01 |
 | **C-2** | `Registration` 型別 | (a) 前端改 flat<br/>(b) 後端加 `profile` | **(a)** | 🚫 W-01 |
 | **C-3** | by-code 限流 | (a) 改 userId 計 key + 提高上限<br/>(b) 維持 IP 但放寬<br/>(c) 不改 | **(a)** | 🚫 W-21/W-26 |
 | **C-4** | OPERATOR 名單讀取權（G-1） | (a) 新增 `getEventReadAccess` 含 OP<br/>(b) 維持，前端隱藏名單卡給 OP | **(a)** — 會議 §F 要「攤位 staff 看自己攤位」 | 🚫 W-03 / W-30 |
@@ -566,7 +569,9 @@
 | **C-7** | 簽到計數語意 | (a) 新端點單日/單場<br/>(b) 降級為總數（用現有 query） | **(a)**，但 (b) 可作 fallback | ⚠️ W-29 |
 | **C-8** | 「所屬社團」API | (a) 有既有端點（請提供）<br/>(b) 不做（顯示「—」） | **(b)** 起步 | ⚠️ W-05 |
 | **C-9** | NFC-08（依 registrationId 查 badge） | (a) 加 query 參數<br/>(b) 不做，詳情頁不顯示 NFC | **(a)** — 成本 ≤ 0.25 人日，DB 已有 `registrationId @unique` | ⚠️ W-05 |
-| **C-10** | 音效套件 | (a) `expo-audio`<br/>(b) `expo-av`<br/>(c) 無音效只用震動 | **(a)** | ⚠️ W-28 |
+| **C-10** | 音效套件 | (a) `expo-audio`（SDK 57 官方音訊庫）<br/>(b) **無音效**，只用 RN 內建 `Vibration` | **(a)**。❌ `expo-av` **已自候選移除**：Expo 已標記 `isDeprecated: true` 且**將於 SDK 55 移除**，本專案為 `expo ~57.0.13` → **該套件不存在，不可用** | ⚠️ W-28 |
+| **C-11** | REG-02（名單 `search`/`sortBy`/`sortOrder`）**是否本批交付** | (a) **本批交付**：後端新增此三參數（施工項 **B-6**，0.75 BE 人日）<br/>(b) 本批不做：**W-04 走降級**（僅分頁+篩選，搜尋靠前端對當頁過濾） | **(a)** — 會議 §二 模組 D 將「搜尋、篩選、排序」列為名單頁必要功能；降級版在數千筆規模下不可用 | 🚫 **W-04** |
+| **C-12** | CHK-04（簽到計數端點）**交付或降級** | (a) **本批交付新端點**（施工項 **B-7**，0.75 BE 人日）<br/>(b) 降級：用既有 `status=CHECKED_IN` 讀 `pagination.total`（UI 標「**總簽到**」而非「今日」） | **(a)**，(b) 作 fallback（同 **C-7**：C-7 管「語意」，C-12 管「是否本批交付」） | ⚠️ **W-29** |
 
 ---
 
@@ -575,13 +580,14 @@
 | 會議要求 | 後端實況 | 處理 |
 |---|---|---|
 | 操作可撤銷（Undo 5 秒） | v11.3 **明確不做 undo**（無端點） | 改為「二次確認 + 反向 adjust」。前端**不得**用本地刪除假裝 undo |
-| 簽到顯示「地點」 | 無 gate/location 欄位（`schema.prisma:802-803` 僅 checkedInAt/By） | B-3 新增；未到位前只顯示時間 |
+| 簽到顯示「地點」 | 無 gate/location 欄位（`EventRegistration` 只有 `checkedInAt` / `checkedInBy`，`schema.prisma:802-803`） | B-3 新增；未到位前只顯示時間 |
 | Token 扣減需二次確認 | 後端有條件式 UPDATE，無二次確認概念 | 前端實作（W-22） |
 | 增值預設快捷金額（+10/+50/+100，由 Admin Web 配置） | **無此配置端點** | ⚠️ 前端硬編碼起步，並回報用戶是否要建 config API |
 | 兌換品項清單（咖啡 −20、零食 −10） | **無價目表 API**（v11.3 D8 未決） | ⚠️ 前端先用 `sourceType` 寫死選單；價目表屬 P1 |
 | 離線暫存 | v11.3 **不做離線**（§5.4） | 走紙本 SOP（v11.3 §5.3 #4） |
 | 多語言（繁/簡/英/葡） | 無 i18n 基建（文案集中 `copy.zh-TW.ts`） | P1；批次 1–3 先繁中 |
 | QR 加簽名/一次性 token 防截圖冒用 | QR 內容為 `registrationCode`（靜態） | ⚠️ **未處理**。若需防冒用須後端改造（屬新需求），建議列 P1 並由 PM 決定風險接受度 |
+| 澳門《個人資料保護法》（第 8/2005 號法律）— 報名個資收集需**明示同意**、Email 需含**退訂與資料用途聲明** | 同意與退訂機制在報名流程與 Email 模板（**Admin Web / Frontend**），Admin App **無同意收集入口** | App 端只需守住「顯示遮罩 + 不落地儲存敏感個資」；同意/退訂聲明屬 Web 與 Email 範圍 → 列 P1，並由法務/PM 確認（風險分級見可行性複審 §6.1） |
 
 ---
 
@@ -604,6 +610,7 @@
 | 版本 | 日期 | 變更 | 原因 |
 |---|---|---|---|
 | v1.0 | 2026-09-15 | 初版凍結候選 | Neo Loop（admin-app-handoff）PLAN stage 交付 |
+| v1.0-r1 | 2026-09-15 | ① 標記約定補 `🟢+🔴`（additive）；② C-10 移除 `expo-av` 候選（SDK 57 已無此套件）；③ 新增裁決 **C-11**（REG-02 是否本批交付）、**C-12**（CHK-04 交付或降級）；④ §2.D 補「只列前端消費端點」範圍聲明（排除 `allocate-initial` / `token-expire` cron）；⑤ §7 補澳門 PDPA 落差列；⑥ 全文件引用改以**函式名/路由字串**為主、行號為輔（路線行號已校正） | REPAIR R1：獨立文件審查 DRA-002 / DRA-006 / DRA-008 / DRA-009 / DRA-013 / DRA-014 |
 
 ---
 

@@ -21,7 +21,7 @@
 | 階段 | 執行者 | 方法 | 產出 |
 |---|---|---|---|
 | DISCOVER | morpheus（獨立研究員） | 兩個 repo 實時掃描 + `grep` 驗證 + 契約比對 | 5 個硬阻斷項 + 可行性矩陣 |
-| PLAN | architect（規劃部，**非同一 agent**） | 逐項證據核對（file:line）+ 契約凍結草案 + 施工排序 | 3 份交付文件（含 17 個 W-ID） |
+| PLAN | architect（規劃部，**非同一 agent**） | 逐項證據核對（**以函式名/路由字串為主**）+ 契約凍結草案 + 施工排序 | 3 份交付文件（含 **23 個 W-ID**） |
 | 本報告 | Neo（複審整合） | 交叉比對兩階段結論差異 | 可行性裁決 |
 
 **Maker ≠ Checker**：DISCOVER 與 PLAN 由不同 agent 執行；PLAN 階段**推翻了 DISCOVER 的 1 項評級**（見 §3.1）。
@@ -33,23 +33,24 @@
 | ID | 功能 | 前端可開發？ | 卡在哪 | 裁決 |
 |:---:|---|:---:|---|:---:|
 | **F-01** | QR 簽到三態（三態 UI + 重複覆核 + 音效震動 + 計數） | 🟡 **部分** | 三態 UI ✅ 可做；**覆核**卡 B-2；**計數**卡新端點；**音效**卡無套件 | ⚠️ 拆成 W-26（可做）/ W-27 / W-28 / W-29 |
-| **F-02** | Token 櫃台 wallet-counter | ❌ **不可** | **B-1**（帳務層 6 端點 + 冪等全缺） | 🚫 等後端 B-1a |
-| **F-03** | 名單列表 + 搜尋/篩選 | ✅ **可**（搜尋除外） | 分頁/篩選 ✅；`search`/`sortBy` 後端未實作；**OPERATOR 被 403** | ✅ W-03 可開工；W-04 等後端 |
+| **F-02** | Token 櫃台 wallet-counter | ❌ **不可** | **B-1a**（帳務層 6 端點 + 冪等全缺）；**調整 tab 另等 B-1b** | 🚫 等後端 B-1a（W-22b 另等 B-1b） |
+| **F-03** | 名單列表 + 搜尋/篩選 | ✅ **可**（搜尋除外） | 分頁/篩選 ✅；`search`/`sortBy` 後端未實作（**B-6**）；**OPERATOR 被 403** | ✅ W-03 可開工；W-04 等後端 B-6 |
 | **F-04** | 四大功能卡首頁 | ✅ **可** | 純前端編排 | ✅ 立即開工 |
 | **F-05** | 用戶詳情頁 | ✅ **大部分** | 4 個既有端點拼出 80%；「所屬社團」API 未確認 | ✅ 立即開工（一區塊預留） |
 | **F-06** | Credential 統一模型 | ❌ **不可** | 後端無 `EventCredential` model（grep 0 命中） | 🚫 純後端，前端僅批次 3 適配 |
 | **F-07** | 權限矩陣與門控 | ❌ **不可** | **B-4**（VOLUNTEER 無任何授權引用） | 🚫 等 B-4 + D12 裁決 |
 | **F-08** | EAS 初始化 + projectId | ✅ **可** | 僅需 Expo 帳號權限 | ✅ 立即開工 |
 | **F-09** | 真機 E2E | ⏳ **後期** | 需設備 + badge 資料 + 前面全綠 | 批次 3 |
-| **F-10** | Badge 批次資料建置 | ✅ **可** | 5 端點全在（`event-ops.routes.ts:60-65`） | ✅ 立即開工 |
+| **F-10** | Badge 批次資料建置 | ✅ **可** | 5 端點全在（`eventOpsRouter.get('/nfc/badges'` … `eventOpsRouter.post('/nfc/batch/claim'`，`event-ops.routes.ts:66-70`） | ✅ 立即開工 |
 
 ### 2.1 統計
 
 | 裁決 | 數量 | 人日 | 說明 |
 |---|:---:|:---:|---|
-| ✅ 可立即開發 | 5（F-03/F-04/F-05/F-08/F-10） | **7.0** | 無後端依賴 |
-| 🟡 部分可開發 | 1（F-01） | 0.75 / 2.75 | 三態 UI 可先做 |
-| ❌ 後端阻斷 | 4（F-02/F-06/F-07 + F-01 部分） | 8.0 | 等 B-1 / B-4 / 新模型 |
+| ✅ 可立即開發 | 5（F-03 / F-04 / F-05 / F-08 / F-10） | **7.0** | 無後端依賴（＝批次 1 小計，含 W-01 契約基建與 W-08 buffer；**不含 🚫 W-04**） |
+| 🟡 部分可開發 | 1（F-01） | **0.75 / 1.75**（W-29 另計 **0.5**） | W-26 三態 UI 可先做；W-27 / W-28 等 B-2 / B-3 |
+| ❌ 後端阻斷 | 4（F-02 / F-06 / F-07 + F-01 部分） | **5.75** | F-02 **3.25** ＋ F-06 0.5 ＋ F-07 0.5 ＋ F-01 阻斷部分 1.0（W-27/28）＋ W-29 0.5 |
+| — | — | **16.0** | **全 W-ID 逐項合計**（批次 1 = 7.5、批次 2 = 5.5、批次 3 = 3.0；含新增 W-22b 後重算）；其中 **15.0** = 批次小計合計（排除 🚫 W-04 / W-29） |
 
 ---
 
@@ -61,21 +62,21 @@
 
 | 項 | 現況 | 證據 |
 |---|---|---|
-| wallet 端點數 | **4 條**（balance / transactions / top-up / deduct） | `src/events/routes/premium.routes.ts:12-20` |
+| wallet 端點數 | **4 條**（balance / transactions / top-up / deduct） | `premium.routes.ts` 的 `walletRouter.get|post('/:registrationId/...')`（≈ :13-20） |
 | 缺的端點 | `redeem` / `adjust` / `approve` / `reject` / `adjustments` / `report/summary` = **6 條，全 0 命中** | grep routes |
-| `REVERSAL` enum 值 | **不存在**（只有 5 值） | `prisma/schema.prisma:1306-1312` |
-| `idempotencyKey` | **不存在** | `prisma/schema.prisma:1320-1346`；grep `idempotency` = **0 命中** |
+| `REVERSAL` enum 值 | **不存在**（`WalletTransactionType` 只有 5 值） | `enum WalletTransactionType`（`prisma/schema.prisma:1306-1312`） |
+| `idempotencyKey` | **不存在** | `model EventWalletTransaction`（`prisma/schema.prisma:1320-1346`）無此欄；**grep `idempotencyKey` in `src/**` = 0 命中**（全 repo 的 `idempotency` 命中屬 **registration 冪等索引註解**，`schema.prisma:835`）→ **wallet 無冪等** |
 | `EventWalletAdjustment` 表 | **不存在** | `schema.prisma` 無此 model |
 | Admin App token 代碼 | **零**（scaffold 級） | v11.3 §5.2 自述 |
 
-**影響**：F-02 整個做不了（2.25 人日）；F-05 的 Token 流水區塊只能顯示既有 5 種類型，無 `reasonCode`/`approvedBy`。
+**影響**：F-02 整個做不了（**3.25** 人日）；F-05 的 Token 流水區塊只能顯示既有 5 種類型，無 `reasonCode`/`approvedBy`。
 
 ### B-2 ｜`checkIn` 無條件拋 `ALREADY_CHECKED_IN` 🔴 High
 
 | 項 | 現況 | 證據 |
 |---|---|---|
-| 重複簽到處理 | **無條件 throw**，無 override 參數 | `src/events/services/EventRegistrationService.ts:1042-1044` |
-| DTO | `CheckInDto` 只有 `registrationCode` | `EventRegistrationController.ts:205-211` |
+| 重複簽到處理 | **無條件 throw**，無 override 參數 | `EventRegistrationService.checkIn()`（`:1044`） |
+| DTO | `CheckInDto` 只有 `registrationCode` | `EventRegistrationController` |
 
 **影響**：會議要求的「主管覆核後二次放行」**無法實作**。前端 W-27 阻斷。
 **附帶缺口**：`EventRegistration` **無存放覆核理由的欄位** → 稽核不可查詢（須 add `checkInOverrideLog Json?`）。
@@ -84,7 +85,7 @@
 
 | 項 | 現況 | 證據 |
 |---|---|---|
-| 簽到欄位 | 只有 `checkedInAt` / `checkedInBy` | `prisma/schema.prisma:802-803` |
+| 簽到欄位 | 只有 `checkedInAt` / `checkedInBy` | `EventRegistration` model（`prisma/schema.prisma:802-803`） |
 | `gate` 關鍵字 | grep 只命中 `venueName` / `boothLocation`（**不同語意**） | grep gate |
 
 **影響**：會議要求「寫入閘口編號供稽核」無法滿足。前端 W-27 只能顯示時間。
@@ -93,9 +94,9 @@
 
 | 項 | 現況 | 證據 |
 |---|---|---|
-| enum 存在 | `EventOrgRoleType` 有 `VOLUNTEER`（5 值） | `prisma/schema.prisma:1245-1251` |
-| 授權使用 | grep `VOLUNTEER` 在 `src/` 僅 3 處且**皆非授權**（表單欄位 + 型別 union） | `registrationForm.ts:41`、`EventService.ts:546` |
-| operator guard | 只有 SA / CO / OP | `src/events/services/EventService.ts:440-446` |
+| enum 存在 | `EventOrgRoleType` 有 `VOLUNTEER`（5 值） | `enum EventOrgRoleType`（`prisma/schema.prisma:1245-1251`） |
+| 授權使用 | grep `VOLUNTEER` 在 `src/` 僅 3 處且**皆非授權**（表單欄位 + 型別 union） | `registrationForm.ts`、`EventService`（`userRole` union） |
+| operator guard | 只有 SA / CO / OP | `EventService.getEventOperatorAccess()`（`:420`） |
 
 **影響**：F-07 權限門控無法收斂；會議 §F 的「閘口 staff / 攤位 staff / 主管 / 主辦方」4 角色無法完整對映。
 
@@ -103,7 +104,7 @@
 
 | 項 | 現況 | 證據 |
 |---|---|---|
-| 限流設定 | `windowMs: 5*60*1000, limit: 20, keyGenerator: ipKeyGenerator(req.ip)` | `src/events/routes/registrations.routes.ts:15-33` |
+| 限流設定 | `windowMs: 5*60*1000, limit: 20, keyGenerator: ipKeyGenerator(req.ip)` | `registrationCodeLookupRateLimiter`（`registrations.routes.ts:12-26`） |
 
 **為什麼是 Critical（PLAN 階段由 High 升級）**：
 
@@ -122,11 +123,11 @@
 
 | # | 發現 | 級別 | 證據 | 為什麼 DISCOVER 漏了 |
 |:---:|---|:---:|---|---|
-| **G-1** | `GET /registrations` **擋掉 OPERATOR**，但 `checkin` **允許** OPERATOR | 🔴 High | `EventRegistrationController.ts:80` → `EventService.ts:375`（僅 owner/SA/CO）vs `:440-446`（含 OP） | DISCOVER 只掃「端點是否存在」，未交叉比對**同一功能的讀寫權限是否一致** |
+| **G-1** | `GET /registrations` **擋掉 OPERATOR**，但 `checkin` **允許** OPERATOR | 🔴 High | `EventRegistrationController.listRegistrations()` → `EventService.getEventWriteAccess()`（僅 owner/SA/CO）vs `EventService.getEventOperatorAccess()`（含 OP） | DISCOVER 只掃「端點是否存在」，未交叉比對**同一功能的讀寫權限是否一致** |
 | **G-2** | `COORDINATOR` **不能**提 `adjust`（v11.3 限 OWNER/SA） | 🟠 Medium | v11.3 §4.3 row 6 | DISCOVER 未做「會議角色 × v11.3 權限」對映 |
 | **R-1** | Pagination 有 **5 種形狀**（3 種 live + 1 文件 + 1 App 型別） | 🟠 High | 見 §5.1 | DISCOVER 只找到 3 處漂移，未窮舉 |
-| **R-2** | `/nfc/badges` **連 query 參數名都不同**（`pageSize` vs `limit`） | 🟠 High | `EventNfcBatchService.ts:130,146` | 同上 |
-| **DEF-01** | **自助 top-up 漏洞**：參加者（`PART`）可自己給自己加 Token | 🔴 Critical（**現在就在 prod**） | `EventWalletController.ts:59-68`；`registrationAccess.ts:18-35` 允許 registration owner | DISCOVER 未檢視 v11.3 的 DEF 系列 |
+| **R-2** | `/nfc/badges` **連 query 參數名都不同**（`pageSize` vs `limit`） | 🟠 High | `EventNfcBatchService.listBadges()`（`:130,146`） | 同上 |
+| **DEF-01** | **自助 top-up 漏洞**：參加者（`PART`）可自己給自己加 Token | 🔴 Critical（**現在就在 prod**） | `EventWalletController.topUp()`（`:51`）；`assertRegistrationOwnershipOrOperator()`（`registrationAccess.ts`）允許 registration owner | DISCOVER 未檢視 v11.3 的 DEF 系列 |
 
 ### 4.1 G-1 為什麼是「彩排才爆」類風險
 
@@ -155,11 +156,11 @@
 
 | # | 來源 | 形狀 | 證據 |
 |:---:|---|---|---|
-| 1 | `GET /registrations` | `{ total, page, limit, totalPages }` | `EventRegistrationService.ts:1333` |
-| 2 | `GET /my-managed` | `{ page, limit, total, totalPages }` | `EventService.ts:560` |
-| 3 | `GET /nfc/badges` | `{ total, page, pageSize }`（**query 參數亦為 `pageSize`**） | `EventNfcBatchService.ts:130,146` |
-| 4 | **文件** | `{ total, page, limit, pages }` | `docs/api/v11.0-event-module/03-registration-payment-api.md:140` |
-| 5 | **Admin App 型別** | `{ total, page, pageSize, pages? }` | `event.service.ts:6-11`、`nfc.service.ts:8` |
+| 1 | `GET /registrations` | `{ total, page, limit, totalPages }` | `EventRegistrationService.listRegistrations()` |
+| 2 | `GET /my-managed` | `{ page, limit, total, totalPages }` | `EventService.getMyManagedEvents()` |
+| 3 | `GET /nfc/badges` | `{ total, page, pageSize }`（**query 參數亦為 `pageSize`**） | `EventNfcBatchService.listBadges()` |
+| 4 | **文件** | `{ total, page, limit, pages }` | `docs/api/v11.0-event-module/03-registration-payment-api.md`（pagination 範例段） |
+| 5 | **Admin App 型別** | `{ total, page, pageSize, pages? }` | `event.service.ts`（registrations）、`nfc.service.ts`（badges） |
 
 > **5 種形狀，沒有任何兩個完全一致。**
 
@@ -167,8 +168,8 @@
 
 | 位置 | 形狀 |
 |---|---|
-| 後端（by-code / checkin / list） | **flat**：`firstName` / `lastName` / `company` / `jobTitle` / `phone` / `email` / `tokenBalance` / `checkedInAt`（`EventRegistrationService.ts:1088-1098`） |
-| Admin App 型別 | `profile: { fullName, email, phone, company, jobTitle }` + `customFields`（`src/types/api.types.ts:66-79`） |
+| 後端（by-code / checkin / list） | **flat**：`firstName` / `lastName` / `company` / `jobTitle` / `phone` / `email` / `tokenBalance` / `checkedInAt`（`EventRegistrationService.getRegistrationByCode()` 的 select） |
+| Admin App 型別 | `profile: { fullName, email, phone, company, jobTitle }` + `customFields`（`src/types/api.types.ts` 的 `Registration`） |
 
 **風險**：`check-in.tsx` 目前能跑，因為它**沒實際讀 `profile.*`**。一旦 W-03/W-05 開始讀姓名 → 拿到 `undefined`。
 
@@ -176,7 +177,7 @@
 
 | 項 | 現況 |
 |---|---|
-| 實作 | ✅ **已完成**（`event-ops.routes.ts:60-65`，`EventNfcBatchController.ts:52-167`） |
+| 實作 | ✅ **已完成**（`eventOpsRouter` 的 `/nfc/badges`、`/nfc/badges/export`、`/nfc/batch`、`/nfc/batch/:batchId/complete`、`/nfc/batch/claim`，`event-ops.routes.ts:66-70`；`EventNfcBatchController`） |
 | 文件 | ❌ **`docs/api/**` 內 0 命中** |
 | 影響 | 前端無法得知契約；且 `/nfc/badges` 的 pagination 形狀與其他端點不同 |
 
@@ -188,12 +189,21 @@
 |:---:|---|---|---|
 | **CR-1** | 契約漂移已實際存在 | §5 已證實 3 處 | **先凍結契約文件**（已產出 `20260915_AdminApp_API_Contract_Freeze_v1.md`）+ 10 項裁決 |
 | **CR-2** | 手寫 mock 會製造第 4 份契約 | 「前端沒 API 只好自己掰」是必然反應 | mock 必須由契約型別 `satisfies` 護欄（`tsc` 一改即報錯） |
-| **CR-3** | 後端工期是前端的 5 倍 | v11.3：BE 10.5 vs FE 2.0 人日（+ Admin App 新增 → BE 12.65 / FE 15.0） | 後端先交 **B-1a**（4.0 人日）解鎖 2.25 日前端 |
+| **CR-3** | 後端工期是前端的 5 倍 | v11.3：BE 10.5 vs FE 2.0 人日（+ Admin App 新增 → BE **13.90** / FE 15.0） | 後端先交 **B-1a**（4.0 人日）解鎖 **3.25** 日前端（F-02） |
 | **CR-4** | Admin App 無 API 文件 | `docs/` 只有 `.project-context.md` + `research/` | 本次已補（契約凍結文件） |
 | **CR-5** | staging 0 badge 資料 | 4 個 staging 活動皆無 badge | W-07（0.5 人日）優先做 |
 | **CR-6** | VOLUNTEER 設計斷層 | enum 有、授權零 | B-4 先定義語意 |
 | **CR-7** | 現場限流未涵蓋 | B-5 | 提到 B-4 之前 |
 | **CR-8** | 角色 × 端點無回歸測試 | 無測試框架 | B-4.5 補角色矩陣測試 |
+
+---
+
+### 6.1 兩項先前未覆蓋的風險（複審補列）
+
+| # | 風險 | 分級 | 為何現在就要處理 | 緩解 |
+|:---:|---|:---:|---|---|
+| **R-NFC** | **NFC 硬體 / 採購風險** | 🔴 **High** | 會議 **§六 #4** 自稱「**最高風險項**」，且負責人 **@待定**：晶片型號/協議、是否可**現場寫入**、UID 是否**可重讀**、成本、**到貨週期**全未定。距 11 月活動僅約 6 週，**硬體 lead time 一旦超過 4 週就來不及**；而 **W-07 / W-32 的前提是「badge 可即時建置」**——硬體未到，W-07、W-32 與現場彩排全部連坐 | ① **本週內指定 owner**（會議要求）；② 立刻索取樣品實測「UID 可讀 + 可現場寫入 + 成本」；③ **確認到貨週期**（> 4 週即啟動降級）；④ 降級方案 = **印刷 QR 手帶**（會議 §六 #4 明示），但需重跑 W-07 的資料建置假設 |
+| **R-PDPA** | **澳門 PDPA 合規** | 🟠 **Medium** | 會議 **§五** 明列澳門《個人資料保護法》（**第 8/2005 號法律**）：報名個資收集需**明示同意**、Email 需含**退訂與資料用途聲明**。原四份文件均未覆蓋 | ① 確認同意機制在報名流程（Web）與 Email 模板已存在；② Admin App 端只承諾「顯示遮罩 + **不落地儲存敏感個資**」（App 不在前台收集個資，風險低於 Web）；③ 由法務 / PM 確認文案，列 **P1** |
 
 ---
 
@@ -234,10 +244,14 @@ flowchart LR
     B --> C["後端 G-1 名單權限<br/>0.25 日"]
     C --> D["後端 B-1.1/1.2/1.3<br/>schema + 冪等"]
     D --> E["後端 B-1.5/1.6/1.7<br/>redeem + frozen + 流水欄"]
-    E --> F["前端 F-02<br/>2.25 日"]
+    E --> F["前端 F-02<br/>3.25 日"]
     A --> G["前端批次 1<br/>7.0 日（可並行）"]
     D --> H["後端 B-5 限流<br/>0.7 日（並行）"]
-    H --> I["前端 F-01<br/>2.75 日"]
+    H --> I["前端 F-01<br/>1.75 日（＋W-29 0.5）"]
+    E --> J["後端 B-1.9/1.10（B-1b）<br/>adjust / 審批"]
+    J --> K["前端 W-22b<br/>調整 tab"]
+    A --> L["後端 B-6（REG-02）<br/>0.75 日"]
+    L --> M["前端 W-04"]
 ```
 
 | 優先 | 事項 | 人日 | 解鎖 |
@@ -245,12 +259,17 @@ flowchart LR
 | 1 | **B-1.4 權限收緊**（堵現有漏洞） | 0.5 | 安全 |
 | 2 | **G-1 名單讀取權** | 0.25 | W-03 |
 | 2 | **B-5 限流** | 0.7 | 現場可靠性 |
+| 2 | **B-6 名單搜尋/排序**（§6.1 新增） | 0.75 | **W-04** |
 | 3 | **B-1.1~1.3**（schema + 冪等） | 2.0 | W-20..W-25 |
+| 3 | **B-7 簽到計數端點**（§6.1 新增） | 0.75 | **W-29** |
 | 4 | **B-1.5~1.7**（redeem + frozen + 流水） | 1.25 | W-21/W-22/W-24 |
 | 5 | **B-2 + B-3**（override + 閘口） | 1.95 | W-27 |
+| 5 | **B-1.9~1.11**（B-1b：adjust / 審批 / 報表） | 2.0 | **W-22b**（調整 tab） |
 | 6 | **B-4**（VOLUNTEER + D12） | 1.75 | W-30/W-31 |
 
-**後端關鍵路徑** = 4.0 人日（B-1a）→ 解鎖前端 2.25 人日 → E2E 1.5 人日 ≈ **7.75 人日 ≈ 2 週**。
+**後端關鍵路徑（重算，補計 B-2 / B-3）** = **B-1a 4.0 + B-1b 4.0 = 8.0 人日** → 解鎖前端 **F-02 3.25 人日** → **W-32 E2E 1.5 人日**。
+> ⚠️ **為何要補 B-2/B-3**：W-32 的依賴是**批次 1 + 批次 2 全綠**，而批次 2 內含 **W-27（需 B-2 1.1 + B-3 0.85 = 1.95）** 與 **W-22b（需 B-1b）**；批次 1 的 **W-04 需 B-6**。三者均可與 B-1b 同期並行（B-2+B-3 = 1.95 < B-1b 4.0），故關鍵鏈仍由 B-1 決定。
+> **後端總量 13.90 人日**（見後端待辦 §5）@ 3 日/週 ≈ **4.6 週** < 6 週 → **buffer 足夠**，但比舊估值（12.65 / 4.2 週）薄。
 
 ---
 
@@ -280,7 +299,9 @@ flowchart LR
 | **C-7** | 簽到計數語意 | (a) 新端點單日/單場<br/>(b) 降級用現有總數 | **(a)**，(b) 作 fallback | ⚠️ W-29 |
 | **C-8** | 「所屬社團」API | (a) 有既有端點<br/>(b) 不做 | **(b)** 起步 | ⚠️ W-05 |
 | **C-9** | NFC-08（依 registrationId 查 badge） | (a) 加 query 參數<br/>(b) 不做 | **(a)** — 成本 ≤ 0.25 人日，DB 已有 `registrationId @unique` | ⚠️ W-05 |
-| **C-10** | 音效套件 | (a) `expo-audio`<br/>(b) `expo-av`<br/>(c) 只用震動 | **(a)** | ⚠️ W-28 |
+| **C-10** | 音效套件 | (a) `expo-audio`<br/>(b) **無音效**，只用 RN 內建 `Vibration` | **(a)**（❌ `expo-av` **已自候選移除**：Expo 已標註 deprecated **且已於 SDK 55 移除**，本專案為 `expo ~57.0.13` → 該套件不存在） | ⚠️ W-28 |
+| **C-11** | REG-02（名單 `search`/`sortBy`/`sortOrder`）**是否本批交付** | (a) 本批交付（後端 **B-6**，0.75 BE 人日）<br/>(b) 本批不做，W-04 走降級 | **(a)** — 會議 §二 模組 D 列為必要功能 | 🚫 **W-04** |
+| **C-12** | CHK-04（簽到計數端點）**交付或降級** | (a) 本批交付新端點（後端 **B-7**，0.75 BE 人日）<br/>(b) 降級用既有 `status=CHECKED_IN` 總數 | **(a)**，(b) 作 fallback（**C-7 管語意、C-12 管交付**） | ⚠️ **W-29** |
 
 ---
 
@@ -293,7 +314,7 @@ flowchart LR
 | U-3 | `wallet/report/summary` 是否本次交付（前端不消費） | 設計有列，進度未知 | 批次 2 是否含報表 |
 | U-4 | 現場「收款方式」是否含 `MPAY` | 會議只說記帳，但 UI 需預留「已收款」 | W-22 欄位設計 |
 | U-5 | `by-code` 路由是否已解析 `req.user` | 該路由**無 auth 中間件**（public），`req.user` 可能為 undefined | **B-5.1 的前置驗證項** |
-| U-6 | 用戶每週可投入的 BE 人日數 | 未知 | 12.65 人日能否塞進 6 週 |
+| U-6 | 用戶每週可投入的 BE 人日數 | 未知 | **13.90** 人日能否塞進 6 週（@3 日/週 ≈ 4.6 週，可行但 buffer 薄） |
 
 ---
 
@@ -313,6 +334,7 @@ flowchart LR
 | 版本 | 日期 | 變更 | 原因 |
 |---|---|---|---|
 | v1.0 | 2026-09-15 | 初版（DISCOVER + PLAN 交叉複審） | Neo Loop（admin-app-handoff） |
+| v1.0-r1 | 2026-09-15 | ① W-ID **計數修正**：原誤寫 17，**實為 22**（W-01..W-08 / W-20..W-29 / W-30..W-33），含新增 **W-22b** 後為 **23**；② 人日重算：F-02 = **3.25**、F-01 = **1.75**（W-29 另計 0.5）、全 W-ID **16.0**、後端 **13.90**（舊 12.65 含 G-1 重複計）；③ 新增 **§6.1**：NFC 硬體（**High**）與澳門 PDPA（**Medium**）風險；④ §9 補 **B-6 / B-7** 並重算關鍵路徑（補計 B-2/B-3）；⑤ §11 新增 **C-11 / C-12**，**C-10 移除 `expo-av` 候選**；⑥ §3 B-1 的 `idempotency` 措詞精確化（`grep idempotencyKey` in `src/**` = 0）；⑦ 全文件引用改以**函式名/路由字串**為主（路線行號已校正） | REPAIR R1：獨立文件審查 DRA-002 / 004 / 005 / 006 / 007 / 008 / 009 |
 
 ---
 
