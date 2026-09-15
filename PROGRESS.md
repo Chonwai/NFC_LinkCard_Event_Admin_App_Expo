@@ -23,6 +23,25 @@
 
 ---
 
+## 📋 會議整合狀態（2026-09-15 更新）
+
+> 完整分析見 `docs/research/`（05b/06/07/08）
+
+**會議來源**：`docs/LinkCard Event related/20260914_LinkCard_Event_Admin_App_Meeting_1.md`（9/14 深度需求整理，11月 Macau Startup Festival 硬期限）
+
+**三大發現**：
+1. **Token v11.3 已有完整設計**（`LinkCard_ExpressJS_Backend/docs/development-cycles/v11.3-event-token-system/04-design-plan.md`，R3 PASS 93.00）— 內含 Admin App `wallet-counter` 畫面規格（§5.2）= 會議模組 B
+2. **會議 7 模組中 4 個有既有資產**（QR 簽到 / Token / NFC / 名單 service）
+3. **核心增量 = 未涵蓋的新功能**：三態簽到增強、四大功能卡、用戶詳情、現場補報名、工作人員權限、儀表板、Credential 統一模型
+
+**整合產出**（10 個 P0 功能 F-01..F-10 + 9 個 P1 + 7 個 P2）：
+- F-01 QR 簽到三態｜F-02 Token 櫃台（v11.3 §5.2）｜F-03 名單搜尋（需新 API）｜F-04 四大功能卡｜F-05 用戶詳情｜F-06 Credential 模型｜F-07 權限收緊｜F-08 EAS｜F-09 真機 E2E｜F-10 Badge 批次
+- MVP 底線：掃碼簽到 + Token 增扣 + 名單查詢 + Email 自動建帳
+
+**待決策**：會議 7 項（#4 NFC 綁定是最高風險，本週定人）+ v11.3 D1-D15（D14 top-up 上限建議 MOP 1,000/5,000）
+
+---
+
 ## ✅ 完成狀態（16 commits）
 
 | # | Commit | 內容 | 驗證 |

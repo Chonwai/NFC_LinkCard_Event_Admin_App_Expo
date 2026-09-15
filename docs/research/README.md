@@ -24,6 +24,10 @@
 | `03-restart-roadmap.md` | **重啟路徑 8 步**（含 EAS/TestFlight/CORS/品牌資產）+ 風險表 | 「怎麼重啟？」 |
 | `04-loop-state-appendix.md` | 5 個歷史 loop state 摘要 + 完整時間線 | 「之前發生過什麼？」 |
 | `05-handover-blueprint.md` | **交接前開發藍圖**：Web vs App 差距矩陣 + 未開發功能盤點 + Sprint 計畫 + 證據清單 | 「下一步做什麼？交接前補哪些？」 |
+| `05b-meeting-blueprint.md` | **會議整合**：20260914 Meeting 1 + Token v11.3 + 交接藍圖 三來源覆蓋矩陣 + 整合方法 | 「會議討論的功能怎麼落地？」 |
+| `06-feature-list.md` | **功能開發清單**：差異分析（A1 完整/A2 增強/A3 新增/A4 不做）+ P0/P1/P2 完整功能表 | 「要做哪些功能？」 |
+| `07-mvp-schedule.md` | **MVP 排期**：6 週倒推 + 依賴關鍵路徑 + 風險 + 施工順序 | 「11月前怎麼排？」 |
+| `08-appendix.md` | **附錄**：會議 7 決策 ↔ v11.3 D 系列對齊 + UAT + 證據清單 + 戰略層整合 | 「待決策項 & 驗收標準」 |
 
 ---
 
