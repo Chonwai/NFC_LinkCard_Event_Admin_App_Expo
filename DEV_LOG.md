@@ -41,3 +41,25 @@
 - `docs/research/README.md` 更新（索引入口 + 交接摘要）
 - `PROGRESS.md` 更新（交接前狀態 + todo）
 - 4 個 hackathon commits：`3e038a2` → `d77f041`（branch `main`）
+
+## 2026-09-15 — 會議整合功能清單研究
+
+### 研究目的
+整合 20260914 Meeting 1（深度需求整理）+ Token v11.3 設計規劃 + 交接前藍圖，產出 Admin App 完整功能開發清單。
+
+### 研究過程
+- Neo Loop B（DISCOVER → PLAN → DELIVER），Quality = strict(93) / L3 Deep Dive
+- Snapshot Pre-Flight：Admin App HEAD `e6bcea0`、Web Frontend `7138800`、Token v11.3 文件存在（R3 PASS 93.00）
+- 重大發現：**Token v11.3 已有 Admin App wallet-counter 完整規格（§5.2）**——會議模組 B 有現成施工圖
+- 交叉驗證：`overview.tsx:27-30`（QUICK_ACTIONS 需加 wallet）、`check-in.tsx:1-60`（簽到基本版）、`event.service.ts:50`（getRegistrations 已存在）
+
+### 關鍵發現
+1. 會議 7 模組中 4 個有既有資產（QR 簽到 / Token / NFC / 名單 service）
+2. 核心增量 = 三態簽到增強 + 四大功能卡 + 用戶詳情 + 現場補報名 + 工作人員權限 + 儀表板 + Credential 統一模型
+3. 10 個 P0 功能（F-01..F-10）+ 9 個 P1 + 7 個 P2
+4. MVP 底線：掃碼簽到 + Token 增扣 + 名單查詢 + Email 自動建帳
+
+### 交付
+- `docs/research/05b-meeting-blueprint.md`、`06-feature-list.md`、`07-mvp-schedule.md`、`08-appendix.md`
+- `README.md`、`PROGRESS.md` 更新
+- 6 個 hackathon commits：`ca6cb4e` → `47a32b6`（branch `main`）
