@@ -435,7 +435,7 @@
 | （未使用） | `VOLUNTEER` | 🔴 **無任何授權引用** |
 | （未使用） | `MEDIA` | 會議未提 |
 
-後端 enum 實證：`EventOrgRoleType`（`schema.prisma:1245-1251`，**5 值**：`SUPER_ADMIN` / `COORDINATOR` / `OPERATOR` / `VOLUNTEER` / `MEDIA`）。**event owner 不在 enum 內**，由 `Event.ownerId` / `Event.ownerAssociationId`（`schema.prisma:551-553`）判定（`EventService.getEventWriteAccess()` 同時接受 owner 與 SA/CO）。
+後端 enum 實證：`EventOrgRoleType`（`schema.prisma:1245-1251`，**5 值**：`SUPER_ADMIN` / `COORDINATOR` / `OPERATOR` / `VOLUNTEER` / `MEDIA`）。**event owner 不在 enum 內**，由 `Event.ownerId`（`schema.prisma:551`）判定（`EventService.getEventWriteAccess()` 只 select `ownerId` 並比對 `event.ownerId === userId`，同時接受 owner 與 SA/CO）。`Event.ownerAssociationId`（`:553`）為關聯歸屬欄位，**不參與** write-access 判定。
 
 ### 3.2 操作 × 角色（**live 實測**）
 
@@ -615,6 +615,7 @@
 | v1.0 | 2026-09-15 | 初版凍結候選 | Neo Loop（admin-app-handoff）PLAN stage 交付 |
 | v1.0-r1 | 2026-09-15 | ① 標記約定補 `🟢+🔴`（additive）；② C-10 移除 `expo-av` 候選（SDK 57 已無此套件）；③ 新增裁決 **C-11**（REG-02 是否本批交付）、**C-12**（CHK-04 交付或降級）；④ §2.D 補「只列前端消費端點」範圍聲明（排除 `allocate-initial` / `token-expire` cron）；⑤ §7 補澳門 PDPA 落差列；⑥ 全文件引用改以**函式名/路由字串**為主、行號為輔（路線行號已校正） | REPAIR R1：獨立文件審查 DRA-002 / DRA-006 / DRA-008 / DRA-009 / DRA-013 / DRA-014 |
 | v1.0-r2 | 2026-09-15 | ① **L1**：§標記約定兩列 emoji 損毀（`U+FFFD`）→ 重打為 `🟢+🔴` 與 `📌`；② **M1**：`walletRouter` 為虛構符號（實測 `grep -rn walletRouter src/` = 0）→ WAL-01..04 改為 `premium.routes.ts` 的**路由字串**引用（`router.get('/wallet/:registrationId/balance'` 等）；③ **M2**：`getMyManaged()` → **`getMyManagedEvents()`**（§1.1、A-3）；④ **L4**：`resolveEventId` 歸屬由 `EventRegistrationController` 改正為 **`EventService.resolveEventId()`**（`EventService.ts:330`）；⑤ **M6**：§6 新增裁決 **C-13**（Credential 統一模型是否本批交付，對應後端 **B-8**） | REPAIR R2：獨立文件審查 M1 / M2 / M6 / L1 / L4 |
+| v1.0-r3 | 2026-09-15 | ① **N1**：§1.1 與 A-2 證據欄的 `getMe()` 為虛構符號（實測 `grep -rn "getMe()" docs/` = 0）→ 改正為 **`me()`**（`auth.service.ts:21`）；② **N5**：§3.1 的 `Event.orgId` 不存在 → 改正為 **`Event.ownerId`**（`schema.prisma:551`），並註明 `ownerAssociationId`（`:553`）為關聯歸屬欄位、**不參與** write-access 判定（`getEventWriteAccess()` 只 select `ownerId`） | DELTA 複驗：獨立文件審查 N1 / N5 / D2 |
 
 ---
 
