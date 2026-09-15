@@ -95,9 +95,12 @@
 
 | 裁決 | 數量 | 人日 | 功能 |
 |---|:---:|:---:|---|
-| ✅ 可立即開工（零後端依賴） | 5 | 7.0 | F-03 名單 / F-04 四大卡 / F-05 詳情 / F-08 EAS / F-10 Badge |
-| 🟡 部分可開工 | 1 | 0.75/2.75 | F-01 三態 UI 可先做（覆核/計數待後端） |
-| ❌ 後端阻斷 | 4 | 8.0 | F-02 Token（B-1）/ F-06 Credential（無模型）/ F-07 權限（B-4）/ F-01 部分 |
+| ✅ 可立即開工（零後端依賴） | 5 | **9.5** | F-03 名單 / F-04 四大卡 / F-05 詳情 / F-08 EAS / F-10 Badge（含 W-10..W-15） |
+| 🟡 部分可開工 | 1 | **0.75 / 2.0** | F-01 三態 UI 可先做（覆核/計數待後端） |
+| ❌ 後端阻斷 | 4 | **6.25** | F-02 Token（B-1）/ F-06 Credential（無模型）/ F-07 權限（B-4）/ F-01 部分 |
+| — | — | **19.25** | **全 W-ID 逐項合計（30 個）**；小計合計 **18.25**、承諾交付 **17.25** |
+
+> 📌 **本表已於 2026-09-16 重算**（原值 7.0 / 0.75-2.75 / **8.0** 為 stale）：`8.0` 與 `09-feasibility-review.md` §2.1 的 `6.25` 不一致，現統一為 **6.25**（F-02 3.75 + F-06 0.5 + F-07 0.5 + F-01 阻斷 1.0 + W-29 0.5）。原 `7.0` 已因新增 W-10..W-15 升至 **9.5**。
 
 **5 個硬阻斷項（後端待辦）**
 
@@ -127,10 +130,43 @@
 
 | 文件 | 讀者 |
 |---|---|
-| `docs/20260915_AdminApp_Handoff_for_feiteng2015.md` | feiteng2015（17 W-ID × 3 批次） |
-| `docs/20260915_AdminApp_API_Contract_Freeze_v1.md` | 雙方（25 端點 + 錯誤碼 + 權限矩陣） |
+| `docs/20260915_AdminApp_Handoff_for_feiteng2015.md` | feiteng2015（**30 W-ID** × 3 批次） |
+| `docs/20260915_AdminApp_API_Contract_Freeze_v1.md` | 雙方（**29 端點** + 錯誤碼 + 權限矩陣） |
 | `docs/research/09-feasibility-review.md` | 用戶（裁決依據） |
+| `docs/research/10-app-completion-audit.md` | 用戶（**完成度審計**，2026-09-16） |
+| `docs/research/11-app-defect-register.md` | feiteng2015（**缺陷冊**，2026-09-16） |
 | `LinkCard_ExpressJS_Backend/docs/20260915_AdminApp_Backend_TODOs.md` | 用戶（後端施工清單） |
+
+---
+
+## 🔎 App 完成度審計（2026-09-16 新增）
+
+> 完整報告：`docs/research/10-app-completion-audit.md`（完成度）+ `docs/research/11-app-defect-register.md`（缺陷）
+
+**核心事實**：
+
+- ⏸️ **程式碼自 `040ebd4`（2026-09-12）起未再變動**；`src/` 共 **14 個 commit**（全在同一天），其後 32 個 commit 全為文件
+- 📐 `src/` **36 檔 / 4674 行**；**7 個實際畫面**（10 個 route 檔含 3 個 layout）；**route 註冊 0 缺口**
+- 📊 畫面功能完整 **4/7**；四態覆蓋 **22/28（79%）**；Service 完整驗證 **5/10**；Icon 使用率 **22/34**
+- 🔴 驗證真相：**真機 0 / EAS build 0 / 自動化測試 0**；12 項 web E2E **全靠 `.env.local` 才成立**
+- 🗑️ 死碼約 **48 項**（但 12 icon + 10 copy key 等為「偽死碼」，是後續 W-ID 的資產，**不可清理**）
+
+**新發現 10 個缺陷 A0..A9**（完整見 `11-app-defect-register.md`）：
+
+| ID | 級別 | 症狀 | 歸屬 |
+|:---:|:---:|---|---|
+| **A0** | 🔴 Critical | 預設 base URL 構成雙重 `/api` → 任何沒有 `.env.local` 的環境（**新 clone / EAS build**）全 API 404 | **用戶（移交前 W0，W-09）** |
+| **A1** | 🔴 High | `event.store` 吞錯不 rethrow → `home` 錯誤橫幅**永不顯示** | W-10 |
+| A2 | 🟠 | `EventStatus` 幻覺 2 值（`REGISTRATION_OPEN`/`ENDED`）、缺 `ARCHIVED` | W-01（漂移 **D-4**） |
+| A3 | 🟠 | 簽到成功**丟棄 API 回傳值**（無法顯示姓名/公司/票種/報到時間） | W-26 |
+| A4 | 🟠 | `event.store.clear()` 從未被呼叫 → 登出不清快取（**跨帳號殘留**） | W-10 |
+| A5 | 🟡 | `currentEventId` 只寫不讀（死狀態） | W-10 |
+| A6 | 🟠 | **14 處**硬編中文字串繞過 copy 層 | W-11 |
+| A7 | 🟠 | `payloadUrl` 硬編 production 域名 | W-11 |
+| A8 | 🟡 | `?? fallback` 掩蓋 copy 缺鍵 | W-02 |
+| A9 | 🟡 | 逾時碼分類過窄 | W-23 |
+
+> ⏰ **移交前唯一必修 = A0**（W-09，0.5 日）。不修則新 clone 第 1 天全 404、7.5 人日驗收歸零。
 
 ---
 

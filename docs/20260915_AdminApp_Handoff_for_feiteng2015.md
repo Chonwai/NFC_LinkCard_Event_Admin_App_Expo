@@ -15,7 +15,7 @@
 1. **你不會被後端卡住。** 批次 1 的 **7.0 人日完全不需要等後端**，第 1 天就能開工。
 2. **契約已凍結**（見 `20260915_AdminApp_API_Contract_Freeze_v1.md`）。你按契約寫，就不會重工。
 3. **唯一先決條件**：用戶必須在開工前交付 **3 個契約裁決**（§4.4）＋ staging 測試帳號。這 3 項沒交，W-01 做不了。
-4. 你的 10 個 P0 功能已拆成 **23 個 W-ID**，全 W-ID 逐項合計 **16.5 人日**（三批次小計合計 **15.5**，不含 🚫 阻斷項 W-04 / W-29；含 P1 buffer 共 21.0 人日）。
+4. 你的 10 個 P0 功能已拆成 **30 個 W-ID**（含 2026-09-16 完成度審計新增的 **W-09..W-15**），全 W-ID 逐項合計 **19.25 人日**（三批次小計合計 **18.25**，不含 🚫 阻斷項 W-04 / W-29；其中 **buffer pool 1.0 人日**（W-13 + W-15），故**承諾交付量 17.25 人日**）。
 5. **三批施工**：批次 1 = 無依賴（**7.0** 日，不含 🚫 W-04）／批次 2 = 等後端帳務層（**5.5** 日，不含 🚫 W-29）／批次 3 = 權限與收尾（**3.0** 日）。
 6. 🔴 **最大地雷**：`GET /registrations` 目前**擋掉 OPERATOR**（`EventService.getEventWriteAccess()` 只放 owner/SA/CO）。你若照現在的服務層寫名單頁，閘口 staff 會看到按鈕但按下去 403。已在契約文件列為 🟡 必修正。
 7. 🔴 **第二大地雷**：`by-code` 限流是 **20 次/5 分鐘/IP**（`registrationCodeLookupRateLimiter`，`registrations.routes.ts:12-26`）。展館 WiFi NAT 共用出口 IP → 開場尖峰必爆。這是**後端必修**（B-5），不是你能解的。
@@ -78,7 +78,7 @@ graph LR
 
 | 批次 | 時程 | 內容 | 前置條件 | 人日 |
 |---|---|---|---|:---:|
-| **批次 1** | W1–W2（9/22–10/05） | F-04 / F-03a / F-05 / F-08 / F-10 / Settings | 契約 v1 簽核＋3 項裁決＋測試帳號（**W-04 另需 B-6**） | **7.0**（不含 🚫 W-04） |
+| **批次 1** | W1–W2（9/22–10/05） | F-04 / F-03a / F-05 / F-08 / F-10 / Settings / **修 A0-A9 前半** | 契約 v1 簽核＋3 項裁決＋測試帳號（**W-04 另需 B-6**；**W-09 需用戶先交**） | **9.5**（不含 🚫 W-04） |
 | **批次 2** | W3–W4（10/06–10/19） | F-02（wallet-counter）→ F-01（三態簽到） | **B-1a 完成 → W-20/21/22/23/24/25 可做；B-1b 完成 → W-22b（調整 tab）可做**；另需 B-2 / B-3 / B-5 | **5.5**（不含 🚫 W-29） |
 | **批次 3** | W5（10/20–10/26） | F-07 / F-06 適配 / F-09 真機 E2E | 後端 B-4 完成＋D12 裁決 | **3.0** |
 | — | W6（10/27–11/02） | 整合驗收＋現場彩排支援（= W-33，**已計入批次 3 的 3.0 內**；非你的交付，但需你在場） | — | （0.5，已含） |
@@ -234,7 +234,38 @@ gantt
 | **驗收標準** | ① 登出；② Event 切換；③ 版本號；④ NFC 可用性檢查（`NfcManager.isSupported()`）；⑤ **不顯示** 未實作設定（避免假功能） |
 | **阻斷標記** | ✅ 無 |
 
-**批次 1 小計 = 7.0 人日**（**不含 🚫 阻斷項 W-04**；含 W-04 則為 7.5）
+**批次 1 小計 = 9.5 人日**（**不含 🚫 阻斷項 W-04**；含 W-04 則為 10.0）
+
+---
+
+### 4.1b 批次 1 增量（2026-09-16 完成度審計新增 W-09..W-15）
+
+> **來源**：`research/10-app-completion-audit.md`（完成度審計）+ `research/11-app-defect-register.md`（缺陷冊）
+> **為什麼插隊到批次 1**：這 7 項零後端依賴；且其中 `W-09` 不修則你**第 1 天全 API 404**。
+
+| W-ID | 名稱 | 執行者 | 人日 | 優先 | 對應缺陷 |
+| :-: | --- | :-: | :-: | :-: | :-: |
+| **W-09** | API base URL 修正 + fail-closed guard + `.env.example` | **用戶（移交前 W0）** | 0.5 | **P0** | A0 |
+| **W-10** | 修 A1 + A4 + A5（store 錯誤路徑與生命週期） | 你 | 0.25 | **P0** | A1/A4/A5 |
+| **W-11** | 硬編值清理（14 處中文 + `payloadUrl`） | 你 | 0.25 | P1 | A6/A7 |
+| **W-12** | 四態補齊（overview / check-in / nfc-bind 空態、settings loading+error、`+not-found`） | 你 | 0.5 | P1 | — |
+| **W-13** | 真死碼清理（**僅**「可清理」子集，見缺陷冊 §4.1） | 你 | 0.5 | P2 | — |
+| **W-14** | 契約護欄 smoke script（打 staging 4 端點） | 你 | 0.25 | P1 | — |
+| **W-15** | Badge 篩選 UI（status/batchId）+ tagUid 複製 | 你 | 0.5 | P1 | — |
+
+**既有 W-ID 的 AC 增補（不新增 ID）**
+
+| W-ID | 增補 AC | 人日增量 | 對應缺陷 |
+| :-: | --- | :-: | :-: |
+| **W-01** | 修正**第 4 處漂移（D-4）**：`EventStatus` 移除 `REGISTRATION_OPEN`/`ENDED`、補 `ARCHIVED` | +0.25 | A2 |
+| **W-26** | AC 增補：**消費 `checkIn` 回傳值**，結果卡顯示姓名/公司/票種/報到時間（消費 4 個死 copy key + `CheckInResult`） | +0.25 | A3 |
+| **W-02** | AC 增補：移除 `overview.tsx` 的 `?? 'Badge'` / `?? '快速操作'` fallback | +0 | A8 |
+| **W-08** | AC 增補：**登出前二次確認** | +0 | — |
+| **W-23** | 順手修（同檔 `utils/api-error.ts`）：逾時碼分類 | +0 | A9 |
+
+> ⚠️ **兩項重要警告（必讀）**
+> ① **W-13 不得清理「偽死碼」**——`flash-*` icon 給 W-26、`plus` + `ScreenHeader.right` 給 W-02、`copy` icon + `expo-clipboard` 給 W-15、`checkIn.attendee*` copy key 給 W-26、`react-native-qrcode-svg` 給 W-31。**現在刪 = 製造重工。** 完整對照見 `research/11-app-defect-register.md` §4.2。
+> ② **批次 1 由 2 週 → 約 2.7 週**（9.5 ÷ 3.5 人日/週）——需用戶裁決（裁決 **C-18**）。
 
 ---
 
@@ -385,7 +416,7 @@ gantt
 | **驗收標準** | ① 頂部即時顯示今日/本場次簽到數；② 簽到成功後即時 +1（樂觀更新）；③ 每 60s 背景刷新一次 |
 | **阻斷標記** | 🚫 **阻斷 B-7**（新增端點 `/checkin-stats`）。**替代方案**：以現有 `status=CHECKED_IN&limit=1` 拿總數，標記為「總簽到」而非「今日簽到」——**語意降級但現場仍可用**。已寫入契約文件供用戶選擇（裁決 **C-7** 語意 / **C-12** 交付）。 |
 
-**批次 2 小計 = 5.5 人日**（**不含 🚫 阻斷項 W-29**）
+**批次 2 小計 = 5.75 人日**（**不含 🚫 阻斷項 W-29**；含 W-29 則為 6.25）
 
 | 分項 | 人日 | 組成 |
 |---|:---:|---|
@@ -393,8 +424,10 @@ gantt
 | **F-01** | **1.75** | W-26 / W-27 / W-28 |
 | **W-29** | **0.5** | 🚫 另計，屬 **F-01 延伸** |
 
-> 📐 **全 W-ID 逐項合計 = 16.5 人日**（含新增 W-22b 後重算）：批次 1 = **7.5**（含 W-04）、批次 2 = **6.0**（含 W-29）、批次 3 = **3.0**。
-> 批次小計的 **7.0 / 5.5 / 3.0** 是**排除 🚫 阻斷項（W-04 / W-29）** 後的可交付量 = **15.5 人日**。
+> 📐 **全 W-ID 逐項合計 = 19.25 人日**（含 W-22b 與 2026-09-16 新增的 W-09..W-15）：批次 1 = **10.0**（含 W-04）、批次 2 = **6.25**（含 W-29）、批次 3 = **3.0**。
+> 批次小計的 **9.5 / 5.75 / 3.0** 是**排除 🚫 阻斷項（W-04 / W-29）** 後的可交付量 = **18.25 人日**；
+> 再扣除 **buffer pool 1.0**（W-13 死碼清理 0.5 + W-15 Badge 篩選 0.5）→ **承諾交付量 17.25 人日**。
+> ⚠️ **W-09（0.5 人日）不計入前端**——它是用戶在移交前（W0）要做的 A0 修正。
 
 ---
 
@@ -500,6 +533,7 @@ gantt
 | **D-1** | registrations pagination | `{ total, page, limit, pages }`<br/>`docs/api/v11.0-event-module/03-registration-payment-api.md` 的 pagination 範例段 | `{ total, page, limit, totalPages }`<br/>`EventRegistrationService.listRegistrations()` | `{ total, page, pageSize, pages? }`<br/>`event.service.ts` 的 registrations pagination 型別 | ✅ |
 | **D-2** | `Registration` 姓名 | （未寫） | flat `firstName`/`lastName`<br/>`EventRegistrationService.getRegistrationByCode()` 的 select | `profile.fullName`<br/>`api.types.ts` 的 `Registration` | ✅ |
 | **D-3** | NFC badges pagination | （**零文件**） | `{ total, page, pageSize }`（query 參數亦為 `pageSize`）<br/>`EventNfcBatchService.listBadges()` | `{ total, page, pageSize, pages? }`<br/>`nfc.service.ts` 的 badges pagination 型別 | ✅ |
+| **D-4** | `EventStatus` 值域 | （未寫） | `DRAFT \| PUBLISHED \| ONGOING \| COMPLETED \| CANCELLED \| ARCHIVED`<br/>`schema.prisma` 的 `enum EventStatus` | `DRAFT \| PUBLISHED \| REGISTRATION_OPEN \| ONGOING \| ENDED \| CANCELLED`<br/>`api.types.ts` 的 `EventStatus` | ✅（**2026-09-16 新增**：App 幻覺 2 值、缺 1 值） |
 
 > 🔴 **實測補充**：pagination 在**同一個後端**內就有 **3 種 live 形狀**：
 > - `GET /registrations` → `{total, page, limit, totalPages}`（`EventRegistrationService.listRegistrations()`）

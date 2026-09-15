@@ -576,6 +576,18 @@
 | **C-12** | CHK-04（簽到計數端點）**交付或降級** | (a) **本批交付新端點**（施工項 **B-7**，0.75 BE 人日）<br/>(b) 降級：用既有 `status=CHECKED_IN` 讀 `pagination.total`（UI 標「**總簽到**」而非「今日」） | **(a)**，(b) 作 fallback（同 **C-7**：C-7 管「語意」，C-12 管「是否本批交付」） | ⚠️ **W-29** |
 | **C-13** | **Credential 統一模型（CRD-01）是否本批交付** | (a) **本批交付**：後端新增 `EventCredential` 模型 + `GET /credentials?userId=`（施工項 **B-8**，2.0 BE 人日）<br/>(b) 本批不做：**W-31 延至活動後**（前端詳情頁不顯示 Credential 區塊） | **(a)** — 會議 §六 決策 #2 與原文 §九 待辦 #2 **皆標 P0**，並註明「**先做架構否則後面重工**」；且 W-31 已計入批次 3 的 3.0 人日 | 🚫 **W-31** |
 
+### 6.1 2026-09-16 完成度審計新增裁決（C-14..C-18）
+
+> 來源：`docs/research/10-app-completion-audit.md` + `docs/research/11-app-defect-register.md`
+
+| ID | 裁決點 | 選項 | 建議 | 阻塞 | 狀態 |
+|:---:|---|---|---|:---:|:---:|
+| **C-14** | **A0 base URL 修法** | ✅ **已由 2026-09-16 實測收斂為單一解**：`config.ts` 的 `API_BASE_URL` 預設改為 **origin-only**（移除尾端 `/api`）。子決策：① 是否加 fail-closed guard；② 是否建 `.env.example`；③ **production apex origin 是否為 `https://linkcard.xyz`** | 三項全做 | 🚫 **W-09** | ⚠️ 子決策 ③ 待用戶確認 |
+| **C-15** | **深色高對比模式是否納入 11 月** | (a) 納入：需 theme 雙層 + `app.json` 的 `userInterfaceStyle` 改 `automatic` → **架構級**（約 2–3 人日）<br/>(b) 不納入：會議 §四 的「深色高對比」要求未達標 | **(b) 起步**，列 P1 評估 | ⚠️ W-02 / W-26 / W-28 的 AC | ⚠️ 待裁決 |
+| **C-16** | **平板 / 折疊機適配優先序** | (a) 納入：需用 `layout.breakpointNarrow` + `useWindowDimensions`（token 已備但 0 使用）<br/>(b) 不納入（`app.json` 已 `supportsTablet: true` 但零響應式邏輯） | **(b)** — 活動場地無平板需求證據 | ⚠️ 無（可延後） | ⚠️ 待裁決 |
+| **C-17** | **`[eventId]/settings.tsx` 去留** | (a) **不建**：W-02 的「我的」卡指向 `(auth)/settings`（現有 40 行頁）<br/>(b) 建頁（P1） | **(a)** — 現有頁已足夠；避免 scope creep | ⚠️ W-02 的「我的」卡落點 | ⚠️ 待裁決 |
+| **C-18** | **批次 1 時程處置**（因 W-09..W-15 新增而超原 2 週承諾） | (a) **承認批次 1 為 2.5–2.7 週**<br/>(b) 把 buffer pool（W-13 + W-15 = 1.0 日）移出：批次 1 = 8.5 日 ≈ 2.4 週 | **(a)** — 新增者含 1 個 High 修復（A1），不宜延後 | ⚠️ 整體排期 | 🚨 **ESC-VPW-002** |
+
 ---
 
 ## 7. 已知落差（Expectation Gaps）
@@ -616,6 +628,7 @@
 | v1.0-r1 | 2026-09-15 | ① 標記約定補 `🟢+🔴`（additive）；② C-10 移除 `expo-av` 候選（SDK 57 已無此套件）；③ 新增裁決 **C-11**（REG-02 是否本批交付）、**C-12**（CHK-04 交付或降級）；④ §2.D 補「只列前端消費端點」範圍聲明（排除 `allocate-initial` / `token-expire` cron）；⑤ §7 補澳門 PDPA 落差列；⑥ 全文件引用改以**函式名/路由字串**為主、行號為輔（路線行號已校正） | REPAIR R1：獨立文件審查 DRA-002 / DRA-006 / DRA-008 / DRA-009 / DRA-013 / DRA-014 |
 | v1.0-r2 | 2026-09-15 | ① **L1**：§標記約定兩列 emoji 損毀（`U+FFFD`）→ 重打為 `🟢+🔴` 與 `📌`；② **M1**：`walletRouter` 為虛構符號（實測 `grep -rn walletRouter src/` = 0）→ WAL-01..04 改為 `premium.routes.ts` 的**路由字串**引用（`router.get('/wallet/:registrationId/balance'` 等）；③ **M2**：`getMyManaged()` → **`getMyManagedEvents()`**（§1.1、A-3）；④ **L4**：`resolveEventId` 歸屬由 `EventRegistrationController` 改正為 **`EventService.resolveEventId()`**（`EventService.ts:330`）；⑤ **M6**：§6 新增裁決 **C-13**（Credential 統一模型是否本批交付，對應後端 **B-8**） | REPAIR R2：獨立文件審查 M1 / M2 / M6 / L1 / L4 |
 | v1.0-r3 | 2026-09-15 | ① **N1**：§1.1 與 A-2 證據欄的 `getMe()` 為虛構符號（實測 `grep -rn "getMe()" docs/` = 0）→ 改正為 **`me()`**（`auth.service.ts:21`）；② **N5**：§3.1 的 `Event.orgId` 不存在 → 改正為 **`Event.ownerId`**（`schema.prisma:551`），並註明 `ownerAssociationId`（`:553`）為關聯歸屬欄位、**不參與** write-access 判定（`getEventWriteAccess()` 只 select `ownerId`） | DELTA 複驗：獨立文件審查 N1 / N5 / D2 |
+| v1.0-r4 | 2026-09-16 | ① §6.1 新增裁決 **C-14**（A0 base URL 修法，已收斂單一解）、**C-15**（深色高對比）、**C-16**（平板適配）、**C-17**（`[eventId]/settings.tsx` 去留）、**C-18**（批次 1 時程處置）；由完成度審計（`research/10`）與缺陷冊（`research/11`）引入 | 交叉引用新增（無凍結項變更） |
 
 ---
 
