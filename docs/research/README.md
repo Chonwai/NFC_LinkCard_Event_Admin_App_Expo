@@ -41,7 +41,7 @@
 | 文件 | 位置 | 讀者 | 用途 |
 |---|---|---|---|
 | **前端施工計畫** | `docs/20260915_AdminApp_Handoff_for_feiteng2015.md` | feiteng2015 | **23 個 W-ID** × 三批次 × 前置條件 × mock 策略 |
-| **API 契約凍結規格 v1** | `docs/20260915_AdminApp_API_Contract_Freeze_v1.md` | 雙方 | 25 端點 🟢🟡🔴 + 錯誤碼 + 權限矩陣 |
+| **API 契約凍結規格 v1** | `docs/20260915_AdminApp_API_Contract_Freeze_v1.md` | 雙方 | 29 端點 🟢🟡🔴 + 錯誤碼 + 權限矩陣 |
 | **可行性複審** | `docs/research/09-feasibility-review.md` | 用戶 | 裁決依據 + 待決策清單 |
 | **後端待辦** | `LinkCard_ExpressJS_Backend/docs/20260915_AdminApp_Backend_TODOs.md` | 用戶 | 5 阻斷項 + 2 交付判定項（**B-6 / B-7**）施工化 + 排序論證 |
 

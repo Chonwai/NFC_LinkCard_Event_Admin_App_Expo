@@ -49,8 +49,8 @@
 |---|:---:|:---:|---|
 | ✅ 可立即開發 | 5（F-03 / F-04 / F-05 / F-08 / F-10） | **7.0** | 無後端依賴（＝批次 1 小計，含 W-01 契約基建與 W-08 buffer；**不含 🚫 W-04**） |
 | 🟡 部分可開發 | 1（F-01） | **0.75 / 1.75**（W-29 另計 **0.5**） | W-26 三態 UI 可先做；W-27 / W-28 等 B-2 / B-3 |
-| ❌ 後端阻斷 | 4（F-02 / F-06 / F-07 + F-01 部分） | **5.75** | F-02 **3.25** ＋ F-06 0.5 ＋ F-07 0.5 ＋ F-01 阻斷部分 1.0（W-27/28）＋ W-29 0.5 |
-| — | — | **16.0** | **全 W-ID 逐項合計**（批次 1 = 7.5、批次 2 = 5.5、批次 3 = 3.0；含新增 W-22b 後重算）；其中 **15.0** = 批次小計合計（排除 🚫 W-04 / W-29） |
+| ❌ 後端阻斷 | 4（F-02 / F-06 / F-07 + F-01 部分） | **6.25** | F-02 **3.75** ＋ F-06 0.5 ＋ F-07 0.5 ＋ F-01 阻斷部分 1.0（W-27/28）＋ W-29 0.5 |
+| — | — | **16.5** | **全 W-ID 逐項合計**（批次 1 = 7.5、批次 2 = 6.0、批次 3 = 3.0；含新增 W-22b 後重算）；其中 **15.5** = 批次小計合計（排除 🚫 W-04 / W-29） |
 
 ---
 
@@ -62,14 +62,14 @@
 
 | 項 | 現況 | 證據 |
 |---|---|---|
-| wallet 端點數 | **4 條**（balance / transactions / top-up / deduct） | `premium.routes.ts` 的 `walletRouter.get|post('/:registrationId/...')`（≈ :13-20） |
+| wallet 端點數 | **4 條**（balance / transactions / top-up / deduct） | `premium.routes.ts` 的 `router.get('/wallet/:registrationId/balance'` / `router.get(` + `'/wallet/:registrationId/transactions'`（多行）/ `router.post('/wallet/:registrationId/top-up'` / `router.post('/wallet/:registrationId/deduct'`（≈ :13-20） |
 | 缺的端點 | `redeem` / `adjust` / `approve` / `reject` / `adjustments` / `report/summary` = **6 條，全 0 命中** | grep routes |
 | `REVERSAL` enum 值 | **不存在**（`WalletTransactionType` 只有 5 值） | `enum WalletTransactionType`（`prisma/schema.prisma:1306-1312`） |
 | `idempotencyKey` | **不存在** | `model EventWalletTransaction`（`prisma/schema.prisma:1320-1346`）無此欄；**grep `idempotencyKey` in `src/**` = 0 命中**（全 repo 的 `idempotency` 命中屬 **registration 冪等索引註解**，`schema.prisma:835`）→ **wallet 無冪等** |
 | `EventWalletAdjustment` 表 | **不存在** | `schema.prisma` 無此 model |
 | Admin App token 代碼 | **零**（scaffold 級） | v11.3 §5.2 自述 |
 
-**影響**：F-02 整個做不了（**3.25** 人日）；F-05 的 Token 流水區塊只能顯示既有 5 種類型，無 `reasonCode`/`approvedBy`。
+**影響**：F-02 整個做不了（**3.75** 人日）；F-05 的 Token 流水區塊只能顯示既有 5 種類型，無 `reasonCode`/`approvedBy`。
 
 ### B-2 ｜`checkIn` 無條件拋 `ALREADY_CHECKED_IN` 🔴 High
 
@@ -189,7 +189,7 @@
 |:---:|---|---|---|
 | **CR-1** | 契約漂移已實際存在 | §5 已證實 3 處 | **先凍結契約文件**（已產出 `20260915_AdminApp_API_Contract_Freeze_v1.md`）+ 10 項裁決 |
 | **CR-2** | 手寫 mock 會製造第 4 份契約 | 「前端沒 API 只好自己掰」是必然反應 | mock 必須由契約型別 `satisfies` 護欄（`tsc` 一改即報錯） |
-| **CR-3** | 後端工期是前端的 5 倍 | v11.3：BE 10.5 vs FE 2.0 人日（+ Admin App 新增 → BE **13.90** / FE 15.0） | 後端先交 **B-1a**（4.0 人日）解鎖 **3.25** 日前端（F-02） |
+| **CR-3** | 後端工期是前端的 5 倍 | v11.3：BE 10.5 vs FE 2.0 人日（+ Admin App 新增 → BE **15.90** / FE 15.5） | 後端先交 **B-1a**（4.0 人日）解鎖 **3.75** 日前端（F-02） |
 | **CR-4** | Admin App 無 API 文件 | `docs/` 只有 `.project-context.md` + `research/` | 本次已補（契約凍結文件） |
 | **CR-5** | staging 0 badge 資料 | 4 個 staging 活動皆無 badge | W-07（0.5 人日）優先做 |
 | **CR-6** | VOLUNTEER 設計斷層 | enum 有、授權零 | B-4 先定義語意 |
@@ -232,7 +232,7 @@
 | **3** | **後端 B-1a 交付**（schema + 冪等 + 權限收緊 + redeem + frozen + 流水欄） | 用戶 | 第 3 週前 |
 
 > 前提 1/2 沒交 → 前端 W-01 完全阻塞，7.0 人日的批次 1 全部開不了工。
-> 前提 3 沒交 → 批次 2（5.0 人日）開不了工，critical path 平移。
+> 前提 3 沒交 → 批次 2（5.5 人日）開不了工，critical path 平移。
 
 ---
 
@@ -244,7 +244,7 @@ flowchart LR
     B --> C["後端 G-1 名單權限<br/>0.25 日"]
     C --> D["後端 B-1.1/1.2/1.3<br/>schema + 冪等"]
     D --> E["後端 B-1.5/1.6/1.7<br/>redeem + frozen + 流水欄"]
-    E --> F["前端 F-02<br/>3.25 日"]
+    E --> F["前端 F-02<br/>3.75 日"]
     A --> G["前端批次 1<br/>7.0 日（可並行）"]
     D --> H["後端 B-5 限流<br/>0.7 日（並行）"]
     H --> I["前端 F-01<br/>1.75 日（＋W-29 0.5）"]
@@ -266,10 +266,12 @@ flowchart LR
 | 5 | **B-2 + B-3**（override + 閘口） | 1.95 | W-27 |
 | 5 | **B-1.9~1.11**（B-1b：adjust / 審批 / 報表） | 2.0 | **W-22b**（調整 tab） |
 | 6 | **B-4**（VOLUNTEER + D12） | 1.75 | W-30/W-31 |
+| 6 | **B-8 Credential 統一模型**（§6.1 新增，會議 §六 #2 / 原文 §九 待辦 #2 皆標 **P0**） | 2.0 | **W-31**（批次 3） |
 
-**後端關鍵路徑（重算，補計 B-2 / B-3）** = **B-1a 4.0 + B-1b 4.0 = 8.0 人日** → 解鎖前端 **F-02 3.25 人日** → **W-32 E2E 1.5 人日**。
+**後端關鍵路徑（重算，補計 B-2 / B-3）** = **B-1a 4.0 + B-1b 4.0 = 8.0 人日** → 解鎖前端 **F-02 3.75 人日** → **W-32 E2E 1.5 人日**。
 > ⚠️ **為何要補 B-2/B-3**：W-32 的依賴是**批次 1 + 批次 2 全綠**，而批次 2 內含 **W-27（需 B-2 1.1 + B-3 0.85 = 1.95）** 與 **W-22b（需 B-1b）**；批次 1 的 **W-04 需 B-6**。三者均可與 B-1b 同期並行（B-2+B-3 = 1.95 < B-1b 4.0），故關鍵鏈仍由 B-1 決定。
-> **後端總量 13.90 人日**（見後端待辦 §5）@ 3 日/週 ≈ **4.6 週** < 6 週 → **buffer 足夠**，但比舊估值（12.65 / 4.2 週）薄。
+> **後端總量 15.90 人日**（見後端待辦 §5，含新增 **B-8** Credential 統一模型 2.0）@ 3 日/週 ≈ **5.3 週** < 6 週 → **buffer 足夠但薄**，比舊估值（13.90 / 4.6 週）更薄。
+> ⚠️ **B-8 不在關鍵路徑上**（它解鎖批次 3 的 W-31，而 W-32 只依賴批次 1+2），故關鍵鏈長度不變。
 
 ---
 
@@ -314,7 +316,7 @@ flowchart LR
 | U-3 | `wallet/report/summary` 是否本次交付（前端不消費） | 設計有列，進度未知 | 批次 2 是否含報表 |
 | U-4 | 現場「收款方式」是否含 `MPAY` | 會議只說記帳，但 UI 需預留「已收款」 | W-22 欄位設計 |
 | U-5 | `by-code` 路由是否已解析 `req.user` | 該路由**無 auth 中間件**（public），`req.user` 可能為 undefined | **B-5.1 的前置驗證項** |
-| U-6 | 用戶每週可投入的 BE 人日數 | 未知 | **13.90** 人日能否塞進 6 週（@3 日/週 ≈ 4.6 週，可行但 buffer 薄） |
+| U-6 | 用戶每週可投入的 BE 人日數 | 未知 | **15.90** 人日能否塞進 6 週（@3 日/週 ≈ 5.3 週，可行但 buffer 薄） |
 
 ---
 
@@ -326,6 +328,7 @@ flowchart LR
 | **前端施工計畫** | `LinkCard_Event_Admin_App_Expo/docs/20260915_AdminApp_Handoff_for_feiteng2015.md` | **feiteng2015** |
 | **API 契約凍結規格 v1** | `LinkCard_Event_Admin_App_Expo/docs/20260915_AdminApp_API_Contract_Freeze_v1.md` | 雙方共同真相 |
 | **後端待辦** | `LinkCard_ExpressJS_Backend/docs/20260915_AdminApp_Backend_TODOs.md` | 用戶本人 |
+| **會議需求摘要（本 repo 可讀版）** | `LinkCard_Event_Admin_App_Expo/docs/20260914_AdminApp_Meeting_Requirements.md` | 外派工程師（需求來源，免離開本 repo） |
 
 ---
 
@@ -335,6 +338,7 @@ flowchart LR
 |---|---|---|---|
 | v1.0 | 2026-09-15 | 初版（DISCOVER + PLAN 交叉複審） | Neo Loop（admin-app-handoff） |
 | v1.0-r1 | 2026-09-15 | ① W-ID **計數修正**：原誤寫 17，**實為 22**（W-01..W-08 / W-20..W-29 / W-30..W-33），含新增 **W-22b** 後為 **23**；② 人日重算：F-02 = **3.25**、F-01 = **1.75**（W-29 另計 0.5）、全 W-ID **16.0**、後端 **13.90**（舊 12.65 含 G-1 重複計）；③ 新增 **§6.1**：NFC 硬體（**High**）與澳門 PDPA（**Medium**）風險；④ §9 補 **B-6 / B-7** 並重算關鍵路徑（補計 B-2/B-3）；⑤ §11 新增 **C-11 / C-12**，**C-10 移除 `expo-av` 候選**；⑥ §3 B-1 的 `idempotency` 措詞精確化（`grep idempotencyKey` in `src/**` = 0）；⑦ 全文件引用改以**函式名/路由字串**為主（路線行號已校正） | REPAIR R1：獨立文件審查 DRA-002 / 004 / 005 / 006 / 007 / 008 / 009 |
+| v1.0-r2 | 2026-09-15 | ① **M1**：`walletRouter` 為虛構符號（實測 `grep -rn walletRouter src/` = 0）→ 改為 `premium.routes.ts` 的**路由字串**引用（`router.get('/wallet/:registrationId/balance'` 等）；② **M3**：W-22 由 0.25 上調 **0.75**（兩個 tab 的完整表單 + 驗證 + 錯誤處理，0.25 不可信；且「骨架已計在 W-21/W-25」無事實支撐）→ 批次 2 = **6.0**、全 W-ID = **16.5**、批次小計合計 = **15.5**、F-02 = **3.75**；③ **M6**：§9 補 **B-8**（Credential 統一模型，2.0 BE 人日）→ 後端總量 **13.90 → 15.90**；④ **L2**：§13 交付物清單補列 doc5（`20260914_AdminApp_Meeting_Requirements.md`） | REPAIR R2：獨立文件審查 M1 / M3 / M6 / L2 |
 
 ---
 

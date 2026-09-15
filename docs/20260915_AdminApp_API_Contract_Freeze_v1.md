@@ -13,8 +13,8 @@
 | 🟢 | **已存在且契約穩定**（live 驗證過） |
 | 🟡 | **已存在但契約有問題**（附具體修正內容） |
 | 🔴 | **待新建**（附 request/response 草案） |
-| �+🔴 | **已存在但本次將新增欄位（additive）**：既有欄位不得改名、不得移除；新增欄位前端可先忽略（向後相容） |
-| �📌 | **規劃建議**（非實作事實） |
+| 🟢+🔴 | **已存在但本次將新增欄位（additive）**：既有欄位不得改名、不得移除；新增欄位前端可先忽略（向後相容） |
+| 📌 | **規劃建議**（非實作事實） |
 | ⚠️ | **未驗證**（需用戶確認） |
 
 ---
@@ -38,7 +38,7 @@
 | 群組 | 前綴 | 證據（以函式名為準、行號為輔） |
 |---|---|---|
 | 認證 / 用戶 | `/api/auth/*`、`/api/users/*` | `auth.service.ts` 的 `login()` / `getMe()`（≈ :12 / :20） |
-| 活動模組 | `/api/v1/events/*` | `event.service.ts` 的 `getMyManaged()` / `getEventById()`（≈ :25 / :47） |
+| 活動模組 | `/api/v1/events/*` | `event.service.ts` 的 `getMyManagedEvents()` / `getEventById()`（≈ :18 / :47） |
 
 > 📌 **規劃建議**：此雙前綴為歷史遺留，v1.0 **不動它**（改動成本 > 收益）。前端只需記住：**認證走 `/api`，活動走 `/api/v1`**。
 
@@ -74,7 +74,7 @@
 ## 2. 端點總表
 
 > 全部掛於 `{BASE}/api/v1/events/:eventId`（除認證群組）。
-> `:eventId` 可為 **id 或 slug**（後端 `EventRegistrationController.resolveEventId()`）。
+> `:eventId` 可為 **id 或 slug**（後端 `EventService.resolveEventId()`，`EventService.ts:330`；controller 只是呼叫它）。
 > **引用慣例（本文件全域有效）**：一律以**函式名 / 路由字串**定位；`file.ts:NN` 僅為 2026-09-15 的輔助行號，會隨開發漂移。
 
 ### 2.A 認證與活動上下文
@@ -83,7 +83,7 @@
 |---|:---:|---|---|---|---|
 | A-1 | 🟢 | `POST /api/auth/login` | 登入 | public | `auth.service.ts` 的 `login()`（≈ :12） |
 | A-2 | 🟢 | `GET /api/users/me` | 當前用戶 | JWT | `auth.service.ts` 的 `getMe()`（≈ :20） |
-| A-3 | 🟢 | `GET /api/v1/events/my-managed` | 我的活動（含 `_meta.userRole`） | JWT | `event.service.ts` 的 `getMyManaged()`；後端 `EventService.getMyManagedEvents()` 回 `_meta.userRole` |
+| A-3 | 🟢 | `GET /api/v1/events/my-managed` | 我的活動（含 `_meta.userRole`） | JWT | `event.service.ts` 的 `getMyManagedEvents()`；後端 `EventService.getMyManagedEvents()` 回 `_meta.userRole` |
 | A-4 | 🟢 | `GET /api/v1/events/by-id/:eventId` | 單一活動 | JWT | `event.service.ts` 的 `getEventById()`（≈ :47） |
 
 ---
@@ -221,10 +221,10 @@
 
 | # | Mark | Method & Path | 用途 | Auth（v11.3 §4.3） | 證據 |
 |---|:---:|---|---|---|---|
-| WAL-01 | 🟢+🔴 | `GET /wallet/:registrationId/balance` | 查餘額 | `PART` ‖ `OWNER/SA/CO/OP`（⚠D12） | `premium.routes.ts` 的 `walletRouter.get('/:registrationId/balance'`（≈ :13） |
-| WAL-02 | 🟢+🔴 | `GET /wallet/:registrationId/transactions` | 查流水 | 同上 | `premium.routes.ts` 的 `walletRouter.get('/:registrationId/transactions'` |
-| WAL-03 | 🟡 | `POST /wallet/:registrationId/top-up` | 現場增值 | **OP+ only**（收緊） | `premium.routes.ts` 的 `walletRouter.post('/:registrationId/top-up'`；handler `EventWalletController.topUp()` |
-| WAL-04 | 🟡 | `POST /wallet/:registrationId/deduct` | （deprecated） | **OP+** + 白名單 + reasonCode | `premium.routes.ts` 的 `walletRouter.post('/:registrationId/deduct'`；handler `EventWalletController.deduct()` |
+| WAL-01 | 🟢+🔴 | `GET /wallet/:registrationId/balance` | 查餘額 | `PART` ‖ `OWNER/SA/CO/OP`（⚠D12） | `premium.routes.ts` 的 `router.get('/wallet/:registrationId/balance'`（≈ :13） |
+| WAL-02 | 🟢+🔴 | `GET /wallet/:registrationId/transactions` | 查流水 | 同上 | `premium.routes.ts` 的 `router.get(` + 路徑字串 `'/wallet/:registrationId/transactions'`（**多行寫法**，≈ :14-18） |
+| WAL-03 | 🟡 | `POST /wallet/:registrationId/top-up` | 現場增值 | **OP+ only**（收緊） | `premium.routes.ts` 的 `router.post('/wallet/:registrationId/top-up'`（≈ :19）；handler `EventWalletController.topUp()` |
+| WAL-04 | 🟡 | `POST /wallet/:registrationId/deduct` | （deprecated） | **OP+** + 白名單 + reasonCode | `premium.routes.ts` 的 `router.post('/wallet/:registrationId/deduct'`（≈ :20）；handler `EventWalletController.deduct()` |
 | WAL-05 | 🔴 | `POST /wallet/:registrationId/redeem` | 核銷消費 | OP+ | 新增 |
 | WAL-06 | 🔴 | `POST /wallet/:registrationId/adjust` | 管理調整 | OWNER/SA（maker） | 新增 |
 | WAL-07 | 🔴 | `GET /wallet/adjustments` | 審批佇列 | OWNER/SA/CO | 新增 |
@@ -405,6 +405,8 @@
 > ⚠️ **未驗證**：F-06 目前只有會議層級的「統一抽象為 Credential 模型」意向（會議 §六 決策 #2）。
 > **後端無 `EventCredential` model**（實測 `schema.prisma` grep 0 命中）。
 > **本項需用戶先完成後端設計，前端才有契約可依** → 前端在批次 3 只做「可選區塊」，**無契約時不開發**。
+> 🔴 **後端施工項 = B-8**（Credential 統一模型，2.0 BE 人日，見後端待辦 §2.8）；裁決 **C-13**（是否本批交付）。
+> 會議 §六 決策 #2 與原文 §九 待辦 #2 皆標 **P0**，並註明「**先做架構否則後面重工**」。
 
 ---
 
@@ -572,6 +574,7 @@
 | **C-10** | 音效套件 | (a) `expo-audio`（SDK 57 官方音訊庫）<br/>(b) **無音效**，只用 RN 內建 `Vibration` | **(a)**。❌ `expo-av` **已自候選移除**：Expo 已標記 `isDeprecated: true` 且**將於 SDK 55 移除**，本專案為 `expo ~57.0.13` → **該套件不存在，不可用** | ⚠️ W-28 |
 | **C-11** | REG-02（名單 `search`/`sortBy`/`sortOrder`）**是否本批交付** | (a) **本批交付**：後端新增此三參數（施工項 **B-6**，0.75 BE 人日）<br/>(b) 本批不做：**W-04 走降級**（僅分頁+篩選，搜尋靠前端對當頁過濾） | **(a)** — 會議 §二 模組 D 將「搜尋、篩選、排序」列為名單頁必要功能；降級版在數千筆規模下不可用 | 🚫 **W-04** |
 | **C-12** | CHK-04（簽到計數端點）**交付或降級** | (a) **本批交付新端點**（施工項 **B-7**，0.75 BE 人日）<br/>(b) 降級：用既有 `status=CHECKED_IN` 讀 `pagination.total`（UI 標「**總簽到**」而非「今日」） | **(a)**，(b) 作 fallback（同 **C-7**：C-7 管「語意」，C-12 管「是否本批交付」） | ⚠️ **W-29** |
+| **C-13** | **Credential 統一模型（CRD-01）是否本批交付** | (a) **本批交付**：後端新增 `EventCredential` 模型 + `GET /credentials?userId=`（施工項 **B-8**，2.0 BE 人日）<br/>(b) 本批不做：**W-31 延至活動後**（前端詳情頁不顯示 Credential 區塊） | **(a)** — 會議 §六 決策 #2 與原文 §九 待辦 #2 **皆標 P0**，並註明「**先做架構否則後面重工**」；且 W-31 已計入批次 3 的 3.0 人日 | 🚫 **W-31** |
 
 ---
 
@@ -611,6 +614,7 @@
 |---|---|---|---|
 | v1.0 | 2026-09-15 | 初版凍結候選 | Neo Loop（admin-app-handoff）PLAN stage 交付 |
 | v1.0-r1 | 2026-09-15 | ① 標記約定補 `🟢+🔴`（additive）；② C-10 移除 `expo-av` 候選（SDK 57 已無此套件）；③ 新增裁決 **C-11**（REG-02 是否本批交付）、**C-12**（CHK-04 交付或降級）；④ §2.D 補「只列前端消費端點」範圍聲明（排除 `allocate-initial` / `token-expire` cron）；⑤ §7 補澳門 PDPA 落差列；⑥ 全文件引用改以**函式名/路由字串**為主、行號為輔（路線行號已校正） | REPAIR R1：獨立文件審查 DRA-002 / DRA-006 / DRA-008 / DRA-009 / DRA-013 / DRA-014 |
+| v1.0-r2 | 2026-09-15 | ① **L1**：§標記約定兩列 emoji 損毀（`U+FFFD`）→ 重打為 `🟢+🔴` 與 `📌`；② **M1**：`walletRouter` 為虛構符號（實測 `grep -rn walletRouter src/` = 0）→ WAL-01..04 改為 `premium.routes.ts` 的**路由字串**引用（`router.get('/wallet/:registrationId/balance'` 等）；③ **M2**：`getMyManaged()` → **`getMyManagedEvents()`**（§1.1、A-3）；④ **L4**：`resolveEventId` 歸屬由 `EventRegistrationController` 改正為 **`EventService.resolveEventId()`**（`EventService.ts:330`）；⑤ **M6**：§6 新增裁決 **C-13**（Credential 統一模型是否本批交付，對應後端 **B-8**） | REPAIR R2：獨立文件審查 M1 / M2 / M6 / L1 / L4 |
 
 ---
 
