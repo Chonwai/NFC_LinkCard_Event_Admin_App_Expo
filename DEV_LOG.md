@@ -62,4 +62,51 @@
 ### 交付
 - `docs/research/05b-meeting-blueprint.md`、`06-feature-list.md`、`07-mvp-schedule.md`、`08-appendix.md`
 - `README.md`、`PROGRESS.md` 更新
+
+## 2026-09-15 — 交接前可行性複審 + 外派 handoff
+
+### 研究目的
+**新增前提**：前端畫面交給工程師 `feiteng2015`、後端 API 由用戶本人開發。
+在此分工下複審「功能清單是否真的做得出來」+ 製作甩手 handoff 文件。
+
+### 研究過程
+- Neo Loop B（DISCOVER → PLAN），Quality = strict(93) / L3 Deep Dive
+- Snapshot Pre-Flight：`docs/.project-context.md` FRESH（2026-09-13）
+- **Maker ≠ Checker**：DISCOVER（morpheus）與 PLAN（architect）由不同 agent 執行，交叉比對結論差異
+- architect 逐項 file:line 證據核對，**推翻 DISCOVER 的 1 項評級**（B-5 由 High 升 Critical）
+
+### 關鍵發現
+
+**5 個硬阻斷項**
+
+| ID | 阻斷項 | 級別 | 證據 |
+|:---:|---|:---:|---|
+| B-1 | Token 帳務層未實作（缺 6 端點 + `REVERSAL` + `idempotencyKey` + `EventWalletAdjustment` 表） | 🔴 Critical | `premium.routes.ts:13-20`、`schema.prisma:1306-1312`、grep `idempotency` = 0 |
+| B-2 | `checkIn` 無條件拋 `ALREADY_CHECKED_IN`，無 override | 🔴 High | `EventRegistrationService.ts:1042-1044` |
+| B-3 | 無閘口/地點欄位 | 🔴 High | `schema.prisma:802-803` |
+| B-4 | `VOLUNTEER` 角色無任何 access 引用 | 🔴 High | `EventService.ts:424-458` |
+| B-5 | `by-code` 限流 20 次/5 分鐘/**IP** | 🔴 **Critical** | `registrations.routes.ts:15-33` |
+
+**PLAN 階段新增發現（DISCOVER 未列）**
+- 🔴 **G-1**：`GET /registrations` 擋 OPERATOR（`EventService.ts:375`），但 `checkin` 放行（`:440-446`）→ 閘口 staff 按名單卡 403，**彩排才會爆**（修復 0.25 日）
+- 🔴 **DEF-01**：自助 top-up 漏洞（參加者可自發 Token），**現存於 prod** → 建議最優先修
+- 🟠 **Pagination 5 種形狀**：3 種 live（`/registrations` + `/my-managed` + `/nfc/badges`）+ 1 種文件 + 1 種 App 型別；`/nfc/badges` 連 query 參數名都不同（`pageSize` vs `limit`）
+
+**可行性裁決**：5 個 P0 可立即開工（7.0 日，零依賴）／1 個部分（F-01 三態 UI）／4 個被後端阻斷
+
+### 交付（6 hackathon commits）
+
+| # | Commit | 內容 |
+|:---:|---|---|
+| 1 | `bc3813a` | `docs/research/09-feasibility-review.md`（可行性複審） |
+| 2 | `77f3fc3` | `docs/20260915_AdminApp_API_Contract_Freeze_v1.md`（25 端點凍結） |
+| 3 | `5b31575` | `docs/20260915_AdminApp_Handoff_for_feiteng2015.md`（17 W-ID × 3 批次） |
+| 4 | `395722c` | **後端 repo** `docs/20260915_AdminApp_Backend_TODOs.md`（5 阻斷項施工化） |
+| 5 | `beb149a` | `docs/research/README.md` + `PROGRESS.md` 索引更新 |
+| 6 | — | 本檔案（DEV_LOG） |
+
+### 移交給 feiteng2015 的三份核心文件
+- 施工計畫（batch1 可立刻開工，7.0 人日無依賴）
+- API 契約凍結 v1（共同真相）
+- 後端待辦（用戶自用）
 - 6 個 hackathon commits：`ca6cb4e` → `47a32b6`（branch `main`）
