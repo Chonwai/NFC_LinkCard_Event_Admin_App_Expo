@@ -37,7 +37,7 @@
 
 | 群組 | 前綴 | 證據（以函式名為準、行號為輔） |
 |---|---|---|
-| 認證 / 用戶 | `/api/auth/*`、`/api/users/*` | `auth.service.ts` 的 `login()` / `getMe()`（≈ :12 / :20） |
+| 認證 / 用戶 | `/api/auth/*`、`/api/users/*` | `auth.service.ts` 的 `login()` / `me()`（≈ :12 / :21） |
 | 活動模組 | `/api/v1/events/*` | `event.service.ts` 的 `getMyManagedEvents()` / `getEventById()`（≈ :18 / :47） |
 
 > 📌 **規劃建議**：此雙前綴為歷史遺留，v1.0 **不動它**（改動成本 > 收益）。前端只需記住：**認證走 `/api`，活動走 `/api/v1`**。
@@ -82,7 +82,7 @@
 | # | Mark | Method & Path | 用途 | Auth | 證據 |
 |---|:---:|---|---|---|---|
 | A-1 | 🟢 | `POST /api/auth/login` | 登入 | public | `auth.service.ts` 的 `login()`（≈ :12） |
-| A-2 | 🟢 | `GET /api/users/me` | 當前用戶 | JWT | `auth.service.ts` 的 `getMe()`（≈ :20） |
+| A-2 | 🟢 | `GET /api/users/me` | 當前用戶 | JWT | `auth.service.ts` 的 `me()`（≈ :21） |
 | A-3 | 🟢 | `GET /api/v1/events/my-managed` | 我的活動（含 `_meta.userRole`） | JWT | `event.service.ts` 的 `getMyManagedEvents()`；後端 `EventService.getMyManagedEvents()` 回 `_meta.userRole` |
 | A-4 | 🟢 | `GET /api/v1/events/by-id/:eventId` | 單一活動 | JWT | `event.service.ts` 的 `getEventById()`（≈ :47） |
 
@@ -435,7 +435,7 @@
 | （未使用） | `VOLUNTEER` | 🔴 **無任何授權引用** |
 | （未使用） | `MEDIA` | 會議未提 |
 
-後端 enum 實證：`EventOrgRoleType`（`schema.prisma:1245-1251`，**5 值**：`SUPER_ADMIN` / `COORDINATOR` / `OPERATOR` / `VOLUNTEER` / `MEDIA`）。**event owner 不在 enum 內**，由 `Event.orgId` / 關聯判定（`EventService.getEventWriteAccess()` 同時接受 owner 與 SA/CO）。
+後端 enum 實證：`EventOrgRoleType`（`schema.prisma:1245-1251`，**5 值**：`SUPER_ADMIN` / `COORDINATOR` / `OPERATOR` / `VOLUNTEER` / `MEDIA`）。**event owner 不在 enum 內**，由 `Event.ownerId` / `Event.ownerAssociationId`（`schema.prisma:551-553`）判定（`EventService.getEventWriteAccess()` 同時接受 owner 與 SA/CO）。
 
 ### 3.2 操作 × 角色（**live 實測**）
 
