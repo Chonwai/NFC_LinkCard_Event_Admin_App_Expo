@@ -14,11 +14,12 @@
 1. **App 程式碼自 `040ebd4`（2026-09-12）起完全未變動**——4 天來只有文件。`src/` 共 **14 個 commit**（2 scaffold + 6 feat + 6 fix），全部集中在 **2026-09-12 一天**。
 2. **規模**：`src/` **36 檔 / 4674 行**；route 檔 10 個 = **7 個實際畫面** + 3 個 layout。
 3. **路由註冊 0 缺口**——沒有「註冊了但檔案不存在」或「檔案存在但沒註冊」。`[eventId]/settings.tsx` **在整個 git 歷史中從未存在**（非被刪除）。
-4. **完成度**：畫面功能完整 **4/7**；四態覆蓋 **22/28 格**（L 6/7、E 3/7、Er 6/7 但**其中 1 個是死的**、S 7/7）。
+4. **完成度**：畫面功能完整 **4/7**；四態覆蓋 **21/28 格（75%）**（L 6/7、E 2/7、Er 6/7 但**其中 1 個是死的**、S 7/7）。
 5. **Service**：10 個方法；完整驗證 5、僅錯誤路徑 3、從未成功執行 1、死碼 1。
 6. **驗證真相：真機 0、EAS build 0、自動化測試 0。** PROGRESS 的 12 項 E2E **全部是 web + Metro + staging**，且**全靠 `.env.local` 才成立**。
 7. **發現 10 個既有研究未記載的缺陷（A0..A9）**，其中最關鍵：**A0 預設 API base URL 構成雙重 `/api` → 首次 build 全 404**（本輪已實測確認，非推論）。
-8. **死碼／未使用合計約 48 項**（Icon 12/34、copy 10/74、型別 3、theme export 6、token 5、npm 6、其他 6）。
+8. **死碼／未使用合計約 48 項**（Icon 12/34、copy **11/64**、型別 3、theme export 6、token 5、npm 6、其他 6）。
+   > ⚠️ **其中僅 11 項可實際清理**（見 `11-app-defect-register.md` §4.1）；其餘為**待消費資產**（W-02 / W-08 / W-15 / W-26 / W-31 的下游），**不得清理**。
 9. **工程基建幾乎為零**：無測試、無 CI、無 error reporting、無 analytics、無 i18n 框架、husky **宣告但不存在**、EAS 未初始化。
 10. **結論一句話**：**「骨架完成、Build 健康、驗證層級嚴重不足、且帶著 1 個 Critical 配置缺陷」**——不是半成品，但也不能宣稱「可用」。
 
@@ -89,10 +90,10 @@
 | 狀態 | 覆蓋 | 說明 |
 | :-: | :-: | --- |
 | **L** | **6/7** | 缺 `settings` |
-| **E** | **3/7** | 缺 `overview` / `check-in` / `nfc-bind` |
+| **E** | **2/7** | 缺 `overview` / `check-in` / `nfc-bind`（`index` / `settings` 為 ➖ 不適用）；✅ 僅 `home`（`EmptyState`）與 `badges`——`grep EmptyState src/app/` 實測 |
 | **Er** | **6/7** | ⚠️ `home` **表面有、實際死**（A1） |
 | **S** | **7/7** | — |
-| **合計** | **22/28（79%）** | 📌 由 **W-12** 補齊 |
+| **合計** | **21/28（75%）** | 📌 由 **W-12** 補齊 |
 
 ### 2.4 Spec 有列但從未實作的頁面
 
@@ -136,7 +137,7 @@
 
 | 位置 | 值域 |
 | --- | --- |
-| App `types/api.types.ts:43-54` | `DRAFT \| PUBLISHED \| REGISTRATION_OPEN \| ONGOING \| ENDED \| CANCELLED` |
+| App `types/api.types.ts:43-49` | `DRAFT \| PUBLISHED \| REGISTRATION_OPEN \| ONGOING \| ENDED \| CANCELLED` |
 | 後端 `prisma/schema.prisma:289-296` | `DRAFT \| PUBLISHED \| ONGOING \| COMPLETED \| CANCELLED \| ARCHIVED` |
 
 - App **幻覺 2 值**（`REGISTRATION_OPEN` / `ENDED`，後端全 repo `grep` = 0）
@@ -198,7 +199,7 @@
 > ✅ **使用中的 22 個**：`home`、`camera`、`archive`、`users`、`cog`、`close`、`check`、`arrow-left`、`nfc`、`clipboard-check`、`refresh`、`alert-triangle`、`search`、`filter`、`pencil`、`qr-code`、`check-circle`、`x-circle`、`alert-circle`、`information-circle`、`empty-card`、`logo-mark`
 > 📌 **裁決：這 12 個不得刪除**（8 個有明確下游客戶）。詳見 `11-app-defect-register.md` §4.2。
 
-### 4.5 死 copy key（10 個，逐 key grep = 0）
+### 4.5 死 copy key（11 個，逐 key grep = 0）
 
 | Key | 計畫中用途（未實作即證據） | 將由誰消費 |
 | --- | --- | --- |
@@ -281,13 +282,13 @@
 | 面向 | 數值 | 說明 |
 | --- | :-: | --- |
 | **畫面功能完整** | **4/7（57%）** | login / home / overview / badges（`check-in` 因 QR 未驗列部分） |
-| **四態覆蓋** | **22/28（79%）** | L 6/7、E 3/7、Er 6/7（1 個死）、S 7/7 |
+| **四態覆蓋** | **21/28（75%）** | L 6/7、E 2/7、Er 6/7（1 個死）、S 7/7；E 的 ✅ 僅 `home` 與 `badges`（`grep EmptyState src/app/` 實測） |
 | **Service 完整驗證** | **5/10（50%）** | 僅錯誤路徑 3、從未成功 1、死碼 1 |
 | **UI 元件有被使用** | **10/10（100%）** | 但 **約 30 個 props 未接線** |
 | **Icon 使用率** | **22/34（65%）** | 死 35% |
-| **copy key 使用率** | **64/74（86%）** | 死 14% |
+| **copy key 使用率** | **54/64（84%）** | 死 **11**（原誤寫 74 總數 / 10 死） |
 | **npm 依賴使用率** | **真死 6 個** | `nfc-manager` 為 dynamic import（非死） |
-| **死碼／未使用合計** | **約 48 項** | icon 12 + copy 10 + 型別 3 + theme export 6 + token 5 + npm 6 + 其他 6 |
+| **死碼／未使用合計** | **約 48 項** | icon 12 + copy **11** + 型別 3 + theme export 6 + token 5 + npm 6 + 其他 6；**其中僅 11 項可實際清理（見 doc11 §4.1）**，其餘為待消費資產 |
 | **Build 健康** | ✅ | `tsc --noEmit` strict、`eslint` 全綠（2026-09-14 實測） |
 | **web E2E** | **12 項** | **全依賴 `.env.local`** |
 | **真機驗證** | **0** | — |
@@ -331,8 +332,11 @@
 ## §7 未驗證項（AU-01..AU-11）
 
 > 📌 **命名說明**：本清單使用 **`AU-`（App Unverified）前綴**，以**避免與 `09-feasibility-review.md` / 契約文件的 `U-1..U-6` 碰撞**（兩者用途不同：`U-` 為契約/後端面向，`AU-` 為 App 完成度面向）。
-> ⚠️ **已知衝突澄清**：`09` 的 **U-5** = 「`by-code` 路由是否已解析 `req.user`」；本清單的 **AU-05** = 「A0 是否為真缺陷」。**兩者不同**，勿混用。
-
+> ⚠️ **已知衝突澄清**：`09` 的 **U-5** = 「`by-code` 路由是否已解析 `req.user`」；本清單的 **AU-05** = 「A0 是否為真缺陷」。**兩者不同**，勿混用。>
+> 🔴 **另一個前綴碰撞（本次新增）——`A-` 有兩個所指**：
+> - 本文與 `11-app-defect-register.md` 的 **`A0..A9` = App 缺陷**（本輪新發現的 10 個）
+> - `06-feature-list.md` 的 **`A1..A4` = 功能差異分類**（A1 已有完整資產 / A2 已有骸架需增強 / A3 全新開發 / A4 明確不做）——**這是完全不同的清單**
+> → **看到 `A2` 請先確認是哪一份文件**。完整代號表見本文 **§8.1**。
 | # | 項目 | 為何未驗證 | 狀態 |
 | :-: | --- | --- | :-: |
 | **AU-01** | `CameraView` QR 掃描是否真能解 LinkCard 報名 QR | web 無 camera → **從未執行** | ⚠️ 需真機（Android 優先）+ 實體 QR |
@@ -345,7 +349,7 @@
 | **AU-08** | 是否存在 `xyz.linkcard.event_admin` 的 EAS project | `app.json` 無 `projectId` | ⚠️ 用戶確認 Expo 帳號內是否已建 |
 | **AU-09** | 會議「四大功能卡」是否真要求 Token + 名單並列為首頁卡 | 只讀了 repo 內摘要 | ⚠️ 用戶／PM 確認 |
 | **AU-10** | `docs/LinkCard Event related/` 系列**原文不在本 repo** | `ls` = 不存在；`PROGRESS.md` 引用 `../../docs/LinkCard Event related/…` | ⚠️ 用戶提供原文以核對「刻意不做 vs 忘了做」 |
-| **AU-11** | `assets/brand/logo-mark.svg` master 是否存在 | 只在 `Icon.tsx` 註解中被引用，`grep` 未找到該檔 | ⚠️ 用戶確認或補入 |
+| **AU-11** | `assets/brand/logo-mark.svg` master 是否存在 | 只在 `Icon.tsx` 註解中被引用 | ✅ **已結案**：該檔**存在於姊妹 repo** `LinkCard_Promoter_App_Expo/assets/brand/logo-mark.svg`；本 repo 未納入 → **W-31 需要時再複製** |
 
 ### 7.1 「代碼在、但從未在任何環境跑過」的精確清單
 
@@ -368,13 +372,31 @@
 | --- | --- |
 | **本文 `10-app-completion-audit.md`** | **你（擁有者）**：完成度與缺口 |
 | **`11-app-defect-register.md`** | **feiteng2015**：10 個缺陷 + 死碼清單 + 修復優先序 |
-| `20260915_AdminApp_Handoff_for_feiteng2015.md` | 施工計畫（**23 W-ID** × 3 批次 + 新增 W-09..W-15） |
-| `20260915_AdminApp_API_Contract_Freeze_v1.md` | 雙方共同真相（端點 + 錯誤碼 + 權限矩陣） |
-| `research/09-feasibility-review.md` | 可行性複審（5 阻斷項 B-1..B-5 + 決策 C-1..C-17） |
+| `20260915_AdminApp_Handoff_for_feiteng2015.md` | 施工計畫（**30 W-ID** × 3 批次 + W-09..W-15） |
+| `20260915_AdminApp_API_Contract_Freeze_v1.md` | 雙方共同真相（29 端點 + 錯誤碼 + 權限矩陣） |
+| `research/09-feasibility-review.md` | 可行性複審（5 阻斷項 B-1..B-5 + 決策 **C-1..C-18**） |
 | `research/01-completion-audit.md` / `02-verification-gaps.md` | 舊版審計（2026-09-14） |
 | `20260914_AdminApp_Meeting_Requirements.md` | 需求來源（本 repo 可讀版） |
-| `PROGRESS.md` | 進度記錄（⚠️ 其「17 W-ID」為 stale，實為 23） |
+| `PROGRESS.md` | 進度記錄（已於 2026-09-16 同步為 **30 W-ID**） |
 | `LinkCard_ExpressJS_Backend/docs/20260915_AdminApp_Backend_TODOs.md` | 後端施工清單（B-1..B-8） |
+
+---
+
+## §8.1 代號表（Glossary）
+
+> 本 repo 的 `docs/` 用**不同前綴**區分不同清單。**若你看到 `A2`，請先確認是哪一份文件**：
+
+| 代號 | 含義 | 定義位置 |
+| --- | --- | --- |
+| **W-ID**（W-01..W-33） | **工作項**（施工單元） | `20260915_AdminApp_Handoff_for_feiteng2015.md` §4 |
+| **B-ID**（B-1..B-8） | **後端施工項** | `LinkCard_ExpressJS_Backend/docs/20260915_AdminApp_Backend_TODOs.md` |
+| **C-ID**（C-1..C-18） | **待裁決項** | 契約文件 §6 / 本文 §9 引用的 `09` §11 |
+| **D-n**（D-1..D-4） | **契約漂移**（文件 vs 後端實作） | handoff §5.1 |
+| **A0..A9** | **App 缺陷**（本文與 doc11 使用） | `11-app-defect-register.md` §2 |
+| **A1..A4** | ⚠️ **功能差異分類**（**不同清單！**） | `06-feature-list.md`（A1 已有完整資產 / A2 已有骸架需增強 / A3 全新開發 / A4 明確不做） |
+| **AU-01..AU-11** | **App 未驗證項**（本輪） | 本文 §7 |
+| **U-1..U-6** | **契約/後端未驗證項**（不同清單） | `09-feasibility-review.md` §12 / 契約 §2.G |
+| **W0** | **移交前準備週**（用戶負責） | handoff §4.1b |
 
 ---
 

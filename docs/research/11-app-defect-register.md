@@ -8,7 +8,23 @@
 > **前置閱讀**：`20260915_AdminApp_Handoff_for_feiteng2015.md`（施工計畫）+ `20260915_AdminApp_API_Contract_Freeze_v1.md`（契約）
 
 ---
+## §0.1 代號表（先讀这个，再讀 §1）
 
+| 代號 | 含義 | 首次出現 |
+| --- | --- | --- |
+| **W-ID**（W-01..W-33） | **工作項**（施工單元）。每一個都有檔案/依賴/估時/AC/阻斷標記 | handoff §4 |
+| **W0** | **移交前準備週**（用戶負責；本册的 **W-09** 在此週） | handoff §4.1b |
+| **B-ID**（B-1..B-8） | **後端施工項**。本册**不**修，只在 §3 指向 | 後端待辦文件 |
+| **C-ID**（C-1..C-18） | **待裁決項**（需用戶/PM 拍板）。影響施工範圍或排期 | 契約 §6 |
+| **D-n**（D-1..D-4） | **契約漂移**（文件 vs 後端實作不一致） | handoff §5.1 |
+| **A0..A9** | **本册的 App 缺陷**（本輪審計新發現） | 本文件 §2 |
+| **A1..A4** | ⚠️ **不同清單！** `06-feature-list.md` 的功能分類（A1 已有完整資產 / A2 已有骸架需增強 / A3 全新開發 / A4 明確不做） | `06-feature-list.md` |
+| **AU-01..AU-11** | **App 未驗証項**（尚未在任何環境跑過的東西） | `10-app-completion-audit.md` §7 |
+| **U-1..U-6** | **契約/後端未驗証項**（不同清單） | `09-feasibility-review.md` §12 |
+
+> 🔴 **看到 A2 請先確認是哪份文件**：本册的 `A2` = `EventStatus` 漂移；`06-feature-list.md` 的 `A2` = 「已有骸架需增強」。
+
+---
 ## §0 這份文件怎麼用
 
 | 你想知道 | 看哪節 |
@@ -28,11 +44,11 @@
 
 ## §1 修復優先序
 
-### P-0 ｜移交前必修（**用戶負責**，不修則無法開發）
+### P-0 ｜移交前必修（**用戶負責**，不修則新 clone 需手動補 `.env.local`）
 
 | ID | 缺陷 | 為什麼堵住一切 |
 | :-: | --- | --- |
-| **A0** | 預設 API base URL 雙重 `/api` | ⓐ 新 clone **沒有 `.env.local`**（`.gitignore:31 .env*.local`）→ 預設值生效 → **所有 API 404**；ⓑ EAS build **不含 `.env.local`** → 首次 build 全 404。**這兩件事會讓「這個 App 能不能跑」變成未知** |
+| **A0** | 預設 API base URL 雙重 `/api` | ⓐ 新 clone **沒有 `.env.local`**（`.gitignore:31 .env*.local`）→ 預設值生效 → **所有 API 404**；ⓑ **EAS build 不含 `.env.local`** → 首次 build 全 404。<br>📌 **緩解現況**：開發期仍有繞道（手動建 `.env.local`），但 **EAS build 產物無法繞道**，且新工程師不知該檔的格式（repo 無 `.env.example`）。 |
 
 ### P-1 ｜批次 1 首日（**feiteng2015 負責**）
 
@@ -72,7 +88,7 @@
 | --- | --- |
 | **責任歸屬** | **用戶（移交前 W0）** → W-09 |
 | **症狀（使用者可見後果）** | 在**任何沒有 `.env.local` 的環境**（新 clone、EAS build、CI）啟動 App → 登入、載入活動、簽到、查 badge **全部失敗**，且錯誤訊息是通用網路錯誤（非 404 明示），極難定位 |
-| **根因** | `src/constants/config.ts:10`：<br>`export const API_BASE_URL = EXPO_PUBLIC_API_URL \|\| 'https://linkcard.xyz/api';`<br>而**所有 service 路徑都以 `/api/...` 開頭**：<br>`auth.service.ts:13,22`（`login()`/`me()`）→ `/api/auth/login`、`/api/users/me`<br>`event.service.ts:22,43,54` → `/api/v1/events/…`<br>`registration.service.ts:12,20` → `/api/v1/events/:eventId/registrations/…`<br>`nfc.service.ts:19,36,49` → `/api/v1/events/:eventId/nfc/…`<br>→ axios `combineURLs('https://linkcard.xyz/api', '/api/v1/events/my-managed')` = **`https://linkcard.xyz/api/api/v1/events/my-managed`** |
+| **根因** | `src/constants/config.ts:10`：<br>`export const API_BASE_URL = EXPO_PUBLIC_API_URL \|\| 'https://linkcard.xyz/api';`<br>而**所有 service 路由都以 `/api/...` 開頭**（以**符號名**為準，行號僅為附註）：<br>`auth.service.ts` 的 `login()`（L13）/ `me()`（L22）→ `/api/auth/login`、`/api/users/me`<br>`event.service.ts` 的 `getMyManagedEvents()`（L23）/ `getEventById()`（L44）/ `getRegistrations()`（L56）→ `/api/v1/events/…`<br>`registration.service.ts` 的 `getByCode()`（L13）/ `checkIn()`（L21）→ `/api/v1/events/:eventId/registrations/…`<br>`nfc.service.ts` 的 `lookup()`（L20）/ `listBadges()`（L37）/ `bind()`（L50）→ `/api/v1/events/:eventId/nfc/…`<br>→ axios `combineURLs('https://linkcard.xyz/api', '/api/v1/events/my-managed')` = **`https://linkcard.xyz/api/api/v1/events/my-managed`** |
 | **為何目前不爆** | `.env.local` 內容為 `EXPO_PUBLIC_API_URL=https://staging-api.link-card.xyz`（**origin-only**）→ 覆寫掉錯誤預設值。該檔 `git check-ignore` 命中 `.gitignore:31 .env*.local` → **不在版控** |
 | **✅ 正確慣例（本輪實證）** | ⓐ 後端 `LinkCard_ExpressJS_Backend/src/app.ts:153-154`：`app.use('/api/v1/events', eventRoutes)` + `app.use('/api', routes)`；`src/routes/index.ts:11-14`：`router.use('/auth', authRoutes)` / `router.use('/users', userRoutes)` → `/api/auth/login` 與 `/api/users/me` 為真<br>ⓑ 姊妹 App `LinkCard_Promoter_App_Expo/src/constants/config.ts:10` 的 base 為 `http://127.0.0.1:3020`（**無 `/api`**），服務路徑同為 `/api/v1/promoter/…`<br>ⓒ Promoter `.env.example` **明文**：「`EXPO_PUBLIC_API_URL` = 後端 API 的 origin — **只填 origin，不含 `/api` 或任何路徑後綴**」 |
 | **重現步驟** | ① `mv .env.local .env.local.bak`<br>② `npm run web`（或 `npx expo start --web`）<br>③ 用 staging 帳號登入 → Network 面板可見 `POST https://linkcard.xyz/api/api/auth/login` → **404** |
@@ -103,7 +119,7 @@
 | **症狀** | `ARCHIVED` 狀態的活動在 `home` 顯示**原始英文** `ARCHIVED`（而非中文），且徽章色為 `neutral` |
 | **根因** | App `src/types/api.types.ts:43-54`：<br>`'DRAFT' \| 'PUBLISHED' \| 'REGISTRATION_OPEN' \| 'ONGOING' \| 'ENDED' \| 'CANCELLED'`<br>後端 `LinkCard_ExpressJS_Backend/prisma/schema.prisma:289-296`：<br>`DRAFT \| PUBLISHED \| ONGOING \| COMPLETED \| CANCELLED \| ARCHIVED`<br>→ App **幻覺 2 值**（`REGISTRATION_OPEN` / `ENDED`；後端全 repo `grep REGISTRATION_OPEN` = **0 命中**）、**缺 1 值**（`ARCHIVED`）<br>受影響處：`src/app/(auth)/home.tsx` 的 `STATUS_TONE`(L18-26) 與 `STATUS_LABEL`(L28-35) 皆無 `ARCHIVED` 鍵 → L73-74 的 `?? item.status` fallback 顯示英文 |
 | **重現步驟** | 在 staging 把任一活動設為 `ARCHIVED` → `home` 列表該列顯示 `ARCHIVED` |
-| **最小修法** | ⓐ `api.types.ts` 的 `EventStatus` 改為與後端完全一致（移除 `REGISTRATION_OPEN`/`ENDED`、加入 `ARCHIVED`）；<br>ⓑ `home.tsx` 的 `STATUS_TONE` 移除 `REGISTRATION_OPEN`、加入 `ARCHIVED: 'neutral'`（`COMPLETED` 已在）；<br>ⓒ `home.tsx` 的 `STATUS_LABEL` 移除 `REGISTRATION_OPEN`、加入 `ARCHIVED: '已封存'`（📌 建議文案）；<br>ⓓ **同批**檢查 copy 層是否需新增對應 key |
+| **最小修法** | ⓐ `api.types.ts` 的 `EventStatus`（**L43-49**）改為與後端完全一致（移除 `REGISTRATION_OPEN`/`ENDED`、加入 `ARCHIVED`）；<br>ⓑ `home.tsx` 的 `STATUS_TONE` 移除 `REGISTRATION_OPEN`、加入 `ARCHIVED: 'neutral'`（`COMPLETED` 已在）；<br>ⓒ `home.tsx` 的 `STATUS_LABEL` 移除 `REGISTRATION_OPEN`、加入 `ARCHIVED`，**文案引用 `copy.status.archived`**（該命名空間由 **W-11** 建立；若 W-11 未完成则暫以硬編並標 `TODO(W-11)`）；<br>ⓓ **與 A6 同批處理**（A6 要將 `STATUS_LABEL` 的 6 個硬編中文搬進 `copy.status.*`，两者是同一個物件） |
 | **驗收標準** | ① `tsc` 對 `REGISTRATION_OPEN`/`ENDED` 的任何引用報錯（證明無殘留）；② `ARCHIVED` 活動顯示中文標籤；③ `STATUS_TONE`/`STATUS_LABEL` 的鍵集合 = 後端 enum |
 | **⚠️ 未驗證** | 後端 `EventService.getMyManagedEvents()` 的 **response mapping** 是否另行映射 status（AU-07）→ 修前先打一次 API 確認 `status` 實值 |
 
@@ -153,9 +169,10 @@
 | --- | --- |
 | **責任歸屬** | feiteng2015 → **W-11** |
 | **症狀** | 無視覺症狀；但**違反 `copy.zh-TW.ts` 自稱的「單一真相來源」**，且使 P-08（繁/簡/英/葡多語言）無法只靠換 copy 檔完成 |
-| **根因** | 兩檔共 **14 處**（📌 本輪複驗：morpheus 原計 13，實測為 14）：<br>**`src/app/(auth)/[eventId]/nfc-bind.tsx`（8 處）**：L37-39（`BADGE_TYPES` 的 `手環` / `卡片` / `QR`）、L126（`① 輸入報名編號以查詢參加者`）、L150（`② 選擇 Badge 類型，然後將空白 NFC 卡靠近手機背面`）、L177（`開始寫入 NFC 卡`）、L178（`重新輸入`）、L185（`寫入中，請保持卡片靠近…`）、L197（`繼續下一張`）<br>**`src/app/(auth)/[eventId]/badges.tsx`（6 處）**：L125（`找不到此 Badge`）、L128（`Badge 查詢失敗`）、L166（`查詢 Badge（輸入 tagUid）`）、L177（`查詢`）、L197（`綁定報名：`）、L211（`尚無 Badge` / `先建立批次或綁定 Badge`） |
-| **最小修法** | ⓐ 在 `src/constants/copy.zh-TW.ts` 新增對應 key（建議依既有命名：`nfc.*` / `badges.*`）；<br>ⓑ 逐處替換為 `copy.*`；<br>ⓒ 📌 **建議在同批一併補上 `checkIn.codeLabel` 等已在 copy 者的一致性檢查**；<br>ⓓ **不要**在此時引入 i18n 框架（P-08 另議，屬超範圍） |
-| **驗收標準** | ① 兩檔內無 CJK 硬編字串（`grep` 驗證，排除註解/import）；② `tsc`/lint 全綠；③ 畫面文字零變化（純重構） |
+| **根因** | **5 檔共 ≥29 行**（實測：非註解行含 CJK 字元；原估「兩檔 14 處」低估）：<br>**`src/app/(auth)/[eventId]/nfc-bind.tsx`（8 行）**：L37-39（`BADGE_TYPES` 的 `手環` / `卡片` / `QR`）、L126（`① 輸入報名編號以查詢參加者`）、L150（`② 選擇 Badge 類型，然後將空白 NFC 卡靠近手機背面`）、L177（`開始寫入 NFC 卡`）、L178（`重新輸入`）、L185（`寫入中，請保持卡片靠近…`）、L197（`繼續下一張`）<br>**`src/app/(auth)/[eventId]/badges.tsx`（13 行）**：L28-32（`STATUS_LABELS` 五個中文狀態標籤）、L125（`找不到此 Badge`）、L128（`Badge 查詢失敗`）、L166（`查詢 Badge（輸入 tagUid）`）、L177（`查詢`）、L197（`綁定報名：`）、L211（`尚無 Badge` / `先建立批次或綁定 Badge`）<br>**`src/app/(auth)/home.tsx`（6 行）**：L28-35（`STATUS_LABEL` 六個中文狀態標籤）（⚠️ 這 6 行就是 **A2 ⓒ** 要改的同一個物件——**两者必須同批處理**）<br>**其他**：`overview.tsx` 1 行、`check-in.tsx` 1 行 |
+| **與 A2 的關係（重要）** | `copy.zh-TW.ts` **目前沒有 `status` 命名空間**。A2 要求把 `ARCHIVED` 補進 `STATUS_LABEL`，若不一併建 namespace，就必留下硬編中文。<br>→ **裁決：`copy.status.*`（6 值中文標籤）由 W-11 產出**；A2 ⓒ 改為**引用 `copy.status.archived`**（見 A2 節） |
+| **最小修法** | ⓐ 在 `src/constants/copy.zh-TW.ts` **新增兩個命名空間**：`nfc.*` / `badges.*`，**以及 `status.*`（6 值中文標籤，供 `home` 與 `badges` 共用）**；<br>ⓑ 逐處替換為 `copy.*`；<br>ⓒ **不要**在此時引入 i18n 框架（P-08 另議，屬超範圍） |
+| **驗收標準** | ① **這 5 檔內無 CJK 硬編字串**（`grep` 驗証，排除註解/import）；② `tsc`/lint 全綠；③ 畫面文字零變化（純重構）；④ `copy.status.*` 存在且被 `home` 與 `badges` 兩邊消費 |
 
 ---
 
@@ -220,11 +237,11 @@
 | :-: | --- | --- | --- |
 | 1 | `SkeletonList` 元件 | `src/components/ui/Skeleton.tsx`（L108-113 + `SkeletonListProps` L17） | 刪除（含 `layout.skeletonRows` 的消費） |
 | 2 | `iconStyles` | `src/components/ui/Icon.tsx:255` | 刪除 |
-| 3 | `getEventById` | `src/services/event.service.ts:43` | 刪除（或若 W-05 需要，改為消費） |
+| 3 | `getEventById` | `src/services/event.service.ts` 的 `getEventById()` | **刪除**（無任何呼叫端；若 W-05 日後需要再重建） |
 | 4 | `ApiErrorEnvelope` | `src/types/api.types.ts` | 刪除（`api-error.ts` 另有 `ApiErrorShape`） |
 | 5 | `nfc-utils.buildUriNdefMessage` | `src/utils/nfc-utils.ts` | 降為 module-private（**不刪**） |
 | 6 | `theme` / `default` export | `src/constants/theme.ts:656,670` | 刪除（0 import） |
-| 7 | `fontFamily` / `elevation` / `metaText` export | `theme.ts:195,333,654` | 刪除（`metaText` 先讓 `home.tsx`/`badges.tsx` 改用它，再決定） |
+| 7 | `fontFamily` / `elevation` / `metaText` export | `theme.ts:195,333,654` | **先讓 `home.tsx` / `badges.tsx` 改用 `metaText`（消掉兩處自寫的 `styles.metaText` / `styles.badgeMeta`），再由 W-13 刪除 theme 的這三個 export** |
 | 8 | `radius.none` / `layout.buttonHeightSm` / `layout.iconBox` | `theme.ts:142,159,163` | 刪除 |
 | 9 | npm 依賴 `expo-constants` / `expo-device` / `expo-image-picker` / `expo-linking` | `package.json` | 從依賴移除（**先確認 W-12/W-31 不使用**） |
 | 10 | `husky` / `lint-staged` 宣告 | `package.json`（`prepare: husky`） | 📌 **二選一**：補 `.husky/`（建議，成本 0.25d）或移除宣告（目前是**假承諾**） |
