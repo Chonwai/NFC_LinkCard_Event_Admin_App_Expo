@@ -86,8 +86,59 @@
 - [ ] **app icon/splash 客製化**：目前用 Promoter 資產（`assets/` 複製）
 - [ ] **EAS Build → TestFlight**：需 Apple Developer 帳號
 
+## � 外派交接狀態（2026-09-15 更新）
+
+> **分工改變**：前端畫面 → 工程師 `feiteng2015`｜後端 API → 用戶本人
+> 可行性複審 + 完整藍圖見 `docs/research/09-feasibility-review.md`
+
+**可行性裁決（10 個 P0）**
+
+| 裁決 | 數量 | 人日 | 功能 |
+|---|:---:|:---:|---|
+| ✅ 可立即開工（零後端依賴） | 5 | 7.0 | F-03 名單 / F-04 四大卡 / F-05 詳情 / F-08 EAS / F-10 Badge |
+| 🟡 部分可開工 | 1 | 0.75/2.75 | F-01 三態 UI 可先做（覆核/計數待後端） |
+| ❌ 後端阻斷 | 4 | 8.0 | F-02 Token（B-1）/ F-06 Credential（無模型）/ F-07 權限（B-4）/ F-01 部分 |
+
+**5 個硬阻斷項（後端待辦）**
+
+| ID | 阻斷項 | 級別 | 證據 |
+|:---:|---|:---:|---|
+| B-1 | Token 帳務層未實作（缺 6 端點 + `REVERSAL` + `idempotencyKey` + `EventWalletAdjustment` 表） | 🔴 Critical | `premium.routes.ts:13-20`、`schema.prisma:1306-1312` |
+| B-2 | `checkIn` 無條件拋 `ALREADY_CHECKED_IN`，無 override | 🔴 High | `EventRegistrationService.ts:1042-1044` |
+| B-3 | 無閘口/地點欄位 | 🔴 High | `schema.prisma:802-803` |
+| B-4 | `VOLUNTEER` 角色無任何 access 引用 | 🔴 High | `EventService.ts:424-458` |
+| B-5 | `by-code` 限流 20 次/5 分鐘/**IP**（展館 NAT 必爆） | 🔴 **Critical** | `registrations.routes.ts:15-33` |
+
+**⏰ 前端 W-01 的 3 個 hard blocker（需用戶即刻裁決）**
+
+| ID | 裁決 | 建議 |
+|:---:|---|---|
+| C-1 | Pagination 方案（repo 內有 **5 種形狀**） | 維持 3 種實作 + 改正文件 + App 用兩型別 |
+| C-2 | `Registration` 型別（`profile.fullName` vs flat `firstName`） | 前端改 flat |
+| C-3 | `by-code` 限流 | `userId` 計 key + 提高上限 |
+
+**複審新發現（DISCOVER 未列）**
+
+- 🔴 **G-1**：`GET /registrations` 擋掉 OPERATOR，但 `checkin` 放行 → 閘口 staff 按名單卡 403（**W6 彩排才會爆**，修復僅 0.25 日）
+- 🔴 **DEF-01**：自助 top-up 漏洞（參加者可自發 Token），**現存於 prod** → 建議最優先修
+- 🟠 **Pagination 5 種形狀**：3 種 live + 1 種文件 + 1 種 App 型別（`/nfc/badges` 連 query 參數名都不同）
+
+**交付文件**
+
+| 文件 | 讀者 |
+|---|---|
+| `docs/20260915_AdminApp_Handoff_for_feiteng2015.md` | feiteng2015（17 W-ID × 3 批次） |
+| `docs/20260915_AdminApp_API_Contract_Freeze_v1.md` | 雙方（25 端點 + 錯誤碼 + 權限矩陣） |
+| `docs/research/09-feasibility-review.md` | 用戶（裁決依據） |
+| `LinkCard_ExpressJS_Backend/docs/20260915_AdminApp_Backend_TODOs.md` | 用戶（後端施工清單） |
+
+---
+
 ## 🔗 相關文件
 
 - Engineering Spec：`.edison/traces/event-admin-app/01-engineering-spec.md`
 - Loop State：`.edison/state/loop-event-admin-app-dev.md`
 - 藍圖：`docs/LinkCard Event related/20260911_LinkCard_Event_Admin_App_Deep_Research_v2.md`
+- **外派 handoff**：`docs/20260915_AdminApp_Handoff_for_feiteng2015.md`
+- **契約凍結**：`docs/20260915_AdminApp_API_Contract_Freeze_v1.md`
+- **可行性複審**：`docs/research/09-feasibility-review.md`

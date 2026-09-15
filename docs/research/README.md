@@ -28,6 +28,29 @@
 | `06-feature-list.md` | **功能開發清單**：差異分析（A1 完整/A2 增強/A3 新增/A4 不做）+ P0/P1/P2 完整功能表 | 「要做哪些功能？」 |
 | `07-mvp-schedule.md` | **MVP 排期**：6 週倒推 + 依賴關鍵路徑 + 風險 + 施工順序 | 「11月前怎麼排？」 |
 | `08-appendix.md` | **附錄**：會議 7 決策 ↔ v11.3 D 系列對齊 + UAT + 證據清單 + 戰略層整合 | 「待決策項 & 驗收標準」 |
+| `09-feasibility-review.md` | **交接可行性複審**：10 個 P0 逐項裁決（可開發/阻斷）+ 5 個硬阻斷項 + 契約漂移 + 外派協作風險 + 10 項待裁決 | 「這些內容真的做得出來嗎？」 |
+
+---
+
+## 🆕 外派交接（2026-09-15）
+
+> **新前提**：前端畫面 → 工程師 `feiteng2015`｜後端 API → 用戶本人
+>
+> 當功能清單從「一人做」變成「兩人分工」，**契約必須先凍結**，否則介面會漂移。
+
+| 文件 | 位置 | 讀者 | 用途 |
+|---|---|---|---|
+| **前端施工計畫** | `docs/20260915_AdminApp_Handoff_for_feiteng2015.md` | feiteng2015 | 17 個 W-ID × 三批次 × 前置條件 × mock 策略 |
+| **API 契約凍結規格 v1** | `docs/20260915_AdminApp_API_Contract_Freeze_v1.md` | 雙方 | 25 端點 🟢🟡🔴 + 錯誤碼 + 權限矩陣 |
+| **可行性複審** | `docs/research/09-feasibility-review.md` | 用戶 | 裁決依據 + 待決策清單 |
+| **後端待辦** | `LinkCard_ExpressJS_Backend/docs/20260915_AdminApp_Backend_TODOs.md` | 用戶 | 5 阻斷項施工化 + 排序論證 |
+
+**核心結論**：
+- ✅ **5 個 P0 可立即開工**（7.0 人日，零後端依賴）：F-03 名單 / F-04 四大卡 / F-05 詳情 / F-08 EAS / F-10 Badge
+- 🚫 **4 個 P0 被後端阻斷**：F-02 Token（B-1）/ F-06 Credential（無模型）/ F-07 權限（B-4）/ F-01 部分（B-2、B-3）
+- 🔴 **5 個硬阻斷項**：B-1 帳務層 6 端點+冪等全缺 / B-2 checkIn 無覆核 / B-3 無閘口欄位 / B-4 VOLUNTEER 無授權 / B-5 by-code 限流 20次/5min/IP
+- 🔴 **2 個複審新發現**：**G-1** `GET /registrations` 擋 OPERATOR 但 `checkin` 放行（現場 403）/ **DEF-01** 自助 top-up 漏洞（**現存於 prod**）
+- ⏰ **前端 W-01 有 3 個 hard blocker**：裁決 C-1（pagination）/ C-2（Registration 型別）/ C-3（限流）
 
 ---
 
