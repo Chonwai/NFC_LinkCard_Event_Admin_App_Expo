@@ -44,15 +44,17 @@ export const useEventStore = create<EventState>((set, get) => ({
     async loadEvents() {
         if (get().loading) return;
         const requestId = get().requestId;
+        // L3：世代比對抽成單一述詞，避免 try/catch 兩處重複同一條件。
+        const isCurrent = () => get().requestId === requestId;
         set({ loading: true, error: null });
         try {
             const { events } = await eventService.getMyManagedEvents({ limit: 100 });
             // N1：世代不符 = 期間發生過 `clear()`（登出）→ 丟棄這個回應，
             // 否則會把前一帳號的活動寫回 store。
-            if (get().requestId !== requestId) return;
+            if (!isCurrent()) return;
             set({ events, loading: false });
         } catch (err) {
-            if (get().requestId !== requestId) return;
+            if (!isCurrent()) return;
             set({ loading: false, error: getApiErrorMessage(err, copy.home.loadFailed) });
         }
     },

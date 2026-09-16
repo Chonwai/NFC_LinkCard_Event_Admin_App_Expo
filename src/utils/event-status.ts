@@ -32,8 +32,12 @@ export const EVENT_STATUS_TONE: Record<string, keyof typeof semantic.status> = {
 
 /**
  * 取活動狀態的顯示文字；未知狀態回退為原始值（不吞掉資訊）。
+ *
+ * L2：用 `||` 而非 `??`——`status` 型別為 `EventStatus | string`（非 nullable），
+ * `??` 的右側永遠不可達；改用 `||` 後空字串也會落到 fallback，
+ * 與 `home.tsx` 的 inline 表達式行為一致。
  */
 export function getEventStatusLabel(status: string | null | undefined): string {
     if (!status) return '';
-    return EVENT_STATUS_LABEL[status] ?? status;
+    return EVENT_STATUS_LABEL[status] || status;
 }

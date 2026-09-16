@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { copy } from '@/constants/copy.zh-TW';
 import { layout, metaText, semantic, space, spacing, type } from '@/constants/theme';
 import { useEventStore } from '@/stores/event.store';
-import { EVENT_STATUS_LABEL, EVENT_STATUS_TONE } from '@/utils/event-status';
+import { EVENT_STATUS_TONE, getEventStatusLabel } from '@/utils/event-status';
 
 export default function HomeScreen() {
     const insets = useSafeAreaInsets();
@@ -39,10 +39,10 @@ export default function HomeScreen() {
 
     const renderEvent = ({ item }: { item: (typeof events)[number] }) => {
         const tone = EVENT_STATUS_TONE[item.status] ?? 'neutral';
-        // N2：用 `||` 而非 `??`——`item.status` 的型別是 `EventStatus | string`
-        // （非 nullable），`??` 的第三段永遠不可達；改用 `||` 後空字串也會
-        // 落到 `unknownStatus`，分支才真正可達。
-        const label = EVENT_STATUS_LABEL[item.status] || item.status || copy.event.unknownStatus;
+        // L2：走共用 helper（與 `overview` 同一條路徑），空字串再落到
+        // `unknownStatus`。先前這裡是 inline 表達式，與 helper 的 fallback
+        // 行為分歧。
+        const label = getEventStatusLabel(item.status) || copy.event.unknownStatus;
         const statusToken = semantic.status[tone];
 
         return (
