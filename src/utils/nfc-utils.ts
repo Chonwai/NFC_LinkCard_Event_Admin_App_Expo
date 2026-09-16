@@ -21,8 +21,12 @@ async function loadNfcManager(): Promise<NfcManagerModuleType> {
     return import('react-native-nfc-manager');
 }
 
-/** Build a URI NDEF message pointing to a profile URL */
-export async function buildUriNdefMessage(url: string): Promise<number[]> {
+/**
+ * Build a URI NDEF message pointing to a profile URL.
+ *
+ * W-13：降為 module-private（唯一呼叫端為同檔的 `writeUriToCard()`）。
+ */
+async function buildUriNdefMessage(url: string): Promise<number[]> {
     if (!url.startsWith('https://') && !url.startsWith('http://')) {
         throw new Error(`Invalid profile URL for NFC write: ${url}`);
     }

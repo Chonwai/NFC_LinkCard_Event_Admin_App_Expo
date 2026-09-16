@@ -139,7 +139,6 @@ export const spacing = {
 } as const;
 
 export const radius = {
-    none: primitive.numeric.radius.none,
     sm: primitive.numeric.radius.sm,
     md: primitive.numeric.radius.md,
     lg: primitive.numeric.radius.lg,
@@ -155,12 +154,8 @@ export const layout = {
     ctaHeight: 56,
     /** 一般按鈕高度 */
     buttonHeight: 48,
-    /** 次級／文字按鈕最小高度（仍須 ≥48 的可點區） */
-    buttonHeightSm: 48,
     /** 相鄰觸控目標最小間距 */
     touchGapMin: 8,
-    /** 卡片標題列內 icon 方框 */
-    iconBox: 32,
     icon: {
         sm: 16,
         md: 20,
@@ -178,8 +173,6 @@ export const layout = {
     maxFontScaleBody: 1.6,
     /** 小螢幕斷點（低於此寬度時 StatTile 轉 2×2） */
     breakpointNarrow: 360,
-    /** 讀取 skelton 列數 */
-    skeletonRows: 3,
 } as const;
 
 /**
@@ -192,7 +185,7 @@ const cjkFontFamily = Platform.select<string | undefined>({
     default: undefined,
 });
 
-export const fontFamily = {
+const fontFamily = {
     /** 繁中正文／標題 */
     sans: cjkFontFamily,
     /** 等寬（tagUid / activationToken / URL） */
@@ -330,7 +323,7 @@ export const type: Record<TypeTokenName, TextStyle> = {
  * 陰影色 = `primitive.palette.gray[950]` 依原 `shadowOpacity`（0.12 / 0.10）合成的 rgba。
  * `backgroundColor` 保留：浮層必須是不透明的 `surface` 底色。
  */
-export const elevation = {
+const elevation = {
     /** 平面：卡片、清單項、統計卡 */
     flat: {} as ViewStyle,
     /** 浮起：BottomSheet、Modal、Popover */
@@ -652,19 +645,3 @@ export const hairline = StyleSheet.hairlineWidth;
  * 使用方式：`<Text style={[type.caption, metaText]} maxFontSizeMultiplier={layout.maxFontScaleBody} />`
  */
 export const metaText: TextStyle = { color: semantic.text.muted };
-
-export const theme = {
-    primitive,
-    semantic,
-    components,
-    space,
-    spacing,
-    radius,
-    layout,
-    type,
-    fontFamily,
-    elevation,
-    hairline,
-} as const;
-
-export default theme;

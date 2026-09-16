@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Animated, type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native';
+import { Animated, type StyleProp, StyleSheet, type ViewStyle } from 'react-native';
 
-import { components, layout, space } from '@/constants/theme';
+import { components } from '@/constants/theme';
 
 export interface SkeletonProps {
     /** 寬度；預設撐滿父層 */
@@ -14,20 +14,9 @@ export interface SkeletonProps {
     style?: StyleProp<ViewStyle>;
 }
 
-export interface SkeletonListProps {
-    /** 列數（預設 `layout.skeletonRows` = 3） */
-    rows?: number;
-    /** 每列高度（預設 72，對齊 inventory 批次列） */
-    rowHeight?: number;
-    /** 列間距（預設 `space[3]`） */
-    gap?: number;
-    testID?: string;
-}
-
 /** shimmer 的最低不透明度（只動 opacity 才能 `useNativeDriver`，§8.3 T5） */
 const PULSE_MIN_OPACITY = 0.55;
 const PULSE_DURATION = 700;
-const DEFAULT_ROW_HEIGHT = 72;
 
 /**
  * 載入佔位塊（shimmer）
@@ -39,8 +28,8 @@ const DEFAULT_ROW_HEIGHT = 72;
  *    loading 一律使用 `animated={false}`。RN 新架構下，可點擊項上的持續動畫
  *    會讓 `onPress` 失效（RN Issue #51621，§8.3 T3）。
  *
- * 本元件對讀屏**完全隱藏**（無語意內容）；載入狀態的告知由 `SkeletonList`
- * 或呼叫端的 `accessibilityState={{ busy: true }}` 承擔。
+ * 本元件對讀屏**完全隱藏**（無語意內容）；載入狀態的告知由呼叫端的
+ * `accessibilityState={{ busy: true }}` 承擔（W-13 已移除未使用的 `SkeletonList`）。
  */
 export function Skeleton({
     width = '100%',
@@ -99,34 +88,6 @@ export function Skeleton({
     );
 }
 
-/**
- * 多列 skeleton 區塊（載入區塊的**外層容器**）
- *
- * 對照 §3.9 的「父層提供 `accessibilityState={{ busy: true }}`」：因內部
- * skeleton 對讀屏隱藏，故由本容器統一向讀屏告知「載入中」。
- */
-export function SkeletonList({
-    rows = layout.skeletonRows,
-    rowHeight = DEFAULT_ROW_HEIGHT,
-    gap = space[3],
-    testID,
-}: SkeletonListProps) {
-    return (
-        <View
-            style={[styles.list, { gap }]}
-            testID={testID}
-            accessible
-            accessibilityLabel="載入中"
-            accessibilityState={{ busy: true }}
-        >
-            {Array.from({ length: rows }, (_, index) => (
-                <Skeleton key={`skeleton-${index}`} height={rowHeight} />
-            ))}
-        </View>
-    );
-}
-
 const styles = StyleSheet.create({
     block: { alignSelf: 'flex-start' },
-    list: { alignSelf: 'stretch' },
 });

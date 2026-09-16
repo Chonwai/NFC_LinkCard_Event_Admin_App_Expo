@@ -11,7 +11,7 @@ import { Logo } from '@/components/ui/Logo';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { copy } from '@/constants/copy.zh-TW';
-import { layout, semantic, space, spacing, type } from '@/constants/theme';
+import { layout, metaText, semantic, space, spacing, type } from '@/constants/theme';
 import { useEventStore } from '@/stores/event.store';
 
 /**
@@ -89,20 +89,20 @@ export default function HomeScreen() {
                     {item.userRole ? (
                         <View style={styles.metaItem}>
                             <Icon name="users" size={layout.icon.sm} color={semantic.text.muted} />
-                            <Text style={[type.caption, styles.metaText]}>
+                            <Text style={[type.caption, metaText]}>
                                 {item.userRole.replace(/_/g, ' ')}
                             </Text>
                         </View>
                     ) : null}
                     <View style={styles.metaItem}>
                         <Icon name="check-circle" size={layout.icon.sm} color={semantic.text.muted} />
-                        <Text style={[type.caption, styles.metaText]}>
+                        <Text style={[type.caption, metaText]}>
                             {item.registrationCount ?? 0} {copy.event.registrations}
                         </Text>
                     </View>
                     <View style={styles.metaItem}>
                         <Icon name="users" size={layout.icon.sm} color={semantic.text.muted} />
-                        <Text style={[type.caption, styles.metaText]}>
+                        <Text style={[type.caption, metaText]}>
                             {item.exhibitorCount ?? 0} {copy.event.exhibitors}
                         </Text>
                     </View>
@@ -224,9 +224,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: space[1],
-    },
-    metaText: {
-        color: semantic.text.muted,
     },
     statusBadge: {
         borderRadius: 999,

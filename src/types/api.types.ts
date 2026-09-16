@@ -18,14 +18,6 @@ export interface ApiResponse<T = unknown> {
     code?: string;
 }
 
-/** 後端錯誤 envelope（`api-error.ts` 以結構型別讀取，不 import axios） */
-export interface ApiErrorEnvelope {
-    error?: {
-        code?: string;
-        message?: string;
-    };
-}
-
 export interface AuthUser {
     id: string;
     email: string;

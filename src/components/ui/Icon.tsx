@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { layout } from '@/constants/theme';
@@ -251,8 +251,3 @@ export function Icon({ name, size = 'lg', color, style }: IconProps) {
         </View>
     );
 }
-
-export const iconStyles = StyleSheet.create({
-    /** 供需要固定 icon 方框的場合使用 */
-    box: { alignItems: 'center', justifyContent: 'center' },
-});

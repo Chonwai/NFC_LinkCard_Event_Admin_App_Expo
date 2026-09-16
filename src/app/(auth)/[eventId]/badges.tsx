@@ -10,7 +10,7 @@ import { InlineBanner, type InlineBannerTone } from '@/components/ui/InlineBanne
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { copy } from '@/constants/copy.zh-TW';
-import { layout, radius, semantic, space, spacing, type } from '@/constants/theme';
+import { layout, metaText, radius, semantic, space, spacing, type } from '@/constants/theme';
 import { nfcService } from '@/services/nfc.service';
 import type { BadgeInfo, BadgeStatus } from '@/types/api.types';
 
@@ -141,7 +141,7 @@ export default function BadgesScreen() {
                     <Text style={type.monoSm} numberOfLines={1}>
                         {item.tagUid}
                     </Text>
-                    <Text style={[type.caption, styles.badgeMeta]}>
+                    <Text style={[type.caption, metaText]}>
                         {item.badgeType}
                         {item.batchLabel ? ` · ${item.batchLabel}` : ''}
                     </Text>
@@ -194,7 +194,7 @@ export default function BadgesScreen() {
                                 </Text>
                             </View>
                             {lookupResult.registrationId ? (
-                                <Text style={[type.caption, styles.badgeMeta]}>
+                                <Text style={[type.caption, metaText]}>
                                     {copy.badges.boundRegistration}
                                     {lookupResult.registrationId.slice(0, 8)}…
                                 </Text>
@@ -276,7 +276,6 @@ const styles = StyleSheet.create({
         borderColor: semantic.border.decorative,
     },
     badgeRowLeft: { flex: 1, gap: space[1] },
-    badgeMeta: { color: semantic.text.muted },
     statusPill: {
         borderRadius: radius.full,
         paddingHorizontal: space[3],

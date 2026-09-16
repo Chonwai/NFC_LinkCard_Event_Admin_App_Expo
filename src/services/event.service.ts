@@ -38,14 +38,6 @@ export const eventService = {
         return { events, pagination: data.pagination };
     },
 
-    /** GET /v1/events/by-id/:eventId — 單一活動（slug 或 id 皆可） */
-    async getEventById(eventId: string): Promise<{ event: ManagedEventItem }> {
-        const res = await apiClient.get<ApiResponse<{ event: ManagedEventItem }>>(
-            `/api/v1/events/by-id/${encodeURIComponent(eventId)}`
-        );
-        return res.data.data;
-    },
-
     /** GET /v1/events/:eventId/registrations — 報名清單（管理員） */
     async getRegistrations(
         eventId: string,
