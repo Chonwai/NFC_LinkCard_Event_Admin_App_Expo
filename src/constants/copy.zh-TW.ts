@@ -134,7 +134,24 @@ export const copy = {
         nfcStatus: 'NFC 狀態',
         nfcSupported: '支援',
         nfcNotSupported: '不支援',
+        /** W-12：NFC 能力探測進行中的暫時態（探測完成前不得顯示「不支援」） */
+        nfcChecking: '檢查中…',
         backToEvents: '返回活動列表',
+        /**
+         * W-12：帳號資訊取得失敗（`hydrate()` 的非終止性失敗態——
+         * `auth.store` 刻意保留 token 讓使用者可重試）。
+         * 標題與說明併入同一句，避免在畫面拼接使用者可見字串。
+         */
+        accountUnavailable: '無法取得帳號資訊，可能是網路不穩造成',
+        accountRetry: '重新載入',
+        /**
+         * W-12：登出二次確認。採**行內兩段式**而非 `Alert.alert`——
+         * React Native Web 上 `Alert.alert` 是 no-op，會讓 web 的登出完全失效。
+         */
+        logoutConfirmTitle: '確定要登出？',
+        logoutConfirmHint: '登出後需要重新輸入電子郵件與密碼。',
+        logoutConfirm: '確定登出',
+        logoutCancel: '取消',
     },
     /**
      * 未匹配路由（`app/+not-found.tsx`）。
