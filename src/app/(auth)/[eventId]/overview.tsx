@@ -14,6 +14,7 @@ import { copy } from '@/constants/copy.zh-TW';
 import { layout, semantic, space, spacing, type } from '@/constants/theme';
 import { eventService } from '@/services/event.service';
 import { useEventStore } from '@/stores/event.store';
+import { getEventStatusLabel } from '@/utils/event-status';
 
 interface StatItem {
     key: string;
@@ -126,7 +127,7 @@ export default function EventOverviewScreen() {
         <View style={[styles.screen, { paddingTop: insets.top }]}>
             <ScreenHeader
                 title={event?.name ?? copy.event.overviewTitle}
-                subtitle={event?.status ?? ''}
+                subtitle={getEventStatusLabel(event?.status)}
                 leading="back"
                 backFallbackPath="/(auth)/home"
             />

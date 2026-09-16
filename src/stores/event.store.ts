@@ -45,6 +45,11 @@ export const useEventStore = create<EventState>((set, get) => ({
     },
 
     clear() {
-        set({ events: [], error: null });
+        // F1：必須一併重置 `loading`。
+        // `loadEvents()` 開頭有 `if (get().loading) return;` 的 re-entrancy guard；
+        // 若登出時前一帳號的請求仍在 in-flight（timeout 15s，慢網窗口達秒級），
+        // 只清 `events` 會讓 `loading` 卡在 true → 新帳號的首次載入被 guard 直接
+        // return（no-op），而舊請求 resolve 後又把前一帳號的活動寫回 store。
+        set({ events: [], error: null, loading: false });
     },
 }));
