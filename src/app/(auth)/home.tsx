@@ -6,7 +6,7 @@ import { router } from 'expo-router';
 
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
-import { InlineBanner, type InlineBannerTone } from '@/components/ui/InlineBanner';
+import { InlineBanner } from '@/components/ui/InlineBanner';
 import { Logo } from '@/components/ui/Logo';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -36,37 +36,24 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function HomeScreen() {
     const insets = useSafeAreaInsets();
-    const { events, loading, loadEvents } = useEventStore();
-    const [banner, setBanner] = useState<{ tone: InlineBannerTone; message: string } | null>(null);
+    const { events, loading, error, loadEvents, dismissError } = useEventStore();
     const [refreshing, setRefreshing] = useState(false);
     const [reloadKey, setReloadKey] = useState(0);
 
+    /**
+     * A1 決策 (b)：不在畫面 try/catch，也**不**在 store rethrow。
+     *
+     * store 的 `error` 是唯一來源；`loadEvents()` 開頭會 `set({ error: null })`，
+     * 因此重試成功後橫幅會自動消失（不需要額外的清除邏輯）。
+     */
     useEffect(() => {
-        let active = true;
-
-        async function load() {
-            setBanner(null);
-            try {
-                await loadEvents();
-                if (!active) return;
-            } catch {
-                if (!active) return;
-                setBanner({ tone: 'danger', message: copy.home.loadFailed });
-            }
-        }
-
-        void load();
-
-        return () => {
-            active = false;
-        };
+        void loadEvents();
     }, [loadEvents, reloadKey]);
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
         await loadEvents();
         setRefreshing(false);
-        setBanner(null);
     }, [loadEvents]);
 
     const renderEvent = ({ item }: { item: (typeof events)[number] }) => {
@@ -77,7 +64,6 @@ export default function HomeScreen() {
         return (
             <Pressable
                 onPress={() => {
-                    useEventStore.getState().selectEvent(item.id);
                     router.push({
                         pathname: '/(auth)/[eventId]/overview',
                         params: { eventId: item.id },
@@ -134,9 +120,15 @@ export default function HomeScreen() {
 
             <ScreenHeader title={copy.home.title} subtitle={copy.app.tagline} onRefresh={onRefresh} isRefreshing={refreshing} />
 
-            {banner ? (
+            {error != null ? (
                 <View style={styles.bannerWrapper}>
-                    <InlineBanner tone={banner.tone} message={banner.message} />
+                    <InlineBanner
+                        tone="danger"
+                        message={error}
+                        dismissible
+                        onDismiss={dismissError}
+                        testID="home-error-banner"
+                    />
                 </View>
             ) : null}
 

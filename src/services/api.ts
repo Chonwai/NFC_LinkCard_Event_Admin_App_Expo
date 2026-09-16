@@ -34,6 +34,8 @@ apiClient.interceptors.response.use(
 
         if (terminalReason != null && !alreadyTerminated) {
             setSessionNotice(terminalReason);
+            // `auth.logout()` 是唯一的登出咽喉點：憑證清除與活動快取清除（A4）
+            // 都在該處完成，強制登出與使用者主動登出不會分歧。
             auth.logout().catch(() => undefined);
         }
 

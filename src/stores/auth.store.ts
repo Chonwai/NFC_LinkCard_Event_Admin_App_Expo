@@ -16,6 +16,29 @@ interface AuthState {
     hydrate: () => Promise<void>;
 }
 
+/**
+ * 清除活動快取（A4：登出後不得殘留前一帳號的活動清單）。
+ *
+ * ⚠️ **必須用 dynamic import**，不可寫成 top-level static import。
+ *
+ * 靜態相依會形成 cycle：`auth.store` → `event.store` → `event.service` →
+ * `services/api.ts` → `auth.store`。在 ESM 的模組初始化順序下，該 cycle 會讓
+ * 其中一端的綁定在初始化期間尚未賦值（TDZ／`undefined`），而 `api.ts` 是在
+ * module scope 直接引用 `useAuthStore`。
+ *
+ * dynamic import 在「呼叫當下」才解析模組（此時所有 module 皆已初始化完成），
+ * 因此靜態相依圖保持無環。這與 `hydrate()` 對 `auth.service` 採用 dynamic import
+ * 是同一個既定模式（`api.ts` 的註解亦記載同一原因）。
+ */
+async function clearEventCache(): Promise<void> {
+    try {
+        const { useEventStore } = await import('@/stores/event.store');
+        useEventStore.getState().clear();
+    } catch {
+        // 快取清除失敗不得阻斷登出：憑證已移除，cookie/token 失效才是安全邊界。
+    }
+}
+
 export const useAuthStore = create<AuthState>(set => ({
     token: null,
     user: null,
@@ -29,6 +52,9 @@ export const useAuthStore = create<AuthState>(set => ({
 
     logout: async () => {
         await tokenStorage.deleteItem(TOKEN_STORAGE_KEY);
+        // A4：清空活動快取，避免 B 帳號登入後看到 A 帳號的活動清單。
+        // 401 強制登出（`api.ts` interceptor）同樣呼叫本方法，因此一併覆蓋。
+        await clearEventCache();
         set({ token: null, user: null, isAuthenticated: false });
     },
 
