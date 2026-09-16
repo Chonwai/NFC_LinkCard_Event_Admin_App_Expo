@@ -83,7 +83,7 @@
 | `…/overview` | `overview.tsx`（185） | `EventOverviewScreen`、`Promise.all` 2 次 `getRegistrations`（total + `status:'CHECKED_IN'`）、`StatItem`×3、`QUICK_ACTIONS`(L31，**3 張卡**) | ✅ | ❌ | ✅ | ✅ | ✅ web 實測（#4/#8） | **空狀態 ❌**；快速操作**缺 Token / 名單 2 張卡**；`?? fallback`（A8） |
 | `…/check-in` | `check-in.tsx`（265） | `CheckInScreen`、`CheckInState`（idle/loading/result）、`onBarcodeScanned`、`doCheckIn`、3s `resetTimer`、`ERROR_MESSAGES`（4 碼）、camera fallback | ✅ | ❌ | ✅ | ✅ | ✅ web 實測（手動 3 態）；**QR ❌ 無真機** | 無手電筒（`flash-*` 未用）、無音效/震動、**`checkIn` 回傳值完全未使用**（A3）、無閘口、無主管覆核、無現場補報名 |
 | `…/nfc-bind` | `nfc-bind.tsx`（263） | `NfcBindScreen`、`FlowState`（lookup/…/done）、`lookup`、`writeAndBind`、`BADGE_TYPES`(L37-39)、`isNfcSupported`/`startNfc`/`writeUriToCard`/`normalizeTagUid`、iOS `Alert` | ✅ | ❌ | ✅ | ✅ | 🟡 web 只驗「顯示不支援」；**真機 ❌ 0** | 無換卡/補發/退卡；`payloadUrl` 硬編 prod 域名（A7）；8 處硬編中文（A6） |
-| `…/badges` | `badges.tsx`（280） | `BadgesScreen`、`lookup`、`listBadges` 分頁、`STATUS_LABELS/STATUS_TONE`、`Skeleton`×2、`EmptyState`、`ListFooterComponent` | ✅ | ✅ | ✅ | ✅ | 🟡 web 只驗空狀態（#9）；分頁/多狀態 ❌ | 無 `batchId`/`status` 篩選 UI（service 參數已備）、無批次建立、無匯出、無 void/補發；6 處硬編中文（A6） |
+| `…/badges` | `badges.tsx`（280） | `BadgesScreen`、`lookup`、`listBadges` 分頁、`STATUS_LABELS/STATUS_TONE`、`Skeleton`×2、`EmptyState`、`ListFooterComponent` | ✅ | ✅ | ✅ | ✅ | 🟡 web 只驗空狀態（#9）；分頁/多狀態 ❌ | 無 `batchId`/`status` 篩選 UI（service 參數已備）、無批次建立、無匯出、無 void/補發；**11 行**硬編中文（A6） |
 
 ### 2.3 四態總計
 
@@ -180,7 +180,7 @@
 | 檔案 | 行數 | 判定 |
 | --- | :-: | --- |
 | `config.ts` | 15 | 🔴 預設值構成雙重 `/api`（**A0**）；🟡 **無 Promoter 的 fail-closed guard**；🟡 **Repo 無 `.env.example`** |
-| `copy.zh-TW.ts` | 88 | 🟡 **74 個 key 中 10 個從未被消費** |
+| `copy.zh-TW.ts` | 88 | 🟡 **64 個 key 中 11 個從未被消費** |
 | `theme.ts` | **670** | 🟡 佔 constants 的 87%；**檔頭第 2 行仍寫 `LinkCard Promoter App`**；**6 個 export 未被外部 import**；**5 個 token 0 使用** |
 
 ### 4.4 死 Icon（`IconName` 34 個，12 個 0 使用）
@@ -286,7 +286,7 @@
 | **Service 完整驗證** | **5/10（50%）** | 僅錯誤路徑 3、從未成功 1、死碼 1 |
 | **UI 元件有被使用** | **10/10（100%）** | 但 **約 30 個 props 未接線** |
 | **Icon 使用率** | **22/34（65%）** | 死 35% |
-| **copy key 使用率** | **54/64（84%）** | 死 **11**（原誤寫 74 總數 / 10 死） |
+| **copy key 使用率** | **53/64（83%）** | 死 **11**（實測：eval `copy` 物件得 64 leaf、逐 key grep 得 11 dead；`53 + 11 = 64` ✓） |
 | **npm 依賴使用率** | **真死 6 個** | `nfc-manager` 為 dynamic import（非死） |
 | **死碼／未使用合計** | **約 48 項** | icon 12 + copy **11** + 型別 3 + theme export 6 + token 5 + npm 6 + 其他 6；**其中僅 11 項可實際清理（見 doc11 §4.1）**，其餘為待消費資產 |
 | **Build 健康** | ✅ | `tsc --noEmit` strict、`eslint` 全綠（2026-09-14 實測） |
@@ -295,7 +295,7 @@
 | **EAS build** | **0** | 未初始化 |
 | **自動化測試** | **0** | 無框架、無測試檔 |
 | **CI** | **0** | 無 `.github/` |
-| **i18n** | **手寫常數** | 無框架、無 locale 切換、且有 14 處繞過 copy 層 |
+| **i18n** | **手寫常數** | 無框架、無 locale 切換、且有 **26 行（4 檔）**繞過 copy 層（A6；排除 `//`／`/* */`／`{/* */}` 註解） |
 | **可觀測性** | **0** | 無 error reporting、無 analytics |
 
 ### 6.3 會議硬要求達標率
@@ -332,10 +332,10 @@
 ## §7 未驗證項（AU-01..AU-11）
 
 > 📌 **命名說明**：本清單使用 **`AU-`（App Unverified）前綴**，以**避免與 `09-feasibility-review.md` / 契約文件的 `U-1..U-6` 碰撞**（兩者用途不同：`U-` 為契約/後端面向，`AU-` 為 App 完成度面向）。
-> ⚠️ **已知衝突澄清**：`09` 的 **U-5** = 「`by-code` 路由是否已解析 `req.user`」；本清單的 **AU-05** = 「A0 是否為真缺陷」。**兩者不同**，勿混用。>
+> ⚠️ **已知衝突澄清**：`09` 的 **U-5** = 「`by-code` 路由是否已解析 `req.user`」；本清單的 **AU-05** = 「A0 是否為真缺陷」。**兩者不同**，勿混用。
 > 🔴 **另一個前綴碰撞（本次新增）——`A-` 有兩個所指**：
 > - 本文與 `11-app-defect-register.md` 的 **`A0..A9` = App 缺陷**（本輪新發現的 10 個）
-> - `06-feature-list.md` 的 **`A1..A4` = 功能差異分類**（A1 已有完整資產 / A2 已有骸架需增強 / A3 全新開發 / A4 明確不做）——**這是完全不同的清單**
+> - `06-feature-list.md` 的 **`A1..A4` = 功能差異分類**（A1 已有完整資產 / A2 已有骨架需增強 / A3 全新開發 / A4 明確不做）——**這是完全不同的清單**
 > → **看到 `A2` 請先確認是哪一份文件**。完整代號表見本文 **§8.1**。
 | # | 項目 | 為何未驗證 | 狀態 |
 | :-: | --- | --- | :-: |
@@ -393,7 +393,7 @@
 | **C-ID**（C-1..C-18） | **待裁決項** | 契約文件 §6 / 本文 §9 引用的 `09` §11 |
 | **D-n**（D-1..D-4） | **契約漂移**（文件 vs 後端實作） | handoff §5.1 |
 | **A0..A9** | **App 缺陷**（本文與 doc11 使用） | `11-app-defect-register.md` §2 |
-| **A1..A4** | ⚠️ **功能差異分類**（**不同清單！**） | `06-feature-list.md`（A1 已有完整資產 / A2 已有骸架需增強 / A3 全新開發 / A4 明確不做） |
+| **A1..A4** | ⚠️ **功能差異分類**（**不同清單！**） | `06-feature-list.md`（A1 已有完整資產 / A2 已有骨架需增強 / A3 全新開發 / A4 明確不做） |
 | **AU-01..AU-11** | **App 未驗證項**（本輪） | 本文 §7 |
 | **U-1..U-6** | **契約/後端未驗證項**（不同清單） | `09-feasibility-review.md` §12 / 契約 §2.G |
 | **W0** | **移交前準備週**（用戶負責） | handoff §4.1b |
@@ -405,6 +405,7 @@
 | 版本 | 日期 | 變更 | 原因 |
 | --- | --- | --- | --- |
 | v1.0 | 2026-09-16 | 初版（DISCOVER 深度盤點 + PLAN 對接裁決） | Neo Loop（admin-app-completion-audit） |
+| v1.0-r1 | 2026-09-16 | ① **copy 指標修正**：74 → **64** leaf key、10 → **11** dead、使用率 **53/64（83%）**（實測 eval + 逐 key grep）；② **四態修正**：E 3/7 → **2/7**、22/28 → **21/28（75%）**；③ **A6 範圍修正**：14 處 → **26 行（4 檔）**（`home` 6 + `badges` 11 + `nfc-bind` 8 + `overview` 1；排除註解）；④ §8 索引修正（30 W-ID / C-1..C-18）；⑤ 新增 **§8.1 代號表**（含 `A0..A9` vs `A1..A4` 碰撞澄清）；⑥ AU-11 結案；⑦ 刪除 §7 行尾多餘 `>` | VERIFY R2 findings N-1 / N-2 / N-4 / N-6 / N-7 |
 
 ---
 

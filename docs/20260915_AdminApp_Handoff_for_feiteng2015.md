@@ -247,7 +247,7 @@ gantt
 | :-: | --- | :-: | :-: | :-: | :-: |
 | **W-09** | API base URL 修正 + fail-closed guard + `.env.example` | **用戶（移交前 W0）** | 0.5 | **P0** | A0 |
 | **W-10** | 修 A1 + A4 + A5（store 錯誤路徑與生命週期） | 你 | 0.25 | **P0** | A1/A4/A5 |
-| **W-11** | 硬編值清理（**≥29 行中文 / 5 個頁面檔**：`home` 6 + `badges` 13 + `nfc-bind` 8 + `overview` 1 + `check-in` 1；含新增 `copy.status.*` 命名空間 + `payloadUrl`） | 你 | 0.25 | P1 | A6/A7 |
+| **W-11** | 硬編值清理（**26 行中文 / 4 個頁面檔**：`home` 6 ＋ `badges` 11 ＋ `nfc-bind` 8 ＋ `overview` 1；含新增 `copy.eventStatus.*` / `copy.badgeStatus.*` / `nfc.*` / `badges.*` 命名空間 ＋ `payloadUrl`） | 你 | 0.25 | P1 | A6/A7 |
 | **W-12** | 四態補齊（overview / check-in / nfc-bind 空態、settings loading+error、`+not-found`） | 你 | 0.5 | P1 | — |
 | **W-13** | 真死碼清理（**僅**「可清理」子集，見缺陷冊 §4.1） | 你 | 0.5 | P2 | — |
 | **W-14** | 契約護欄 smoke script（打 staging 4 端點） | 你 | 0.25 | P1 | — |

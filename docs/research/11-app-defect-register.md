@@ -8,21 +8,21 @@
 > **前置閱讀**：`20260915_AdminApp_Handoff_for_feiteng2015.md`（施工計畫）+ `20260915_AdminApp_API_Contract_Freeze_v1.md`（契約）
 
 ---
-## §0.1 代號表（先讀这个，再讀 §1）
+## §0.1 代號表（先讀這個，再讀 §1）
 
 | 代號 | 含義 | 首次出現 |
 | --- | --- | --- |
 | **W-ID**（W-01..W-33） | **工作項**（施工單元）。每一個都有檔案/依賴/估時/AC/阻斷標記 | handoff §4 |
-| **W0** | **移交前準備週**（用戶負責；本册的 **W-09** 在此週） | handoff §4.1b |
-| **B-ID**（B-1..B-8） | **後端施工項**。本册**不**修，只在 §3 指向 | 後端待辦文件 |
+| **W0** | **移交前準備週**（用戶負責；本冊的 **W-09** 在此週） | handoff §4.1b |
+| **B-ID**（B-1..B-8） | **後端施工項**。本冊**不**修，只在 §3 指向 | 後端待辦文件 |
 | **C-ID**（C-1..C-18） | **待裁決項**（需用戶/PM 拍板）。影響施工範圍或排期 | 契約 §6 |
 | **D-n**（D-1..D-4） | **契約漂移**（文件 vs 後端實作不一致） | handoff §5.1 |
-| **A0..A9** | **本册的 App 缺陷**（本輪審計新發現） | 本文件 §2 |
-| **A1..A4** | ⚠️ **不同清單！** `06-feature-list.md` 的功能分類（A1 已有完整資產 / A2 已有骸架需增強 / A3 全新開發 / A4 明確不做） | `06-feature-list.md` |
-| **AU-01..AU-11** | **App 未驗証項**（尚未在任何環境跑過的東西） | `10-app-completion-audit.md` §7 |
-| **U-1..U-6** | **契約/後端未驗証項**（不同清單） | `09-feasibility-review.md` §12 |
+| **A0..A9** | **本冊的 App 缺陷**（本輪審計新發現） | 本文件 §2 |
+| **A1..A4** | ⚠️ **不同清單！** `06-feature-list.md` 的功能分類（A1 已有完整資產 / A2 已有骨架需增強 / A3 全新開發 / A4 明確不做） | `06-feature-list.md` |
+| **AU-01..AU-11** | **App 未驗證項**（尚未在任何環境跑過的東西） | `10-app-completion-audit.md` §7 |
+| **U-1..U-6** | **契約/後端未驗證項**（不同清單） | `09-feasibility-review.md` §12 |
 
-> 🔴 **看到 A2 請先確認是哪份文件**：本册的 `A2` = `EventStatus` 漂移；`06-feature-list.md` 的 `A2` = 「已有骸架需增強」。
+> 🔴 **看到 A2 請先確認是哪份文件**：本冊的 `A2` = `EventStatus` 漂移；`06-feature-list.md` 的 `A2` = 「已有骨架需增強」。
 
 ---
 ## §0 這份文件怎麼用
@@ -63,7 +63,7 @@
 
 | ID | 缺陷 | W-ID |
 | :-: | --- | :-: |
-| **A6** | 14 處硬編中文字串 | W-11 |
+| **A6** | **26 行（4 檔）**硬編中文字串 | W-11 |
 | **A7** | `payloadUrl` 硬編 prod 域名 | W-11 |
 
 ### P-3 ｜隨所屬 W-ID（**feiteng2015 負責**）
@@ -88,7 +88,7 @@
 | --- | --- |
 | **責任歸屬** | **用戶（移交前 W0）** → W-09 |
 | **症狀（使用者可見後果）** | 在**任何沒有 `.env.local` 的環境**（新 clone、EAS build、CI）啟動 App → 登入、載入活動、簽到、查 badge **全部失敗**，且錯誤訊息是通用網路錯誤（非 404 明示），極難定位 |
-| **根因** | `src/constants/config.ts:10`：<br>`export const API_BASE_URL = EXPO_PUBLIC_API_URL \|\| 'https://linkcard.xyz/api';`<br>而**所有 service 路由都以 `/api/...` 開頭**（**只列符號名，刻意不附行號**——行號會漂移，本册 §0 原則已聲明以符號名為準）：<br>`auth.service.ts` 的 `login()` / `me()` → `/api/auth/login`、`/api/users/me`<br>`event.service.ts` 的 `getMyManagedEvents()` / `getEventById()` / `getRegistrations()` → `/api/v1/events/…`<br>`registration.service.ts` 的 `getByCode()` / `checkIn()` → `/api/v1/events/:eventId/registrations/…`<br>`nfc.service.ts` 的 `lookup()` / `listBadges()` / `bind()` → `/api/v1/events/:eventId/nfc/…`<br>→ axios `combineURLs('https://linkcard.xyz/api', '/api/v1/events/my-managed')` = **`https://linkcard.xyz/api/api/v1/events/my-managed`** |
+| **根因** | `src/constants/config.ts:10`：<br>`export const API_BASE_URL = EXPO_PUBLIC_API_URL \|\| 'https://linkcard.xyz/api';`<br>而**所有 service 路由都以 `/api/...` 開頭**（**只列符號名，刻意不附行號**——行號會漂移，本冊 §0 原則已聲明以符號名為準）：<br>`auth.service.ts` 的 `login()` / `me()` → `/api/auth/login`、`/api/users/me`<br>`event.service.ts` 的 `getMyManagedEvents()` / `getEventById()` / `getRegistrations()` → `/api/v1/events/…`<br>`registration.service.ts` 的 `getByCode()` / `checkIn()` → `/api/v1/events/:eventId/registrations/…`<br>`nfc.service.ts` 的 `lookup()` / `listBadges()` / `bind()` → `/api/v1/events/:eventId/nfc/…`<br>→ axios `combineURLs('https://linkcard.xyz/api', '/api/v1/events/my-managed')` = **`https://linkcard.xyz/api/api/v1/events/my-managed`** |
 | **為何目前不爆** | `.env.local` 內容為 `EXPO_PUBLIC_API_URL=https://staging-api.link-card.xyz`（**origin-only**）→ 覆寫掉錯誤預設值。該檔 `git check-ignore` 命中 `.gitignore:31 .env*.local` → **不在版控** |
 | **✅ 正確慣例（本輪實證）** | ⓐ 後端 `LinkCard_ExpressJS_Backend/src/app.ts:153-154`：`app.use('/api/v1/events', eventRoutes)` + `app.use('/api', routes)`；`src/routes/index.ts:11-14`：`router.use('/auth', authRoutes)` / `router.use('/users', userRoutes)` → `/api/auth/login` 與 `/api/users/me` 為真<br>ⓑ 姊妹 App `LinkCard_Promoter_App_Expo/src/constants/config.ts:10` 的 base 為 `http://127.0.0.1:3020`（**無 `/api`**），服務路徑同為 `/api/v1/promoter/…`<br>ⓒ Promoter `.env.example` **明文**：「`EXPO_PUBLIC_API_URL` = 後端 API 的 origin — **只填 origin，不含 `/api` 或任何路徑後綴**」 |
 | **重現步驟** | ① `mv .env.local .env.local.bak`<br>② `npm run web`（或 `npx expo start --web`）<br>③ 用 staging 帳號登入 → Network 面板可見 `POST https://linkcard.xyz/api/api/auth/login` → **404** |
@@ -117,9 +117,9 @@
 | --- | --- |
 | **責任歸屬** | feiteng2015 → **W-01（漂移 D-4）** |
 | **症狀** | `ARCHIVED` 狀態的活動在 `home` 顯示**原始英文** `ARCHIVED`（而非中文），且徽章色為 `neutral` |
-| **根因** | App `src/types/api.types.ts:43-54`：<br>`'DRAFT' \| 'PUBLISHED' \| 'REGISTRATION_OPEN' \| 'ONGOING' \| 'ENDED' \| 'CANCELLED'`<br>後端 `LinkCard_ExpressJS_Backend/prisma/schema.prisma:289-296`：<br>`DRAFT \| PUBLISHED \| ONGOING \| COMPLETED \| CANCELLED \| ARCHIVED`<br>→ App **幻覺 2 值**（`REGISTRATION_OPEN` / `ENDED`；後端全 repo `grep REGISTRATION_OPEN` = **0 命中**）、**缺 1 值**（`ARCHIVED`）<br>受影響處：`src/app/(auth)/home.tsx` 的 `STATUS_TONE`(L18-26) 與 `STATUS_LABEL`(L28-35) 皆無 `ARCHIVED` 鍵 → L73-74 的 `?? item.status` fallback 顯示英文 |
+| **根因** | App `src/types/api.types.ts:43-49`：<br>`'DRAFT' \| 'PUBLISHED' \| 'REGISTRATION_OPEN' \| 'ONGOING' \| 'ENDED' \| 'CANCELLED'`<br>後端 `LinkCard_ExpressJS_Backend/prisma/schema.prisma:289-296`：<br>`DRAFT \| PUBLISHED \| ONGOING \| COMPLETED \| CANCELLED \| ARCHIVED`<br>→ App **幻覺 2 值**（`REGISTRATION_OPEN` / `ENDED`；後端全 repo `grep REGISTRATION_OPEN` = **0 命中**）、**缺 1 值**（`ARCHIVED`）<br>受影響處：`src/app/(auth)/home.tsx` 的 `STATUS_TONE`(L18-26) 與 `STATUS_LABEL`(L28-35) 皆無 `ARCHIVED` 鍵 → L73-74 的 `?? item.status` fallback 顯示英文 |
 | **重現步驟** | 在 staging 把任一活動設為 `ARCHIVED` → `home` 列表該列顯示 `ARCHIVED` |
-| **最小修法** | ⓐ `api.types.ts` 的 `EventStatus`（**L43-49**）改為與後端完全一致（移除 `REGISTRATION_OPEN`/`ENDED`、加入 `ARCHIVED`）；<br>ⓑ `home.tsx` 的 `STATUS_TONE` 移除 `REGISTRATION_OPEN`、加入 `ARCHIVED: 'neutral'`（`COMPLETED` 已在）；<br>ⓒ `home.tsx` 的 `STATUS_LABEL` 移除 `REGISTRATION_OPEN`、加入 `ARCHIVED`，**文案引用 `copy.status.archived`**（該命名空間由 **W-11** 建立；若 W-11 未完成则暫以硬編並標 `TODO(W-11)`）；<br>ⓓ **與 A6 同批處理**（A6 要將 `STATUS_LABEL` 的 6 個硬編中文搬進 `copy.status.*`，两者是同一個物件） |
+| **最小修法** | ⓐ `api.types.ts` 的 `EventStatus`（**L43-49**）改為與後端完全一致（移除 `REGISTRATION_OPEN`/`ENDED`、加入 `ARCHIVED`）；<br>ⓑ `home.tsx` 的 `STATUS_TONE` 移除 `REGISTRATION_OPEN`、加入 `ARCHIVED: 'neutral'`（`COMPLETED` 已在）；<br>ⓒ `home.tsx` 的 `STATUS_LABEL`（L29-34）移除 `REGISTRATION_OPEN`、加入 `ARCHIVED`，**文案引用 `copy.eventStatus.archived`**（該命名空間由 **W-11** 建立；若 W-11 未完成則暫以硬編並標 `TODO(W-11)`）；<br>ⓓ **與 A6 同批處理**（A6 要將 `STATUS_LABEL` 的 6 個硬編中文搬進 `copy.eventStatus.*`，兩者是同一個物件） |
 | **驗收標準** | ① `tsc` 對 `REGISTRATION_OPEN`/`ENDED` 的任何引用報錯（證明無殘留）；② `ARCHIVED` 活動顯示中文標籤；③ `STATUS_TONE`/`STATUS_LABEL` 的鍵集合 = 後端 enum |
 | **⚠️ 未驗證** | 後端 `EventService.getMyManagedEvents()` 的 **response mapping** 是否另行映射 status（AU-07）→ 修前先打一次 API 確認 `status` 實值 |
 
@@ -169,10 +169,10 @@
 | --- | --- |
 | **責任歸屬** | feiteng2015 → **W-11** |
 | **症狀** | 無視覺症狀；但**違反 `copy.zh-TW.ts` 自稱的「單一真相來源」**，且使 P-08（繁/簡/英/葡多語言）無法只靠換 copy 檔完成 |
-| **根因** | **5 檔共 ≥29 行**（實測：非註解行含 CJK 字元；原估「兩檔 14 處」低估）：<br>**`src/app/(auth)/[eventId]/nfc-bind.tsx`（8 行）**：L37-39（`BADGE_TYPES` 的 `手環` / `卡片` / `QR`）、L126（`① 輸入報名編號以查詢參加者`）、L150（`② 選擇 Badge 類型，然後將空白 NFC 卡靠近手機背面`）、L177（`開始寫入 NFC 卡`）、L178（`重新輸入`）、L185（`寫入中，請保持卡片靠近…`）、L197（`繼續下一張`）<br>**`src/app/(auth)/[eventId]/badges.tsx`（13 行）**：L28-32（`STATUS_LABELS` 五個中文狀態標籤）、L125（`找不到此 Badge`）、L128（`Badge 查詢失敗`）、L166（`查詢 Badge（輸入 tagUid）`）、L177（`查詢`）、L197（`綁定報名：`）、L211（`尚無 Badge` / `先建立批次或綁定 Badge`）<br>**`src/app/(auth)/home.tsx`（6 行）**：L28-35（`STATUS_LABEL` 六個中文狀態標籤）（⚠️ 這 6 行就是 **A2 ⓒ** 要改的同一個物件——**两者必須同批處理**）<br>**其他**：`overview.tsx` 1 行、`check-in.tsx` 1 行 |
-| **與 A2 的關係（重要）** | `copy.zh-TW.ts` **目前沒有 `status` 命名空間**。A2 要求把 `ARCHIVED` 補進 `STATUS_LABEL`，若不一併建 namespace，就必留下硬編中文。<br>→ **裁決：`copy.status.*`（6 值中文標籤）由 W-11 產出**；A2 ⓒ 改為**引用 `copy.status.archived`**（見 A2 節） |
-| **最小修法** | ⓐ 在 `src/constants/copy.zh-TW.ts` **新增兩個命名空間**：`nfc.*` / `badges.*`，**以及 `status.*`（6 值中文標籤，供 `home` 與 `badges` 共用）**；<br>ⓑ 逐處替換為 `copy.*`；<br>ⓒ **不要**在此時引入 i18n 框架（P-08 另議，屬超範圍） |
-| **驗收標準** | ① **這 5 檔內無 CJK 硬編字串**（`grep` 驗証，排除註解/import）；② `tsc`/lint 全綠；③ 畫面文字零變化（純重構）；④ `copy.status.*` 存在且被 `home` 與 `badges` 兩邊消費 |
+| **根因** | **4 檔共 26 行**（實測定義：**非註解行**含 CJK 字元——排除 `//`、`/* */`、`{/* */}`；含 JSX 註解則為 28 行。原估「兩檔 14 處」嚴重低估）：<br>**`src/app/(auth)/[eventId]/nfc-bind.tsx`（8 行）**：L37（`WRISTBAND` → `手環`）、L38（`CARD` → `卡片`）、L126（`① 輸入報名編號以查詢參加者`）、L150（`② 選擇 Badge 類型，然後將空白 NFC 卡靠近手機背面`）、L177（`開始寫入 NFC 卡`）、L178（`重新輸入`）、L185（`寫入中，請保持卡片靠近…`）、L197（`繼續下一張`）（L39 的 `QR_ONLY` → `QR` 無 CJK，不計）<br>**`src/app/(auth)/[eventId]/badges.tsx`（11 行）**：L28-32（`STATUS_LABELS` 五個中文狀態標籤）、L125（`找不到此 Badge`）、L128（`Badge 查詢失敗`）、L166（`查詢 Badge（輸入 tagUid）`）、L177（`查詢`）、L197（`綁定報名：`）、L211（`尚無 Badge` / `先建立批次或綁定 Badge`）<br>**`src/app/(auth)/home.tsx`（6 行）**：L29-34（`STATUS_LABEL` 六個中文狀態標籤）（⚠️ 這 6 行就是 **A2 ⓒ** 要改的同一個物件——**兩者必須同批處理**）<br>**`src/app/(auth)/[eventId]/overview.tsx`（1 行）**：L112 的 `?? '快速操作'` fallback（即 **A8**）|
+| **與 A2 的關係（重要）** | `copy.zh-TW.ts` **目前沒有 `status` 命名空間**。A2 要求把 `ARCHIVED` 補進 `STATUS_LABEL`，若不一併建 namespace，就必留下硬編中文。<br>→ **裁決：`copy.status.*`（活動狀態中文標籤）由 W-11 產出**；A2 ⓒ 改為**引用 `copy.status.archived`**（見 A2 節）<br>⚠️ **注意**：`home` 的是**活動狀態**（6 值）、`badges` 的是 **badge 狀態**（5 值，`UNASSIGNED/BOUND/ACTIVE/DEACTIVATED/LOST`）——**兩者語意不同，不可共用同一 namespace**。建議 W-11 分流為 `copy.eventStatus.*` 與 `copy.badgeStatus.*`。|
+| **最小修法** | ⓐ 在 `src/constants/copy.zh-TW.ts` **新增三個命名空間**：`nfc.*` / `badges.*`，**以及 `eventStatus.*`（6 值活動狀態）與 `badgeStatus.*`（5 值 badge 狀態）**；<br>ⓑ 逐處替換為 `copy.*`（共 26 行 / 4 檔）；<br>ⓒ **不要**在此時引入 i18n 框架（P-08 另議，屬超範圍） |
+| **驗收標準** | ① **這 4 檔內無 CJK 硬編字串**（`grep` 驗證，排除註解）；② `tsc`/lint 全綠；③ 畫面文字零變化（純重構）；④ `copy.eventStatus.*` 與 `copy.badgeStatus.*` 存在且分別被 `home` 與 `badges` 消費 |
 
 ---
 
@@ -289,6 +289,7 @@
 | 版本 | 日期 | 變更 | 原因 |
 | --- | --- | --- | --- |
 | v1.0 | 2026-09-16 | 初版（A0..A9 缺陷冊 + 死碼清理清單 + 修復優先序） | Neo Loop（admin-app-completion-audit） |
+| v1.0-r1 | 2026-09-16 | ① **A6 範圍/計數修正**：兩檔 14 處 → **4 檔 26 行**（附精確行號明細與定義）；② **A6 與 A2 解耦**：新增 `copy.eventStatus.*` / `copy.badgeStatus.*` 分流（活動狀態 6 值 vs badge 狀態 5 值，**語意不同不可共用**）；③ A2 行號 `43-54` → **43-49**；④ 新增 **§0.1 代號表**（含 `A0..A9` vs `A1..A4` 碰撞澄清）；⑤ 異體字修正（`这`/`本册`/`驗証`/`骸架`/`则`） | VERIFY R2 findings N-1 / N-5 / N-8 / N-10 |
 
 ---
 
