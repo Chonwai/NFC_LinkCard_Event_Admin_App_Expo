@@ -66,7 +66,28 @@ export function getTerminalAuthReason(error: unknown): TerminalAuthReason | null
     return null;
 }
 
-/** 是否為網路層錯誤（axios 特徵推斷） */
+/**
+ * axios / Node 的網路層錯誤碼（A9）。
+ *
+ * axios v1 在「連不上 / 逾時」時**沒有** `response`，並以 `error.code` 標示型別；
+ * 只認 `ECONNABORTED` / `ERR_NETWORK` 會讓 `ETIMEDOUT`（Node 逾時）與
+ * `ENETUNREACH`（無路由，常見於切換 Wi-Fi/基地台）被誤歸類為後端錯誤。
+ */
+const NETWORK_ERROR_CODES = new Set([
+    'ECONNABORTED',
+    'ERR_NETWORK',
+    'ETIMEDOUT',
+    'ENETUNREACH',
+]);
+
+/**
+ * 是否為網路層錯誤（axios 特徵推斷）
+ *
+ * 判定順序（A9）：**`error.code` 優先於 `error.message`**——`code` 是穩定的機器
+ * 可讀欄位，`message` 會隨 axios 版本改寫。因此只要 `code` 存在，就以它作唯一依據
+ * （不在集合內＝非網路錯誤），不再用 message 文字猜測；只有完全沒有 `code` 時才
+ * 退回 message 特徵。
+ */
 export function isNetworkError(error: unknown): boolean {
     const shaped = asApiError(error);
 
@@ -74,15 +95,16 @@ export function isNetworkError(error: unknown): boolean {
         return false;
     }
 
+    /** 有 response = 伺服器有回應，屬後端錯誤而非網路錯誤 */
     if (shaped.response != null) {
         return false;
     }
 
-    if (shaped.code === 'ECONNABORTED' || shaped.code === 'ERR_NETWORK') {
-        return true;
+    if (typeof shaped.code === 'string' && shaped.code !== '') {
+        return NETWORK_ERROR_CODES.has(shaped.code);
     }
 
-    /** axios 在無 response 時的預設訊息 */
+    /** axios 在無 response 且無 code 時的預設訊息 */
     return /network error|failed to fetch|socket hang up|timeout of \d+ms exceeded/i.test(
         shaped.message ?? ''
     );

@@ -31,7 +31,9 @@ interface QuickAction {
 const QUICK_ACTIONS: QuickAction[] = [
     { key: 'check-in', label: copy.event.checkInTitle, icon: 'qr-code', route: 'check-in' },
     { key: 'nfc', label: copy.nfc.writeTitle, icon: 'nfc', route: 'nfc-bind' },
-    { key: 'badges', label: copy.event.badgesTitle ?? 'Badge', icon: 'clipboard-check', route: 'badges' },
+    // A8：移除 `?? 'Badge'` fallback——該 key 由 `copy` 的 const 型別保證存在，
+    // 保留 fallback 只會讓日後的缺鍵靜默變成硬編字串。
+    { key: 'badges', label: copy.event.badgesTitle, icon: 'clipboard-check', route: 'badges' },
 ];
 
 export default function EventOverviewScreen() {
