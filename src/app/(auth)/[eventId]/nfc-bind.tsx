@@ -19,6 +19,7 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import { InlineBanner, type InlineBannerTone } from '@/components/ui/InlineBanner';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { copy } from '@/constants/copy.zh-TW';
+import { WEB_BASE_URL } from '@/constants/config';
 import { layout, radius, semantic, space, spacing, type } from '@/constants/theme';
 import { nfcService } from '@/services/nfc.service';
 import { registrationService } from '@/services/registration.service';
@@ -34,8 +35,8 @@ type FlowState =
     | { phase: 'done'; ok: boolean; message: string };
 
 const BADGE_TYPES: { key: BadgeType; label: string; icon: IconName }[] = [
-    { key: 'WRISTBAND', label: '手環', icon: 'check' },
-    { key: 'CARD', label: '卡片', icon: 'check' },
+    { key: 'WRISTBAND', label: copy.nfc.badgeTypeWristband, icon: 'check' },
+    { key: 'CARD', label: copy.nfc.badgeTypeCard, icon: 'check' },
     { key: 'QR_ONLY', label: 'QR', icon: 'qr-code' },
 ];
 
@@ -86,7 +87,7 @@ export default function NfcBindScreen() {
             }
             await startNfc();
 
-            const payloadUrl = `https://linkcard.xyz/u/${state.registrationId}`;
+            const payloadUrl = `${WEB_BASE_URL}/u/${state.registrationId}`;
             const { tagUid } = await writeUriToCard(payloadUrl);
 
             if (!tagUid) {
@@ -123,7 +124,7 @@ export default function NfcBindScreen() {
                 {state.phase === 'lookup' || state.phase === 'lookup-loading' ? (
                     <>
                         <Text style={[type.caption, styles.stepHint]}>
-                            ① 輸入報名編號以查詢參加者
+                            {copy.nfc.stepLookupHint}
                         </Text>
                         <TextInput
                             value={code}
@@ -147,7 +148,7 @@ export default function NfcBindScreen() {
                 {state.phase === 'confirm' ? (
                     <>
                         <Text style={[type.caption, styles.stepHint]}>
-                            ② 選擇 Badge 類型，然後將空白 NFC 卡靠近手機背面
+                            {copy.nfc.stepChooseTypeHint}
                         </Text>
                         <View style={styles.badgeTypeRow}>
                             {BADGE_TYPES.map(b => (
@@ -174,15 +175,15 @@ export default function NfcBindScreen() {
                                 </Pressable>
                             ))}
                         </View>
-                        <Button label="開始寫入 NFC 卡" onPress={() => void writeAndBind()} />
-                        <Button label="重新輸入" variant="ghost" onPress={reset} />
+                        <Button label={copy.nfc.startWrite} onPress={() => void writeAndBind()} />
+                        <Button label={copy.nfc.retype} variant="ghost" onPress={reset} />
                     </>
                 ) : null}
 
                 {state.phase === 'writing' ? (
                     <View style={styles.centerBox}>
                         <ActivityIndicator size="large" color={semantic.icon.brand} />
-                        <Text style={[type.body, styles.loadingText]}>寫入中，請保持卡片靠近…</Text>
+                        <Text style={[type.body, styles.loadingText]}>{copy.nfc.writing}</Text>
                     </View>
                 ) : null}
 
@@ -194,7 +195,7 @@ export default function NfcBindScreen() {
                             color={state.ok ? semantic.status.success.fg : semantic.status.danger.fg}
                         />
                         <Text style={[type.h3, styles.doneTitle]}>{state.message}</Text>
-                        <Button label="繼續下一張" onPress={reset} />
+                        <Button label={copy.nfc.continueNext} onPress={reset} />
                         <Button
                             label={copy.settings.backToEvents}
                             variant="ghost"

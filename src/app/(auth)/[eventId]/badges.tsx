@@ -24,12 +24,13 @@ interface BadgeListItem {
     batchLabel?: string | null;
 }
 
+/** Badge 狀態 → 顯示文字（文案集中在 `copy.badgeStatus`） */
 const STATUS_LABELS: Record<string, string> = {
-    UNASSIGNED: '未綁定',
-    BOUND: '已綁定',
-    ACTIVE: '啟用',
-    DEACTIVATED: '停用',
-    LOST: '遺失',
+    UNASSIGNED: copy.badgeStatus.unassigned,
+    BOUND: copy.badgeStatus.bound,
+    ACTIVE: copy.badgeStatus.active,
+    DEACTIVATED: copy.badgeStatus.deactivated,
+    LOST: copy.badgeStatus.lost,
 };
 
 const STATUS_TONE: Record<string, keyof typeof semantic.status> = {
@@ -122,10 +123,10 @@ export default function BadgesScreen() {
             if (badge) {
                 setLookupResult(badge);
             } else {
-                setBanner({ tone: 'warning', message: '找不到此 Badge' });
+                setBanner({ tone: 'warning', message: copy.badges.lookupNotFound });
             }
         } catch {
-            setBanner({ tone: 'danger', message: 'Badge 查詢失敗' });
+            setBanner({ tone: 'danger', message: copy.badges.lookupFailed });
         } finally {
             setLookupLoading(false);
         }
@@ -163,7 +164,7 @@ export default function BadgesScreen() {
 
                 {/* 查詢區 */}
                 <View style={styles.lookupBox}>
-                    <Text style={[type.caption, styles.lookupHint]}>查詢 Badge（輸入 tagUid）</Text>
+                    <Text style={[type.caption, styles.lookupHint]}>{copy.badges.lookupHint}</Text>
                     <TextInput
                         value={lookupUid}
                         onChangeText={setLookupUid}
@@ -174,7 +175,7 @@ export default function BadgesScreen() {
                         style={styles.input}
                     />
                     <Button
-                        label="查詢"
+                        label={copy.badges.lookupButton}
                         onPress={() => void doLookup()}
                         loading={lookupLoading}
                         disabled={!lookupUid.trim()}
@@ -194,7 +195,8 @@ export default function BadgesScreen() {
                             </View>
                             {lookupResult.registrationId ? (
                                 <Text style={[type.caption, styles.badgeMeta]}>
-                                    綁定報名：{lookupResult.registrationId.slice(0, 8)}…
+                                    {copy.badges.boundRegistration}
+                                    {lookupResult.registrationId.slice(0, 8)}…
                                 </Text>
                             ) : null}
                         </View>
@@ -208,7 +210,11 @@ export default function BadgesScreen() {
                         <Skeleton width="100%" height={56} radius={8} />
                     </View>
                 ) : badges.length === 0 ? (
-                    <EmptyState icon="empty-card" title="尚無 Badge" description="先建立批次或綁定 Badge" />
+                    <EmptyState
+                        icon="empty-card"
+                        title={copy.badges.emptyTitle}
+                        description={copy.badges.emptyHint}
+                    />
                 ) : (
                     <FlatList
                         data={badges}

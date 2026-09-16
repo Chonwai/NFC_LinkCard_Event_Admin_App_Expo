@@ -47,6 +47,41 @@ export const copy = {
         quickActions: '快速操作',
         badgesTitle: 'Badge',
     },
+    /**
+     * 活動狀態標籤（6 值）——直接鏡射後端 `EventStatus` enum
+     * （`LinkCard_ExpressJS_Backend/prisma/schema.prisma`）。
+     * 消費端：`app/(auth)/home.tsx` 的 `STATUS_LABEL`。
+     */
+    eventStatus: {
+        draft: '草稿',
+        published: '已發布',
+        ongoing: '進行中',
+        completed: '已結束',
+        cancelled: '已取消',
+        archived: '已封存',
+    },
+    /**
+     * Badge 狀態標籤（5 值）——鏡射 `BadgeStatus`。
+     * ⚠️ 與 `eventStatus` **語意不同不可共用**（活動狀態 ≠ badge 狀態）。
+     * 消費端：`app/(auth)/[eventId]/badges.tsx` 的 `STATUS_LABELS`。
+     */
+    badgeStatus: {
+        unassigned: '未綁定',
+        bound: '已綁定',
+        active: '啟用',
+        deactivated: '停用',
+        lost: '遺失',
+    },
+    /** Badge 頁文案（消費端：`app/(auth)/[eventId]/badges.tsx`） */
+    badges: {
+        lookupHint: '查詢 Badge（輸入 tagUid）',
+        lookupButton: '查詢',
+        lookupNotFound: '找不到此 Badge',
+        lookupFailed: 'Badge 查詢失敗',
+        boundRegistration: '綁定報名：',
+        emptyTitle: '尚無 Badge',
+        emptyHint: '先建立批次或綁定 Badge',
+    },
     checkIn: {
         scanHint: '掃描報名 QR code',
         manualMode: '手動輸入',
@@ -74,6 +109,15 @@ export const copy = {
         bindSuccess: 'NFC 綁定成功',
         bindFailed: 'NFC 綁定失敗',
         iosWriteNotSupported: 'iOS 不支援寫入，請改用 Android 裝置',
+        /** ↓ 以下為既有 namespace 之擴充（A6）：原為 `nfc-bind.tsx` 硬編中文 */
+        badgeTypeWristband: '手環',
+        badgeTypeCard: '卡片',
+        stepLookupHint: '① 輸入報名編號以查詢參加者',
+        stepChooseTypeHint: '② 選擇 Badge 類型，然後將空白 NFC 卡靠近手機背面',
+        startWrite: '開始寫入 NFC 卡',
+        retype: '重新輸入',
+        writing: '寫入中，請保持卡片靠近…',
+        continueNext: '繼續下一張',
     },
     settings: {
         title: '設定',

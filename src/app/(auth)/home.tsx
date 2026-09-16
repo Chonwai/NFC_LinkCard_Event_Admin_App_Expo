@@ -14,24 +14,27 @@ import { copy } from '@/constants/copy.zh-TW';
 import { layout, semantic, space, spacing, type } from '@/constants/theme';
 import { useEventStore } from '@/stores/event.store';
 
-/** 活動狀態 → 徽章色（對應 semantic.status tokens） */
+/**
+ * 活動狀態 → 徽章色（對應 semantic.status tokens）。
+ * A2：鍵集合 = 後端 `EventStatus` enum（移除幻覺的 `REGISTRATION_OPEN`，補上 `ARCHIVED`）。
+ */
 const STATUS_TONE: Record<string, keyof typeof semantic.status> = {
-    PUBLISHED: 'available',
-    REGISTRATION_OPEN: 'success',
-    ONGOING: 'success',
     DRAFT: 'neutral',
+    PUBLISHED: 'available',
+    ONGOING: 'success',
     COMPLETED: 'neutral',
     CANCELLED: 'warning',
+    ARCHIVED: 'neutral',
 };
 
-/** 活動狀態 → 顯示文字 */
+/** 活動狀態 → 顯示文字（文案集中在 `copy.eventStatus`，不再硬編中文） */
 const STATUS_LABEL: Record<string, string> = {
-    PUBLISHED: '已發布',
-    REGISTRATION_OPEN: '報名中',
-    ONGOING: '進行中',
-    DRAFT: '草稿',
-    COMPLETED: '已結束',
-    CANCELLED: '已取消',
+    DRAFT: copy.eventStatus.draft,
+    PUBLISHED: copy.eventStatus.published,
+    ONGOING: copy.eventStatus.ongoing,
+    COMPLETED: copy.eventStatus.completed,
+    CANCELLED: copy.eventStatus.cancelled,
+    ARCHIVED: copy.eventStatus.archived,
 };
 
 export default function HomeScreen() {

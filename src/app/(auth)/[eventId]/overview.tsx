@@ -109,7 +109,8 @@ export default function EventOverviewScreen() {
                     </View>
                 )}
 
-                <Text style={[type.h3, styles.sectionTitle]}>{copy.event.quickActions ?? '快速操作'}</Text>
+                {/* A6/A8：原為 `copy.event.quickActions ?? '快速操作'`，硬編中文 fallback 已移除 */}
+                <Text style={[type.h3, styles.sectionTitle]}>{copy.event.quickActions}</Text>
                 <View style={styles.actionGrid}>
                     {QUICK_ACTIONS.map(a => (
                         <Pressable

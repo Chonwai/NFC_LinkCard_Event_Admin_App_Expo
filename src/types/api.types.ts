@@ -39,14 +39,20 @@ export interface LoginResponse {
     user: AuthUser;
 }
 
-/** 活動狀態（源自 backend Event model） */
+/**
+ * 活動狀態（**與後端 EventStatus enum 完全一致**，
+ * 來源：`LinkCard_ExpressJS_Backend/prisma/schema.prisma`）
+ *
+ * A2 / 契約漂移 D-4：原值域幻覺 `REGISTRATION_OPEN` / `ENDED`（後端全 repo 0 命中），
+ * 且缺 `ARCHIVED`（→ 該狀態在 `home` 顯示原始英文並落到 `neutral` 色）。
+ */
 export type EventStatus =
     | 'DRAFT'
     | 'PUBLISHED'
-    | 'REGISTRATION_OPEN'
     | 'ONGOING'
-    | 'ENDED'
-    | 'CANCELLED';
+    | 'COMPLETED'
+    | 'CANCELLED'
+    | 'ARCHIVED';
 
 /** 我的活動清單項目（GET /v1/events/my-managed） */
 export interface ManagedEventItem {
