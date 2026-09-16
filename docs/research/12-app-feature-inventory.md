@@ -21,7 +21,8 @@
 - **可用功能**：登入、活動列表、活動概覽（3 統計卡 + 3 快速操作）、手動簽到（含結果卡 5 欄）、NFC 寫卡流程（程式碼完整）、Badge 查詢 + 分頁列表、設定頁（NFC 探測 + 登出二次確認）、`+not-found` 復原頁。
 - **四態覆蓋**：**22/28（79%）**。`home` / `badges` 四態齊；`settings` 缺 E；`overview` / `check-in` / `nfc-bind` **缺「資料空態」**（僅有 `eventId` 缺失守衛）；`+not-found` 僅 E/S。
 - **A0–A9 全數落地**：12 個 commit 的修復**逐項可在 HEAD 驗證**（見 §6）。
-- **死碼**：**4 個死 copy key**、**11 個死 icon**、**4 個死 npm 依賴**、**4 個死 theme token**、**約 22 個未接線 props**。W-13 已清掉 6 項真死碼。
+- **死碼**：**4 個死 copy key（1 真死 + 3 偽死）**、**11 個死 icon（全部偽死）**、**4 個死 npm 依賴（2 真死 + 2 偽死）**、**4 個死 theme token（2 真死 + 2 偽死）**、**約 22 個未接線 props**。W-13 已清掉 6 項真死碼。
+  > ⚠️ **「偽死」= 0 使用但已被 W-ID 認領，清理會製造重工**。權威判定見 `docs/research/11-app-defect-register.md` §4.1 / §4.2。
 - **驗證層級**：**真機 0**、**EAS build 0**、**自動化測試 0**、**CI 0**。所有「已驗證」皆為 **web 實測**（依賴 `.env.local`）。
 - **最大缺口**：名單查詢 / Token 操作 / 用戶詳情 **三條旅程完全不存在**；**權限門控 0**（所有角色看到全部功能）；**QR 掃描全鏈路從未執行**；**NFC 寫卡從未成功執行**。
 
@@ -155,7 +156,7 @@
 | `Card.tsx` | 136 | `index` / `overview`（2 處） | 🟡 **6 個 props 未用**：`showChevron` / `onPress` / `onLayout` / `accessibilityState` / `accessibilityHint` / `testID` → **互動式卡片從未啟用**（`chevron-right` 因此成死碼） |
 | `EmptyState.tsx` | 163 | `home` / `badges` / `overview` / `check-in` / `nfc-bind` / `+not-found`（6 處） | 🟡 **3 個 props 未用**：`secondaryLabel` / `onSecondary` / `compact`。`kind` 只用 `no-results`（`first-use` / `filtered` 從未使用） |
 | `FieldInput.tsx` | 245 | `index`（1 處） | 🟡 **4 個 props 未用**：`error` / `multiline` / `onFocus` / `inputRef` → **錯誤顯示與捲動修正能力存在但未接線** |
-| `Icon.tsx` | 253 | `_layout` / `home` / `overview` / `check-in` / `nfc-bind` / `Card` / `EmptyState` / `FieldInput` / `InlineBanner` / `Logo` / `ScreenHeader`（11 處） | 🟡 `IconName` **34 個中 10 個 0 使用**（見 §7） |
+| `Icon.tsx` | 253 | `_layout` / `home` / `overview` / `check-in` / `nfc-bind` / `Card` / `EmptyState` / `FieldInput` / `InlineBanner` / `Logo` / `ScreenHeader`（11 處） | 🟡 `IconName` **34 個中 11 個 0 使用**（見 §4.4） |
 | `InlineBanner.tsx` | 173 | `index` / `home` / `settings` / `overview` / `nfc-bind` / `badges`（6 處） | 🟡 **1 個 prop 未用**：`title`。`dismissible`/`onDismiss` 只用於 `home` |
 | `Logo.tsx` | 104 | `index` / `home`（2 處） | 🟡 **3 個 props 未用**：`wordmark` / `accessibilityLabel` / `testID` |
 | `ScreenHeader.tsx` | 174 | `home` / `settings` / `overview` / `check-in` / `nfc-bind` / `badges`（6 處） | 🟡 **1 個 prop 未用**：`right`（右側動作槽）→ **「+ 新增批次」類入口無處可放** |
@@ -202,12 +203,15 @@
 
 ### 4.5 死 copy key（**4 個**，逐 key grep = 0）
 
+> ⚠️ **排除聲明**：本表**不含** §7.2 所列的偽死項。下列 3 項雖 0 命中，但屬 **W-08 / W-10 / W-26 的能力儲備，不可清理**（見 §7.2 與 `11-app-defect-register.md` §4.2）。
+> 故 §0 的「4 個死 copy key」實為 **1 真死 + 3 偽死**。
+
 | Key | 位置 | 判定 |
 | --- | --- | --- |
-| `auth.networkError` | `copy.zh-TW.ts` | 🗑️ 與 `auth.errorNetwork` 語意重複（後者才是 `classifyLoginError` 使用的） |
-| `auth.loggedOut` | 同上 | 🗑️ **登出成功提示從未顯示** |
-| `checkIn.switchToScan` | 同上 | 🗑️ 只有 `switchToManual` 被使用 |
-| `settings.appVersion` | 同上 | 🗑️ 設定頁改用 `copy.app.version` |
+| `auth.networkError` | `copy.zh-TW.ts` | 🗑️ **真死**：與 `auth.errorNetwork` 語意重複（後者才是 `classifyLoginError` 使用的） |
+| `auth.loggedOut` | 同上 | 🚫 **偽死**：**W-08 / W-10** 將消費（登出成功提示） |
+| `checkIn.switchToScan` | 同上 | 🚫 **偽死**：**W-26** 將消費（掃描/手動切換） |
+| `settings.appVersion` | 同上 | 🚫 **偽死**：**W-08** 將消費（設定頁版本號） |
 
 > ✅ **已轉活（A3/W-12 生效）**：`checkIn.attendeeName/Email/Company/Type`、`checkIn.resultTitle`、`checkIn.checkedInAt`、`settings.nfcStatus/nfcSupported/nfcChecking`、`event.unavailableTitle/unavailableHint`、`notFound.title/hint`、`eventStatus.*`（6）、`badgeStatus.*`（5）、`badges.*`（7）、`nfc.*` 擴充（8）——**全部有消費者**。
 
@@ -245,16 +249,19 @@
 
 ### 4.8 npm 依賴（20 個 dependencies）
 
+> ⚠️ **排除聲明**：本表**不含** §7.2 所列的偽死項。`expo-clipboard` / `react-native-qrcode-svg` 雖 0 命中，但屬 **W-15 / W-31 的能力儲備，不可清理**。
+> 故 §0 的「4 個死 npm 依賴」實為 **2 真死 + 2 偽死**。
+
 | 依賴 | src 命中 | 判定 |
 | --- | :-: | --- |
 | `axios` / `expo` / `expo-camera` / `expo-router` / `expo-secure-store` / `expo-status-bar` / `react` / `react-dom` / `react-native` / `react-native-safe-area-context` / `react-native-svg` / `react-native-web` / `zustand` | ≥1 | ✅ 使用中 |
 | `react-native-nfc-manager` | 3（**dynamic import**） | ✅ 非死碼 |
 | `expo-dev-client` | 0 | 🟡 開發工具（`eas.json` development profile 需要） |
 | `react-native-screens` | 0 | 🟡 expo-router 的 peer（間接使用） |
-| **`expo-clipboard`** | **0** | 🗑️ **真死** → W-15 消費 |
+| **`expo-clipboard`** | **0** | 🚫 **偽死** → **W-15** 將消費（tagUid 複製） |
 | **`expo-constants`** | **0** | 🗑️ **真死** |
 | **`expo-linking`** | **0** | 🗑️ **真死** |
-| **`react-native-qrcode-svg`** | **0** | 🗑️ **真死** → W-31 消費 |
+| **`react-native-qrcode-svg`** | **0** | 🚫 **偽死** → **W-31** 將消費（Credential QR） |
 
 > 📌 `expo-device` / `expo-image-picker` **不在 `package.json`**（2026-09-16 審計稱其為死依賴 → **該項已不適用**）。
 
@@ -590,7 +597,8 @@
 
 ### 12.1 基線
 
-> ⚠️ **本附錄所有輸出皆於 HEAD `c4101e8` 實測**（非基線期數字）。
+> ⚠️ **本附錄所有輸出皆於掃描基線 `c4101e8` 實測**（`src/` 自該 commit 起未再變動，故輸出仍有效）。
+> 文件本身後續有 v1.1/v1.2/v1.3 修訂（`9f3821a` / `3b8fdbd` / 本 commit），但**皆為 docs-only，未觸及 `src/`**。
 
 ```bash
 git log --oneline -13        # HEAD = c4101e8
@@ -671,6 +679,14 @@ grep -rn "EmptyState" src/app/   # home / badges / overview / check-in / nfc-bin
 | v1.0 | 2026-09-17 | 初版（A0-A9 修復後的交接功能盤點） | Neo Loop（admin-app-debt-zero-r2）DISCOVER 交付 |
 | v1.1 | 2026-09-17 | 修 VERIFY 的 18 項發現（F-01..F-18） | 獨立審查（smith，strict 93）實測 81 → 修復 |
 | v1.2 | 2026-09-17 | 修 RE-VERIFY 的 5 項殘留（N-01..N-05） | 獨立複審（smith R2）實測 92.50 → 修復 |
+| v1.3 | 2026-09-17 | 清 strict 殘留 Low（R3-01 + N-05 傳播） | 獨立複審（smith R3）實測 **93.75 PASS** → 補完 |
+
+### v1.3 修復明細
+
+| ID | 級別 | 修正 |
+| :-: | :-: | --- |
+| **R3-01** | 🟢 Low | §4.1 `Icon.tsx` 列「34 個中 10 個 0 使用」→ **11 個**（對齊 §4.4/§0/§6/§12.2） |
+| **N-05 傳播** | 🟢 Low | §4.5 加排除聲明（3 項為偽死 W-08/W-10/W-26）；§4.8 將 `expo-clipboard`/`react-native-qrcode-svg` 由「🗑️ 真死」改為「🚫 偽死」；§0 頭條數字加真死/偽死限定 |
 
 ### v1.2 修復明細
 
