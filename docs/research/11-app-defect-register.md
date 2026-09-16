@@ -169,9 +169,9 @@
 | --- | --- |
 | **責任歸屬** | feiteng2015 → **W-11** |
 | **症狀** | 無視覺症狀；但**違反 `copy.zh-TW.ts` 自稱的「單一真相來源」**，且使 P-08（繁/簡/英/葡多語言）無法只靠換 copy 檔完成 |
-| **根因** | **4 檔共 26 行**（實測定義：**非註解行**含 CJK 字元——排除 `//`、`/* */`、`{/* */}`；含 JSX 註解則為 28 行。原估「兩檔 14 處」嚴重低估）：<br>**`src/app/(auth)/[eventId]/nfc-bind.tsx`（8 行）**：L37（`WRISTBAND` → `手環`）、L38（`CARD` → `卡片`）、L126（`① 輸入報名編號以查詢參加者`）、L150（`② 選擇 Badge 類型，然後將空白 NFC 卡靠近手機背面`）、L177（`開始寫入 NFC 卡`）、L178（`重新輸入`）、L185（`寫入中，請保持卡片靠近…`）、L197（`繼續下一張`）（L39 的 `QR_ONLY` → `QR` 無 CJK，不計）<br>**`src/app/(auth)/[eventId]/badges.tsx`（11 行）**：L28-32（`STATUS_LABELS` 五個中文狀態標籤）、L125（`找不到此 Badge`）、L128（`Badge 查詢失敗`）、L166（`查詢 Badge（輸入 tagUid）`）、L177（`查詢`）、L197（`綁定報名：`）、L211（`尚無 Badge` / `先建立批次或綁定 Badge`）<br>**`src/app/(auth)/home.tsx`（6 行）**：L29-34（`STATUS_LABEL` 六個中文狀態標籤）（⚠️ 這 6 行就是 **A2 ⓒ** 要改的同一個物件——**兩者必須同批處理**）<br>**`src/app/(auth)/[eventId]/overview.tsx`（1 行）**：L112 的 `?? '快速操作'` fallback（即 **A8**）|
-| **與 A2 的關係（重要）** | `copy.zh-TW.ts` **目前沒有 `status` 命名空間**。A2 要求把 `ARCHIVED` 補進 `STATUS_LABEL`，若不一併建 namespace，就必留下硬編中文。<br>→ **裁決：`copy.status.*`（活動狀態中文標籤）由 W-11 產出**；A2 ⓒ 改為**引用 `copy.status.archived`**（見 A2 節）<br>⚠️ **注意**：`home` 的是**活動狀態**（6 值）、`badges` 的是 **badge 狀態**（5 值，`UNASSIGNED/BOUND/ACTIVE/DEACTIVATED/LOST`）——**兩者語意不同，不可共用同一 namespace**。建議 W-11 分流為 `copy.eventStatus.*` 與 `copy.badgeStatus.*`。|
-| **最小修法** | ⓐ 在 `src/constants/copy.zh-TW.ts` **新增三個命名空間**：`nfc.*` / `badges.*`，**以及 `eventStatus.*`（6 值活動狀態）與 `badgeStatus.*`（5 值 badge 狀態）**；<br>ⓑ 逐處替換為 `copy.*`（共 26 行 / 4 檔）；<br>ⓒ **不要**在此時引入 i18n 框架（P-08 另議，屬超範圍） |
+| **根因** | **4 檔共 26 行**（實測定義：**非註解行**含 CJK 字元——排除 `//`（含行尾註解）、`/* */`、`{/* */}`；含 `{/* */}` JSX 註解則為 **29 行**。原估「兩檔 14 處」嚴重低估）：<br>**`src/app/(auth)/[eventId]/nfc-bind.tsx`（8 行）**：L37（`WRISTBAND` → `手環`）、L38（`CARD` → `卡片`）、L126（`① 輸入報名編號以查詢參加者`）、L150（`② 選擇 Badge 類型，然後將空白 NFC 卡靠近手機背面`）、L177（`開始寫入 NFC 卡`）、L178（`重新輸入`）、L185（`寫入中，請保持卡片靠近…`）、L197（`繼續下一張`）（L39 的 `QR_ONLY` → `QR` 無 CJK，不計）<br>**`src/app/(auth)/[eventId]/badges.tsx`（11 行）**：L28-32（`STATUS_LABELS` 五個中文狀態標籤）、L125（`找不到此 Badge`）、L128（`Badge 查詢失敗`）、L166（`查詢 Badge（輸入 tagUid）`）、L177（`查詢`）、L197（`綁定報名：`）、L211（`尚無 Badge` / `先建立批次或綁定 Badge`）<br>**`src/app/(auth)/home.tsx`（6 行）**：L29-34（`STATUS_LABEL` 六個中文狀態標籤）（⚠️ 這 6 行就是 **A2 ⓒ** 要改的同一個物件——**兩者必須同批處理**）<br>**`src/app/(auth)/[eventId]/overview.tsx`（1 行）**：L112 的 `?? '快速操作'` fallback（即 **A8**）|
+| **與 A2 的關係（重要）** | `copy.zh-TW.ts` **目前沒有 `status` 命名空間**。A2 要求把 `ARCHIVED` 補進 `STATUS_LABEL`，若不一併建 namespace，就必留下硬編中文。<br>→ ✅ **裁決：`copy.eventStatus.*`（6 值活動狀態中文標籤）由 W-11 產出**；A2 ⓒ 改為**引用 `copy.eventStatus.archived`**（見 A2 節）<br>⚠️ **注意**：`home` 的是**活動狀態**（6 值，對應型別 `EventStatus`）、`badges` 的是 **badge 狀態**（5 值 `UNASSIGNED/BOUND/ACTIVE/DEACTIVATED/LOST`，對應型別 `BadgeStatus`）——**兩者語意不同，不可共用同一 namespace**。→ ✅ **裁決：分流為 `copy.eventStatus.*` 與 `copy.badgeStatus.*`**（直接鏡射既有型別詞彙）|
+| **最小修法** | ⓐ 在 `src/constants/copy.zh-TW.ts` **新增 3 個命名空間**：`badges.*`、`eventStatus.*`（6 值活動狀態）、`badgeStatus.*`（5 值 badge 狀態）；`nfc.*` 為**既有** namespace 之**擴充**（不新增）<br>ⓑ 逐處替換為 `copy.*`（共 26 行 / 4 檔）；<br>ⓒ **不要**在此時引入 i18n 框架（P-08 另議，屬超範圍） |
 | **驗收標準** | ① **這 4 檔內無 CJK 硬編字串**（`grep` 驗證，排除註解）；② `tsc`/lint 全綠；③ 畫面文字零變化（純重構）；④ `copy.eventStatus.*` 與 `copy.badgeStatus.*` 存在且分別被 `home` 與 `badges` 消費 |
 
 ---
@@ -289,7 +289,7 @@
 | 版本 | 日期 | 變更 | 原因 |
 | --- | --- | --- | --- |
 | v1.0 | 2026-09-16 | 初版（A0..A9 缺陷冊 + 死碼清理清單 + 修復優先序） | Neo Loop（admin-app-completion-audit） |
-| v1.0-r1 | 2026-09-16 | ① **A6 範圍/計數修正**：兩檔 14 處 → **4 檔 26 行**（附精確行號明細與定義）；② **A6 與 A2 解耦**：新增 `copy.eventStatus.*` / `copy.badgeStatus.*` 分流（活動狀態 6 值 vs badge 狀態 5 值，**語意不同不可共用**）；③ A2 行號 `43-54` → **43-49**；④ 新增 **§0.1 代號表**（含 `A0..A9` vs `A1..A4` 碰撞澄清）；⑤ 異體字修正（`这`/`本册`/`驗証`/`骸架`/`则`） | VERIFY R2 findings N-1 / N-5 / N-8 / N-10 |
+| v1.0-r1 | 2026-09-16 | ① **A6 範圍/計數修正**：兩檔 14 處 → **4 檔 26 行**（附精確行號明細與定義；含 `{/* */}` JSX 註解則 29 行）；② **A6 與 A2 解耦**：`copy.eventStatus.*`（6 值活動狀態）與 `copy.badgeStatus.*`（5 值 badge 狀態）**語意不同不可共用**；③ A2 行號 `43-54` → **43-49**；④ **W-11 命名空間措詞**：新增 3 個（`badges.*` / `eventStatus.*` / `badgeStatus.*`）＋ `nfc.*` 為既有 namespace 之擴充；⑤ 異體字修正（`这`/`本册`/`驗証`/`骸架`/`则`）| VERIFY R2/R3 findings N-1 / N-5 / N-8 / N-10 / L-1 / M-1 |
 
 ---
 

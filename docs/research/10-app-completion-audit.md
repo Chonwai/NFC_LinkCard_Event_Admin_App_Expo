@@ -197,7 +197,7 @@
 | `hand-raised` | 現場人員詢問/呼叫督導 | —（P1） |
 
 > ✅ **使用中的 22 個**：`home`、`camera`、`archive`、`users`、`cog`、`close`、`check`、`arrow-left`、`nfc`、`clipboard-check`、`refresh`、`alert-triangle`、`search`、`filter`、`pencil`、`qr-code`、`check-circle`、`x-circle`、`alert-circle`、`information-circle`、`empty-card`、`logo-mark`
-> 📌 **裁決：這 12 個不得刪除**（8 個有明確下游客戶）。詳見 `11-app-defect-register.md` §4.2。
+> 📌 **裁決：這 12 個不得刪除**（9 個有明確下游客戶）。詳見 `11-app-defect-register.md` §4.2。
 
 ### 4.5 死 copy key（11 個，逐 key grep = 0）
 
@@ -405,7 +405,7 @@
 | 版本 | 日期 | 變更 | 原因 |
 | --- | --- | --- | --- |
 | v1.0 | 2026-09-16 | 初版（DISCOVER 深度盤點 + PLAN 對接裁決） | Neo Loop（admin-app-completion-audit） |
-| v1.0-r1 | 2026-09-16 | ① **copy 指標修正**：74 → **64** leaf key、10 → **11** dead、使用率 **53/64（83%）**（實測 eval + 逐 key grep）；② **四態修正**：E 3/7 → **2/7**、22/28 → **21/28（75%）**；③ **A6 範圍修正**：14 處 → **26 行（4 檔）**（`home` 6 + `badges` 11 + `nfc-bind` 8 + `overview` 1；排除註解）；④ §8 索引修正（30 W-ID / C-1..C-18）；⑤ 新增 **§8.1 代號表**（含 `A0..A9` vs `A1..A4` 碰撞澄清）；⑥ AU-11 結案；⑦ 刪除 §7 行尾多餘 `>` | VERIFY R2 findings N-1 / N-2 / N-4 / N-6 / N-7 |
+| v1.0-r1 | 2026-09-16 | ① **copy 指標修正**：74 → **64** leaf key、10 → **11** dead、使用率 **53/64（83%）**（實測 eval + 逐 key grep）；② **四態修正**：E 3/7 → **2/7**、22/28 → **21/28（75%）**；③ **A6 範圍修正**：14 處 → **26 行（4 檔）**（`home` 6 + `badges` 11 + `nfc-bind` 8 + `overview` 1；排除註解）；④ **§4.4 的 Icon 下游客戶 8 → 9**；⑤ §7 行尾多餘 `>` 移除（R2 自引入之回歸）| VERIFY R2 findings N-1 / N-2 / L-5 / L-7 |
 
 ---
 
