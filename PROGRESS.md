@@ -140,6 +140,44 @@
 
 ---
 
+## ✅ A0-A9 修復完成（2026-09-17）
+
+> **VERIFY 結果：PASS — 95.1 / 100**（strict 門檻 93）
+> 完整功能盤點：`docs/research/12-app-feature-inventory.md`
+
+**12 個 commit 完成全部修復**（`8cbb7cc` → `c4101e8`）：
+
+| 缺陷 | 修復 | 驗證 |
+| --- | --- | --- |
+| **A0** 🔴 | `config.ts` origin-only + fail-closed guard + `.env.example` | ✅ |
+| **A1** 🔴 | `home` 錯誤橫幅改讀 store `error` | ✅ |
+| **A2** 🟠 | `EventStatus` 對齊後端 enum（6 值） | ✅ |
+| **A3** 🟠 | `checkIn` 回傳值 → 結果卡 5 欄身分核對 | ✅ |
+| **A4** 🟠 | 登出清活動快取（dynamic import 避 cycle） | ✅ |
+| **A5** 🟡 | 移除死狀態 `currentEventId` | ✅ |
+| **A6** 🟠 | 26 行硬編中文 → copy 層（3 新 namespace） | ✅ |
+| **A7** 🟠 | `payloadUrl` 改用 `WEB_BASE_URL` | ✅ |
+| **A8** 🟡 | 移除 `?? fallback` 掩蓋 | ✅ |
+| **A9** 🟡 | 逾時碼分類放寬（4 碼 + `code` 優先） | ✅ |
+
+**VERIFY 過程額外發現並修復**：
+- **N1** 🔴 **跨帳號活動污染**：`clear()` 後舊 in-flight 回應仍寫回 store → 加 `requestId` 世代守衛（harness 實測 `A-then-B` 與 `B-then-A` 兩種時序皆 `LEAK=NO`）
+- **F1/F2/L2/L3/N2/N4**：`clear()` 重置 `loading`、共用 `event-status`、統一 fallback、抽出世代述詞、可達 fallback、檔尾換行
+
+**技術債淨減少**：
+
+| 項目 | 修復前 | 修復後 |
+| --- | :-: | :-: |
+| 死 copy key | 11 | **4** |
+| 死 icon | 12 | **10** |
+| 死 npm 依賴 | 6 | **4** |
+| 四態覆蓋 | 21/28（75%） | **23/28（82%）** |
+| 硬編中文（頁面層） | 26 行 | **0** |
+
+**staging 環境**：`.env.local` 已設 `EXPO_PUBLIC_API_URL=https://staging-api.link-card.xyz` + `EXPO_PUBLIC_WEB_URL=https://staging.link-card.xyz`；`.env.example` 含 staging 範本。
+
+---
+
 ## 🔎 App 完成度審計（2026-09-16 新增）
 
 > 完整報告：`docs/research/10-app-completion-audit.md`（完成度）+ `docs/research/11-app-defect-register.md`（缺陷）

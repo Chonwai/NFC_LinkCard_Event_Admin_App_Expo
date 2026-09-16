@@ -31,6 +31,32 @@
 | `09-feasibility-review.md` | **交接可行性複審**：10 個 P0 逐項裁決（可開發/阻斷）+ 5 個硬阻斷項 + 契約漂移 + 外派協作風險 + 10 項待裁決 | 「這些內容真的做得出來嗎？」 |
 | `10-app-completion-audit.md` | **App 完成度審計**：14 個 `src/` commit 逐條 + 7 畫面 × 四態 + 10 service 方法 + 48 項死碼 + 9 條旅程 + AU-01..AU-11 未驗證清單 | 「**我做到哪了？還缺什麼？**」 |
 | `11-app-defect-register.md` | **缺陷冊 + 死碼清理清單**：A0..A9 十個缺陷（症狀/根因/重現/最小修法/驗收/歸屬）+ 可刪 vs **絕對不可刪** 對照 | 「**能 build 嗎？哪裡壞了？怎麼修？**」 |
+| `12-app-feature-inventory.md` | **功能現況盤點（交接用）**：35 項可用功能 + 11 頁 × 四態 + 9 條旅程 + 與 09-16 審計的逐項差異 + 四分類缺口 | 「**現在到底有什麼功能？**」 |
+
+---
+
+## ✅ A0-A9 修復完成（2026-09-17）
+
+> **VERIFY 結果：PASS — 95.1 / 100**（strict 門檻 93）
+
+| 缺陷 | 修復 | 驗證 |
+| --- | --- | --- |
+| **A0** 🔴 | `config.ts` origin-only + fail-closed guard + `.env.example` | ✅ |
+| **A1** 🔴 | `home` 錯誤橫幅改讀 store `error` | ✅ |
+| **A2** 🟠 | `EventStatus` 對齊後端 enum（6 值） | ✅ |
+| **A3** 🟠 | `checkIn` 回傳值 → 結果卡 5 欄身分核對 | ✅ |
+| **A4** 🟠 | 登出清活動快取（dynamic import 避 cycle） | ✅ |
+| **A5** 🟡 | 移除死狀態 `currentEventId` | ✅ |
+| **A6** 🟠 | 26 行硬編中文 → copy 層（3 新 namespace） | ✅ |
+| **A7** 🟠 | `payloadUrl` 改用 `WEB_BASE_URL` | ✅ |
+| **A8** 🟡 | 移除 `?? fallback` 掩蓋 | ✅ |
+| **A9** 🟡 | 逾時碼分類放寬（4 碼 + `code` 優先） | ✅ |
+
+**額外修復**（VERIFY 過程發現）：
+- **N1** 🔴 **跨帳號活動污染**：`clear()` 後舊 in-flight 回應仍寫回 store → 加 `requestId` 世代守衛（harness 實測兩種時序皆 `LEAK=NO`）
+- **F1/F2/L2/L3/N2/N4**：`clear()` 重置 `loading`、共用 `event-status`、統一 fallback、抽出世代述詞、可達 fallback、檔尾換行
+
+**技術債淨減少**：死 copy key 11 → **4**、死 icon 12 → **10**、死 npm 依賴 6 → **4**、四態 21/28 → **23/28（82%）**
 
 ---
 
