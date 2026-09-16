@@ -103,6 +103,8 @@ export const copy = {
         attendeeCompany: '公司',
         attendeeType: '類型',
         resultTitle: '報到結果',
+        /** A3 新增：報到時間（僅下方 key 為本輪新增，其餘為既有死 key 轉活） */
+        checkedInAt: '報到時間',
     },
     nfc: {
         writeTitle: 'NFC 寫卡',
