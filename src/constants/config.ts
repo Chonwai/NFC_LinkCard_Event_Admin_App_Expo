@@ -1,13 +1,28 @@
 /**
  * LinkCard Event Admin App — 環境設定（單一真相來源）
  *
- * 與 Promoter App 的 config.ts 對齊：production 預設指向 linkcard.xyz API。
+ * `EXPO_PUBLIC_API_URL` = 後端 API 的 **origin**（不含 `/api` 或任何路徑後綴）。
+ * 所有 service 路徑本身已帶 `/api/...`（例：`/api/auth/login`、
+ * `/api/v1/events/my-managed`），因此 origin 與路徑串接後才不會出現 `/api/api/...`。
+ *
+ * 與 Promoter App 的 config.ts 對齊：production 預設指向 linkcard.xyz，
  * 本地開發可用 EXPO_PUBLIC_API_URL 覆寫（expo 內建 env 注入）。
  */
 const EXPO_PUBLIC_API_URL = process.env.EXPO_PUBLIC_API_URL?.trim();
 
-/** Production API origin（與 Web Frontend / MiniProgram 共用同一個 backend） */
-export const API_BASE_URL = EXPO_PUBLIC_API_URL || 'https://linkcard.xyz/api';
+// Fail closed outside local dev: native preview/production builds must provide
+// an explicit API origin instead of silently pointing the device at a default.
+if (!EXPO_PUBLIC_API_URL && typeof __DEV__ !== 'undefined' && !__DEV__) {
+    throw new Error('EXPO_PUBLIC_API_URL is required for non-development builds');
+}
+
+/**
+ * 後端 API origin（**不含** `/api`；與 Web Frontend / MiniProgram 共用同一個 backend）。
+ *
+ * ⚠️ 此值只能是 origin：service 層路徑已含 `/api/...`，若此處再帶 `/api`，
+ * axios `combineURLs()` 會串成 `/api/api/...` → 所有請求 404。
+ */
+export const API_BASE_URL = EXPO_PUBLIC_API_URL || 'https://linkcard.xyz';
 
 /** Axios 全域逾時（毫秒） */
 export const API_TIMEOUT_MS = 15000;
