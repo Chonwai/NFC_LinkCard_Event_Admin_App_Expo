@@ -5,17 +5,23 @@
 > **掃描基準**：`LinkCard_Event_Admin_App_Expo` @ HEAD `c4101e8`（branch `main`，working tree clean）
 > **快取狀態**：`docs/.project-context.md` **STALE**（`Last Updated: 2026-09-13`，早於 12 個實質 commit）→ **本報告全部為當前 HEAD 實測**，未採用快取內容
 > **標記**：✅ 已驗證 ｜ 📌 規劃建議 ｜ ⚠️ 未驗證
+>
+> **下游文件導航**（本文件的 W-ID / B-ID / C-ID 皆定義於此）：
+> - **W-ID 任務清單**（30 項 × 3 批次）→ `docs/20260915_AdminApp_Handoff_for_feiteng2015.md`
+> - **API 契約凍結**（29 端點）→ `docs/20260915_AdminApp_API_Contract_Freeze_v1.md`
+> - **死碼權威清單**（§4.1 可清理 / §4.2 絕對不可清理）→ `docs/research/11-app-defect-register.md`
+> - **完成度審計**（2026-09-16 基線）→ `docs/research/10-app-completion-audit.md`
 
 ---
 
 ## §0 執行摘要
 
-- **規模**：`src/` 共 **36 檔 / 5,267 行**（`theme.ts` 佔 647 行）。頁面 11 檔、UI 元件 10 檔、service 5 檔、store 2 檔、util 6 檔、constant 3 檔、type 1 檔。
+- **規模**：`src/` 共 **38 檔 / 5,267 行**（`theme.ts` 佔 647 行）。頁面 11 檔、UI 元件 10 檔、service 5 檔、store 2 檔、util 6 檔、constant 3 檔、type 1 檔。
 - **Build 健康**：`npx tsc --noEmit` = **0 錯誤**；`npx eslint .` = **0 錯誤**（本輪實測）。
 - **可用功能**：登入、活動列表、活動概覽（3 統計卡 + 3 快速操作）、手動簽到（含結果卡 5 欄）、NFC 寫卡流程（程式碼完整）、Badge 查詢 + 分頁列表、設定頁（NFC 探測 + 登出二次確認）、`+not-found` 復原頁。
 - **四態覆蓋**：**23/28（82%）**。`home` / `badges` / `settings` 四態齊；`overview` / `check-in` / `nfc-bind` **缺「資料空態」**（僅有 `eventId` 缺失守衛）；`index` 為 ➖ 不適用。
 - **A0–A9 全數落地**：12 個 commit 的修復**逐項可在 HEAD 驗證**（見 §6）。
-- **死碼**：**4 個死 copy key**、**10 個死 icon**、**4 個死 npm 依賴**、**4 個死 theme token**、**約 25 個未接線 props**。W-13 已清掉 6 項真死碼。
+- **死碼**：**4 個死 copy key**、**11 個死 icon**、**4 個死 npm 依賴**、**4 個死 theme token**、**約 22 個未接線 props**。W-13 已清掉 6 項真死碼。
 - **驗證層級**：**真機 0**、**EAS build 0**、**自動化測試 0**、**CI 0**。所有「已驗證」皆為 **web 實測**（依賴 `.env.local`）。
 - **最大缺口**：名單查詢 / Token 操作 / 用戶詳情 **三條旅程完全不存在**；**權限門控 0**（所有角色看到全部功能）；**QR 掃描全鏈路從未執行**；**NFC 寫卡從未成功執行**。
 
@@ -70,7 +76,7 @@
 | 路由 | 檔案（行數） | 已實作功能（符號名） | L | E | Er | S | 驗證層級 | 缺口 |
 | --- | --- | --- | :-: | :-: | :-: | :-: | --- | --- |
 | `/` | `src/app/_layout.tsx`（50） | `RootLayout`、`SafeAreaProvider`、`StatusBar`、`Stack`、auth guard effect | ➖ | ➖ | ➖ | ➖ | ✅ web 實測 | 無 splash 遮罩（hydrate 期間白屏） |
-| `/` | `src/app/index.tsx`（215） | `LoginScreen`、`handleLogin`、`classifyLoginError`、`SESSION_NOTICE_BANNERS`、`FieldInput`×2、`Card`、`Logo` | ✅ | ➖ | ✅ | ✅ | ✅ web 實測 | 無「記住我」、無忘記密碼、無 token 續期 |
+| `/` | `src/app/index.tsx`（215） | `LoginScreen`、`handleLogin`、`classifyLoginError`、`SESSION_NOTICE_BANNERS`、`FieldInput`×2、`Card`、`Logo` | ➖ | ➖ | ✅ | ✅ | ✅ web 實測 | 無「記住我」、無忘記密碼、無 token 續期 |
 | `+not-found` | `src/app/+not-found.tsx`（48） | `NotFoundScreen`、`EmptyState kind="no-results"`、`router.replace('/(auth)/home')` | ➖ | ✅ | ➖ | ✅ | ✅ 程式碼（W-12） | 未在 `_layout.tsx` 顯式註冊（依賴 expo-router 自動） |
 | `/(auth)` | `(auth)/_layout.tsx`（42） | `AuthLayout`、`Tabs`、`Tabs.Screen`×3（home/settings/`[eventId]` href:null） | ➖ | ➖ | ➖ | ➖ | ✅ web 實測 | — |
 | `/(auth)/home` | `(auth)/home.tsx`（213） | `HomeScreen`、`renderEvent`、`loadEvents`、`dismissError`、`onRefresh`、`reloadKey`、`FlatList`、`EVENT_STATUS_TONE`、`getEventStatusLabel` | ✅ | ✅ | ✅ | ✅ | ✅ web 實測 | **雙標題**（`brandRow` 的 `copy.home.title` 與 `ScreenHeader title` 同字串並存）；無活動切換 UI |
@@ -82,6 +88,10 @@
 | `…/badges` | `[eventId]/badges.tsx`（285） | `BadgesScreen`、`doLookup`、`loadList`、`initial`、`STATUS_LABELS`、`STATUS_TONE`、`PAGE_SIZE`、`onEndReached`、`ListFooterComponent` | ✅ | ✅ | ✅ | ✅ | 🟡 web 僅驗空狀態 | 無 `status`/`batchId` 篩選 UI（service 參數已備）；無批次建立；無匯出；無 void/補發 |
 
 ### 2.1 四態總計
+
+> **分母定義**：**7 個頁面**（`home` / `settings` / `overview` / `check-in` / `nfc-bind` / `badges` / `+not-found`）。
+> **排除**：`index`（登入頁無 L/E 態，`loading` 僅驅動按鈕 spinner）、3 個 layout 檔（全 ➖）。
+> 故 7 × 4 = **28** 為分母。
 
 | 狀態 | 覆蓋 | 說明 |
 | :-: | :-: | --- |
@@ -137,7 +147,7 @@
 
 ## §4 表 3：UI 元件與工具盤點
 
-### 4.1 `src/components/ui/`（10 檔 / 1,589 行）
+### 4.1 `src/components/ui/`（10 檔 / 1,590 行）
 
 | 檔案 | 行數 | 被誰使用（import 實測） | 判定 |
 | --- | :-: | --- | --- |
@@ -152,9 +162,9 @@
 | `Skeleton.tsx` | 93 | `home` / `settings` / `overview` / `badges`（4 處） | 🟡 **1 個 prop 未用**：`animated`（恆為預設 `true`）。`SkeletonList` 已於 W-13 移除 |
 | `useFocusRing.ts` | 95 | `Button` / `Card` / `FieldInput` / `InlineBanner` / `ScreenHeader`（5 處） | ✅ 全數消費 |
 
-> **一句話**：**10 個元件全部有被 import（0 個孤兒）**，但合計 **約 25 個已實作 props 從未被使用**。這不是死碼，是**未接線的能力儲備**。
+> **一句話**：**10 個元件全部有被 import（0 個孤兒）**，但合計 **約 22 個已實作 props 從未被使用**（Button 3 + Card 6 + EmptyState 3 + FieldInput 4 + InlineBanner 1 + Logo 3 + ScreenHeader 1 + Skeleton 1）。這不是死碼，是**未接線的能力儲備**。
 
-### 4.2 `src/utils/`（6 檔 / 369 行）
+### 4.2 `src/utils/`（6 檔 / 331 行）
 
 | 檔案 | 行數 | export 使用情形 | 判定 |
 | --- | :-: | --- | :-: |
@@ -173,7 +183,7 @@
 | `copy.zh-TW.ts` | 166 | 🟡 **4 個 key 從未被消費**（見 §7） |
 | `theme.ts` | 647 | 🟡 **檔頭第 2 行仍寫 `LinkCard Promoter App`**；**4 個 token 0 使用**（見 §7） |
 
-### 4.4 死 Icon（`IconName` 34 個，**10 個 0 使用**）
+### 4.4 死 Icon（`IconName` 34 個，**11 個 0 使用**）
 
 | 死 icon | 對應的未接線能力 | 將由誰消費 |
 | --- | --- | --- |
@@ -186,8 +196,9 @@
 | `clock` | 報到時間戳 | **W-26** |
 | `hand-raised` | 現場人員呼叫督導 | —（P1） |
 
-> ✅ **使用中的 24 個**：`home`、`camera`、`archive`、`users`、`cog`、`chevron-right`、`close`、`check`、`arrow-left`、`nfc`、`clipboard-check`、`refresh`、`alert-triangle`、`search`、`filter`、`pencil`、`qr-code`、`check-circle`、`x-circle`、`alert-circle`、`information-circle`、`empty-card`、`logo-mark`（+ `chevron-right` 僅 `Card.tsx:90` 使用，而 `Card.showChevron` 未啟用 → **實質不可達**）。
-> 📌 **裁決：這 10 個不得刪除**（8 個有明確下游客戶）。
+> ✅ **使用中的 23 個**：`home`、`camera`、`archive`、`users`、`cog`、`chevron-right`、`close`、`check`、`arrow-left`、`nfc`、`clipboard-check`、`refresh`、`alert-triangle`、`search`、`filter`、`pencil`、`qr-code`、`check-circle`、`x-circle`、`alert-circle`、`information-circle`、`empty-card`、`logo-mark`（+ `chevron-right` 僅 `Card.tsx` 使用，而 `Card.showChevron` 未啟用 → **實質不可達**）。
+> 📌 **裁決：這 11 個不得刪除**（9 個有明確下游客戶；`trash` / `camera-shutter` 為 OOS/P2 保留）。
+> ⚠️ **權威清單**：可清理 vs 絕對不可清理的完整判定見 `docs/research/11-app-defect-register.md` §4.1 / §4.2。
 
 ### 4.5 死 copy key（**4 個**，逐 key grep = 0）
 
@@ -209,10 +220,8 @@
 | `layout.touchGapMin` | `theme.ts:158` | 0 | 🗑️ **會議要求「相鄰觸控目標間距」，token 已備未用** |
 | `layout.breakpointNarrow` | `theme.ts:175` | 0 | 🗑️ **響應式斷點 token 存在，但全 App 無任何 `Dimensions`/`useWindowDimensions`** |
 | `fontFamily` | `theme.ts:188` | 0（module-private，非 export） | ➖ 非死碼 |
-| `elevation` | `theme.ts:326` | **1**（`Card.tsx:82` 的 `toneToken.elevation`） | ✅ **已接線**（2026-09-16 審計稱 0 使用 → **已修正**） |
+| `elevation` | `theme.ts` | **0 外部**（module-private，非 export） | ➖ **非死碼**（與 `fontFamily` 同類；`components.card.elevation` 值為 `elevation.flat` = `{}`，接線與否無行為差異） |
 | `metaText` | `theme.ts:647` | **7**（`home.tsx` ×3、`badges.tsx` ×2 + import） | ✅ **已接線**（2026-09-16 審計稱 0 使用 → **已修正**） |
-| `theme` / `default` export | — | 0 | ✅ **已移除**（W-13） |
-| `layout.buttonHeightSm` / `layout.iconBox` | — | 0 | ✅ **已移除**（W-13） |
 
 ### 4.7 型別（`src/types/api.types.ts`，93 行）
 
@@ -260,7 +269,7 @@
 | 6 | **Token 操作（增/扣/流水）** | ❌ **不存在** | **無 route / service / copy key / icon**。後端 6 端點亦未實作（B-1） |
 | 7 | **用戶詳情** | ❌ **不存在** | 無 route 檔。`Registration.profile.*` 與 `customFields` 型別存在，**無任何畫面渲染** |
 | 8 | **設定 / 登出 / 活動切換** | 🟡 **登出走得通** | `logout` + `confirmingLogout` 二次確認 ✅（W-12）。**卡在**：① **無活動切換 UI**；② 無音效/震動/亮度；③ `[eventId]/settings.tsx` **從未存在**（裁決 C-17）；④ 登出清快取 ✅ **已修**（A4） |
-| 9 | **權限門控（角色差異）** | ❌ **完全不存在** | `grep userRole src/` = **3 命中，全是型別映射與顯示字串**（`api.types.ts:55`、`event.service.ts:32`、`home.tsx:70/74`），**零處用於 gate 任何功能** → **所有頁面對所有角色完全開放**（VOLUNTEER 也能寫卡、也能看統計） |
+| 9 | **權限門控（角色差異）** | ❌ **完全不存在** | `grep userRole src/` = **4 命中，全是型別映射與顯示字串**（`api.types.ts`、`event.service.ts`、`home.tsx` ×2），**零處用於 gate 任何功能** → **所有頁面對所有角色完全開放**（VOLUNTEER 也能寫卡、也能看統計） |
 
 ---
 
@@ -293,7 +302,7 @@
 | **W-13**：`ApiErrorEnvelope` | 🗑️ | ✅ **已刪** | 0 命中 |
 | **W-13**：`theme`/`default` export | 🗑️ | ✅ **已刪** | 0 import |
 | **W-13**：`buildUriNdefMessage` | 🟡 | ✅ **已降 module-private** | `nfc-utils.ts` 註解明示 |
-| **W-13**：`fontFamily`/`elevation`/`metaText` | 🗑️ | 🟡 **部分**：`elevation` ✅ 已接線（`Card.tsx:82`）、`metaText` ✅ 已接線（7 處）；`fontFamily` 為 module-private（非 export） | — |
+| **W-13**：`fontFamily`/`elevation`/`metaText` | 🗑️ | 🟡 **部分**：`metaText` ✅ 已接線（7 處）；`fontFamily` 與 `elevation` 皆為 **module-private（非 export）**，原「0 使用」判定不適用 | — |
 | **W-13**：`radius.none`/`buttonHeightSm`/`iconBox` | 🗑️ | 🟡 **部分**：`buttonHeightSm`/`iconBox` ✅ 已刪；`radius.none` ❌ **仍在**（`theme.ts:108`） | — |
 | **W-13**：`husky`/`lint-staged` 假承諾 | 🗑️ | ✅ **已無此宣告** | `package.json` 無 `husky`/`lint-staged`/`prepare` |
 | **W-13**：`dist/` 殘留 | 🗑️ | ✅ **已無** | `ls dist` = 不存在 |
@@ -304,7 +313,7 @@
 | **L3**：世代述詞重複 | 🟡 | ✅ **已修** | `const isCurrent = () => get().requestId === requestId` |
 | **N4**：檔尾換行 | 🟡 | ✅ **已修** | — |
 | **死 copy key 11 個** | 🗑️ | ✅ **降至 4 個**（7 個已轉活） | 見 §4.5 |
-| **死 icon 12 個** | 🗑️ | ✅ **降至 10 個**（`chevron-right` 仍定義但實質不可達） | 見 §4.4 |
+| **死 icon 12 個** | 🗑️ | ✅ **降至 11 個**（`chevron-right` 仍定義但實質不可達） | 見 §4.4 |
 | **死 npm 依賴 6 個** | 🗑️ | ✅ **降至 4 個**（`expo-device`/`expo-image-picker` 本就不在 `package.json`） | 見 §4.8 |
 | **四態 21/28（75%）** | 🟡 | ✅ **提升至 23/28（82%）** | `settings` loading/error 已補 |
 | **`theme.ts` 檔頭寫 Promoter** | 🟡 | ❌ **仍未修** | `theme.ts:2` = `LinkCard Promoter App — 三層設計 token 系統` |
@@ -313,35 +322,40 @@
 
 ## §7 死碼 / 半成品清單
 
+> ⚠️ **權威來源**：可清理 vs 絕對不可清理的**最終判定**見 `docs/research/11-app-defect-register.md` §4.1 / §4.2。
+> **本節與該文件衝突時，以該文件為準。** 清理前必須先確認該符號**不在 §4.2 的 13 列內**。
+
 ### 7.1 🗑️ 真死（可清理）
+
+> **排除聲明**：本表**不含** §7.2 所列的任何項目。若某列同時出現在 §7.2，**以 §7.2 為準（不可清理）**。
 
 | # | 項目 | 位置 | 判定 |
 | :-: | --- | --- | --- |
-| 1 | `copy.auth.networkError` | `copy.zh-TW.ts` | 0 命中 |
-| 2 | `copy.auth.loggedOut` | 同上 | 0 命中 |
-| 3 | `copy.checkIn.switchToScan` | 同上 | 0 命中 |
-| 4 | `copy.settings.appVersion` | 同上 | 0 命中 |
-| 5 | `radius.none` | `theme.ts:108` | 0 命中 |
-| 6 | `layout.touchGapMin` | `theme.ts:158` | 0 命中（**但會議要求，屬能力儲備**） |
-| 7 | `layout.breakpointNarrow` | `theme.ts:175` | 0 命中（**但響應式需要，屬能力儲備**） |
-| 8 | `primitive` export | `theme.ts:23` | 0 外部命中（設計上 Layer 1 不外流） |
-| 9 | npm `expo-clipboard` | `package.json` | 0 命中（**W-15 將消費**） |
-| 10 | npm `expo-constants` | 同上 | 0 命中 |
-| 11 | npm `expo-linking` | 同上 | 0 命中 |
-| 12 | npm `react-native-qrcode-svg` | 同上 | 0 命中（**W-31 將消費**） |
-| 13 | `Registration.customFields` | `api.types.ts:76` | 型別有、**0 處渲染** |
-| 14 | `CheckInResult.alreadyCheckedIn` | `api.types.ts:83` | 型別有、**0 處讀取** |
-| 15 | `Registration.profile.phone` / `jobTitle` | `api.types.ts:71/73` | 型別有、**0 處渲染** |
-| 16 | `nfcService.lookup` 的 `qr` 參數 | `nfc.service.ts` | 0 呼叫端使用 |
-| 17 | `nfcService.listBadges` 的 `status`/`batchId`/`all` | 同上 | 0 呼叫端使用 |
-| 18 | `nfcService.bind` 的 `colorCode` | 同上 | 0 呼叫端使用 |
-| 19 | `eventService.getRegistrations` 的 `page` | `event.service.ts` | 0 呼叫端使用 |
-| 20 | `EmptyState` 的 `first-use` / `filtered` kind | `EmptyState.tsx` | 0 呼叫端使用（只用 `no-results`） |
-| 21 | `Button` 的 `dangerSolid` variant | `Button.tsx` | 0 呼叫端使用 |
-| 22 | `Card` 的 `tone="sunken"` | `Card.tsx` | 0 呼叫端使用 |
-| 23 | `theme.ts:2` 的 `LinkCard Promoter App` 字串 | `theme.ts:2` | **品牌殘留**（非死碼，是錯誤標示） |
+| 1 | `copy.auth.networkError` | `copy.zh-TW.ts` | 0 命中；與 `auth.errorNetwork` 語意重複 |
+| 2 | `radius.none` | `theme.ts` | 0 命中 |
+| 3 | `primitive` export | `theme.ts` | 0 外部命中（設計上 Layer 1 不外流） |
+| 4 | npm `expo-constants` | `package.json` | 0 命中 |
+| 5 | npm `expo-linking` | `package.json` | 0 命中 |
+| 6 | `Registration.customFields` | `api.types.ts` | 型別有、**0 處渲染** |
+| 7 | `CheckInResult.alreadyCheckedIn` | `api.types.ts` | 型別有、**0 處讀取** |
+| 8 | `Registration.profile.phone` / `jobTitle` | `api.types.ts` | 型別有、**0 處渲染** |
+| 9 | `nfcService.lookup` 的 `qr` 參數 | `nfc.service.ts` | 0 呼叫端使用 |
+| 10 | `nfcService.listBadges` 的 `status`/`batchId`/`all` | `nfc.service.ts` | 0 呼叫端使用 |
+| 11 | `nfcService.bind` 的 `colorCode` | `nfc.service.ts` | 0 呼叫端使用 |
+| 12 | `eventService.getRegistrations` 的 `page` | `event.service.ts` | 0 呼叫端使用 |
+| 13 | `EmptyState` 的 `first-use` / `filtered` kind | `EmptyState.tsx` | 0 呼叫端使用（只用 `no-results`） |
+| 14 | `Button` 的 `dangerSolid` variant | `Button.tsx` | 0 呼叫端使用 |
+| 15 | `Card` 的 `tone="sunken"` | `Card.tsx` | 0 呼叫端使用 |
+| 16 | `theme.ts` 檔頭的 `LinkCard Promoter App` 字串 | `theme.ts` | **品牌殘留**（非死碼，是錯誤標示） |
+
+> 🚫 **已從本表移除的 7 項**（原列於此，但 `11-app-defect-register.md` §4.2 明列為**絕對不可清理**）：
+> `copy.auth.loggedOut`（W-08/W-10）、`copy.checkIn.switchToScan`（W-26）、`copy.settings.appVersion`（W-08）、
+> `layout.touchGapMin` / `layout.breakpointNarrow`（C-15/C-16）、`expo-clipboard`（W-15）、`react-native-qrcode-svg`（W-31）。
+> **誤刪這 7 項會直接製造 W-08 / W-10 / W-15 / W-26 / W-31 的重工。**
 
 ### 7.2 🚫 偽死（**不可清理**，將被消費）
+
+> **權威清單**：`docs/research/11-app-defect-register.md` §4.2（13 列）。下表為其展開，**兩者衝突時以該文件為準**。
 
 | 項目 | 將由誰消費 |
 | --- | --- |
@@ -353,8 +367,14 @@
 | Icon `hand-raised` | P1（呼叫督導） |
 | Icon `camera-shutter` | P2（拍照簽到） |
 | Icon `trash` | OOS |
+| copy `checkIn.attendee*` / `resultTitle` / `switchToScan` | **W-26** |
+| copy `settings.nfcStatus` / `nfcSupported` / `appVersion` | **W-08** |
+| copy `auth.loggedOut` | W-08 / W-10 |
+| 型別 `CheckInResult` | **W-26** |
+| 型別 `EventStatus` | **W-01**（改值域，非刪） |
 | `react-native-qrcode-svg` | **W-31**（Credential QR） |
-| `layout.touchGapMin` / `layout.breakpointNarrow` | C-15 / C-16 若拍板要做 |
+| `react-native-nfc-manager` | 動態 import，**非死碼** |
+| `layout.touchGapMin` / `layout.breakpointNarrow` | **C-15 / C-16** 若拍板要做 |
 | `FieldInput.error` / `multiline` / `onFocus` / `inputRef` | W-03 / W-05（表單錯誤與捲動） |
 | `EmptyState.secondaryLabel` / `onSecondary` | W-03（清除篩選） |
 | `InlineBanner.title` | W-23（錯誤碼文案） |
@@ -373,6 +393,12 @@
 ---
 
 ## §8 缺口清單（四分類）
+
+> 📌 **ID 導航**：
+> - **W-ID**（W-01..W-32）定義 → `docs/20260915_AdminApp_Handoff_for_feiteng2015.md`
+> - **B-ID**（B-1a..B-8）定義 → 同上（後端章節）
+> - **C-ID**（C-3..C-18）定義 → 同上；**C-15/C-16/C-17 例外**，見 `docs/research/09-feasibility-review.md`
+> - **API 契約**（29 端點）→ `docs/20260915_AdminApp_API_Contract_Freeze_v1.md`
 
 ### (a) App 側可獨立施工（交 feiteng2015）
 
@@ -432,6 +458,9 @@
 | 13 | **AU-10**：`docs/LinkCard Event related/` 原文不在本 repo | 核對「刻意不做 vs 忘了做」 |
 | 14 | 澳門 PDPA 合規（第 8/2005 號法律） | 後端 §6.5.1 |
 
+> 📌 **C-15 / C-16 / C-17 的定義來源**：`docs/research/09-feasibility-review.md`（**不在** handoff doc 的 C-ID 清單內，故需回該文件查閱）。
+> 其餘 C-3 / C-11 / C-12 / C-13 / C-14 / C-18 皆定義於 `docs/20260915_AdminApp_Handoff_for_feiteng2015.md`。
+
 ### (d) 明確不做（OOS）
 
 | # | 項目 | 依據 |
@@ -468,6 +497,8 @@
 | 18 | `EmptyState` 的 `secondaryLabel` / `onSecondary` 分支 | 0 呼叫端 |
 | 19 | `Logo` 的 `wordmark` / `accessibilityLabel` 分支 | 0 呼叫端 |
 | 20 | `+not-found` 的實際觸發（深連結） | 未測 |
+| 21 | `registrationService.getByCode` 的**成功**分支 | staging 無對應 code |
+| 22 | `nfcService.lookup` 的**成功**分支 | staging 無 badge 資料 |
 
 ### 9.2 驗證層級統計
 
@@ -521,7 +552,7 @@
 | --- | --- |
 | TypeScript | ✅ `strict: true`、`@/*` alias |
 | Lint | ✅ `eslint-config-expo/flat` + prettier 外掛（**0 錯誤**） |
-| **Prettier config** | ❌ **不存在** → `npm run format:check` 報 **64 檔 warn**（pre-existing，非格式問題而是**缺 config**） |
+| **Prettier config** | ❌ **不存在** → `npx prettier --check .` 報 **65 檔 warn**（因缺 config，故以 prettier **預設值**比對；非「格式錯誤」而是「未定義團隊格式」） |
 | **測試框架** | ❌ **無**（0 個 `*.test.*`） |
 | **CI** | ❌ **無**（無 `.github/`） |
 | Git hooks | ✅ 已無假承諾（`husky`/`lint-staged` 已移除） |
@@ -556,10 +587,12 @@
 
 ### 12.1 基線
 
+> ⚠️ **本附錄所有輸出皆於 HEAD `c4101e8` 實測**（非基線期數字）。
+
 ```bash
 git log --oneline -13        # HEAD = c4101e8
 git status --short           # (空) → clean
-find src -type f \( -name '*.ts' -o -name '*.tsx' \) | wc -l    # 36
+find src -type f \( -name '*.ts' -o -name '*.tsx' \) | wc -l    # 38
 find src -type f \( -name '*.ts' -o -name '*.tsx' \) -exec wc -l {} + | tail -1  # 5267
 npx tsc --noEmit             # 0 錯誤
 npx eslint .                 # 0 錯誤
@@ -623,7 +656,7 @@ grep -n "WEB_BASE_URL" "src/app/(auth)/[eventId]/nfc-bind.tsx"   # ✅
 grep -n "requestId\|isCurrent" src/stores/event.store.ts   # ✅
 
 # 四態
-grep -rn "EmptyState" src/app/   # home / badges / overview / check-in / nfc-bind / +not-found
+grep -rn "EmptyState" src/app/   # home / badges / overview / check-in / nfc-bind / +not-found（settings.tsx 僅註解提及）
 ```
 
 ---
@@ -633,6 +666,30 @@ grep -rn "EmptyState" src/app/   # home / badges / overview / check-in / nfc-bin
 | 版本 | 日期 | 變更 | 原因 |
 | --- | --- | --- | --- |
 | v1.0 | 2026-09-17 | 初版（A0-A9 修復後的交接功能盤點） | Neo Loop（admin-app-debt-zero-r2）DISCOVER 交付 |
+| v1.1 | 2026-09-17 | 修 VERIFY 的 18 項發現（F-01..F-18） | 獨立審查（smith，strict 93）實測 81 → 修復 |
+
+### v1.1 修復明細
+
+| ID | 級別 | 修正 |
+| :-: | :-: | --- |
+| **F-01** | 🔴 High | §7.1 移除 4 項與 §7.2 衝突的列（`touchGapMin`/`breakpointNarrow`/`expo-clipboard`/`react-native-qrcode-svg`）+ 加排除聲明 |
+| **F-02** | 🔴 High | §7.1 再移除 3 項（`auth.loggedOut`/`checkIn.switchToScan`/`settings.appVersion`）；§7.2 改為指向 `11-app-defect-register.md` §4.2 權威 13 列 |
+| **F-03** | 🔴 High | §12.1 `# 36` → `# 38` + 加註「全部輸出於 HEAD 實測」 |
+| **F-04** | 🔴 High | §0「36 檔」→「**38 檔**」 |
+| **F-05** | 🟡 Med | §4.2「369 行」→「**331 行**」 |
+| **F-06** | 🟡 Med | §4.4「10 個」→「**11 個**」；「24 個」→「**23 個**」；§0/§6 同步 |
+| **F-07** | 🟡 Med | §2 `index` 列 L `✅` → `➖` |
+| **F-08** | 🟡 Med | §2.1 加分母定義（7 頁 × 4 態 = 28） |
+| **F-09** | 🟡 Med | §4.6 `elevation` 改列 module-private；§6 該列改寫 |
+| **F-10** | 🟡 Med | §8(c) 加 C-15/16/17 來源註 |
+| **F-11** | 🟡 Med | §0 + §8 開頭加 4 條下游文件連結 |
+| **F-12** | 🟢 Low | §4.1「1,589」→「**1,590**」 |
+| **F-13** | 🟢 Low | §5 #9「3 命中」→「**4 命中**」 |
+| **F-14** | 🟢 Low | §10.3「64 檔」→「**65 檔**」+ 措辭修正 |
+| **F-15** | 🟢 Low | §0「約 25 個」→「**約 22 個**」+ 加分解 |
+| **F-16** | 🟢 Low | §4.4 末句「見 §7」→ 指向 §7.2 + 權威清單 |
+| **F-17** | 🟢 Low | §9.1 補 2 列（`getByCode` / `lookup` 成功分支） |
+| **F-18** | 🟢 Low | §12.3 加註 `settings.tsx` 僅註解提及 |
 
 ---
 
