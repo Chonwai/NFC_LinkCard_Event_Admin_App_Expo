@@ -19,7 +19,7 @@
 - **規模**：`src/` 共 **38 檔 / 5,267 行**（`theme.ts` 佔 647 行）。頁面 11 檔、UI 元件 10 檔、service 5 檔、store 2 檔、util 6 檔、constant 3 檔、type 1 檔。
 - **Build 健康**：`npx tsc --noEmit` = **0 錯誤**；`npx eslint .` = **0 錯誤**（本輪實測）。
 - **可用功能**：登入、活動列表、活動概覽（3 統計卡 + 3 快速操作）、手動簽到（含結果卡 5 欄）、NFC 寫卡流程（程式碼完整）、Badge 查詢 + 分頁列表、設定頁（NFC 探測 + 登出二次確認）、`+not-found` 復原頁。
-- **四態覆蓋**：**23/28（82%）**。`home` / `badges` / `settings` 四態齊；`overview` / `check-in` / `nfc-bind` **缺「資料空態」**（僅有 `eventId` 缺失守衛）；`index` 為 ➖ 不適用。
+- **四態覆蓋**：**22/28（79%）**。`home` / `badges` 四態齊；`settings` 缺 E；`overview` / `check-in` / `nfc-bind` **缺「資料空態」**（僅有 `eventId` 缺失守衛）；`+not-found` 僅 E/S。
 - **A0–A9 全數落地**：12 個 commit 的修復**逐項可在 HEAD 驗證**（見 §6）。
 - **死碼**：**4 個死 copy key**、**11 個死 icon**、**4 個死 npm 依賴**、**4 個死 theme token**、**約 22 個未接線 props**。W-13 已清掉 6 項真死碼。
 - **驗證層級**：**真機 0**、**EAS build 0**、**自動化測試 0**、**CI 0**。所有「已驗證」皆為 **web 實測**（依賴 `.env.local`）。
@@ -95,11 +95,11 @@
 
 | 狀態 | 覆蓋 | 說明 |
 | :-: | :-: | --- |
-| **L** | **6/7** | `index` 為 ➖；其餘 6 頁皆有（`home`/`overview`/`badges`/`settings` 用 `Skeleton`，`check-in`/`nfc-bind` 用 `ActivityIndicator`） |
-| **E** | **3/7** | ✅ `home`（`EmptyState`）、`badges`（`EmptyState`）、`+not-found`；❌ `overview`/`check-in`/`nfc-bind` **僅有 `eventId` 缺失守衛，無資料空態**；`index`/`settings` 為 ➖ |
-| **Er** | **7/7** | 全數有（`InlineBanner` 或 `EmptyState`） |
+| **L** | **6/7** | `+not-found` 為 ➖（無載入態）；其餘 6 頁皆有（`home`/`overview`/`badges`/`settings` 用 `Skeleton`，`check-in`/`nfc-bind` 用 `ActivityIndicator`） |
+| **E** | **3/7** | ✅ `home`（`EmptyState`）、`badges`（`EmptyState`）、`+not-found`；❌ `overview`/`check-in`/`nfc-bind` **僅有 `eventId` 缺失守衛，無資料空態**；`settings` 為 ➖ |
+| **Er** | **6/7** | `+not-found` 為 ➖（本身就是錯誤頁）；其餘 6 頁皆有（`InlineBanner` 或 `EmptyState`） |
 | **S** | **7/7** | — |
-| **合計** | **23/28（82%）** | 較 2026-09-16 審計的 21/28 提升（`settings` loading/error 已補） |
+| **合計** | **22/28（79%）** | 較 2026-09-16 審計的 21/28 提升 **+1**（`settings` loading/error 已補） |
 
 > ⚠️ **E 的判定說明**：`overview` / `check-in` / `nfc-bind` 的 `EmptyState` 只在 `!hasEventId` 時渲染（`overview.tsx` 的 `if (!hasEventId)` 早退），**不是資料空態**。活動存在但無資料時，`overview` 仍渲染 3 張 0 值統計卡。
 
@@ -153,10 +153,10 @@
 | --- | :-: | --- | --- |
 | `Button.tsx` | 154 | `index` / `settings` / `check-in` / `nfc-bind` / `badges` / `EmptyState`（6 處） | 🟡 **3 個 props 未用**：`icon` / `fullWidth` / `accessibilityHint`。`variant` 5 值中 `primary`（預設）與 `dangerSolid` 從未顯式傳入 |
 | `Card.tsx` | 136 | `index` / `overview`（2 處） | 🟡 **6 個 props 未用**：`showChevron` / `onPress` / `onLayout` / `accessibilityState` / `accessibilityHint` / `testID` → **互動式卡片從未啟用**（`chevron-right` 因此成死碼） |
-| `EmptyState.tsx` | 163 | `home` / `badges` / `overview` / `check-in` / `nfc-bind` / `+not-found`（6 處） | 🟡 **4 個 props 未用**：`secondaryLabel` / `onSecondary` / `compact` / `testID`。`kind` 只用 `no-results`（`first-use` / `filtered` 從未使用） |
+| `EmptyState.tsx` | 163 | `home` / `badges` / `overview` / `check-in` / `nfc-bind` / `+not-found`（6 處） | 🟡 **3 個 props 未用**：`secondaryLabel` / `onSecondary` / `compact`。`kind` 只用 `no-results`（`first-use` / `filtered` 從未使用） |
 | `FieldInput.tsx` | 245 | `index`（1 處） | 🟡 **4 個 props 未用**：`error` / `multiline` / `onFocus` / `inputRef` → **錯誤顯示與捲動修正能力存在但未接線** |
 | `Icon.tsx` | 253 | `_layout` / `home` / `overview` / `check-in` / `nfc-bind` / `Card` / `EmptyState` / `FieldInput` / `InlineBanner` / `Logo` / `ScreenHeader`（11 處） | 🟡 `IconName` **34 個中 10 個 0 使用**（見 §7） |
-| `InlineBanner.tsx` | 173 | `index` / `home` / `settings` / `overview` / `check-in` / `nfc-bind` / `badges`（7 處） | 🟡 **1 個 prop 未用**：`title`。`dismissible`/`onDismiss` 只用於 `home` |
+| `InlineBanner.tsx` | 173 | `index` / `home` / `settings` / `overview` / `nfc-bind` / `badges`（6 處） | 🟡 **1 個 prop 未用**：`title`。`dismissible`/`onDismiss` 只用於 `home` |
 | `Logo.tsx` | 104 | `index` / `home`（2 處） | 🟡 **3 個 props 未用**：`wordmark` / `accessibilityLabel` / `testID` |
 | `ScreenHeader.tsx` | 174 | `home` / `settings` / `overview` / `check-in` / `nfc-bind` / `badges`（6 處） | 🟡 **1 個 prop 未用**：`right`（右側動作槽）→ **「+ 新增批次」類入口無處可放** |
 | `Skeleton.tsx` | 93 | `home` / `settings` / `overview` / `badges`（4 處） | 🟡 **1 個 prop 未用**：`animated`（恆為預設 `true`）。`SkeletonList` 已於 W-13 移除 |
@@ -213,12 +213,15 @@
 
 ### 4.6 死 theme token / export
 
+> ⚠️ **排除聲明**：本表**不含** §7.2 所列的偽死項。`layout.touchGapMin` / `layout.breakpointNarrow` 雖 0 使用，但屬 **C-15 / C-16 的能力儲備，不可清理**（見 §7.2 與 `11-app-defect-register.md` §4.2）。
+> 故 §0 的「4 個死 theme token」實為 **2 真死 + 2 偽死**。
+
 | 項目 | 位置 | 外部使用 | 判定 |
 | --- | --- | :-: | --- |
-| `primitive` | `theme.ts:23` | 0 | 🗑️ 設計上 Layer 1 不外流（可接受） |
-| `radius.none` | `theme.ts:108` | 0 | 🗑️ |
-| `layout.touchGapMin` | `theme.ts:158` | 0 | 🗑️ **會議要求「相鄰觸控目標間距」，token 已備未用** |
-| `layout.breakpointNarrow` | `theme.ts:175` | 0 | 🗑️ **響應式斷點 token 存在，但全 App 無任何 `Dimensions`/`useWindowDimensions`** |
+| `primitive` | `theme.ts` | 0 | 🗑️ 設計上 Layer 1 不外流（可接受） |
+| `radius.none` | `theme.ts` | 0 | 🗑️ |
+| `layout.touchGapMin` | `theme.ts` | 0 | 🚫 **偽死**（會議要求「相鄰觸控目標間距」，token 已備未用；C-15/C-16 若拍板即需用） |
+| `layout.breakpointNarrow` | `theme.ts` | 0 | 🚫 **偽死**（響應式斷點 token 存在，但全 App 無任何 `Dimensions`/`useWindowDimensions`） |
 | `fontFamily` | `theme.ts:188` | 0（module-private，非 export） | ➖ 非死碼 |
 | `elevation` | `theme.ts` | **0 外部**（module-private，非 export） | ➖ **非死碼**（與 `fontFamily` 同類；`components.card.elevation` 值為 `elevation.flat` = `{}`，接線與否無行為差異） |
 | `metaText` | `theme.ts:647` | **7**（`home.tsx` ×3、`badges.tsx` ×2 + import） | ✅ **已接線**（2026-09-16 審計稱 0 使用 → **已修正**） |
@@ -315,7 +318,7 @@
 | **死 copy key 11 個** | 🗑️ | ✅ **降至 4 個**（7 個已轉活） | 見 §4.5 |
 | **死 icon 12 個** | 🗑️ | ✅ **降至 11 個**（`chevron-right` 仍定義但實質不可達） | 見 §4.4 |
 | **死 npm 依賴 6 個** | 🗑️ | ✅ **降至 4 個**（`expo-device`/`expo-image-picker` 本就不在 `package.json`） | 見 §4.8 |
-| **四態 21/28（75%）** | 🟡 | ✅ **提升至 23/28（82%）** | `settings` loading/error 已補 |
+| **四態 21/28（75%）** | 🟡 | ✅ **提升至 22/28（79%）**（**+1**） | `settings` loading/error 已補 |
 | **`theme.ts` 檔頭寫 Promoter** | 🟡 | ❌ **仍未修** | `theme.ts:2` = `LinkCard Promoter App — 三層設計 token 系統` |
 
 ---
@@ -606,7 +609,7 @@ for k in networkError loggedOut switchToScan appVersion; do
   grep -rn "copy\.[a-zA-Z]*\.$k\b" src/ | wc -l   # 皆 0
 done
 
-# Icon（34 name 逐一 grep，列出 10 個 0 命中）
+# Icon（34 name 逐一 grep，列出 11 個 0 命中）
 # chevron-left/down/up, flash-on, flash-off, camera-shutter,
 # copy, trash, plus, clock, hand-raised
 
@@ -667,6 +670,17 @@ grep -rn "EmptyState" src/app/   # home / badges / overview / check-in / nfc-bin
 | --- | --- | --- | --- |
 | v1.0 | 2026-09-17 | 初版（A0-A9 修復後的交接功能盤點） | Neo Loop（admin-app-debt-zero-r2）DISCOVER 交付 |
 | v1.1 | 2026-09-17 | 修 VERIFY 的 18 項發現（F-01..F-18） | 獨立審查（smith，strict 93）實測 81 → 修復 |
+| v1.2 | 2026-09-17 | 修 RE-VERIFY 的 5 項殘留（N-01..N-05） | 獨立複審（smith R2）實測 92.50 → 修復 |
+
+### v1.2 修復明細
+
+| ID | 級別 | 修正 |
+| :-: | :-: | --- |
+| **N-01** | 🟠 Med | **四態算術重算**：Er 由 `7/7` → `6/7`（`+not-found` 為 ➖）；L 說明改指 `+not-found`（非 `index`）；合計 `23/28（82%）` → **`22/28（79%）`**；§0 與 §6 同步；§6 delta `+2` → **`+1`** |
+| **N-02** | 🟢 Low | §4.1 `EmptyState`「4 個 props 未用」→ **3 個**（`testID` 實際已接線） |
+| **N-03** | 🟢 Low | §4.1 `InlineBanner` 消費者移除 `check-in`，「7 處」→ **6 處** |
+| **N-04** | 🟢 Low | §12.2 證據區塊「10 個 0 命中」→ **11 個** |
+| **N-05** | 🟢 Low | §4.6 加排除聲明；§0「4 個死 theme token」註明為 **2 真死 + 2 偽死** |
 
 ### v1.1 修復明細
 
