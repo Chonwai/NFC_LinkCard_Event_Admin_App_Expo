@@ -12,9 +12,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CameraView } from 'expo-camera';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { copy } from '@/constants/copy.zh-TW';
@@ -194,6 +195,37 @@ export default function CheckInScreen() {
         [state.phase, doCheckIn]
     );
 
+    /**
+     * W-12：路由參數缺失（`undefined` / 空字串）＝無法解析的活動。
+     *
+     * 早退的理由不只是文案：`doCheckIn` 原本對空 `eventId` 直接 return，使用者
+     * 按下「查詢」會被完全靜默——既沒有錯誤也沒有進度，是典型死路。
+     */
+    const hasEventId = typeof eventId === 'string' && eventId.trim() !== '';
+
+    if (!hasEventId) {
+        return (
+            <View style={[styles.screen, { paddingTop: insets.top }]}>
+                <ScreenHeader
+                    title={copy.event.checkInTitle}
+                    leading="back"
+                    backFallbackPath="/(auth)/home"
+                />
+                <View style={styles.emptyBody}>
+                    <EmptyState
+                        kind="no-results"
+                        headingLevel={2}
+                        title={copy.event.unavailableTitle}
+                        description={copy.event.unavailableHint}
+                        actionLabel={copy.settings.backToEvents}
+                        onAction={() => router.replace('/(auth)/home')}
+                        testID="check-in-empty"
+                    />
+                </View>
+            </View>
+        );
+    }
+
     return (
         <KeyboardAvoidingView
             style={[styles.screen, { paddingTop: insets.top }]}
@@ -308,6 +340,12 @@ export default function CheckInScreen() {
 
 const styles = StyleSheet.create({
     screen: { flex: 1, backgroundColor: semantic.bg.canvas },
+    /** W-12：空態置中（與其他頁面 emptyBody 同一定義） */
+    emptyBody: {
+        flex: 1,
+        justifyContent: 'center',
+        padding: spacing.screen,
+    },
     modeSwitch: {
         flexDirection: 'row',
         gap: spacing.gap,

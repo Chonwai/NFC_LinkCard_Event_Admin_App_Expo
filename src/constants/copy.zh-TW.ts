@@ -46,6 +46,12 @@ export const copy = {
         unknownStatus: '未知狀態',
         quickActions: '快速操作',
         badgesTitle: 'Badge',
+        /**
+         * W-12：`eventId` 路由參數缺失（空字串 / `undefined`）時的空態文案。
+         * 消費端：`overview.tsx` / `check-in.tsx` / `nfc-bind.tsx`。
+         */
+        unavailableTitle: '找不到活動',
+        unavailableHint: '此連結可能不完整，或活動已被移除',
     },
     /**
      * 活動狀態標籤（6 值）——直接鏡射後端 `EventStatus` enum
@@ -129,6 +135,15 @@ export const copy = {
         nfcSupported: '支援',
         nfcNotSupported: '不支援',
         backToEvents: '返回活動列表',
+    },
+    /**
+     * 未匹配路由（`app/+not-found.tsx`）。
+     * W-12：先前不存在此檔，無法解析的深連結會落到 expo-router 的預設畫面。
+     * 「返回活動列表」沿用 `settings.backToEvents`，不另立重複字串。
+     */
+    notFound: {
+        title: '找不到頁面',
+        hint: '此連結可能已失效或有誤',
     },
 } as const;
 

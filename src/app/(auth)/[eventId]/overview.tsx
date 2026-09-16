@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { InlineBanner, type InlineBannerTone } from '@/components/ui/InlineBanner';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -45,12 +46,27 @@ export default function EventOverviewScreen() {
     const [stats, setStats] = useState<StatItem[]>([]);
 
     const event = events.find(e => e.id === eventId);
+    /**
+     * W-12：路由參數缺失（`undefined` / 空字串）＝無法解析的活動。
+     *
+     * 空字串是真實路徑：`(auth)/[eventId]/*` 的快速操作以 `eventId ?? ''` 導
+     * 頁，因此 `''` 必須視為「無活動」而非「有活動但找不到」。
+     */
+    const hasEventId = typeof eventId === 'string' && eventId.trim() !== '';
 
     useEffect(() => {
         let active = true;
 
         async function load() {
-            if (!eventId) return;
+            /**
+             * W-12：無 `eventId` 時必須收尾（`setLoading(false)`）而不是直接
+             * return——原本的 early return 讓 `loading` 永遠停在 `true`，畫面卡死
+             * 在 Skeleton 且使用者沒有任何復原入口。
+             */
+            if (!eventId) {
+                if (active) setLoading(false);
+                return;
+            }
             setLoading(true);
             setBanner(null);
             try {
@@ -78,6 +94,33 @@ export default function EventOverviewScreen() {
             active = false;
         };
     }, [eventId, event?.exhibitorCount]);
+
+    /**
+     * W-12 空態：無法解析活動時不渲染數據格與快速操作（早退，避免複製整塊 JSX）。
+     * `ScreenHeader` 仍保留，使用者一定看得到返回鈕（不得留下死路）。
+     */
+    if (!hasEventId) {
+        return (
+            <View style={[styles.screen, { paddingTop: insets.top }]}>
+                <ScreenHeader
+                    title={copy.event.overviewTitle}
+                    leading="back"
+                    backFallbackPath="/(auth)/home"
+                />
+                <View style={styles.emptyBody}>
+                    <EmptyState
+                        kind="no-results"
+                        headingLevel={2}
+                        title={copy.event.unavailableTitle}
+                        description={copy.event.unavailableHint}
+                        actionLabel={copy.settings.backToEvents}
+                        onAction={() => router.replace('/(auth)/home')}
+                        testID="overview-empty"
+                    />
+                </View>
+            </View>
+        );
+    }
 
     return (
         <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -146,6 +189,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing.screen,
         paddingTop: spacing.section,
         gap: spacing.section,
+    },
+    /** W-12：空態置中（與其他頁面 emptyBody 同一定義） */
+    emptyBody: {
+        flex: 1,
+        justifyContent: 'center',
+        padding: spacing.screen,
     },
     statGrid: {
         flexDirection: 'row',
