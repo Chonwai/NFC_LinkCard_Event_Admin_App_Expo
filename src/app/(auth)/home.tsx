@@ -39,7 +39,10 @@ export default function HomeScreen() {
 
     const renderEvent = ({ item }: { item: (typeof events)[number] }) => {
         const tone = EVENT_STATUS_TONE[item.status] ?? 'neutral';
-        const label = EVENT_STATUS_LABEL[item.status] ?? item.status ?? copy.event.unknownStatus;
+        // N2：用 `||` 而非 `??`——`item.status` 的型別是 `EventStatus | string`
+        // （非 nullable），`??` 的第三段永遠不可達；改用 `||` 後空字串也會
+        // 落到 `unknownStatus`，分支才真正可達。
+        const label = EVENT_STATUS_LABEL[item.status] || item.status || copy.event.unknownStatus;
         const statusToken = semantic.status[tone];
 
         return (
