@@ -523,3 +523,80 @@ cat -n src/events/routes/index.ts | sed -n '38,44p'
 | **G** 儀表板 | ⚠️ 降級版已實作 | ❌ | ❌ 無 stats 端點 | 時段曲線、Token 聚合、閘口 | **低**（完整）／**高**（降級） |
 
 ---
+
+## §4 交接文件的 stale claim 更正表
+
+### 4.0 核對方法與範圍
+
+核對對象：
+- `docs/20260915_AdminApp_Handoff_for_feiteng2015.md`（724 行）— W-01..W-33、B-1..B-8
+- `docs/20260915_AdminApp_API_Contract_Freeze_v1.md`（635 行）— A-1..A-4、CHK-01..04、REG-01/02、WAL-01..10、NFC-03/08、CRD-01、C-1..C-18
+
+**核對原則**：Handoff 與 Contract 的**行號引用本身已自我聲明會漂移**（Contract `§2` 前言：「`file.ts:NN` 僅為 2026-09-15 的輔助行號，會隨開發漂移」；Handoff TL;DR #15 同旨）。因此本節**只判定語意真偽**，不因行號漂移而判為 stale。
+
+**重要前置發現**：本次核對的最大類別不是「文件寫錯」，而是**「App repo 在文件撰寫後（9/15–9/17）已超前完成部分工作項」**。故 stale claim 以「已被實作超越」為主。
+
+---
+
+### 4.1 已解決（文件宣稱「待做」，實測已完成）
+
+| # | 原文 claim（含出處） | 實測結果 | 差異性質 | 建議更正文字 |
+| :---: | --- | --- | --- | --- |
+| S-1 | Handoff §3「批次 1 前置：**W0 內必須完成**……否則 W-01 阻塞」；TL;DR #1「**W-09 需用戶先交**」（`:19`, `:491`） | ✅ **W-09 三項子任務全部完成**：① `.env.example` 已存在（2958 bytes，2026-09-17 01:59）；② fail-closed guard 已實作於 `src/constants/config.ts:16-18`；③ `API_BASE_URL` 已改 origin-only（`config.ts:26` 預設 `'https://linkcard.xyz'`，無尾 `/api`） | **已解決** | 「W-09 已於 2026-09-17 完成（`.env.example` + fail-closed + origin-only）。批次 1 前置條件解除，**無需用戶交任何東西即可開工**。」 |
+| S-2 | Handoff W-11「硬編值清理（**26 行中文 / 4 個頁面檔**：`home` 6 ＋ `badges` 11 ＋ `nfc-bind` 8 ＋ `overview` 1）」 | ✅ **已完成**。實測 `grep -rnE "'[^']*[一-龥]{2,}[^']*'" src/app/ \| grep -vE 'copy\.'` → **零命中**。且 `overview.tsx:158` 留有完成註記：「A6/A8：原為 `copy.event.quickActions ?? '快速操作'`，硬編中文 fallback 已移除」 | **已解決** | 「W-11 已完成，全 `src/app/` 無硬編中文殘留。」 |
+| S-3 | Handoff W-12「四態補齊（overview / check-in / nfc-bind 空態、settings loading+error、`+not-found`）」 | ✅ **已完成**。`check-in.tsx:222` 空態（`testID="check-in-empty"`）、`nfc-bind.tsx:124,126,142`（`hasEventId` 早退 + `testID="nfc-bind-empty"`）、`overview.tsx:56,103,112`（`hasEventId` + `EmptyState`）、`src/app/+not-found.tsx` 存在 | **已解決** | 「W-12 已完成；`eventId` 缺失已有明確空態（不再是靜默死路）。」 |
+| S-4 | Handoff W-26「AC 增補：**消費 `checkIn` 回傳值**，結果卡顯示姓名/公司/票種/報到時間」 | 🟡 **已部分完成**。`check-in.tsx:110-150` 的 `CheckInAttendeeBlock` 已固定渲染 **5 列**（姓名/Email/公司/類型/報到時間），並有 D-2 契約漂移的相容處理（`:47-62` `firstNonEmpty`） | **已解決（但有語意落差）** | 「W-26 已完成姓名/Email/公司/類型/報到時間 5 列。**但「票種」仍未顯示** —— 契約要求的 6 項中缺票種與 Token 餘額。建議改述為『已完成 5/6 欄位』。」 |
+| S-5 | Handoff W-13「真死碼清理（**僅**「可清理」子集）」 | 🟡 **部分完成且產生新的不一致**。`nfc-utils.ts:24` 註解寫「W-13：降為 module-private（**唯一**呼叫端為同檔的 `writeUriToCard()`）」——**此註解已不成立**：`nfc-bind.tsx:27` 亦 import 並於 `:101` 呼叫 `normalizeTagUid` | **已解決 + 新矛盾** | 「W-13 已完成清理。**惟 `nfc-utils.ts:24` 的註解已 stale**：`normalizeTagUid` 現有 `nfc-bind.tsx:27,101` 第二個消費者，不再是 module-private。請更正該註解，否則下一位讀者會誤判可內聯。」 |
+
+---
+
+### 4.2 仍成立（實測確認文件正確，**這些是真實風險，不可略過**）
+
+> 這一節的價值在於：Handoff 列出的地雷**經 2026-09-18 實測仍然存在**。交棒時應完整保留，不可因「文件已舊」而一併作廢。
+
+| # | 原文 claim（含出處） | 實測結果 | 差異性質 | 建議更正文字 |
+| :---: | --- | --- | --- | --- |
+| T-1 | Handoff TL;DR #6「🔴 最大地雷：`GET /registrations` 目前**擋掉 OPERATOR**（`EventService.getEventWriteAccess()` 只放 owner/SA/CO）。你若照現在的服務層寫名單頁，閘口 staff 會看到按鈕但按下去 403」 | ✅ **完全正確，且仍未修**。`EventRegistrationController.ts:78` 呼叫 `getEventWriteAccess`；`:87-92` 回 403 `INSUFFICIENT_PERMISSION`（「你沒有權限查看報名列表」）。`EventService.ts:352` `getEventWriteAccess` 的角色集合為 `[SUPER_ADMIN, COORDINATOR]`（`EventService.ts:375`）——**不含 OPERATOR**。對照組：`getEventOperatorAccess`（`EventService.ts:420`，角色集合含 `OPERATOR`，`:441-444`）**已存在**，且已用於 `checkIn`（`EventRegistrationController.ts` checkIn 內 `getEventOperatorAccess`，`access !== 'ALLOWED'` → `'操作員權限不足'`） | **仍成立（真地雷）** | 保留原述，**並補強**：「修法已明確——把 `listRegistrations` 的 `getEventWriteAccess` 換成既有的 `getEventOperatorAccess`（後者已含 OPERATOR 且已在 checkIn 使用）。這是 **1 行改動 + 迴歸測試**，不是新設計。裁決 C-4 選 (a)。」 |
+| T-2 | Handoff TL;DR #7「🔴 第二大地雷：`by-code` 限流是 **20 次/5 分鐘/IP**（`registrationCodeLookupRateLimiter`，`registrations.routes.ts:12-26`）。展館 WiFi NAT 共用出口 IP → 開場尖峰必爆」 | ✅ **完全正確，行號亦準確**。`registrations.routes.ts:12-26`：`windowMs: 5 * 60 * 1000`、`limit: 20`、`keyGenerator: (req) => ipKeyGenerator(req.ip \|\| 'unknown')`。套用於 `:67-71` 的 `GET /by-code/:code` | **仍成立（真地雷）** | 保留原述。**補充**：因 `keyGenerator` 為 IP，簽到第一步（by-code 查詢）在全場共用 NAT 下會 429，而**這是模組 A 的必要前置**。B-5 應列為模組 A 的**硬依賴**而非並行項。 |
+| T-3 | Handoff TL;DR #8「簽到要『震動＋音效＋大字綠畫面』，但 `package.json` **沒有任何音效套件**（`expo-av` / `expo-audio` 皆未安裝）」 | ✅ **正確**。實測 App `package.json` 依賴共 20 項，**無** `expo-audio`／`expo-av`／`expo-haptics`。 | **仍成立** | 保留原述。**補充**：`expo-clipboard ^57.0.1` **已安裝**（見 S 系列無關，但 C-10 的套件盤點未提及），故 W-15 的「tagUid 複製」不需新套件。 |
+| T-4 | Handoff §4.1 W-04「`search` / `sortBy` 參數後端**尚未實作**（`EventRegistrationService.listRegistrations()` 只接受 page/limit/status/ticketTypeId/visibility/depositRefunded）」 | ✅ **正確**。`EventRegistrationService.ts:1216-1224` 的 options 型別實測為 `page, limit, status?, ticketTypeId?, visibility?, depositRefunded?` ——**無 `search`／`sortBy`／`sortOrder`** | **仍成立** | 保留原述。B-6 仍需 0.75 BE 人日。 |
+| T-5 | Handoff B-7 / Contract CHK-04「新增端點 `/checkin-stats`」 | ✅ **確認不存在**。`grep -rc 'checkin-stats' src/` 全庫零命中 | **仍成立（待建）** | 保留原述。**補充降級方案已可用**：App `overview.tsx:75-76` 已用 `getRegistrations({limit:1})` + `{limit:1,status:'CHECKED_IN'}` 取 `pagination.total`，即 C-7/C-12 的 (b) fallback **已經在 App 內實作**。 |
+| T-6 | Handoff B-8 / Contract C-13「Credential 統一模型（後端 `EventCredential` 未建；實證 `schema.prisma` 無 `EventCredential`）」 | ✅ **確認不存在**。`grep -c 'EventCredential' prisma/schema.prisma` → `0` | **仍成立（待建）** | 保留原述。模組 E 應維持「11 月不做」的判定（見 §5）。 |
+| T-7 | Handoff C-10 / W-28「`expo-av` 已被 Expo 標記 deprecated **且已於 SDK 55 移除**，本專案為 `expo ~57.0.13`，**該套件不存在**」 | ✅ **邏輯正確**。實測 `expo ~57.0.13`，依賴清單中確無 `expo-av` | **仍成立** | 保留原述。 |
+| T-8 | Contract §7「簽到顯示『地點』：無 gate/location 欄位（`EventRegistration` 只有 `checkedInAt` / `checkedInBy`，`schema.prisma:802-803`）」 | ✅ **完全正確，行號亦準確**。`schema.prisma:802` `checkedInAt`、`:803` `checkedInBy`；全模型無 `gateId`／`location` | **仍成立** | 保留原述。B-3 仍需新增欄位。 |
+| T-9 | Contract §2.B CHK-02「`POST /registrations/checkin`，Auth = `EventService.getEventOperatorAccess()`（owner/SA/CO/**OP**）」 | ✅ **正確**。`EventRegistrationController.checkIn()` 實測：`const access = await this.eventService.getEventOperatorAccess(eventId, req.user.id);` → `if (access !== 'ALLOWED') return ApiResponse.forbidden(res, '操作員權限不足', 'INSUFFICIENT_PERMISSION')`。`EventService.ts:420-444` 角色集合確含 `OPERATOR` | **仍成立（文件準確）** | 無需更正。此為**對照組**：checkIn 用 Operator 級、listRegistrations 用 Write 級 —— 兩者不一致即是 T-1 的根因。 |
+
+---
+
+### 4.3 矛盾／需更正（文件敘述與 backend 實況不符）
+
+| # | 原文 claim（含出處） | 實測結果 | 差異性質 | 建議更正文字 |
+| :---: | --- | --- | --- | --- |
+| M-1 | Handoff §3.1 批次 2 前置「🔴 **B-1** 帳務層：**6 端點**+冪等」；W-22 依賴「🔴 **B-1a**：`top-up`（**強化**）+ **`redeem`**」 | 🟡 **方向正確但用詞與實況不符**。實測 `premium.routes.ts` **已有 4 個 live 端點**（`:13` balance、`:14-18` transactions、`:19` **top-up**、`:20` **deduct**），且已掛載（`routes/index.ts:43`）。① **`redeem` 不存在** —— 後端命名為 **`deduct`**；② B-1a 的「新增 🟢」應改為「**既有端點強化**」 | **矛盾（命名與語意）** | 「B-1a 現況：`balance` / `transactions` / `top-up` / `deduct` **四個端點已 live 並掛載**。**注意後端動詞是 `deduct` 不是 `redeem`**——前端 facade 與 i18n key 若用 `redeem` 會與 API 脫節。B-1a 的實際工作 = **冪等 + 上限防呆**，非新增端點。B-1b（`adjust` / `approve` / `reject`）才需新增。」 |
+| M-2 | Handoff §1 TL;DR #4「全 W-ID 逐項合計 **19.25 人日**」——未區分「端點是否已存在」 | 🟡 數字本身非本文件核對範圍，但**其隱含假設「B-1 全部是新增工作」已被 M-1 證偽** | **矛盾（成本高估）** | 「B-1a 有 2 個端點已存在（`top-up`/`deduct`），實際 BE 人日應低於原估。建議以 M-1 的端點清單重算。」 |
+| M-3 | Handoff W-25「冪等鍵 + 雙擊防護。依賴 後端 B-1（**`idempotencyKey` 欄位** + `P2002` 處理）」 | 🟡 **欄位不存在，且範圍比文件所述更大**。實測 `grep -rn 'idempotencyKey' src/ prisma/schema.prisma` → **全庫零命中**（不只 wallet 沒有，整個 backend 都沒有此欄位） | **矛盾（依賴範圍低估）** | 「`idempotencyKey` **在整個 backend 不存在**（非僅 wallet）。B-1 需**新增 Prisma migration**（schema + unique index），這是跨 schema 變更，非 service 層實作。W-25 應標記為 **依賴 DB migration**，排程需含 migration review 時間。」 |
+| M-4 | Handoff §3.1 W-22b「需 **B-1b**（`adjust` / `approve` / `reject`）→ 等 **10/17** 才能做」；Contract WAL-06/07/08/09「管理調整／審批佇列」 | 🟡 **「所有操作綁定操作員 → 可追溯」（Plan `:113-117` 模組 F 要求）在 wallet 上無法完全達成**。實測 `EventWalletTransaction`（`schema.prisma:1320-1346`）欄位為 `approvedBy`（`:1336`）**但無發起人欄位**（無 `operatorUserId` / `createdBy`）。`EventWalletService.ts:68` 雖接收 `operatorUserId` 參數，`:104` 卻只寫入 `approvedBy` | **矛盾（稽核能力缺口）** | 「⚠️ **wallet 交易只記錄 `approvedBy`（審批者），不記錄發起者。** Plan 模組 F 要求『所有操作綁定操作員』，而 maker-checker 的 maker 身分無法追溯。B-1b 應一併新增 `initiatedBy`（或 `createdBy`）欄位，否則會後對帳無法回答『這筆 +100 是誰按的』。**對照組**：簽到有 `checkedInBy`（`schema.prisma:803`），NFC 綁定有 `registrationId @unique` —— 只有 wallet 缺。」 |
+| M-5 | Handoff §3.1 W-09 標記「**用戶**（移交前 W0）」為負責人 | ✅ 事實已變（見 S-1）。W-09 三項已完成 | **矛盾（負責人已無意義）** | 「W-09 已由 repo 持有者完成，**移除該 W-ID 或標記 DONE**，不要留在待辦清單中由用戶交付。」 |
+
+---
+
+### 4.4 新增發現：文件**未提及**但對施工有影響的事實
+
+| # | 發現 | 證據 | 為何重要 |
+| :---: | --- | --- | --- |
+| N-1 | **Backend schema 已有「離線模式」雛形**，雖 Plan 將離線模式列為 🟢 P2（`Plan:129-136`） | `EventWalletTransaction` 含 `offlineSeqNum`（`schema.prisma:1332`）、`syncStatus`（`:1333`，型別 `WalletSyncStatus` = `SYNCED/PENDING_SYNC/CONFLICT`，`:1314-1318`）、`terminalId`（`:1334`）、`syncedAt`（`:1335`） | 澳門展館訊號差是 Plan 明載痛點。**schema 已為離線做好準備**，若 11 月要加離線，成本低於預期。反之若長期不用，這是 4 個死欄位。應在裁決中明示取捨。 |
+| N-2 | **Web 的掃碼簽到頁在導覽中完全不可達** | `grep -rn 'check-in' app components lib \| grep -v '^app/check-in/'` → 零命中；`app/(event)/manage/[eventId]/layout.tsx:167-189` 的 12 項導覽不含 check-in | Web 已有可用的掃碼簽到（含相機），但操作者需**手動輸入 URL**。這是「有功能但無法運營」的典型 —— 修正成本極低（加一個導覽項或入口按鈕），價值極高。**兩份權威文件皆未提及。** |
+| N-3 | **App 已有 role 資料但無任何 UI 消費** | `event.service.ts:28-36` 主動 unwrap `_meta.userRole` 到 top-level `userRole`；backend `EventService.ts:525-526`（`userRole: 'OWNER'`）與 `:541-542`（org role）均回傳 | 模組 F（權限）的**資料層已通**，缺口純在 UI。W-30 的實際工作量比「等 B-4 + D12 裁決」所暗示的小。 |
+| N-4 | **`/nfc/lookup` 無 auth**（`event-ops.routes.ts:60` 無 `authMiddleware`），而 `/nfc/bind` 有（`:61`） | `event-ops.routes.ts:60` vs `:61` | Contract §2.E 標記 NFC-01/02 為 🟢/🟡，但未強調此不對稱。**已知悉即可**；因 `lookupBadge` 需 `eventId` + uid，屬受限枚舉，風險可接受但應在安全審查中明示。 |
+| N-5 | App 有 **`typecheck` script**（`tsc --noEmit`），且 PROGRESS 記錄多個 W-ID 以「tsc ✅」為完成判準 | `package.json` scripts 含 `"typecheck": "tsc --noEmit"`；`PROGRESS.md:53,54,55` 的完成欄皆為「tsc ✅」 | **「tsc ✅」不是執行期證據。** 這是 §2.5「真機 0」與「已實作但從未執行」評級普遍化的制度性原因 —— 交棒前應明示：tsc 通過 ≠ 功能可用。 |
+
+---
+
+### 4.5 §4 小結（給交棒時的優先序）
+
+1. **可安全刪除的待辦**：W-09（S-1）、W-11（S-2）、W-12（S-3）。
+2. **必須保留的地雷**：T-1（OPERATOR 403）、T-2（by-code 限流）、T-3（無音效套件）。
+3. **必須改寫的敘述**：M-1（`redeem` → `deduct`；B-1a 是強化非新增）、M-3（`idempotencyKey` 全庫不存在，需 migration）、M-4（wallet 無發起人欄位，稽核斷鏈）。
+4. **文件完全沒提但影響施工**：N-1（離線 schema 已備）、N-2（Web check-in 路由不可達）、N-5（tsc ≠ 可用）。
+
+---
