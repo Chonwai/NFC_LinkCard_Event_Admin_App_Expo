@@ -311,3 +311,215 @@ grep -n '真機 NFC' PROGRESS.md
 > `[UNVERIFIED]`：`PROGRESS.md` 為 2026-09-12 更新，其內容是否仍反映 2026-09-18 現況無法從檔案本身判定；但 repo 內**查無任何真機測試紀錄檔**（`logs/`、`tests/` 皆不存在），故「從未執行」的判定在本次掃描中無反例。
 
 ---
+
+## §3 逐模組差距矩陣
+
+### 3.0 模組定義與 App 端服務層全貌
+
+模組 A–G 依 `20260917_LinkCard_Event_Admin_App_Plan_v1.md` 定義：A `:27`、B `:46`、C `:69`、D `:85`、E `:98`、F `:105`、G `:118`。
+
+App 服務層**全部**函式（實測，這是判斷 App 能力上限的關鍵）：
+
+```bash
+for f in src/services/*.ts; do echo "### $f"; grep -nE 'async [a-zA-Z]+\(' "$f"; done
+# ### src/services/auth.service.ts
+# 12:    async login(...)      21:    async me(...)
+# ### src/services/event.service.ts
+# 18:    async getMyManagedEvents(...)   42:    async getRegistrations(...)
+# ### src/services/nfc.service.ts
+# 12:    async lookup(...)   26:    async listBadges(...)   43:    async bind(...)
+# ### src/services/registration.service.ts
+# 11:    async getByCode(...)   19:    async checkIn(...)
+```
+
+**共 9 個 API 方法**。注意其中**沒有任何 wallet / token 方法** —— 這單一事實即決定了模組 B 在 App 端的判定。
+
+App 逾時設定 `API_TIMEOUT_MS = 15000`（`src/constants/config.ts:40`），fail-closed guard 存在於 `config.ts:16-18`（非 dev 且缺 `EXPO_PUBLIC_API_URL` 即 throw）—— 與 stale 快取所述「無 fail-closed throw」**相反**，此為 W-09 已完成的證據。
+
+---
+
+### 3.1 模組 A — QR 掃碼簽到
+
+| 端 | 現況（檔案:行） | 可執行性 |
+| --- | --- | --- |
+| **App** | `src/app/(auth)/[eventId]/check-in.tsx`（428 行）。相依三服務：`registration.service.ts:19 checkIn()`（25 行）、`registration.service.ts:11 getByCode()`。相機：`check-in.tsx:14` import `CameraView`；`:282-285` 渲染 + `onBarcodeScanned`。狀態機：`:28-31`（`idle`/`loading`/`result`）。雙模式：`:133`。去重：`:192`。3 秒重置：`:180-186`。錯誤映射：`:37-42`（4 碼） | ⚠️ **已實作但從未執行**（無真機紀錄、無 `tests/`） |
+| **Web** | `app/check-in/[eventId]/page.tsx`（126 行）。`:8` import `@yudiel/react-qr-scanner`；`:44-70` `handleScan` 呼叫 `checkIn`；`:74-77` 3 秒自動重置；`:20-25` 4 碼錯誤映射；`:36-43` 成功卡 | ⚠️ **已實作但從未執行** |
+| **Backend** | `POST /api/v1/events/:eventId/registrations/checkin` — `registrations.routes.ts:74`（掛載：`index.ts:39` → `src/events/routes/index.ts:39`；app 層 `src/app.ts:153`）。重複簽到判定：`EventRegistrationService.ts:1042-1044` → `throw new Error('ALREADY_CHECKED_IN')`（**無條件拋出，無 override 參數**）。操作員入帳：`EventRegistrationService.ts:1056` `checkedInBy: operatorUserId` | ✅ 端點已掛載生效（靜態判定） |
+
+**缺口盤點（模組 A，逐功能點對照 Plan `:27-46`）**：
+
+| Plan 要求的功能點 | App | Web | Backend |
+| --- | --- | --- | --- |
+| 啟動相機即時掃碼 | ✅ `check-in.tsx:282` | ✅ `page.tsx:8` | — |
+| ✅ 有效：顯示姓名/公司/票種/報名時間/Token 餘額/簽到狀態 | 🟡 僅姓名/Email/公司/類型/報到時間（`check-in.tsx:120-150` 之 5 列）；**無票種、無 Token 餘額** | 🟡 僅姓名/公司/報到時間 | — |
+| ⚠️ 重複簽到：顯示首次時間與**地點**，需**主管覆核**才能二次放行 | ❌ 只顯示錯誤文案（`:38`），無覆核流程 | ❌ 同左 | ❌ `:1044` 無條件拋錯，**無 override**；**無 `gateId` 欄位** |
+| ❌ 無效/未報名 → 現場補報名快速通道 | ❌ 無（App 無補報名能力） | 🟡 `POST /registrations`（`registrations.routes.ts:61`）存在，但**不在 check-in 頁內**（無快速通道 UI） | ✅ 端點存在 |
+| 震動 + 音效 + 大字綠色畫面 | ❌ `package.json` **無** `expo-audio`/`expo-av`/`expo-haptics`（實測依賴清單） | ❌ 無 | — |
+| 單日/單場簽到計數即時顯示 | ❌ | ❌ | ❌ `checkin-stats` 不存在（§4 查核） |
+| 寫入時間戳 / **閘口編號** / 操作員 ID | 🟡 時間戳 ✅（`:1055`）、操作員 ✅（`:1056`）；**閘口編號 ❌** | 🟡 同左 | 🟡 無 `gateId` 欄位 |
+
+**11 月可行性**：**高**。三端主流程皆已存在（掃碼 → API → 結果），剩餘為 UI 擴充（票種／餘額／大字）與後端新增欄位（`gateId`、override）。音效是**唯一的套件決策點**，且有「無音效降級」選項，不構成阻斷。
+
+---
+
+### 3.2 模組 B — Token 積分增扣
+
+| 端 | 現況（檔案:行） | 可執行性 |
+| --- | --- | --- |
+| **App** | ❌ **完全未實作**。9 個 service 方法中無 wallet；`find` 無 token/wallet 頁面 | ❌ 未實作 |
+| **Web** | `lib/events/wallet.ts`（66 行）提供 `getWalletBalance:27`、`listWalletTransactions:34`、`topUpWallet:52`。**唯一消費者**：`app/(event)/my-tickets/[registrationId]/wallet/page.tsx:18` — 這是**參加者自助頁**，不是工作人員櫃台 | 🟡 部分實作（**無工作人員端 UI**） |
+| **Backend** | `src/events/routes/premium.routes.ts:13` GET balance、`:14-18` GET transactions、`:19` POST top-up、`:20` POST deduct。掛載：`src/events/routes/index.ts:43` `router.use('/:eventId', premiumRoutes)` → ✅ **已掛載生效** | ✅ 端點已掛載生效 |
+
+驗證掛載（此為 Plan §4 特別要求查核項）：
+
+```bash
+cat -n src/events/routes/index.ts | sed -n '38,44p'
+# 38  router.use('/:eventId/exhibitors', exhibitorRoutes);
+# 39  router.use('/:eventId/registrations', registrationRoutes);
+# 40  router.use('/:eventId', eventOpsRoutes);
+# 41  router.use('/:eventId', sessionsPollsRoutes);
+# 42  router.use('/:eventId', engagementRoutes);
+# 43  router.use('/:eventId', premiumRoutes);     ← wallet 在此
+# 44  router.use('/', eventsRoutes);
+```
+
+**缺口盤點**：
+
+| Plan 要求（`:46-68`） | App | Web | Backend |
+| --- | --- | --- | --- |
+| 兩種入口（掃碼/NFC、搜尋姓名/手機/Email/編號） | ❌ | ❌（僅能由 URL 帶 `registrationId` 直達） | 🟡 無搜尋端點（B-6） |
+| 增值快捷金額（+10/+50/+100）+ 自訂 | ❌ | ❌ | ✅ `top-up` 接受 `amount` |
+| 標記來源（攤位購買／活動獎勵／補發／贊助） | ❌ | 🟡 facade 傳 `referenceCode` | 🟡 `WalletTransactionType` 枚舉有 `TOP_UP`/`ADMIN_ADJUSTMENT`/`INITIAL_ALLOCATION`/`DEDUCTION`/`EXPIRY`（`schema.prisma:1306-1312`），但 `sourceType` 為自由字串（`schema.prisma:1325`） |
+| 扣減（兌換品項清單、餘額不足置灰） | ❌ | ❌ | ✅ `deduct` 端點存在；❌ 無品項清單概念 |
+| 交易流水（時間/操作員/金額/類型/備註） | ❌ | ✅ `listWalletTransactions` | 🟡 `EventWalletTransaction`（`schema.prisma:1320+`） |
+| 防呆（二次確認、單筆/單日上限） | ❌ | ❌ | ❌ |
+| 冪等 | ❌ | ❌ | ❌（B-1 待做） |
+
+**11 月可行性**：**低（全新建設）**。這是模組 A–G 中**兩端 UI 皆為空白**的唯一模組。後端端點反而最完整（4 個 live），瓶頸在**前端櫃台 UI 從零開始**，且需先解決「找不到帳戶」的搜尋能力（依賴 B-6）。Handoff 的 W-20..W-25 對應此模組（`[文件宣稱]`，見 §4）。
+
+---
+
+### 3.3 模組 C — NFC 手帶／掛牌綁定（發卡）
+
+| 端 | 現況（檔案:行） | 可執行性 |
+| --- | --- | --- |
+| **App** | `src/utils/nfc-utils.ts`（85 行，唯一實作點）：`:17-23` `loadNfcManager`（web throw）、`:33` `buildUriNdefMessage`、`:52-63` `writeUriToCard`（requestTechnology Ndef → writeNdefMessage → cancel）、`:74-75` `isNfcSupported`、`:84-85` `startNfc`。流程頁：`src/app/(auth)/[eventId]/nfc-bind.tsx`（302 行）：`:73-78` **iOS 硬阻擋**、`:91-92` 寫入 `WEB_BASE_URL/u/:registrationId`、`:99-101` 綁定 API、`:71` badge type 三選項。能力探測：`src/app/(auth)/settings.tsx:57` | ⚠️ **已實作但從未執行**（Android-only；`PROGRESS.md:84` 未勾選真機驗證） |
+| **Web** | `app/check-in/[eventId]/nfc/page.tsx`（145 行）：`:107-118` **tagUid 為純文字輸入框**、`:39` `bindNfcBadge`。Badge 庫存：`app/(event)/manage/[eventId]/badges/page.tsx`（890 行，`:540` 顯示 tagUid） | 🟡 部分實作（**無 NFC 讀寫能力 — 結構性**） |
+| **Backend** | `event-ops.routes.ts:60` GET `/nfc/lookup`（**無 auth**）、`:61` POST `/nfc/bind`、`:66` GET `/nfc/badges`、`:67` GET `/nfc/badges/export`、`:68` POST `/nfc/batch`、`:69` POST `/nfc/batch/:batchId/complete`、`:70` POST `/nfc/batch/claim`、`:63` POST `/nfc/exchange`。掛載：`routes/index.ts:40` | ✅ 端點已掛載生效（7 個 nfc 系列端點全部存在） |
+
+> Plan §4 特別要求查核 `nfc/batch` 系列是否真實存在並掛載生效 —— **結論：真實存在且已掛載**。`EventNfcBatchController` + `EventNfcBatchService` + `event-nfc-batch.dto.ts` 三層齊備。
+
+**缺口盤點**：
+
+| Plan 要求（`:69-84`） | App | Web | Backend |
+| --- | --- | --- | --- |
+| 簽到成功後自動跳出「發卡」步驟 | ❌ 需使用者自行從 overview 點入 | ❌ | — |
+| 寫入/綁定 NFC UID ↔ Account ID | ✅ `nfc-utils.ts:52-63` + `:99-101` | 🟡 只能手抄 UID 綁定 | ✅ `/nfc/bind` |
+| 綁定後成為入場憑證＋錢包載體＋Business Card 入口 | 🟡 寫入 URL `/u/:registrationId`（`nfc-bind.tsx:91`） | — | 🟡 3 者語意未在資料層區分 |
+| 換卡（舊卡作廢）/ 補發 / 退卡 | ❌ **完全無** | ❌ | ❌ 無作廢/退卡端點 |
+| 發卡紀錄匯出（物料盤點） | ❌ | 🟡 `badges/page.tsx` 有 export icon；端點 `:67` 存在 | ✅ `/nfc/badges/export` |
+| 批次建卡 / 認領 | ❌ | ❌ | ✅ `/nfc/batch`、`/batch/:id/complete`、`/batch/claim` |
+
+**11 月可行性**：**中**。寫卡主流程已在 App 完成（含 iOS 阻擋與 web 短路），但**「換卡/補發/退卡」在四端皆不存在**——而 Plan `:80` 明列此為需求。此為 Plan 明載「@待定＋最大未定義區塊」的乾淨證據。
+
+---
+
+### 3.4 模組 D — 參加者名單與現場管理
+
+| 端 | 現況（檔案:行） | 可執行性 |
+| --- | --- | --- |
+| **App** | 🟡 **有 service 無頁面**。`event.service.ts:42 getRegistrations()` 存在，但**唯一呼叫端是 `overview.tsx:75-76`，且只用 `limit: 1` 取 total 做統計**。實測 `grep -rn 'getRegistrations' src/` 僅 3 處命中，**無任何列表／詳情頁** | ❌ **未實作**（無 UI） |
+| **Web** | `app/(event)/manage/[eventId]/registrations/page.tsx`（**1256 行**）：`:38` Detail Drawer、`:24-32` 7 種狀態色、`:10-18` 消費 hide/archive/unhide/unarchive/markDepositRefund/getRegistrationActivationLink | ✅ 已實作（steam 最完整的一頁） |
+| **Backend** | `registrations.routes.ts:64` GET `/`、`:84-86` hide/unhide/archive、`:88` unarchive（`router.post` 於 `:87`）、`:95` deposit-refund（`router.post` 於 `:94`）、`:78` activation-link（`router.get` 於 `:77`）、`event-ops.routes.ts:76` export/exhibitors、`:77` export/attendees、`:45` bank-transfers | ✅ 端點齊備 |
+
+**缺口盤點**：
+
+| Plan 要求（`:85-95`） | App | Web | Backend |
+| --- | --- | --- | --- |
+| 名單列表：搜尋/篩選/排序 | ❌ 無頁面 | 🟡 列表＋狀態/票種篩選；**無搜尋、無排序 UI** | 🟡 `listRegistrations` 只收 `page/limit/status/ticketTypeId/visibility/depositRefunded`（`EventRegistrationService.ts:1216-1224`）——**無 `search`/`sortBy`** |
+| 用戶詳情頁（含 Token 流水、綁定 NFC 編號） | ❌ | 🟡 `:38-190` Drawer 有基本資料/付款/`token_balance`；**❗ Token 流水與 NFC 編號未見** | 🟡 |
+| **現場補報名**（建臨時帳戶 → 同款 Email → 立即發卡） | ❌ | 🟡 `createRegistration` 端點存在但**無 walk-in 快速 UI** | ✅ `POST /` |
+| 匯出 CSV（簽到名單、Token 消耗報表） | ❌ | 🟡 無匯出按鈕（grep 無 export/CSV 命中） | ✅ `/export/attendees`、`/export/exhibitors` |
+
+> ⚠️ **關鍵風險**：Backend `registrations.routes.ts:64` 的 GET `/` 在 Controller 層以 `getEventWriteAccess` 把關（`EventRegistrationController.ts:78-92`），而 `getEventWriteAccess` 只放 `owner / SUPER_ADMIN / COORDINATOR`（`EventService.ts:375`）。**OPERATOR 會被 403 拒絕**（`'你沒有權限查看報名列表'` / `INSUFFICIENT_PERMISSION`）。相較之下 `getEventOperatorAccess`（`EventService.ts:420-444`，含 OPERATOR）已存在，並用於 check-in / NFC bind。
+> **即：閘口 staff 能簽到，但不能看名單。** 這是 Handoff TL;DR 第 6 條的核心地雷，且**本次實測確認仍未修**（見 §4）。
+
+**11 月可行性**：**中（Web 優先）**。Web 已有 1256 行的成熟頁面，缺的是搜尋/排序（依賴後端 B-6）與匯出按鈕。**App 端應判定為「11 月不做名單頁」**——理由是現場 3 秒操作不需完整名單，且行動裝置小螢幕的表格體驗遠劣於 Web。
+
+---
+
+### 3.5 模組 E — 活動憑證／會員體系的 Admin 視角
+
+| 端 | 現況（檔案:行） | 可執行性 |
+| --- | --- | --- |
+| **App** | ❌ 無任何憑證頁面 | ❌ 未實作 |
+| **Web** | ❌ **無 EventCredential 概念**。實測 `grep -rli 'EventCredential\|eventCredential' app lib components` → **無輸出（exit 1）**。存在的是 `app/(personal)/membership-pass/**` 與 `app/(personal)/dashboard/membership-pass/**`，屬**社團/協會會員**，非活動票務憑證 | ❌ 未實作 |
+| **Backend** | ❌ **無模型**。實測 `grep -c 'EventCredential' prisma/schema.prisma` → **0**。相關枚舉僅 `BadgeDisplayMode`（`schema.prisma:1562`）與 `ProfileBadge`（`:1536`） | ❌ 未實作 |
+
+**缺口盤點**：
+
+| Plan 要求（`:98-104`） | 四端狀態 |
+| --- | --- |
+| Admin App 可**代用戶出示憑證**（用戶手機沒電的現場救援） | ❌ 全端未實作 |
+| 可檢視用戶完整身分（社團協會會員憑證 + 活動票務憑證並列） | ❌ 全端未實作（Web 有協會會員概念但無 event 維度） |
+
+**11 月可行性**：**極低**。Plan 已將此列為 🟡 P1（`:96`「11月最好有，可灰度」），Handoff 對應 B-8（2.0 BE 人日）+ W-31，且標記 🚫 阻斷於「Credential 模型未建」。**本次實測確認模型確實不存在**，故模組 E 的判定為：**11 月不應納入承諾範圍**。
+
+---
+
+### 3.6 模組 F — 工作人員帳號與權限
+
+| 端 | 現況（檔案:行） | 可執行性 |
+| --- | --- | --- |
+| **App** | ❌ 無角色顯示、無權限門控 UI。App 的所有請求只用 `authMiddleware` 的 JWT，**不做角色判斷** | ❌ 未實作 |
+| **Web** | `app/(event)/manage/[eventId]/org-roles/page.tsx`（144 行）；導覽第 11 項（`layout.tsx:187`） | ⚠️ 已實作但從未執行 |
+| **Backend** | `EventOrgRoleType` 枚舉：`SUPER_ADMIN / COORDINATOR / OPERATOR / VOLUNTEER / MEDIA`（`schema.prisma:1245-1251`）；`EventOrgRole` 模型（`:1279`）。端點：`engagement.routes.ts:37-40`（list/invite/accept/remove）。閘門：`EventService.ts:352 getEventWriteAccess`（owner/SA/CO）vs `:420 getEventOperatorAccess`（+OPERATOR）；middleware `checkEventAccessPermission.ts:6` 定義三級 `'WRITE' \| 'OPERATOR' \| 'SUPER_ADMIN'` | ✅ 端點與角色模型齊備 |
+
+**缺口盤點**：
+
+| Plan 要求（`:105-117`） | 四端狀態 |
+| --- | --- |
+| 4 角色 × 6 操作的權限矩陣（閘口/攤位/主管/主辦方） | 🟡 後端有 5 值枚舉但**無 `BOOTH` 概念**；Plan 定義的「攤位 staff」無後端對應角色 |
+| 臨時帳號批量建立、QR 邀請加入、即時停用 | 🟡 `invite`/`accept`/`remove` 存在；❌ 無批量、無 QR 邀請、無「離場即停用」 |
+| 所有操作綁定操作員 → 可追溯 | 🟡 `checkIn` 有 `checkedInBy`（`EventRegistrationService.ts:1056`）；**wallet 交易的操作員欄位 `[UNVERIFIED]`**（未讀 `EventWalletService`） |
+| **OPERATOR 可讀名單** | ❌ 實測仍 403（見 §3.4 與 §4） |
+
+**11 月可行性**：**中**。這是**唯一「後端比前端更超前」的模組**（角色模型 + org-roles 端點已 live），瓶頸是 App 端無角色感知，以及 `getEventWriteAccess` 的 OPERATOR 缺口。
+
+---
+
+### 3.7 模組 G — 即時數據儀表板
+
+| 端 | 現況（檔案:行） | 可執行性 |
+| --- | --- | --- |
+| **App** | `src/app/(auth)/[eventId]/overview.tsx`（238 行）：`:75-76` 並行呼叫 `getRegistrations({limit:1})` 與 `getRegistrations({limit:1, status:'CHECKED_IN'})`，`:79-83` 由 `pagination.total` 組 3 張統計卡（報名數／已簽到／參展商） | ⚠️ 已實作但從未執行；**且依賴 `limit:1` 的 total 技巧** |
+| **Web** | `app/(event)/manage/[eventId]/page.tsx` — **僅 53 行**，無儀表板 | ❌ 未實作 |
+| **Backend** | ❌ **無任何 stats/aggregate 端點**（`grep -rnE 'stats\|dashboard' src/events/routes/` 僅命中 `checkin-stats` 的**缺席**） | ❌ 未實作 |
+
+**缺口盤點**：
+
+| Plan 要求（`:118-126`） | 四端狀態 |
+| --- | --- |
+| 報名數／已簽到數／到場率 | 🟡 App 有前兩者（`:79-82`）；**無到場率** |
+| **依時段曲線** | ❌ 無任何時間序列能力 |
+| Token 總發放／總消耗／剩餘負債／兌換排行 | ❌ 無 |
+| 各閘口／各攤位工作量 | ❌ 無（且無 `gateId` 欄位，見 §3.1） |
+| 會後結案報告 | ❌ 無 |
+
+**11 月可行性**：**低（完整版）／高（降級版）**。App 已有一個**可用的降級版**：用 `/registrations` 的 `pagination.total` 取兩個標量。若接受「總簽到而非今日簽到」與「無時段曲線」，則模組 G 的 MVP 可在 App 端以現有端點完成，**不需後端新增**。完整版（曲線、Token 聚合、閘口維度）則需後端新增 aggregate 端點，且`gateId` 欄位尚不存在。
+
+---
+
+### 3.8 矩陣總結表
+
+| 模組 | App | Web | Backend | 主要缺口 | 11 月可行性 |
+| --- | --- | --- | --- | --- | --- |
+| **A** QR 掃碼簽到 | ⚠️ 已實作未執行 | ⚠️ 已實作未執行 | ✅ live | 三態覆核、閘口編號、音效 | **高** |
+| **B** Token 增扣 | ❌ 未實作 | 🟡 僅參加者自助 | ✅ 4 端點 live | 工作人員櫃台 UI（兩端皆缺） | **低**（全新建設） |
+| **C** NFC 發卡 | ⚠️ 已實作未執行（Android-only） | 🟡 手抄 UID | ✅ 7 端點 live | 換卡/補發/退卡（四端皆無） | **中** |
+| **D** 名單與現場管理 | ❌ 無頁面 | ✅ 1256 行 | ✅ live（OPERATOR 403） | 搜尋排序（B-6）、App 端不做 | **中**（Web 優先） |
+| **E** 憑證/會員 | ❌ | ❌ | ❌ 無模型 | 全端從零 | **極低**（11 月不做） |
+| **F** 權限 | ❌ 無角色感知 | ⚠️ 已實作未執行 | ✅ live | OPERATOR 讀名單 403 | **中** |
+| **G** 儀表板 | ⚠️ 降級版已實作 | ❌ | ❌ 無 stats 端點 | 時段曲線、Token 聚合、閘口 | **低**（完整）／**高**（降級） |
+
+---
