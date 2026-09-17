@@ -351,7 +351,7 @@ App 逾時設定 `API_TIMEOUT_MS = 15000`（`src/constants/config.ts:40`），fa
 | Plan 要求的功能點 | App | Web | Backend |
 | --- | --- | --- | --- |
 | 啟動相機即時掃碼 | ✅ `check-in.tsx:282` | ✅ `page.tsx:8` | — |
-| ✅ 有效：顯示姓名/公司/票種/報名時間/Token 餘額/簽到狀態 | 🟡 僅姓名/Email/公司/類型/報到時間（`check-in.tsx:120-150` 之 5 列）；**無票種、無 Token 餘額** | 🟡 僅姓名/公司/報到時間 | — |
+| ✅ 有效：顯示姓名/公司/票種/報名時間/Token 餘額/簽到狀態 | 🟡 僅姓名/Email/公司/類型/報到時間（`check-in.tsx:99-118` 之 5 列）；**無票種、無 Token 餘額** | 🟡 僅姓名/公司/報到時間 | — |
 | ⚠️ 重複簽到：顯示首次時間與**地點**，需**主管覆核**才能二次放行 | ❌ 只顯示錯誤文案（`:38`），無覆核流程 | ❌ 同左 | ❌ `:1044` 無條件拋錯，**無 override**；**無 `gateId` 欄位** |
 | ❌ 無效/未報名 → 現場補報名快速通道 | ❌ 無（App 無補報名能力） | 🟡 `POST /registrations`（`registrations.routes.ts:61`）存在，但**不在 check-in 頁內**（無快速通道 UI） | ✅ 端點存在 |
 | 震動 + 音效 + 大字綠色畫面 | ❌ `package.json` **無** `expo-audio`/`expo-av`/`expo-haptics`（實測依賴清單） | ❌ 無 | — |
@@ -545,7 +545,7 @@ cat -n src/events/routes/index.ts | sed -n '38,44p'
 | S-1 | Handoff §3「批次 1 前置：**W0 內必須完成**……否則 W-01 阻塞」；TL;DR #1「**W-09 需用戶先交**」（`:19`, `:491`） | ✅ **W-09 三項子任務全部完成**：① `.env.example` 已存在（2958 bytes，2026-09-17 01:59）；② fail-closed guard 已實作於 `src/constants/config.ts:16-18`；③ `API_BASE_URL` 已改 origin-only（`config.ts:26` 預設 `'https://linkcard.xyz'`，無尾 `/api`） | **已解決** | 「W-09 已於 2026-09-17 完成（`.env.example` + fail-closed + origin-only）。批次 1 前置條件解除，**無需用戶交任何東西即可開工**。」 |
 | S-2 | Handoff W-11「硬編值清理（**26 行中文 / 4 個頁面檔**：`home` 6 ＋ `badges` 11 ＋ `nfc-bind` 8 ＋ `overview` 1）」 | ✅ **已完成**。實測 `grep -rnE "'[^']*[一-龥]{2,}[^']*'" src/app/ \| grep -vE 'copy\.'` → **零命中**。且 `overview.tsx:158` 留有完成註記：「A6/A8：原為 `copy.event.quickActions ?? '快速操作'`，硬編中文 fallback 已移除」 | **已解決** | 「W-11 已完成，全 `src/app/` 無硬編中文殘留。」 |
 | S-3 | Handoff W-12「四態補齊（overview / check-in / nfc-bind 空態、settings loading+error、`+not-found`）」 | ✅ **已完成**。`check-in.tsx:222` 空態（`testID="check-in-empty"`）、`nfc-bind.tsx:124,126,142`（`hasEventId` 早退 + `testID="nfc-bind-empty"`）、`overview.tsx:56,103,112`（`hasEventId` + `EmptyState`）、`src/app/+not-found.tsx` 存在 | **已解決** | 「W-12 已完成；`eventId` 缺失已有明確空態（不再是靜默死路）。」 |
-| S-4 | Handoff W-26「AC 增補：**消費 `checkIn` 回傳值**，結果卡顯示姓名/公司/票種/報到時間」 | 🟡 **已部分完成**。`check-in.tsx:110-150` 的 `CheckInAttendeeBlock` 已固定渲染 **5 列**（姓名/Email/公司/類型/報到時間），並有 D-2 契約漂移的相容處理（`:47-62` `firstNonEmpty`） | **已解決（但有語意落差）** | 「W-26 已完成姓名/Email/公司/類型/報到時間 5 列。**但「票種」仍未顯示** —— 契約要求的 6 項中缺票種與 Token 餘額。建議改述為『已完成 5/6 欄位』。」 |
+| S-4 | Handoff W-26「AC 增補：**消費 `checkIn` 回傳值**，結果卡顯示姓名/公司/票種/報到時間」 | 🟡 **已部分完成**。`check-in.tsx:99-118` 的 `CheckInAttendeeBlock` 已固定渲染 **5 列**（姓名/Email/公司/類型/報到時間），並有 D-2 契約漂移的相容處理（`:64-72` `firstNonEmpty`） | **已解決（但有語意落差）** | 「W-26 已完成姓名/Email/公司/類型/報到時間 5 列。**但「票種」仍未顯示** —— 契約要求的 6 項中缺票種與 Token 餘額。建議改述為『已完成 5/6 欄位』。」 |
 | S-5 | Handoff W-13「真死碼清理（**僅**「可清理」子集）」 | 🟡 **部分完成且產生新的不一致**。`nfc-utils.ts:24` 註解寫「W-13：降為 module-private（**唯一**呼叫端為同檔的 `writeUriToCard()`）」——**此註解已不成立**：`nfc-bind.tsx:27` 亦 import 並於 `:101` 呼叫 `normalizeTagUid` | **已解決 + 新矛盾** | 「W-13 已完成清理。**惟 `nfc-utils.ts:24` 的註解已 stale**：`normalizeTagUid` 現有 `nfc-bind.tsx:27,101` 第二個消費者，不再是 module-private。請更正該註解，否則下一位讀者會誤判可內聯。」 |
 
 ---
@@ -600,3 +600,161 @@ cat -n src/events/routes/index.ts | sed -n '38,44p'
 4. **文件完全沒提但影響施工**：N-1（離線 schema 已備）、N-2（Web check-in 路由不可達）、N-5（tsc ≠ 可用）。
 
 ---
+
+## §5 Web-only／App-only 本質差異與責任分工建議
+
+### 5.1 分類原則
+
+本節的分類**不依「哪一端先做」，而依「哪一端的物理／平台限制使其成為唯一可行選項」**。這是為了避免 Plan §一（`:18-21`）已警告的「雙端重複開發拖垮 11 月排期」。
+
+三條判準：
+1. **平台不可能** — 該端的 API／硬體根本不存在（如 Web 無 NFC 讀寫）
+2. **物理環境約束** — 現場條件（單手、3 秒、嘈雜、陽光直射、無桌）
+3. **操作風險** — 誤觸成本高者應遠離隨身裝置（如批次匯入、權限分派）
+
+### 5.2 只在 Web（App 不應做）
+
+| 功能 | 為何只在 Web | 證據 |
+| --- | --- | --- |
+| **活動建立 / 編輯 / 頁面內容** | 長表單 + 富文本；現場無此需求 | `app/(event)/manage/[eventId]/{page,content,profile,ticket-types}.tsx`（53/376/380/1289 行）；App 對應頁面 **不存在** |
+| **報名欄位設計（formFieldsJson）** | 需所見即所得編輯器 | `ticket-types/page.tsx` 1289 行為 manage 最大頁；`lib/events/fieldTemplates.ts`、`formPresets.ts`、`registrationFormContract.ts` 皆在 Frontend |
+| **權限分派（org-roles 邀請/移除）** | 誤授權成本高，須在受控環境操作 | `manage/[eventId]/org-roles/page.tsx`（144 行）+ `engagement.routes.ts:37-40`；App 無角色 UI |
+| **批次匯出 / 對帳報表** | 檔案落地、Excel 後處理 | `event-ops.routes.ts:76-77`（export/exhibitors、export/attendees）、`:67`（nfc/badges/export）；`markDepositRefund`（`registrations.routes.ts:95`） |
+| **押金退款追蹤** | 財務動作，需二次核對與稽核視圖 | `registrations/page.tsx` 的 `markDepositRefund` + `RegistrationDetailDrawer`（`:38`） |
+| **議程 / 投票管理** | 配置性質 | `sessions/page.tsx`（422）、`polls/page.tsx`（323）；App 無 |
+| **完整名單管理（搜尋、排序、細節）** | 大表格在小螢幕不可用；且 OPERATOR 403 缺口修好後，此頁屬 COORDINATOR+ 職能 | `registrations/page.tsx`（1256 行）；App `getRegistrations()` **僅用於取 total**（`overview.tsx:75-76`） |
+
+### 5.3 只在 App（Web 不應做，或平台不可能）
+
+| 功能 | 為何只在 App | 證據 |
+| --- | --- | --- |
+| **NFC 寫卡（發卡）** | **平台不可能** —— Web 無 NFC 讀寫；實測零 `NDEFReader` | `grep -rnE '\bNDEFReader\b\|\bnavigator\.nfc\b' app components lib hooks store` → 無輸出；Web 的 tagUid 是文字輸入框（`check-in/[eventId]/nfc/page.tsx:107-118`） |
+| **NFC 感應讀取（碰卡查人）** | 同上 | 同上 |
+| **相機掃碼（現場 3 秒）** | 物理環境 —— 手持、單手、即時回饋 | `check-in.tsx:282-285`（`CameraView` + `onBarcodeScanned`）；App 另有手動模式（`:133`） |
+| **真機震動 / 大字綠畫面** | 現場嘈雜 + 陽光直射 | Plan `:41`；App 有 design token（`theme.ts`）可支撐大字，震動可用 RN 內建 `Vibration`（無需新套件） |
+| **Android-only 的實體卡片操作** | iOS 不支援寫卡 | `nfc-bind.tsx:74-78` 硬阻擋 iOS |
+
+> ⚠️ **反直覺但重要**：Web **已有**一套可用的相機掃碼簽到（`@yudiel/react-qr-scanner`，`app/check-in/[eventId]/page.tsx`）。因此「掃碼」**不是 App 獨佔**。App 的不可替代性在**NFC**，而掃碼是「雙端皆可、但現場體驗 App 較優」。此結論與 Plan §一「Web 全功能」一致，但需明示以免交棒時誤以為掃碼是 App 專屬。
+
+### 5.4 必須雙端共用同一 API，但 UI 不同
+
+| 功能 | 共用端點 | App UI | Web UI |
+| --- | --- | --- | --- |
+| 掃碼簽到 | `POST /:eventId/registrations/checkin`（`registrations.routes.ts:74`） | 全螢幕相機 + 底部結果卡（現場單手） | 置中大字結果卡 + 3 秒自動重置（`page.tsx:74-77`）（可能為平板/收銀台） |
+| NFC 綁定 | `POST /:eventId/nfc/bind`（`event-ops.routes.ts:61`） | **實際寫卡**（`writeUriToCard`）再綁定 | **手抄 UID** 再綁定（後備入口） |
+| 報名查詢 | `GET /:eventId/registrations/by-code/:code`（`registrations.routes.ts:67-71`，路徑於 `:68`） | 掃碼時隱式呼叫 | 掃碼時隱式呼叫 |
+| Badge 查詢 | `GET /:eventId/nfc/lookup`（`event-ops.routes.ts:60`，**無 auth**） | 可擴充為碰卡即查 | `badges/page.tsx` 手動輸入 tagUid 查 |
+| 統計數字 | `GET /:eventId/registrations`（`registrations.routes.ts:64`） | 3 張統計卡（`overview.tsx:79-83`） | 目前無儀表板 |
+
+### 5.5 兩端都不做（外部工具／紙本降級）
+
+| 功能 | 為何不做 | 降級方案 |
+| --- | --- | --- |
+| **Token 收款** | Plan `:64-67` 已定調「收款在外部完成、App 只做入帳」 | MPay / 現金在外部；App 記帳 |
+| **時段曲線 / 到場率分析** | 需後端 aggregate 端點，11 月前無排期 | App 現有 `pagination.total` 取標量（`overview.tsx:75-76`）作為 MVP |
+| **Token 總負債 / 兌換排行** | 同上 | 會後從 DB 出報表 |
+| **離線模式** | Plan `:129-136` 列 🟢 P2（**但 schema 已備**，見 N-1） | 紙本登記 + 會後補錄 |
+| **支付串接（MPay 直扣）** | Plan 列 P2 | — |
+| **攤位端獨立模式（Booth Mode）** | Plan 列 P2 | 用 App 現有流程 |
+| **多主辦方租戶化** | Plan 列 P2，SaaS 前提 | — |
+| **Undo（5 秒撤銷）** | Contract §7 明載 v11.3 **不做 undo** | 二次確認 + 反向 adjust（`EventWalletTransaction.type` 有 `ADMIN_ADJUSTMENT`） |
+
+### 5.6 責任分工建議（一句話版）
+
+> **NFC 寫卡與讀卡歸 App；名單、匯出、權限、配置、退款歸 Web；掃碼簽到與 Token 記帳是雙端共用 API 但 UI 各自最適化；Token 櫃台 UI 目前兩端皆空白，須指定單一端先行。**
+
+**Token 櫃台（模組 B）的分工建議**：**應優先做 Web，不做 App**。理由：
+1. 現場「攤位扣點」需要**餘額查詢 + 品項清單 + 流水**，屬資訊密集型，小螢幕體驗差；
+2. Web 已有 `lib/events/wallet.ts` facade（3 個函式）與參加者錢包頁可複用；
+3. 若必須在 App 做，則需新增第 4 個 service 檔 + 完整流程頁，而**後端已有 4 個 live 端點**，前端是唯一瓶頸 —— 投入到已有 8 成基礎的 Web 效益更高。
+
+---
+
+## §6 結論與 feiteng2015 施工範圍初判
+
+### 6.1 一句話回答
+
+> **現有 App 已具備「骨架交棒」條件，但尚未具備「功能交棒」條件。** 骨架（10 頁面、5 service、design token、auth 閉環、tsc/eslint 全過）品質足以讓工程師立刻開工；但**缺三樣東西**：① 任何執行期證據（真機 0 / 自動化測試 0）；② 模組 B（Token 櫃台）與 D（名單）的 App 端 UI **完全不存在**；③ 一個會計入關鍵路徑的後端前置（`by-code` 限流，T-2）未解，會讓模組 A 在開場尖峰直接 429。
+
+### 6.2 可直接交棒開發（無前置依賴）
+
+| 功能 | 為何可直接開工 | 主要檔案 |
+| --- | --- | --- |
+| **W-26 補完：簽到結果卡加票種 + Token 餘額** | 端點 live；`CheckInResult` 的 `registration` 已含 `tokenBalance`（實測 `listRegistrations` 的 select 含 `tokenBalance`，`EventRegistrationService.ts:1284`） | `check-in.tsx:99-118` |
+| **W-28：震動 + 大字綠畫面** | 震動用 RN 內建 `Vibration`（無新套件）；大字用現有 `type` token | `check-in.tsx`、`theme.ts` |
+| **模組 C 擴充：Badge 篩選 + tagUid 複製** | `expo-clipboard ^57.0.1` **已安裝**（T-3 補充）；`/nfc/badges` 端點 live | `badges.tsx` |
+| **模組 G 降級版強化** | `pagination.total` 技巧已在 App 內運作（`overview.tsx:75-76`）；C-7/C-12 的 (b) fallback 已實作 | `overview.tsx` |
+| **App 角色感知 UI（模組 F 前半）** | **資料層已通** —— `event.service.ts:28-36` 已 unwrap `_meta.userRole`（N-3），只需 UI 消費 | `home.tsx`、`overview.tsx` |
+| **Web check-in 入口修正（N-2）** | 純前端，加導覽項即可 | `app/(event)/manage/[eventId]/layout.tsx:167-189` |
+| **App 端 NFC 換卡/補發/退卡之錯誤路徑** | 現有 `nfc-bind.tsx` 已有 4 態流程與 badge type 選擇，可擴充；但見 6.3 的後端依賴 | `nfc-bind.tsx` |
+
+### 6.3 須先解決前置依賴才能交棒
+
+| 功能 | 前置依賴 | 類型 | 風險等級 |
+| --- | --- | --- | --- |
+| **模組 A 現場可用（開場不 429）** | **B-5：`by-code` 限流改 key + 放寬**（`registrations.routes.ts:12-26`，現為 20/5min/IP，NAT 共用必爆） | Backend 小改 | 🔴 **高**（阻斷模組 A 主流程） |
+| **W-21/W-22/W-23/W-24 Token 櫃台** | **B-1a 冪等**（`idempotencyKey` **全庫不存在**，需 Prisma migration，見 M-3）；**M-4 發起人欄位** | Backend + **DB migration** | 🔴 **高** |
+| **W-04 名單搜尋/排序** | **B-6**：`listRegistrations` 新增 `search`/`sortBy`/`sortOrder`（`EventRegistrationService.ts:1216-1224` 確認未實作） | Backend 小改 | 🟡 中 |
+| **W-03/W-30 名單頁供 OPERATOR 使用** | **T-1：`getEventWriteAccess` → `getEventOperatorAccess`**（1 行改動 + 迴歸測試） | Backend 極小改 | 🔴 **高**（雖改動小，但錯則現場人員全數 403） |
+| **W-27 重複簽到覆核** | **B-2**：`checkIn` 需 override 參數（`EventRegistrationService.ts:1042-1044` 現為無條件拋錯）＋ **B-3** `gateId` 欄位 | Backend + **DB migration** | 🟡 中 |
+| **W-29 單日簽到計數** | **B-7** `/checkin-stats`（確認不存在）—— 或用 (b) fallback（已可用） | Backend 新端點 | 🟢 低（有降級） |
+| **W-31 Credential** | **B-8** `EventCredential` 模型（確認不存在） | Backend + schema | 🟢 低（**建議 11 月不做**，見 §5.5） |
+| **模組 C 換卡/補發/退卡** | 後端**無作廢/退卡端點**（§3.3 缺口盤點） | Backend 新端點 | 🟡 中 |
+| **任何真機上線** | **EAS build 從未執行**（`PROGRESS.md:190`）；`app.json` **無 `extra.eas.projectId`**（快取所述，本次未重新驗證 → `[UNVERIFIED]`） | 帳號/憑證設定 | 🔴 **高** |
+
+### 6.4 最需要用戶先拍板的 3 項
+
+1. **Token 櫃台做在哪一端？**（§5.6 建議：**Web**）— 此決定直接決定 feiteng2015 的工作量是 ~3.75 人日（Web，複用 facade）還是 ~5+ 人日（App，從零）。
+2. **音效套件（C-10）** — `expo-audio` 或無音效降級。無此決定則 W-28 無法驗收。
+3. **模組 E（Credential）是否 11 月交付（C-13）** — 本次實測確認模型不存在，建議 **(b) 延後**，以釋放 2.0 BE 人日到 T-1/M-3/M-4。
+
+### 6.5 本文件的信心邊界
+
+| 結論類型 | 信心 | 理由 |
+| --- | --- | --- |
+| 端點存在性與掛載（§3 的 Backend 欄） | **高** | 直讀 `routes/index.ts` + `src/app.ts:153` 掛載鏈 |
+| 模型/欄位存在性（§3.5, §4 M-3/M-4, N-1） | **高** | 直讀 `prisma/schema.prisma` |
+| App/Web 程式碼缺位（§2.3, §3.2, §3.5） | **高** | word-boundary grep 零命中 |
+| 「從未執行」評級（§2.5） | **中高** | 有 `PROGRESS.md:190` 自述 + `tests/` 不存在雙證據；但非 runtime 探測 |
+| 端點回應形狀是否如契約（各處 payload） | **低** | **未實測**，一律以 `[UNVERIFIED]` 標記 |
+| 平台能力陳述（Web NFC 不支援 iOS） | **中** | 屬外部知識 `[文件宣稱]`；惟其結論由程式碼零命中獨立成立 |
+
+---
+
+## 附錄 A：`[UNVERIFIED]` 項目清單
+
+| # | 項目 | 位置 | 為何無法查證 |
+| :---: | --- | --- | --- |
+| U-1 | Wallet 交易端點的回應形狀是否如 `lib/events/wallet.ts` 註解所述（`{balance, transactionId}`） | Frontend `lib/events/wallet.ts:8-11` | 需實際呼叫 staging；本次僅讀程式碼 |
+| U-2 | `top-up` / `deduct` 的權限閘門級別 | Backend `premium.routes.ts:19-20` | 路由僅見 `authMiddleware`；**未追入 `EventWalletController` 的角色判斷**（超出本次掃描預算） |
+| U-3 | `GET /registrations` 在 OPERATOR 情境下的實際 HTTP 回應 | Backend | 靜態判定為 403；未以 OPERATOR token 實測 |
+| U-4 | 同一前綴多 router 疊加（`routes/index.ts:40-43` 四個 router 同掛 `/:eventId`）時的實際命中順序 | Backend `src/events/routes/index.ts:40-43` | 靜態判定為依註冊序；**未做 runtime 路由探測** |
+| U-5 | `app.json` 是否仍無 `extra.eas.projectId` | App `app.json` | 本次未重新讀取該欄位（§6.3 沿用快取敘述） |
+| U-6 | `PROGRESS.md:190`「真機 0 / EAS build 0」在 9/18 是否仍成立 | App `PROGRESS.md:190` | 該檔最後更新 9/12；repo 內無反例但亦無更新證據 |
+| U-7 | Web `check-in` 頁在真機瀏覽器（含 iOS Safari）的相機權限行為 | Frontend `app/check-in/[eventId]/page.tsx` | 需真實裝置；`@yudiel/react-qr-scanner` 的 iOS 支援未驗證 |
+| U-8 | `nfc/batch` 三個端點的實際可用性（回應、錯誤碼） | Backend `event-ops.routes.ts:68-70` | 端點存在且已掛載，但**未有前端消費端**（四端皆無 UI），從未執行 |
+| U-9 | `checkIn` 是否真的會寫入 `checkedInBy`（vs 僅 schema 有欄位） | Backend `EventRegistrationService.ts:1055-1056` | 讀到 `checkedInBy: operatorUserId` 的 update 語句，但未實測落庫 |
+| U-10 | `EventWalletService` 的 `top-up` 是否有單筆/單日上限防呆 | Backend `EventWalletService.ts` | 本次僅讀至 `:104`，未通讀上限邏輯 |
+
+---
+
+## 附錄 B：章節 commit 對照
+
+| 章節 | Commit |
+| --- | --- |
+| §1 方法論與證據標準 | `6173965` |
+| §2 四端定位與能力邊界 | `a75e23e` |
+| §3 逐模組差距矩陣 | `edb956a` |
+| §4 stale claim 更正表 | `2a28343` |
+| §5 + §6 責任分工與結論 | （本 commit） |
+
+驗證指令：
+
+```bash
+cd /Users/chonwai/Desktop/Self/Lab/LinkCard/LinkCard_Event_Admin_App_Expo
+git log --oneline -6 -- docs/research/13-app-vs-web-feature-gap-matrix.md
+```
+
+---
+
+**文件結束** ｜ 掃描日 2026-09-18 ｜ 證據基準：App `e3c68b8` / Frontend `7138800` / Backend `1e20977`
