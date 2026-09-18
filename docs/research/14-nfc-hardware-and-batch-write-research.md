@@ -252,3 +252,159 @@ Last resort（低成本 spike）：PN532 breakout（原型驗證用，不生產�
 
 > 📌 11 月建議：**NTAG215 矽膠手帶（主）+ 紙質貼紙序號標籤**（追蹤用）。若成本敏感，可改 PVC 卡 + 標籤。**不建議 11 月用紙質貼紙作主體**（現場易折損、掃描困難）。
 
+
+---
+
+## §5 批次寫入架構設計
+
+### 5.1 端到端流程（三軌分工）
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│ 軌道 1：Web 後台（既有，擴充）                                        │
+│  manage/[eventId]/badges 頁                                          │
+│  ├── 建立寫卡批次（選票種/人數 → N 張 UNASSIGNED badge 記錄）        │
+│  ├── 每張生成 payload URL（https://linkcard.xyz/nfc/{badgeId}）      │
+│  ├── 匯出 CSV（卡片清單：序號 + payload + tagUid 預留）              │
+│  └── 追蹤批次狀態（待寫/已寫/已發/已綁定）                            │
+└──────────────────────────────────────────────────────────────────────┘
+                                  │ CSV
+                                  ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│ 軌道 2：桌面工具（Node.js CLI，接 ACR122U/ACR1252U）                  │
+│  ├── 讀 CSV → 逐張放卡 → 寫入 NDEF URI                              │
+│  ├── 寫入後讀回驗證（tagUid + payload）                              │
+│  ├── 失敗重試（最多 3 次）→ 失敗清單                                │
+│  └── 批次完成 → POST /nfc/batch/:id/complete（標記 WRITTEN）        │
+└──────────────────────────────────────────────────────────────────────┘
+                                  │
+                                  ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│ 軌道 3：Event Admin App（現場，既有骨架）                             │
+│  ├── Walk-in 單張寫卡（Android NFC）                                 │
+│  ├── Check-in / 綁定 / 補發（void 舊卡 → 綁新卡）                    │
+│  └── 即時統計（到場人數等）                                           │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+### 5.2 Backend 端點對接（精確契約）
+
+既有 backend（`LinkCard_ExpressJS_Backend/src/events/routes/event-ops.routes.ts`）已存在以下端點（需實時確認 controller 邏輯）：
+
+| Method & Path | 用途 | 對應軌道 | 契約備註 |
+| --- | --- | --- | --- |
+| `POST /nfc/batch` | 建立批量 badge 記錄 | 軌道 1（Web） | request 需含 `{ count, badgeType, ticketTypeId? }`；回應含 `batchId` + 每張 badge 的 `payloadUrl` |
+| `GET /nfc/badges` | 列 badge 庫存（分頁/過濾） | 軌道 1 + 3（查詢） | 支援 `?status=UNASSIGNED` 等 |
+| `GET /nfc/badges/export` | 匯出寫卡 CSV | 軌道 1 → 軌道 2 | CSV 格式需與桌面工具一致 |
+| `POST /nfc/batch/:batchId/complete` | 桌面工具回報寫完 | 軌道 2 | 標記 `WRITTEN`；request 需含 tagUid ↔ badgeId 對應清單 |
+| `POST /nfc/batch/:batchId/claim` | 展商領卡 | 軌道 1 | 展商 ↔ badge 綁定 |
+| `POST /nfc/bind`（既有） | 現場綁定 badge ↔ registration | 軌道 3 | OPERATOR+ |
+| `GET /nfc/lookup`（既有） | 現場查 badge（by uid/qr） | 軌道 3 | 公開 |
+
+> ⚠️ **契約缺口**：既有 `/nfc/batch/complete` 需確認是否接受「tagUid ↔ badgeId」的 mapping 清單，或僅接受 batchId。若僅接受 batchId，**桌面工具需在本地維持 mapping 檔案**（CSV 欄位：`badgeId, payloadUrl, tagUid, status`），完成後一次上傳。
+
+### 5.3 冪等性與重試（關鍵設計）
+
+| 情境 | 設計 |
+| --- | --- |
+| **寫入中斷**（拔卡/逾時） | 桌面工具逐卡交易：寫入前先 `GET_UID` 記錄卡 UID → 寫入 → 讀回驗證 UID + payload。**任一步失敗 → 該卡標記 FAILED，換卡重試，不影響其他卡** |
+| **重複寫入同一卡** | 寫入前檢查該 UID 是否已在本次批次 mapping；是 → 詢問是否覆寫 |
+| **重試策略** | 每卡最多 3 次；每次間 50ms delay（PN532 冷卻）；連續 3 次失敗 → 移出批次、列入 FAILED 清單 |
+| **批次級冪等** | 以 `batchId` 為冪等鍵；`complete` 端點應支援重複呼叫（同 mapping 不重複寫入） |
+
+### 5.4 序號／標籤管理（實體 ↔ 數位對應）
+
+```
+建議流程：
+  1. Web 後台建立批次 N 張 → 每張得到 badgeId + payloadUrl（形如 /nfc/{badgeId}）
+  2. 匯出 CSV，欄位：badgeId, payloadUrl, batchId, status(UNASSIGNED), tagUid(空)
+  3. 列印「序號貼紙」：每張貼紙印 badgeId（QR 或數字）
+  4. 桌面工具：貼紙序號 = 卡片順序 → 寫入後把 tagUid 填入 CSV → 上傳 complete
+  5. 之後現場：掃卡 → lookup(tagUid) → 顯示 badgeId → 綁 registration
+```
+
+> ⚠️ **實體卡序號 vs badgeId 的對應關鍵**：**貼紙序號（可見）≠ tagUid（NFC 內部）**。桌面工具必須在寫卡當下把兩者綁定（寫入 CSV 的 tagUid 欄位）。**不這樣做，現場就不知道哪張卡對應哪個 badgeId。**
+
+### 5.5 建議桌面工具鏈結構
+
+```
+tools/nfc-batch-writer/          （新增 repo：LinkCard_ExpressJS_Backend 或獨立 repo）
+├── package.json                 依賴：nfc-pcsc、commander（CLI）、csv-parse、axios
+├── src/
+│   ├── index.ts                 CLI 入口（commander）
+│   ├── writer.ts                寫卡核心（nfc-pcsc 封裝）
+│   ├── ndef.ts                  NDEF URI 建構/驗證（復用 LinkCard nfc-utils 的 buildUriNdefMessage）
+│   ├── csv.ts                   CSV 讀取/mapping 管理
+│   ├── api.ts                   Backend API client（batch complete 上傳）
+│   └── types.ts
+├── logs/                        （每批次的寫卡日誌 JSONL）
+└── README.md                    使用說明（含 macOS spike 步驟）
+```
+
+**寫卡核心流程（writer.ts）：**
+
+```typescript
+// 偽代碼（示意，非最終）
+async function writeBatch(batch: Batch, cards: Card[]): Promise<WriteResult> {
+  for (const card of cards) {
+    let attempt = 0;
+    while (attempt < 3) {
+      try {
+        const uid = await reader.getUid();          // 放卡 → 讀 UID
+        if (card.tagUid && uid !== card.tagUid) throw new Error('UID mismatch');
+        const ndef = buildUriNdefMessage(card.payloadUrl); // https://linkcard.xyz/nfc/{badgeId}
+        await reader.formatAsNdef();                // 若空白卡，先寫 CC
+        await reader.write(4, ndef);                // 寫 NDEF
+        const verify = await reader.read(4, ndef.length);
+        if (!verify.equals(ndef)) throw new Error('verify failed');
+        card.tagUid = uid;                          // 記住 UID → mapping
+        break;
+      } catch (e) {
+        attempt++;
+        if (attempt >= 3) card.status = 'FAILED';
+        await sleep(50);
+      }
+    }
+  }
+  return { written: cards.filter(c => c.status !== 'FAILED'), failed: ... };
+}
+```
+
+### 5.6 日誌格式（JSONL）
+
+```jsonl
+{"ts":"2026-09-18T10:00:01.000Z","op":"write_start","batchId":"b_123","badgeId":"bg_1","payload":"https://linkcard.xyz/nfc/bg_1"}
+{"ts":"2026-09-18T10:00:02.500Z","op":"write_ok","batchId":"b_123","badgeId":"bg_1","uid":"04:AB:CD:12:34:56:78"}
+{"ts":"2026-09-18T10:00:03.000Z","op":"write_fail","batchId":"b_123","badgeId":"bg_2","error":"timeout","attempt":2}
+{"ts":"2026-09-18T10:00:05.000Z","op":"complete","batchId":"b_123","written":1,"failed":1}
+```
+
+### 5.7 完整 Mermaid 流程圖
+
+```mermaid
+flowchart TD
+    subgraph Web["軌道 1：Web 後台"]
+        A[建立寫卡批次<br/>N 張 UNASSIGNED] --> B[生成 payloadUrl<br/>https://linkcard.xyz/nfc/badgeId]
+        B --> C[匯出 CSV]
+    end
+    subgraph Desktop["軌道 2：桌面工具"]
+        D[讀 CSV] --> E[放卡到 ACR122U]
+        E --> F[GET_UID + 寫 NDEF URI]
+        F --> G{讀回驗證}
+        G -- ok --> H[記 tagUid → CSV]
+        G -- fail --> I[重試 ≤3 次]
+        I -- 失敗 --> J[FAILED 清單]
+        H --> K[批次完成 → POST /nfc/batch/complete]
+    end
+    subgraph Backend["Backend API"]
+        L[(EventNfcBadge<br/>status=WRITTEN)]
+        K --> L
+    end
+    subgraph App["軌道 3：Admin App 現場"]
+        M[掃卡 → GET /nfc/lookup?uid=...] --> N[顯示身份/狀態]
+        N --> O[綁定 POST /nfc/bind]
+    end
+    C -.CSV.-> D
+    L -.庫存/查詢.-> N
+```
+
