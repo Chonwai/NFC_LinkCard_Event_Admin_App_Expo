@@ -240,7 +240,6 @@ flowchart LR
     A2 --> A5
     A3 --> A7
     A1 --> A6
-    A3 --> A4
     N2 --> A6
     N1 --> N2
     N2 --> A5
