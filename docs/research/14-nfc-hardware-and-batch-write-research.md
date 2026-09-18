@@ -408,3 +408,90 @@ flowchart TD
     L -.庫存/查詢.-> N
 ```
 
+
+---
+
+## §6 工具鏈實作路徑（macOS 為主）
+
+### 6.1 Node.js 路線（推薦主路徑）
+
+**`nfc-pcsc`**（[pokusew/nfc-pcsc](https://github.com/pokusew/nfc-pcsc)）— 官方評測：
+
+| 項目 | 評估 |
+| --- | --- |
+| 狀態 | **活躍度中**：最後 commit 2 年前（2024）；599 stars；380 dependent repos；15 releases（最新 0.8.1 為 5 年前） |
+| **官方測試裝置** | **ACR122U（明確標註）**，並聲明「should work with all PC/SC compliant devices」 |
+| macOS 支援 | ✅ Node.js 8–20 支援；macOS PC/SC 內建，無需額外安裝 |
+| NDEF 寫入 | ⚠️ 非內建 — 需自行組合 NDEF 位元組（但官方範例 `mifare-ultralight-ntag.js` 有完整 NTAG 指令實作）|
+| 缺點 | **使用 Node Native Modules（node-gyp / pcsclite）** → 依賴 Xcode CLT；非 React Native（無法用於 App）|
+
+**`@pokusew/pcsclite`**（底層 native binding）：
+- 需 node-gyp + Xcode Command Line Tools
+- macOS 上使用系統 PC/SC framework
+
+**安裝步驟（macOS）**：
+```bash
+xcode-select --install    # 確認 Xcode CLT
+npm install nfc-pcsc --save
+```
+
+**驗證指令（30 分鐘 spike）**：
+```bash
+# 確認讀卡機被系統辨識
+ioreg -p IOUSB -w0 | grep -i "ACR122"
+system_profiler SPUSBDataType | grep -A5 -i "ACR122"
+
+# 確認 PC/SC 可連
+node -e "
+const { NFC } = require('nfc-pcsc');
+const nfc = new NFC();
+nfc.on('reader', reader => {
+  console.log('reader:', reader.reader.name);
+  reader.on('card', card => console.log('card UID:', card.uid));
+  reader.on('error', err => console.error('reader error', err));
+});
+nfc.on('error', err => console.error('nfc error', err));
+"
+```
+
+**可行性評級**：✅ **可行（主路徑）**。首次上手約 2–4 小時（含 spike）。主要阻塞點＝Xcode CLT + pcsclite native build；已知坑見 §3.3.2。
+
+### 6.2 Python 路線（備援）
+
+| 方案 | 評估 |
+| --- | --- |
+| **nfcpy**（Sony 官方推薦）| 支援 ACR122U（部分）/ RC-S380（原生）；macOS 需 libusb；**NDEF 寫入需 TLVs 自組** |
+| **pyscard** | 純 PC/SC 封裝；**無 NDEF 高層 API**；需自行組 APDU |
+
+**nfcpy 對 ACR122U**：
+- ⚠️ nfcpy 官方支援表將 ACR122U 標為「**partially supported**」（需特殊 mode 切換，且新韌體 ACR122U 可能無法通知 tag 進出）
+- **RC-S380 才是 nfcpy 的一等公民**（macOS + libusb 原生）
+- 若走 Python 路線 → 建議 **RC-S380 + nfcpy**，而非 ACR122U + nfcpy
+
+**可行性評級**：⚠️ **可行但非首選**（nfcpy 對 ACR122U 支援不完整）。
+
+### 6.3 底層函式庫（Homebrew）
+
+```bash
+brew install libusb        # nfcpy/S380 需要
+# libpcsclite 在 macOS 內建，不需安裝
+# pcscd 在 macOS 由系統服務提供（不需安裝）
+```
+
+### 6.4 iOS / Android 備援（活動現場）
+
+| 平台 | 寫卡能力 | 適用 |
+| --- | --- | --- |
+| **Android** | ✅ NfcAdapter 全讀寫（react-native-nfc-manager）| Walk-in 單張寫卡（Admin App） |
+| **iOS** | ⚠️ Core NFC 前台 session、每張 5–15 秒 | 緊急備援；不適合批量 |
+
+> 現有 Admin App 的 `nfc.service.ts` 已實作 `lookup`/`listBadges`/`bind`；`react-native-nfc-manager` 在 Promoter App 已有寫卡實作可覆用（`src/utils/nfc-utils.ts` 的 `buildUriNdefMessage` / `writeUriToCard`）。
+
+### 6.5 路線決策
+
+```
+Primary（11 月）：Node.js + nfc-pcsc + ACR122U/ACR1252U  （macOS 開發、Linux/Win 可跑）
+Backup（nfc-pcsc 失敗）：Python + nfcpy + RC-S380
+即時備援（現場）：Android Admin App 單張寫卡
+```
+
