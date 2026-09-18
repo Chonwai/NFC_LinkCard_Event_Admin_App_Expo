@@ -203,3 +203,137 @@ doc 15 §2.1 已將 11 月範圍裁決為：**模組 A/B/C/D/F 納入、模組 E
 | **AC** | ① i18n 框架接入；② 四語言資源齊備；③ 關鍵頁面四語言截圖無溢出 |
 | **工時** | 4.0 人日 ｜ **前置**：翻譯資源；Phase A 文案凍結 ｜ **負責**：feiteng2015（+ 外部翻譯）|
 
+
+---
+
+## §3 施工順序與相依性（拓撲排序）
+
+### 3.1 依賴圖（Mermaid）
+
+```mermaid
+flowchart LR
+    subgraph HARD["🔴 Phase A 硬前導（阻斷者）"]
+        A1[WP-A1 EAS Build]
+        A2[WP-A2 T-1 OPERATOR]
+        A3[WP-A3 B-5 限流]
+    end
+    subgraph CORE["🚀 Phase A 核心"]
+        A4[WP-A4 Token 櫃台]
+        A5[WP-A5 名單/搜尋/詳情]
+        A6[WP-A6 NFC 綁定強化]
+    end
+    subgraph NFC["📡 NFC 工具鏈"]
+        N1[WP-N1 桌面寫卡 CLI]
+        N2[WP-N2 batch 契約+換卡]
+    end
+    subgraph ENH["✨ Phase A 強化"]
+        A7[WP-A7 簽到三態]
+        A8[WP-A8 降級儀表板+入口]
+    end
+    subgraph PHASEB["⏭️ Phase B（11 月後）"]
+        B1[WP-B1 Credential]
+        B2[WP-B2 權限 UI]
+        B3[WP-B3 完整儀表板]
+        B4[WP-B4 多語言]
+    end
+
+    A2 --> A5
+    A3 --> A7
+    A1 --> A6
+    A3 --> A4
+    N2 --> A6
+    N1 --> N2
+    N2 --> A5
+    A5 -.-> B1
+    A6 -.-> B2
+    B3 -.-> A8
+```
+
+### 3.2 拓撲順序（建議施工先後）
+
+| 次序 | 工作包 | 解鎖什麼 | 備註 |
+| :-: | --- | --- | --- |
+| 1 | **WP-A2**（T-1，0.1 人日）| 解鎖 WP-A5 | 1 行修復，立即做 |
+| 2 | **WP-A3**（B-5，0.7 人日）| 解鎖 WP-A4/A7 | 模組 A 的硬依賴 |
+| 3 | **WP-A1**（EAS，0.5 人日）| 解鎖 WP-A6 真機驗證 | 需 Expo 帳號，並行 |
+| 4 | **WP-N2**（契約確認，1.0 人日）| 解鎖 WP-N1/WP-A6 | 阿聰 9/28 前確認 |
+| 5 | **WP-A4**（Token 櫃台，7.5 人日）| 模組 B 上線 | 待 B-1a（2.0 BE）|
+| 6 | **WP-A5**（名單，4.0 人日）| 模組 D 上線 | 待 B-6 + T-1 |
+| 7 | **WP-N1**（桌面 CLI，3.0 人日）| NFC 批量寫卡 | 待 Gate 1（9/28）|
+| 8 | **WP-A7**（簽到三態，2.25 人日）| 模組 A 完成 | 待 B-2/B-3 |
+| 9 | **WP-A6**（NFC 綁定，2.0 人日）| 模組 C 完成 | 待 WP-N2 |
+| 10 | **WP-A8**（降級儀表板，1.0 人日）| 模組 G 降級 | 隨時可做 |
+
+### 3.3 完成定義（Definition of Done）
+
+每個工作包（WP）的 Done 定義**統一為以下五項**（缺一不可）：
+
+1. **代碼完成**：實作符合 doc 13 缺口與文件契約（API Contract / Handoff）
+2. **測試通過**：相關單元測試在 `jest` 全綠（App/Web/Backend 各自）；新增測試覆蓋 AC
+3. **tsc/eslint 全過**：`npx tsc --noEmit` + `npm run lint` 無 error
+4. **真機/瀏覽器驗證**：截圖或錄影證明功能在真實環境運作（**不能只靠 tsc**——doc 13 §6.1 警示「tsc ✅ ≠ 可用」）
+5. **commit 紀錄**：hackathon 式小步 commit（每完成一個子功能即 commit，message 含 WP 編號）
+
+---
+
+## §4 給 feiteng2015 的施工指引
+
+### 4.1 Repo 與 branch 策略
+
+| 項目 | 指引 |
+| --- | --- |
+| **App repo** | `LinkCard_Event_Admin_App_Expo`（Expo/RN）— WP-A1/A5/A6/A7/A8/B2/B4 |
+| **Web repo** | `LinkCard_Frontend`（Next.js）— WP-A4/A8（Web 端）/B1/B3 |
+| **Backend repo** | `LinkCard_ExpressJS_Backend` — WP-A2/A3/N2/B1/B3（BE 部分）|
+| **branch 策略** | 每個 WP 開獨立 branch（如 `wp-a4-token-counter`）；完成後開 PR 給用戶本人覆核；**不要直接 push main/development** |
+| **staging 驗證** | API 指向 `https://staging-api.link-card.xyz`（`EXPO_PUBLIC_API_URL`）；backend 部署在 staging |
+
+### 4.2 必讀文件清單（按順序）
+
+1. `docs/research/13-app-vs-web-feature-gap-matrix.md`（**缺口全貌**，尤其 §3 矩陣、§4 更正表、§6 交棒結論）
+2. `docs/research/14-nfc-hardware-and-batch-write-research.md`（NFC 工具鏈 WP-N1/N2 依據）
+3. `docs/research/15-admin-app-strategic-roadmap.md`（階段定義、排期、風險）
+4. `docs/20260915_AdminApp_Handoff_for_feiteng2015.md`（既有 W-ID 施工計畫）
+5. `docs/20260915_AdminApp_API_Contract_Freeze_v1.md`（API 契約權威）
+6. `docs/research/11-app-defect-register.md`（死碼/缺陷，避免踩雷）
+7. `docs/20260917_LinkCard_Event_Admin_App_Plan_v1.md`（模組 A–G 需求、UAT Checklist）
+
+### 4.3 Commit 慣例（hackathon 式）
+
+```
+✅ 好：docs(web): add token counter topup quick buttons (WP-A4)
+✅ 好：feat(backend): switch registrations list to operator access (WP-A2)
+❌ 壞：fix stuff
+❌ 壞：update files
+```
+
+- 每個 commit 是**獨立可讀語意單位**（一個子功能 = 一個 commit）
+- 同一 WP 內多個小 commit 是**鼓勵**的（不是囤積）
+- 禁止「一次寫一大包才 commit」
+
+### 4.4 疑難排解（踩雷地圖）
+
+| 症狀 | 原因（doc 13 出處） | 解法 |
+| --- | --- | --- |
+| OPERATOR 登入後看不到名單 | T-1（`getEventWriteAccess` 不含 OPERATOR）| 已由 WP-A2 修復；若仍 403 檢查「單軌 token」（登入走 promoter 端點）|
+| 開場尖峰 429 | B-5（by-code 限流 20 次/5 分鐘/IP）| WP-A3 修復；未修前勿壓測 |
+| 所有 promoter API 回 401 | 誤用一般 `/api/auth/login` 拿 plain token | 必須用 `POST /api/v1/promoter/auth/login`（交接文件 H2 §2）|
+| wallet 扣減用 `redeem` 404 | Handoff W-22 用詞 vs 後端動詞是 `deduct` | 一律用 `deduct`（doc 13 §4 M-4）|
+| 找不到 `idempotencyKey` | B-1a 未實作（migration 級）| WP-A4 前置；勿自行加欄位（需 migration SOP）|
+
+### 4.5 每個 WP 的驗收提交物
+
+| 工作包 | 提交物 |
+| --- | --- |
+| WP-A1 | EAS build URL + 真機登入截圖 |
+| WP-A2 | 測試紀錄 + OPERATOR token curl 200 證據 |
+| WP-A3 | 壓測腳本結果（500 人同 IP 無 429）|
+| WP-A4 | Web 操作錄影 + 流水表截圖 + 用戶端同步截圖 |
+| WP-A5 | 搜尋/篩選/詳情三種條件截圖 |
+| WP-A6 | 真機 NFC 綁定/換卡錄影 |
+| WP-A7 | 三態截圖 + 重複簽到覆核流程錄影 |
+| WP-A8 | 儀表板截圖 + 導覽路徑實測 |
+| WP-N1 | 寫卡日誌 + 讀回驗證 + backend 狀態 |
+| WP-N2 | API 實測 curl 範例 + 契約文件 |
+| WP-B1..B4 | 依 AC 對應截圖/測試 |
+
