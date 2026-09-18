@@ -74,3 +74,132 @@ doc 15 §2.1 已將 11 月範圍裁決為：**模組 A/B/C/D/F 納入、模組 E
 ---
 
 <!-- 續寫 §2 工作包流水 -->
+
+---
+
+## §2 工作包流水（WP-A1..A8 / WP-N1..N2 / WP-B1..B4）
+
+> 每包含：**範圍（檔案/端點）、Acceptance Criteria（可測試）、驗收方式、估計工時（人日）、前置依賴、負責人**。
+
+### WP-A1 — EAS Build 驗證（App 從未 build）🔴
+
+| 項目 | 內容 |
+| --- | --- |
+| **範圍** | 設定 Expo EAS（`eas.json` 確認）、連接 Expo 帳號（Contract P1-6）、`eas build -p android` 與 `-p ios`（iOS 需 Apple Developer 帳號）；產出 APK/IPA 或 TestFlight/Internal build；確認 `.env.local` 的 `EXPO_PUBLIC_API_URL` 指向 staging |
+| **AC** | ① `eas build` 成功產出可安裝的 Android APK；② iOS build（若有帳號）通過；③ App 以 staging API 登入成功（真機或模擬器）；④ EAS 專案 ID 寫入 `app.json` |
+| **驗收** | build 日誌 + 安裝後登入截圖 + EAS build URL |
+| **工時** | 0.5 人日 ｜ **前置**：無 ｜ **負責**：feiteng2015（需 Expo 帳號） |
+
+### WP-A2 — OPERATOR 讀名單修復（T-1，1 行）🔴
+
+| 項目 | 內容 |
+| --- | --- |
+| **範圍** | Backend `EventRegistrationController.ts:78` 的 `getEventWriteAccess` → 改為 `getEventOperatorAccess`（`EventService.ts:420` 已含 OPERATOR），讓閘口 staff 能讀名單（doc 13 §4.2 T-1） |
+| **AC** | ① OPERATOR 角色 GET `/api/v1/events/:eventId/registrations` 回 200（非 403）；② 既有 SUPER_ADMIN/COORDINATOR 行為不變；③ 測試覆蓋此權限分支 |
+| **驗收** | 用 OPERATOR token 呼叫端點回 200 + 既有測試全過 |
+| **工時** | 0.1 人日 ｜ **前置**：無 ｜ **負責**：用戶本人（後端） |
+
+### WP-A3 — by-code 限流解除（B-5，阻斷模組 A）🔴
+
+| 項目 | 內容 |
+| --- | --- |
+| **範圍** | `registrations.routes.ts:12-26` 的 `by-code` 端點限流（20 次/5 分鐘/IP）改為以 **registration 主體**（registrationId/email）為 key，或提升閾值 + 快取（doc 13 §4.2 T-2）；避免開場尖峰 500 人共用 NAT 時全員 429 |
+| **AC** | ① 500 個不同 registration 在 5 分鐘內透過同一 IP 查詢不回 429；② 同一 registration 短時間重複查詢仍有限流保護；③ 限流測試更新 |
+| **驗收** | 壓測腳本（`test-*.js`）+ 429 不再誤傷正常流量 |
+| **工時** | 0.7 人日 ｜ **前置**：無 ｜ **負責**：用戶本人（後端） |
+
+### WP-A4 — Token 櫃台（模組 B，Web 端）🚫 待 B-1a
+
+| 項目 | 內容 |
+| --- | --- |
+| **範圍** | Web `manage/[eventId]/wallet` 或獨立頁：**增值（top-up）快捷金額（+10/+50/+100 可由後端配置）、自訂金額、來源標記（攤位購買/活動獎勵/補發/贊助贈送）**；**扣減（deduct）依兌換品項清單點擊**；餘額不足置灰；**交易流水表**（時間/操作員/金額/類型/備註）；二次確認防呆 |
+| **AC** | ① 使用既有 4 端點（`GET/WALLET/BALANCE`、`GET/WALLET/TRANSACTIONS`、`POST/WALLET/TOP-UP`、`POST/WALLET/DEDUCT`，`premium.routes.ts:13-20`）；② **B-1a 後端先補冪等 migration + `initiatedBy`（操作員）欄位**（`EventWalletTransaction` 目前只有 `approvedBy`，doc 13 M-4）；③ 增值/扣減後 **用戶端 App 3 秒內同步**（Plan v1 UAT）；④ 扣減動詞用 `deduct`（非 Handoff W-22 的 `redeem`）|
+| **驗收** | Web 操作 → 查 `/wallet/transactions` 記錄 → 用戶端 App 餘額更新；操作員欄位有值 |
+| **工時** | 7.5 人日（含 B-1a 後端 2.0）｜ **前置**：B-1a、B-1b ｜ **負責**：feiteng2015（前端）+ 用戶本人（後端）|
+
+### WP-A5 — 名單/搜尋/詳情（模組 D）🚫 待 B-6 + T-1
+
+| 項目 | 內容 |
+| --- | --- |
+| **範圍** | 名單頁：搜尋（姓名/手機/Email/報名編號）、篩選（票種/簽到狀態/公司/Token 餘額區間）、排序；**用戶詳情頁**（基本資料/報名/簽到/Token 流水/綁定 NFC/所屬社團）；**現場補報名**（精簡表單 → 觸發 Email）|
+| **AC** | ① 搜尋/篩選/排序**由後端 B-6 提供**（`search/sortBy/sortOrder` 參數）；② OPERATOR 可讀（T-1 已修）；③ 詳情頁各區塊有資料時正確顯示、無資料時 EmptyState；④ 補報名流程與線上報名一致（Plan v1 模組 D）|
+| **驗收** | 搜尋 3 種條件 + 篩選組合 + 詳情頁各區塊截圖 |
+| **工時** | 4.0 人日 ｜ **前置**：B-6、T-1、C-9 ｜ **負責**：feiteng2015 + 用戶本人 |
+
+### WP-A6 — NFC 綁定頁強化（模組 C）⚠️ 部分可開工
+
+| 項目 | 內容 |
+| --- | --- |
+| **範圍** | 現有 `src/app/(auth)/[eventId]/nfc-bind.tsx` 強化：錯誤路徑（無效 tagUid / 重複綁定 / 已綁他卡）可直接做；**換卡（void 舊卡→綁新卡）、補發、退卡**待 WP-N2 後端端點 |
+| **AC** | ① 綁定成功/失敗三態回饋；② 換卡流程（舊卡作廢 + 新卡綁定）在後端就緒後可跑通；③ NFC Gate 1（9/28 spike）通過後與桌面工具對接 |
+| **驗收** | 真機 NFC 綁定流程（Android 為主）截圖 |
+| **工時** | 2.0 人日 ｜ **前置**：WP-N2（換卡端點）、NFC Gate 1 ｜ **負責**：feiteng2015 |
+
+### WP-A7 — 簽到三態強化（模組 A）✅ 大部分可開工
+
+| 項目 | 內容 |
+| --- | --- |
+| **範圍** | 簽到結果頁三態回饋強化：✅ 有效（姓名/公司/票種/報名時間/Token 餘額/簽到狀態）、⚠️ 重複（首次簽到時間地點+主管覆核）、❌ 無效（快速補報名入口）；**震動 + 大字綠色畫面 + 音效**（W-28）；頂部單日/單場次簽到計數 |
+| **AC** | ① 三態 UI 齊備；② 重複簽到需權限覆核才二次放行（B-2）；③ 簽到動作寫入時間戳/閘口/操作員（B-3 gateId）|
+| **驗收** | 三態截圖 + 重複簽到流程實測 |
+| **工時** | 2.25 人日 ｜ **前置**：C-10（音效套件）、WP-A3（B-5）｜ **負責**：feiteng2015 |
+
+### WP-A8 — 降級儀表板 + Web 入口（模組 G 降級 + N-2）✅
+
+| 項目 | 內容 |
+| --- | --- |
+| **範圍** | **降級版儀表板**（doc 13 §6.2「降級版已可用」）：報名數/已簽到數/到場率（依時段）、Token 總發放/消耗/剩餘、兌換排行；**Web check-in 導覽入口修正**（N-2：`app/check-in/[eventId]` 不可達 → 加入口）|
+| **AC** | ① 儀表板數據正確（依既有/aggregate 端點）；② Web check-in 可從 manage 導覽到達 |
+| **驗收** | 儀表板截圖 + 導覽路徑實測 |
+| **工時** | 1.0 人日 ｜ **前置**：無 ｜ **負責**：feiteng2015 |
+
+### WP-N1 — 桌面寫卡 CLI（NFC 工具鏈）🚫 待 Gate 1
+
+| 項目 | 內容 |
+| --- | --- |
+| **範圍** | Node.js CLI（doc 14 §5.5 結構）：讀 CSV → ACR122U/ACR1252U 逐張寫 NDEF URI（`https://linkcard.xyz/nfc/{badgeId}`）→ 讀回驗證 UID + payload → 失敗重試 ≤3 次 → `POST /nfc/batch/:id/complete` |
+| **AC** | ① 寫 1 張卡 + 驗證 + 回報 backend 成功；② 500 卡 stress test 失敗率 < 5%（R3）；③ 冪等：中斷重跑不重複寫（doc 14 §5.3）|
+| **驗收** | 寫卡日誌（JSONL）+ 讀卡機讀回驗證 + backend batch 狀態變更 |
+| **工時** | 3.0 人日 ｜ **前置**：NFC Gate 1（9/28 spike）、讀寫器到貨（9/22 下單）｜ **負責**：用戶本人 |
+
+### WP-N2 — batch 契約確認 + 換卡端點 🚫 待實測
+
+| 項目 | 內容 |
+| --- | --- |
+| **範圍** | 實測既有 `/nfc/batch/complete` 的 request 格式（doc 14 §5.2 U-1：接受 tagUid↔badgeId mapping？）；補**換卡/補發/退卡端點**（doc 13 §3.3：四端皆無作廢流程）|
+| **AC** | ① `complete` 契約文件化（request/response 範例）；② 換卡端點（void 舊 → bind 新）可用；③ 桌面工具與 backend 對接成功 |
+| **驗收** | API 實測紀錄 + curl 範例 + 換卡流程真機測試 |
+| **工時** | 1.0 人日 ｜ **前置**：阿聰確認契約（9/28）｜ **負責**：阿聰 + 用戶本人 |
+
+### WP-B1 — Credential 統一模型（模組 E）⏭️ Phase B
+
+| 項目 | 內容 |
+| --- | --- |
+| **範圍** | `EventCredential` 模型（doc 13 §3.5 確認不存在；doc 15 建議延後）：統一抽象「社團會員憑證 / 活動票務憑證 / 電子名片」三類，共用 QR 渲染與核驗介面（Plan v1 決策 #2）|
+| **AC** | ① Prisma migration 新增 `EventCredential`（含 `type` enum）；② 既有 badge/registration 資料可遷移；③ QR 渲染組件共用 |
+| **工時** | 2.5 人日 ｜ **前置**：B-8 ｜ **負責**：用戶本人 + feiteng2015 |
+
+### WP-B2 — 權限分層 UI（模組 F）⏭️ Phase B
+
+| 項目 | 內容 |
+| --- | --- |
+| **範圍** | 角色感知 UI（doc 13 §3.6 N-3「資料層已通」）：閘口 staff / 攤位 staff / 主管 / 主辦方四角色介面差異；臨時帳號批量建立、QR 邀請、即時停用 |
+| **AC** | ① 依 `promoterRole`/角色顯示不同操作權限；② 停用即時生效；③ 操作綁定操作員 |
+| **工時** | 2.25 人日 ｜ **前置**：B-4（VOLUNTEER 定義）｜ **負責**：feiteng2015 + 用戶本人 |
+
+### WP-B3 — 完整儀表板（模組 G）⏭️ Phase B
+
+| 項目 | 內容 |
+| --- | --- |
+| **範圍** | 完整版儀表板（doc 13 §3.7 B-7 無 stats 端點）：各閘口/攤位工作量、到場率時段曲線、Token 負債、結案報告匯出 |
+| **AC** | ① `/checkin-stats` + aggregate 端點就緒；② 各維度圖表正確；③ CSV 匯出 |
+| **工時** | 4.5 人日 ｜ **前置**：B-7 ｜ **負責**：用戶本人 + feiteng2015 |
+
+### WP-B4 — 多語言（繁/簡/英/葡）⏭️ Phase B
+
+| 項目 | 內容 |
+| --- | --- |
+| **範圍** | i18n 基建（doc 15 §2.2 B-P2；Contract §7 無 i18n）：現有 `copy.zh-TW.ts` 抽成資源檔；新增簡中/英文/葡文；無溢出、無漏翻（Plan v1 UAT）|
+| **AC** | ① i18n 框架接入；② 四語言資源齊備；③ 關鍵頁面四語言截圖無溢出 |
+| **工時** | 4.0 人日 ｜ **前置**：翻譯資源；Phase A 文案凍結 ｜ **負責**：feiteng2015（+ 外部翻譯）|
+
