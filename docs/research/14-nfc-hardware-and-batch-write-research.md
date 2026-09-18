@@ -547,3 +547,99 @@ Backup（nfc-pcsc 失敗）：Python + nfcpy + RC-S380
 | **PVC 卡 + 腳繩** | ✅ 备選 | 若手帶成本太高或時間來不及 |
 | **紙質貼紙** | ❌ 不建議做主體 | 現場易折損、掃描困難、質感差 |
 
+
+---
+
+## §8 決策建議與降級路徑
+
+### 8.1 Primary 建議（11 月）
+
+| 項目 | 建議 |
+| --- | --- |
+| **晶片** | NTAG215（手帶 / PVC 卡型式）|
+| **讀寫器** | ACR122U（若能驗證正品） 或 ACR1252U（推薦） |
+| **桌面工具棧** | Node.js + nfc-pcsc + CLI |
+| **Backend API** | 既有的 `/nfc/batch*` 端點（5 條已掛載）；需實測確認契約 |
+| **App NFC** | 復用 Promoter App 的 `nfc-utils.ts`（`buildUriNdefMessage` / `writeUriToCard`） |
+| **活動前寫卡** | 參展商批量預寫 1200–2400 張 |
+| **現場寫卡** | Admin App Android 單張 walk-in |
+
+### 8.2 降級路徑
+
+#### 降級 A：讀寫器到不了（物流失敗）
+
+| 觸發條件 | 最終下單日之後仍無到貨 |
+| --- | --- |
+| **方案** | **印 QR 手帶** — 手帶上印 QR Code 而非嵌入 NFC |
+| **成本** | 印刷成本（$0.5–1/條，遠低於 NFC） |
+| **影響** | 失去「碰一下交換名片」的 NFC 體驗；**但 QR 簽到 + Token 仍完整** |
+| **優點** | 無需讀寫器、無需桌面工具；11 月可正常上線 |
+
+#### 降級 B：批次寫卡工具開發不及
+
+| 觸發條件 | 10 月 15 日桌面工具仍未完成 |
+| --- | --- |
+| **方案** | **Android Admin App 逐張寫卡**（walk-in 模式）|
+| **影響** | 參展商不再有「活動前發卡」，**改為現場報到時發卡** |
+| **成本** | 現場發卡排隊時間增加；需增加工作人員 |
+| **優點** | 不需桌面工具；只需讀寫器 + Admin App |
+
+#### 降級 C：NFC 完全失敗（驅動相容 / 硬體故障）
+
+| 觸發條件 | spike 驗證失敗（§8.3 Gate 1） |
+| --- | --- |
+| **方案** | **QR-only** — 手帶印 QR；不嵌入 NFC |
+| **影響** | **完全放棄 NFC 體驗**；11 月活動改為 QR 全流程 |
+| **優點** | 開發風險最低；最簡潔的降級 |
+
+### 8.3 決策 Gate（觸發條件與時程）
+
+| Gate | 日期 | 觸發條件 | 通過 → 繼續 | 失敗 → 降級 |
+| --- | --- | --- | --- | --- |
+| **Gate 1**：硬體 Spike | **2026-09-28** | 買到讀寫器 → 30 分鐘 macOS spike（§6.1）| 開發桌面工具 | → 降級 C（QR-only） |
+| **Gate 2**：工具 Alpha | **2026-10-13** | 桌面工具能寫 1 張 + 驗證 + 回報 backend | 批量寫入 | → 降級 B（App 逐張）|
+| **Gate 3**：批量完成 | **2026-10-30** | 寫完全部展商卡 1200+ | 發卡 | → 降級 B |
+| **Gate 4**：活動前 3 天 | **2026-11-12** | 現場演練走通 | 活動上線 | → 降級 A（QR 手帶）|
+
+---
+
+## §9 風險登記與未解問題
+
+### 9.1 風險表
+
+| # | 風險 | 機率 | 影響 | 緩解 | 監測指標 |
+| --- | --- |:-: |:-: | --- | --- |
+| R1 | 讀寫器到貨延遲 | 中 | 高 | 提前下單（見 §7.3）；本地備援通路 | 9/22 淘寶下單、9/27 前到貨 |
+| R2 | macOS 與 ACR122U 不相容 | 低-中 | 高 | 先做 spike（Gate 1）；备援 ACR1252U / RC-S380 | spike 結果 |
+| R3 | 大量寫入時 PN532 逾時 | 中 | 中 | delay 50ms + 重試機制（§5.3）；每次測 100 卡 stress test | 寫入失敗率 > 5% |
+| R4 | 仿冒 ACR122U 品質差 | 中 | 高 | 選 ACR1252U；或從 ACS 官方代理商採購 | spike 結果 + 寫入穩定度 |
+| R5 | Backend `/nfc/batch*` 端點契約不符 | 低-中 | 中 | 實測確認（見 D1 §4 穩健性）；必要時補 API | 實測結果 |
+| R6 | Admin App `react-native-nfc-manager` 在真機上無法寫卡 | 中 | 中 | Promoter App 已有真機驗證（若相同手機型號）；备援 QR | 真機測試 |
+| R7 | NTAG215 標籤印製錯誤（格式/尺寸） | 低 | 中 | 先打樣 5–10 張再量產 | 打樣驗證 |
+| R8 | 活動現場 NFC 手帶發放管理（遺失/重複領取） | 中 | 低 | 每張手帶綁定 registrationId；遺失走 void + 補發 | 現場 SOP |
+
+### 9.2 需確認的未解問題
+
+| # | 問題 | 確認對象 | 建議截止日 |
+| --- | --- | --- |:-: |
+| U-1 | Backend `/nfc/batch/complete` 接受的 request format 是什麼？（tagUid mapping？batch status？） | 阿聰 | 09-28 |
+| U-2 | 11 月活動日期確定是 11 月中旬？還是 11 月底？（影響倒推時程） | 主辦方 | 09-22 |
+| U-3 | 標籤型式決定：矽膠手帶 vs PVC 卡？（成本 vs 體驗） | PM | 09-22 |
+| U-4 | 預計活動人數：參展商數量（決定批量寫入張數）| 主辦方 | 09-22 |
+| U-5 | ACR122U vs ACR1252U 的採購偏好 | PM | 09-22 |
+
+---
+
+## 附錄：參考來源
+
+| 來源 | URL | 用途 |
+| --- | --- | --- |
+| NXP NTAG213/215/216 官方 datasheet | `nxp.com/docs/en/data-sheet/NTAG213_215_216.pdf` | 晶片規格 |
+| pokusew/nfc-pcsc（GitHub） | `github.com/pokusew/nfc-pcsc` | Node.js NFC 讀寫庫；ACR122U 官方測試裝置 |
+| pokusew/node-pcsclite（GitHub） | `github.com/pokusew/node-pcsclite` | PC/SC native binding |
+| Apple Developer — Core NFC | `developer.apple.com/documentation/corenfc` | iOS NFC API |
+| Android NFC 基礎 | `developer.android.com/develop/connectivity/nfc/nfc` | Android NfcAdapter API |
+| 微信小程序 NFC 文檔 | `developers.weixin.qq.com/miniprogram/dev/api/device/nfc/` | NFC API（iOS 不支援） |
+| 既有研究 R1 | `docs/LinkCard Event related/20260815_LinkCard_NFC_Onboarding_App_Research_v1.0.md` | NFC 入場研究 |
+| 既有研究 R3 | `docs/LinkCard Event related/20260912_LinkCard_Batch_Write_Trigger_Admin_App_Design.md` | 批次寫卡架構 |
+
