@@ -338,19 +338,19 @@
 > - 本文與 `11-app-defect-register.md` 的 **`A0..A9` = App 缺陷**（本輪新發現的 10 個）
 > - `06-feature-list.md` 的 **`A1..A4` = 功能差異分類**（A1 已有完整資產 / A2 已有骨架需增強 / A3 全新開發 / A4 明確不做）——**這是完全不同的清單**
 >   → **看到 `A2` 請先確認是哪一份文件**。完整代號表見本文 **§8.1**。
->   | # | 項目 | 為何未驗證 | 狀態 |
->   | :-: | --- | --- | :-: |
->   | **AU-01** | `CameraView` QR 掃描是否真能解 LinkCard 報名 QR | web 無 camera → **從未執行** | ⚠️ 需真機（Android 優先）+ 實體 QR |
->   | **AU-02** | NFC 寫卡能否寫入指定晶片 | 需 Android + NTAG 卡；**晶片型號未定**（會議 §六 #4 無 owner） | ⚠️ 先定晶片 → 真機寫入 |
->   | **AU-03** | `nfcService.bind` 成功分支 | 從未成功執行（staging 無 badge 資料） | ⚠️ 先在 staging 建 batch |
->   | **AU-04** | `expo-secure-store` 真機 token 持久化 | 只走過 web `localStorage` 路徑 | ⚠️ 真機冷啟動 + 飛航模式 |
->   | **AU-05** | **A0 是否為真缺陷** | — | ✅ **已於 2026-09-16 實測結案：A0 為真**（後端路由掛載 + Promoter `.env.example` 明文 + axios `combineURLs`）。殘餘：production apex origin 是否為 `linkcard.xyz` → **C-14 子項** |
->   | **AU-06** | `.env.local` 是否會被 EAS 上傳 | `git check-ignore` 證實被排除；**無 `.easignore`** → 推論不上傳 | ⚠️ 未實際跑 `eas build`（且 A0 未修前不建議跑） |
->   | **AU-07** | 後端是否有其他機制提供 `REGISTRATION_OPEN`/`ENDED`（如 response mapping） | 只查了 `schema.prisma` 與 routes，**未追進 `EventService` 的 response mapping** | ⚠️ 待確認 `getMyManagedEvents` 回傳 `status` 的實際值 |
->   | **AU-08** | 是否存在 `xyz.linkcard.event_admin` 的 EAS project | `app.json` 無 `projectId` | ⚠️ 用戶確認 Expo 帳號內是否已建 |
->   | **AU-09** | 會議「四大功能卡」是否真要求 Token + 名單並列為首頁卡 | 只讀了 repo 內摘要 | ⚠️ 用戶／PM 確認 |
->   | **AU-10** | `docs/LinkCard Event related/` 系列**原文不在本 repo** | `ls` = 不存在；`PROGRESS.md` 引用 `../../docs/LinkCard Event related/…` | ⚠️ 用戶提供原文以核對「刻意不做 vs 忘了做」 |
->   | **AU-11** | `assets/brand/logo-mark.svg` master 是否存在 | 只在 `Icon.tsx` 註解中被引用 | ✅ **已結案**：該檔**存在於姊妹 repo** `LinkCard_Promoter_App_Expo/assets/brand/logo-mark.svg`；本 repo 未納入 → **W-31 需要時再複製** |
+>   |     #     | 項目                                                                      | 為何未驗證                                                                      |                                                                                       狀態                                                                                        |
+>   | :-------: | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+>   | **AU-01** | `CameraView` QR 掃描是否真能解 LinkCard 報名 QR                           | web 無 camera → **從未執行**                                                    |                                                                        ⚠️ 需真機（Android 優先）+ 實體 QR                                                                         |
+>   | **AU-02** | NFC 寫卡能否寫入指定晶片                                                  | 需 Android + NTAG 卡；**晶片型號未定**（會議 §六 #4 無 owner）                  |                                                                              ⚠️ 先定晶片 → 真機寫入                                                                               |
+>   | **AU-03** | `nfcService.bind` 成功分支                                                | 從未成功執行（staging 無 badge 資料）                                           |                                                                             ⚠️ 先在 staging 建 batch                                                                              |
+>   | **AU-04** | `expo-secure-store` 真機 token 持久化                                     | 只走過 web `localStorage` 路徑                                                  |                                                                             ⚠️ 真機冷啟動 + 飛航模式                                                                              |
+>   | **AU-05** | **A0 是否為真缺陷**                                                       | —                                                                               | ✅ **已於 2026-09-16 實測結案：A0 為真**（後端路由掛載 + Promoter `.env.example` 明文 + axios `combineURLs`）。殘餘：production apex origin 是否為 `linkcard.xyz` → **C-14 子項** |
+>   | **AU-06** | `.env.local` 是否會被 EAS 上傳                                            | `git check-ignore` 證實被排除；**無 `.easignore`** → 推論不上傳                 |                                                                  ⚠️ 未實際跑 `eas build`（且 A0 未修前不建議跑）                                                                  |
+>   | **AU-07** | 後端是否有其他機制提供 `REGISTRATION_OPEN`/`ENDED`（如 response mapping） | 只查了 `schema.prisma` 與 routes，**未追進 `EventService` 的 response mapping** |                                                               ⚠️ 待確認 `getMyManagedEvents` 回傳 `status` 的實際值                                                               |
+>   | **AU-08** | 是否存在 `xyz.linkcard.event_admin` 的 EAS project                        | `app.json` 無 `projectId`                                                       |                                                                          ⚠️ 用戶確認 Expo 帳號內是否已建                                                                          |
+>   | **AU-09** | 會議「四大功能卡」是否真要求 Token + 名單並列為首頁卡                     | 只讀了 repo 內摘要                                                              |                                                                                 ⚠️ 用戶／PM 確認                                                                                  |
+>   | **AU-10** | `docs/LinkCard Event related/` 系列**原文不在本 repo**                    | `ls` = 不存在；`PROGRESS.md` 引用 `../../docs/LinkCard Event related/…`         |                                                                    ⚠️ 用戶提供原文以核對「刻意不做 vs 忘了做」                                                                    |
+>   | **AU-11** | `assets/brand/logo-mark.svg` master 是否存在                              | 只在 `Icon.tsx` 註解中被引用                                                    |                      ✅ **已結案**：該檔**存在於姊妹 repo** `LinkCard_Promoter_App_Expo/assets/brand/logo-mark.svg`；本 repo 未納入 → **W-31 需要時再複製**                       |
 
 ### 7.1 「代碼在、但從未在任何環境跑過」的精確清單
 
