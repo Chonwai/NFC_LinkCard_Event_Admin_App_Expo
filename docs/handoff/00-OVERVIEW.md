@@ -1,0 +1,68 @@
+# 00 — 項目概述（為什麼做這個 App）
+
+> 給 feiteng2015：**先讀這份，理解「為什麼」再動手。**
+> 來源：`docs/LinkCard Event related/20260917_LinkCard_Event_Admin_App_Plan_v1.md`
+
+---
+
+## 一句話定位
+
+**LinkCard Event Admin App 是「現場作戰終端」，不是配置中心。**
+
+它是 LinkCard 活動生態的**第三端**，與 Web 後台、用戶端 App 分工如下：
+
+| 端 | 定位 | 使用場景 | 核心職責 |
+|---|---|---|---|
+| **Admin Web** | 配置與管理中樞 | 辦公室、活動前 | 活動建立、報名欄位、Token 規則、名單匯出、報表、權限分派 |
+| **Admin App（你做的）** | **現場執行工具** | **活動現場** | **掃碼簽到、NFC 發卡、Token 增扣、即時查詢** |
+| 用戶端 App/Web | 參加者入口 | 參加者 | 報名、憑證 QR、Token 餘額 |
+
+> ⚠️ 用戶原話：「不論是 Website 版本或 Admin App 版本，都要有呢啲相關功能」→ 但為避免雙端重複開發拖垮 11 月排期，採**「Web 全功能 + App 現場必要功能」**。App 只做**高頻、單手、3 秒完成**的操作。
+
+---
+
+## 為什麼 11 月特別重要
+
+**硬期限**：11 月 Macau Startup Festival（澳門創業節），距今約 6–7 週。
+
+這不是一般活動——它是 LinkCard 的**「會員獲取機器」**：
+
+```
+主辦方活動流量 → 掃碼簽到 → NFC 發卡 → 告知「你已是 LinkCard 用戶」→ 沉澱真實 B 端用戶
+```
+
+- **NFC 手帶** = LinkCard 電子名片的實體入口（活動結束後仍被留下、被碰觸 = 產品曝光）
+- **Token** = 強迫用戶在活動期間反覆出示憑證（提升激活率與留存）
+- 三個數據鉤子：① 註冊轉化率 ② 活動後 30 天留存 ③ NFC 名片交換次數
+
+---
+
+## 11 月 MVP 底線（不可動搖）
+
+| 必須上線（P0） | 可捨棄（P1/P2） |
+|---|---|
+| 🔴 掃碼簽到（模組 A）| 儀表板（降級版可用）|
+| 🔴 Token 增扣（模組 B）| 工作人員權限分層（共用帳號 + 紙本）|
+| 🔴 名單查詢（模組 D）| NFC（降級為印刷 QR 手帶）|
+| 🔴 Email 自動建帳 | 支付串接、離線模式 |
+
+---
+
+## 技術棧（現況）
+
+| 項目 | 選擇 |
+|---|---|
+| 框架 | **Expo (React Native) + expo-router** |
+| 語言 | TypeScript |
+| 狀態 | Zustand |
+| 認證 | JWT Bearer（`expo-secure-store`）|
+| API | axios（interceptor 自動附 token）|
+| NFC | `react-native-nfc-manager`（寫卡）+ 桌面讀寫器（批次）|
+| 相機 | `expo-camera`（QR 掃描）|
+
+---
+
+## 你的角色
+
+基於 **doc 16 工作包**（`research/16-feiteng2015-work-packages.md`）施工。第 1 天即可開工 **WP-A1/A2/A3/A8/A7**。完整清單見 `05-WORK-PACKAGES-QUICK-REF.md`。
+
