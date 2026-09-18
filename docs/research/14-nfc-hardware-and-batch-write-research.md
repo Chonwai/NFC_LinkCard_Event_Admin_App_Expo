@@ -49,7 +49,7 @@
 | **NTAG215** | 540 B（135 pages） | 504 B（126 pages） | **496 bytes** | ~200,000 次 | 略高（+10–20%） |
 | **NTAG216** | 924 B（231 pages） | 888 B（222 pages） | **872 bytes** | ~500,000 次 | 最高 |
 
-> 說明：可用 NDEF 容量 = 用戶記憶體扣掉 Capability Container（第 4 page，4 bytes）、NDEF TLV 標頭（0x03 + 長度）、TLV 結尾（0xFE）與 lock bytes。上述 137/496/872 為業界工具（goToTags、NFC Tools、nfc-tools）通用引用值，且經下述位元組計算反推驗證。
+> 說明：可用 NDEF 容量 = 用戶記憶體扣掉 Capability Container（第 4 page，4 bytes）、NDEF TLV 標頭（0x03 + 長度）、TLV 結尾（0xFE）與 lock bytes。上述 137/496/872 為 **NFC Forum Type 2 Tag 慣用引用值**（業界工具 goToTags、NFC Tools、nfc-tools 通用）；其中 NTAG215/216 的慣用值（496/872）較 §2.2 純 NDEF 公式（497/881）少 1–9 B，因慣用值另扣除 lock bytes / 保留區，屬正常差異，不影響結論（NTAG213 綽綽有餘）。
 
 ### 2.2 NDEF 單一 URI Record 的結構精算
 

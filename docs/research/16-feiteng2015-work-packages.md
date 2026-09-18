@@ -26,7 +26,7 @@ doc 15 §2.1 已將 11 月範圍裁決為：**模組 A/B/C/D/F 納入、模組 E
 
 | 工作包 | 對應模組 | 階段 | 缺口來源（doc 13） | 可交棒？ | 前置依賴 | 負責人 | 人日 |
 | :-: | :-: | :-: | --- | :-: | --- | :-: | :-: |
-| **WP-A1** | F-08（EAS） | Phase A 硬前導 | §6.3「EAS build 從未執行」🔴；U-5 | ⚠️ 可開工，**需 Expo 帳號** | Contract P1-6 | feiteng2015 | 0.5 |
+| **WP-A1** | W-08（EAS Build） | Phase A 硬前導 | §6.3「EAS build 從未執行」🔴；U-5 | ⚠️ 可開工，**需 Expo 帳號** | Contract P1-6 | feiteng2015 | 0.5 |
 | **WP-A2** | F（權限） | Phase A 硬前導 | §4.2 **T-1**（OPERATOR 403，1 行修復）🔴 | ✅ 可立即開工 | 無（裁決 C-4 建議 (a)） | 用戶本人（後端） | 0.1 |
 | **WP-A3** | A（簽到） | Phase A 硬前導 | §4.2 **T-2**（by-code 限流 429）🔴 **阻斷模組 A** | ✅ 可立即開工 | 裁決 C-3 建議 (a) | 用戶本人（後端） | 0.7 |
 | **WP-A4** | B（Token 櫃台，Web） | Phase A 核心 | §3.2（兩端 UI 皆空白）、§6.3 **B-1a** 🔴、M-3/M-4 | 🚫 **待 B-1a** | **B-1a**（冪等 migration + 強化）、B-1b（調整 tab） | feiteng2015 + 用戶本人 | 7.5 |
@@ -113,7 +113,7 @@ doc 15 §2.1 已將 11 月範圍裁決為：**模組 A/B/C/D/F 納入、模組 E
 | 項目 | 內容 |
 | --- | --- |
 | **範圍** | Web `manage/[eventId]/wallet` 或獨立頁：**增值（top-up）快捷金額（+10/+50/+100 可由後端配置）、自訂金額、來源標記（攤位購買/活動獎勵/補發/贊助贈送）**；**扣減（deduct）依兌換品項清單點擊**；餘額不足置灰；**交易流水表**（時間/操作員/金額/類型/備註）；二次確認防呆 |
-| **AC** | ① 使用既有 4 端點（`GET/WALLET/BALANCE`、`GET/WALLET/TRANSACTIONS`、`POST/WALLET/TOP-UP`、`POST/WALLET/DEDUCT`，`premium.routes.ts:13-20`）；② **B-1a 後端先補冪等 migration + `initiatedBy`（操作員）欄位**（`EventWalletTransaction` 目前只有 `approvedBy`，doc 13 M-4）；③ 增值/扣減後 **用戶端 App 3 秒內同步**（Plan v1 UAT）；④ 扣減動詞用 `deduct`（非 Handoff W-22 的 `redeem`）|
+| **AC** | ① 使用既有 4 端點（`GET/WALLET/BALANCE`、`GET/WALLET/TRANSACTIONS`、`POST/WALLET/TOP-UP`、`POST/WALLET/DEDUCT`，`premium.routes.ts:13-20`）；② **B-1a 後端先補冪等 migration + `initiatedBy`（操作員）欄位**（`EventWalletTransaction` 目前只有 `approvedBy`，doc 13 M-4）；③ 增值/扣減後 **用戶端 App 3 秒內同步**（Plan v1 UAT）；④ 扣減動詞用 `deduct`（非 Handoff W-22 的 `redeem`）；⑤ **新增 `manage/[eventId]/wallet` 頁**：top-up 快捷金額（+10/+50/+100，後端可配置）、自訂金額、來源標記、deduct 品項清單、流水表、二次確認 modal |
 | **驗收** | Web 操作 → 查 `/wallet/transactions` 記錄 → 用戶端 App 餘額更新；操作員欄位有值 |
 | **工時** | 7.5 人日（含 B-1a 後端 2.0）｜ **前置**：B-1a、B-1b ｜ **負責**：feiteng2015（前端）+ 用戶本人（後端）|
 
@@ -379,6 +379,65 @@ flowchart LR
 
 > **feiteng2015 第 1 天即可開工 WP-A1/A2/A3/A8/A7（零後端依賴、共約 4.5 人日）；模組 B/D 須待 B-1a/B-6 後端前置解鎖（約 4 人日 BE 前置）；NFC 批量寫卡成敗繫於 9/22 下單與 9/28 Gate1 spike。按此工作包推進，11 月活動可上線。**
 
+### 5.5 已知風險補記（N-4，可接受）
+
+| 風險 | 出處 | 影響 | 處置 |
+| --- | --- | --- | --- |
+| `/nfc/lookup` 無 auth（公開查 badge）| doc 13 §4.4 N-4 | 他人可憑 tagUid/qr 查詢 badge 綁定資訊 | **11 月接受**（lookup 僅回傳基本身份，無敏感個資）；Phase B 評估加 rate-limit 或 token |
+
 ---
 
-<!-- End of doc 16. 證據基準：doc 13 (9a1caff) / doc 14 (fe2ec4f) / doc 15 (0777210) / Handoff v1.0-r5 / Contract v1.0-r4 -->
+## 附錄 A：WP ↔ Handoff W-ID ↔ Contract 完整對照
+
+| 工作包 | Handoff W-ID | Contract 端點/裁決 | 後端施工項 | 階段 |
+| :-: | --- | --- | --- | :-: |
+| **WP-A1** | W-06（EAS） | P1-6（Expo 帳號）| — | A |
+| **WP-A2** | W-03/W-30 前置 | REG-01；C-4 | T-1（`getEventWriteAccess`→`getEventOperatorAccess`）| A |
+| **WP-A3** | W-21/W-26 前置 | CHK-01；C-3 | B-5（限流改 key，`registrations.routes.ts:12-26`）| A |
+| **WP-A4** | W-20..W-25、W-22b | WAL-01..10；C-5/C-6 | B-1a（冪等 migration + M-3）、B-1b（adjust + M-4）| A |
+| **WP-A5** | W-03、W-04、W-05 | REG-01/02；C-1/C-2/C-9 | B-6（search/sortBy/sortOrder）、C-9（NFC-08）| A |
+| **WP-A6** | W-07、W-15 | NFC-01..08；C-9 | WP-N2（換卡/補發/退卡端點）| A |
+| **WP-A7** | W-26、W-27、W-28 | CHK-02/03；C-6/C-10 | B-2（override）、B-3（gateId）| A |
+| **WP-A8** | W-29（降級）、W-02 | CHK-04；C-7/C-12；N-2 | B-7（或 fallback）| A |
+| **WP-N1** | W-07（staging 驗證）| NFC-03..07 | —（桌面工具）| A |
+| **WP-N2** | — | NFC-06；doc 14 U-1 | `/nfc/batch/complete` 契約確認 + 換卡端點 | A |
+| **WP-B1** | W-31 | CRD-01；C-13 | B-8（`EventCredential` 模型）| B |
+| **WP-B2** | W-30 | G-1/G-2；C-4/C-5 | B-4（VOLUNTEER 定義）| B |
+| **WP-B3** | W-29（完整版）| CHK-04 | B-7 + aggregate 端點 | B |
+| **WP-B4** | §6 多語言 | §7 落差 | — | B |
+
+## 附錄 B：引用文件 commit hash（更新版）
+
+| 文件 | 本次 Loop 提交 hash | 說明 |
+| --- | --- | --- |
+| doc 13（差距矩陣）| `6173965`..`9a1caff`（5 commits）| D1 morpheus 產出 |
+| doc 14（NFC 硬體）| `d1cb038`..`fe2ec4f`（7 commits）| D2 Neo DEGRADED 產出 |
+| doc 15（路線圖）| `a303770`..`0777210`（5 commits）| P1 architect 產出 |
+| doc 16（本文件）| `e30ba40`..`4071a95`（4 commits）+ 本輪修正 | P2 edison-spec-writer + Neo DEGRADED 產出 |
+
+## 附錄 C：可重跑驗證指令（供 feiteng2015 自驗）
+
+```bash
+# OPERATOR 403（T-1）— 預期：角色集合不含 OPERATOR
+grep -n "getEventWriteAccess\|getEventOperatorAccess" \
+  LinkCard_ExpressJS_Backend/src/events/services/EventService.ts | head
+
+# deduct 動詞（M-1）— 預期：premium.routes.ts 有 /wallet/:registrationId/deduct
+grep -n "deduct\|redeem" \
+  LinkCard_ExpressJS_Backend/src/events/routes/premium.routes.ts
+
+# idempotencyKey 不存在（M-3）— 預期：全庫零命中
+grep -rn "idempotencyKey" LinkCard_ExpressJS_Backend/src \
+  LinkCard_ExpressJS_Backend/prisma/schema.prisma
+
+# by-code 限流（B-5）— 預期：windowMs 5min / limit 20 / IP
+sed -n '12,26p' \
+  LinkCard_ExpressJS_Backend/src/events/routes/registrations.routes.ts
+
+# App 從未 build（U-5）— 預期：tests 目錄不存在
+ls LinkCard_Event_Admin_App_Expo/tests 2>&1
+```
+
+---
+
+<!-- End of doc 16. 證據基準：doc 13 (6173965..9a1caff) / doc 14 (d1cb038..fe2ec4f) / doc 15 (a303770..0777210) / doc 16 (4071a95 + R2 修正) / Handoff v1.0-r5 / Contract v1.0-r4 -->
