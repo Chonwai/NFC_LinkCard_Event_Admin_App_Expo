@@ -5,7 +5,7 @@
 > **品質合約**：strict（Pass Threshold 93）/ L3 Deep Dive
 > **交付目標**：供 feiteng2015 與用戶決策 11 月活動的整體方向
 > **證據基準**：doc 13 `e3c68b8` / doc 14 `fe2ec4f` / Plan v1 v1.0-r5 / Handoff v1.0-r5
-> **文件狀態**：§1 願景與定位（1/5）
+> **文件狀態**：完成（§1–§5 + 附錄）｜ 5 章節 hackathon commits 完成
 
 ---
 
@@ -444,4 +444,110 @@ doc 14 §5（批次寫入架構）+ §6（工具鏈實作路徑）定義的技�
 | B-1a 延後 > 1 週 | F-02 整條平移 → W-32 撞彩排週 | 後端每週 3 人日假設需維持；B-1a 列最高優先 |
 | NFC 採購延後 | Gate 1 無法 9/28 執行 | 9/22 淘寶下單硬期限；本地通路 buffer |
 | 前端產能 < 3.5 人日/週 | 批次 1 溢出 | 裁決 C-18：承認 2.7 週或移出 buffer pool |
+
+---
+
+## §5 風險總覽與決策建議
+
+### 5.1 Top 10 風險（彙整 doc 13 / doc 14 / Handoff / Plan v1）
+
+| # | 風險 | 機率 | 影響 | 來源 | 緩解 | 監測指標 |
+| :-: | --- | :-: | :-: | --- | --- | --- |
+| **R1** | **開場尖峰 by-code 429**（20 次/5min/IP，NAT 共用出口必爆） | 高 | 🔴 高 | doc 13 T-2 / Handoff TL;DR #7 | **B-5 是模組 A 硬依賴**（doc 13 §4.2）；前端 429 退避 | 限流是否改 key + B-5 交付日 |
+| **R2** | **OPERATOR 讀名單全數 403** | 高 | 🔴 高 | doc 13 T-1 / Handoff TL;DR #6 | 1 行改動 `getEventWriteAccess` → `getEventOperatorAccess` + 迴歸測試 | 以 OPERATOR token 實測 |
+| **R3** | **讀寫器到貨延遲** | 中 | 🔴 高 | doc 14 R1 | 9/22 淘寶下單硬期限；本地通路 buffer 9/27 | 是否 9/22 完成下單 |
+| **R4** | **macOS × ACR122U 不相容** | 低-中 | 🔴 高 | doc 14 R2 | Gate 1 spike 先行；備援 ACR1252U / RC-S380 | 9/28 spike 結果 |
+| **R5** | **B-1a 延後（冪等 migration + 強化）** | 中 | 🔴 高 | doc 13 M-3/M-1；Handoff §3.1 | B-1a 列後端最高優先；`idempotencyKey` migration 提前排 | F-02 是否 10/06 開工 |
+| **R6** | **真機 0 / EAS build 0 / 自動化測試 0** | 確定 | 🟡 中-高 | doc 13 §2.5 | W-32 真機 E2E；EAS init（W-06）；設備準備 | Android/iOS 實機到場 |
+| **R7** | **wallet 稽核斷鏈**（只記 `approvedBy` 無發起人） | 中 | 🟡 中 | doc 13 M-4 | B-1b 補 `initiatedBy` 欄位 | migration 是否含新欄位 |
+| **R8** | **`/nfc/batch*` 契約不符**（complete 格式未確認） | 低-中 | 🟡 中 | doc 14 R5 / U-1 | 實測確認（doc 13 §4 穩健性）；桌面工具本地 mapping 備援 | 阿聰 9/28 前確認 |
+| **R9** | **前端產能假設失準**（假設 3.5 人日/週） | 中 | 🟡 中 | Handoff §3.1 | 裁決 C-18（承認 2.7 週或移 buffer） | 批次 1 是否 10/05 完成 |
+| **R10** | **W0 決策延後 > 1 週** | 中 | 🟡 中 | Handoff §3.1「唯一會斷鏈的情境」 | 決策清單週內拍板；並行準備 | 9/22 前決策完成數 |
+
+### 5.2 決策建議（給 feiteng2015 與用戶）
+
+#### 決策 1：11 月是否做 NFC？
+
+> **建議：做，但以「Gate 通過」為前提——9/28 Gate 1 spike 是唯一判準，不做無條件承諾。**
+
+| 路徑 | 觸發 | 行動 | 影響 |
+| --- | --- | --- | --- |
+| ✅ **NFC 全開** | Gate 1-4 全過 | NTAG215 手帶 + ACR122U/1252U + Node.js 桌面工具批量寫卡 | 最完整體驗；名片交換 KPI-3 可收集 |
+| 🟡 **QR 手帶**（降級 A） | 物流失敗（Gate 4 前） | 手帶印 QR 而非嵌 NFC | 失去 NFC 體驗；QR 簽到 + Token 完整 |
+| 🟡 **App 逐張寫卡**（降級 B） | 工具開發不及（Gate 2/3） | Android Admin App walk-in 發卡 | 展商改現場發卡；排隊增加 |
+| ❌ **QR-only**（降級 C） | spike 失敗（Gate 1） | 完全放棄 NFC | 開發風險最低；KPI-3 無法收集 |
+
+> **證據（doc 14 §8.1/8.3）**：11 月 NFC 的可行性取決於「讀寫器 spike 是否成功」與「採購能否在 9/22–9/27 到貨」。**最後下單日是 9/22（4 天後）。若 9/22 未下單，等於自動選擇降級路徑。**
+
+#### 決策 2：工作優先順序（11 月）
+
+> **建議：以「閉環優先於功能、數據優先於體驗」排序。**
+
+| 優先 | 工作項 | 理由 |
+| :-: | --- | --- |
+| **P0-1** | **後端 B-5（限流）+ T-1（OPERATOR 403）** | 兩者不動，模組 A/D 根本無法運營（doc 13 T-1/T-2） |
+| **P0-2** | **後端 B-1a（Token 帳務冪等）** | 模組 B 的關鍵路徑；`idempotencyKey` 需 migration 前置 |
+| **P0-3** | **前端批次 1（9.5 日）** | 零後端依賴，第 1 天可開工（Handoff §TL;DR #1） |
+| **P0-4** | **NFC 採購 + Gate 1 spike** | 9/22 下單才行；決定 11 月是否 NFC |
+| **P1-1** | 前端批次 2（Token 櫃台，Web） | 依 B-1a；11 月生命線（Plan v1 §七「模組 A+B+D 是 11 月的生命線」） |
+| **P1-2** | W-26/W-28 簽到體驗（票種/餘額/音效/震動） | 現場體驗必需；無音效降級可接受 |
+| **P2-1** | 模組 E Credential | **建議 11 月不做**（doc 13 §6.4 建議 (b) 延後，釋放 2.0 BE 人日） |
+| **P2-2** | 完整儀表板/時段曲線 | 用 App 降級版（`pagination.total`）即可，完整版 Phase B |
+
+#### 決策 3：Token 櫃台做在哪一端？
+
+> **建議：Web，不做 App。** 現場「攤位扣點」是資訊密集型（餘額+品項+流水），Web 已有 `lib/events/wallet.ts` facade 可複用，後端 4 端點已 live——投入到已有 8 成基礎的 Web 效益更高（doc 13 §5.6）。
+
+#### 決策 4：音效套件
+
+> **建議：`expo-audio`（SDK 57 官方音訊庫）或無音效降級。** `expo-av` 已 deprecated 且 SDK 55 移除（Handoff W-28 / doc 13 T-7）。此決策需在批次 1 結束前拍板，否則 W-28 無法驗收。
+
+#### 決策 5：模組 E（Credential）
+
+> **建議：延後至 Phase B。** doc 13 §3.5 實測確認 `EventCredential` 模型不存在，11 月承諾範圍應排除（釋放 2.0 BE 人日轉投 T-1/M-3/M-4）。
+
+### 5.3 風險匯總表（三階段）
+
+| 階段 | 致命風險（不可降級） | 重大風險（可緩解） | 可接受風險（有降級） |
+| --- | --- | --- | --- |
+| **Phase A** | R1（429）、R2（403） | R3/R4（NFC 硬體）、R5（B-1a） | R6（真機）、R8（batch 契約） |
+| **Phase B** | — | 離線同步衝突（N-1） | Credential 重工、翻譯延誤 |
+| **Phase C** | 通用積分帳務錯誤 | 租戶隔離資料外洩 | B2B 配對準確率 |
+
+### 5.4 一句話決策總結
+
+> **11 月：先解 B-5 + T-1（否則無法運營），前後端並行開工，NFC 依 Gate 1–4 逐步判定（9/22 必須下單）。12 月：以 11 月 KPI 數據決定 Phase B 優先序。2027：驗證「會員獲取機器」→「商業網絡平台」的演進。**
+
+---
+
+## 附錄 A：引用來源清單
+
+| 代號 | 文件 | 路徑 | 關鍵章節 |
+| :-: | --- | --- | --- |
+| **doc 13** | App vs Web 功能差距矩陣 | `LinkCard_Event_Admin_App_Expo/docs/research/13-app-vs-web-feature-gap-matrix.md` | §2 四端定位、§3 模組矩陣、§4 stale claim、§5 責任分工、§6 交棒結論 |
+| **doc 14** | NFC 硬體方案與批次寫入 | `LinkCard_Event_Admin_App_Expo/docs/research/14-nfc-hardware-and-batch-write-research.md` | §2 晶片規格、§4 比較表、§5 批次架構、§6 工具鏈、§7 成本到貨、§8 決策 Gate、§9 風險 |
+| **Plan v1** | Event Admin App 深度需求整理 | `docs/LinkCard Event related/20260917_LinkCard_Event_Admin_App_Plan_v1.md` | §一 定位、§二 模組 A-G、§五 非功能、§六 待決策、§七 排期、§十 戰略 |
+| **Handoff** | Admin App 前端施工計畫 | `LinkCard_Event_Admin_App_Expo/docs/20260915_AdminApp_Handoff_for_feiteng2015.md` | §1 TL;DR、§3 三批施工、§4 W-ID、§4.4 前置、§6 非功能 |
+| **Contract** | API 契約凍結 | `LinkCard_Event_Admin_App_Expo/docs/20260915_AdminApp_API_Contract_Freeze_v1.md` | 端點/錯誤碼/權限（§2 行號漂移聲明） |
+
+## 附錄 B：章節 commit 對照
+
+| 章節 | 內容 | Commit |
+| :-: | --- | --- |
+| §1 | 願景與定位 | `a303770` |
+| §2 | 三階段路線圖 | `ead5118` |
+| §3 | 資源與依賴分析 | `b358726` |
+| §4 | 排期與里程碑 | `95f496c` |
+| §5 + 附錄 | 風險總覽與決策建議 | （本 commit） |
+
+驗證指令：
+
+```bash
+cd /Users/chonwai/Desktop/Self/Lab/LinkCard/LinkCard_Event_Admin_App_Expo
+git log --oneline -6 -- docs/research/15-admin-app-strategic-roadmap.md
+```
+
+---
+
+**文件結束** ｜ 產出日 2026-09-18 ｜ 策略基準：doc 13（`e3c68b8`）+ doc 14（`fe2ec4f`）+ Plan v1（v1.0-r5）+ Handoff（v1.0-r5）
 
