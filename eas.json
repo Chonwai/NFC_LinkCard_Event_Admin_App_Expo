@@ -6,13 +6,25 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://staging-api.link-card.xyz",
+        "EXPO_PUBLIC_WEB_URL": "https://staging.link-card.xyz"
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://staging-api.link-card.xyz",
+        "EXPO_PUBLIC_WEB_URL": "https://staging.link-card.xyz"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://linkcard.xyz",
+        "EXPO_PUBLIC_WEB_URL": "https://linkcard.xyz"
+      }
     }
   },
   "submit": {

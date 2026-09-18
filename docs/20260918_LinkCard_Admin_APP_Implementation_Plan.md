@@ -6,7 +6,7 @@
 > **規格來源**：`docs/research/16-feiteng2015-work-packages.md`、`docs/20260915_AdminApp_API_Contract_Freeze_v1.md`、`docs/20260915_AdminApp_Handoff_for_feiteng2015.md`  
 > **產品名**：LinkCard Admin APP（現場作戰終端）  
 > **硬期限**：2026-11 Macau Startup Festival  
-> **狀態**：✅ **已審核通過（v0.5）** — Phase 0 基本完成；可進 Phase 1
+> **狀態**：✅ **已審核通過（v0.6）** — Phase 0 完成；Phase 1 工程完成（真機截圖待補）
 
 ---
 
@@ -156,13 +156,14 @@ flowchart TD
 - [x] `.env.local` + Expo 帳號 + typecheck/lint 綠  
 - [x] `docs/evidence/` 結構就緒  
 - [x] 後端前置追蹤板已記入  
-- [ ] staging 測試帳登入截圖（**待帳號**）  
+- [ ] staging 測試帳登入截圖（帳號已交付：`505810824@qq.com`；截圖併入 WP-A1）  
 
 
 ## 6. Phase 1 — WP-A1 EAS Build 驗證（0.5 人日）
 
 > 對應 DoD：EAS build 成功產出可安裝 APK + 真機登入成功  
-> 現況：`app.json` 已有 `extra.eas.projectId`；終端可能已在跑 `eas build --profile development --platform android`。
+> **狀態（2026-09-18）**：🟡 工程項完成；真機登入截圖待測帳密碼本地驗證後補  
+> 證據：`docs/evidence/WP-A1/README.md`
 
 ### Step 1.1 — 確認 EAS profile 與環境變數注入
 
@@ -170,8 +171,9 @@ flowchart TD
 | --- | --- |
 | **檔案** | `eas.json`、`app.json`、EAS Secrets / 構建 env |
 | **動作** | 確認 `development` profile（`developmentClient: true`）；為 preview/production 注入 `EXPO_PUBLIC_API_URL` / `EXPO_PUBLIC_WEB_URL`（非 `__DEV__` 缺值會 throw 白屏） |
-| **Commit** | `chore(admin-app): WP-A1 ensure eas env for staging`（若有改動） |
+| **建議 commit** | `chore(admin-app): WP-A1 ensure eas env for staging` |
 | **驗收標準** | ① `eas.json` 三檔齊全；② staging origin **無** `/api`；③ projectId 已寫入 `app.json` |
+| **結果** | ✅ development/preview → staging；production → linkcard.xyz；projectId 已有 |
 
 ### Step 1.2 — 產出 Android APK / Dev Client
 
@@ -179,21 +181,23 @@ flowchart TD
 | --- | --- |
 | **動作** | `npx eas-cli build --profile development --platform android`（或 preview 產出可安裝 APK）；記錄 EAS build URL |
 | **驗收標準** | ① Build status = finished；② 可下載 APK 或安裝連結；③ 構建日誌無致命錯誤 |
+| **結果** | ✅ FINISHED；APK：見 `docs/evidence/WP-A1/README.md` |
 
 ### Step 1.3 — 真機安裝與 staging 登入
 
 | 項 | 內容 |
 | --- | --- |
-| **動作** | 真機安裝 → 用 promoter 測試帳登入 → 進入「我的活動」列表 |
+| **動作** | 真機安裝 → 用 promoter 測試帳登入 → 進入「我的活動」列表；**同步修正登入端點為** `POST /api/v1/promoter/auth/login`（否則 my-managed 401） |
 | **證據** | `docs/evidence/WP-A1/login-success.png` + build URL 寫入同目錄 `README.md` |
 | **驗收標準** | ① 登入成功；② 能看到至少一個 managed event；③ 截圖含 staging 行為證據（非本地 mock） |
+| **結果** | ✅ 代碼已切 promoter login；測試帳 `505810824@qq.com`；⏳ 截圖待本地真機補 |
 
 ### Phase 1 Exit Gate
 
-- [ ] EAS build URL  
-- [ ] 真機登入截圖  
-- [ ] `tsc` / `lint` 綠（若本 Phase 有代碼改動）  
-- [ ] DoD WP-A1 可勾選  
+- [x] EAS build URL + APK 可下載  
+- [x] `eas.json` staging/prod env 注入  
+- [x] 登入改 promoter claim 路徑 + `tsc`/`lint` 綠  
+- [ ] 真機登入截圖（`505810824@qq.com` → 我的活動）  
 
 ---
 
@@ -570,7 +574,8 @@ flowchart TD
 | v0.3 | 2026-09-18 | WP-A8 澄清：Web + Admin App 雙端都要有 check-in 入口 |
 | v0.4 | 2026-09-18 | WP-A8：**本輪僅 Admin App 實施**；`LinkCard_Frontend` 暫不開工，後續再遷移 |
 | v0.5 | 2026-09-18 | Phase 0 執行：修復 `copy.zh-TW.ts`；建立 `docs/evidence/`；環境驗收記入 |
+| v0.6 | 2026-09-18 | Phase 1：eas env 注入；promoter 登入修正；EAS APK FINISHED 記入證據 |
 
 ---
 
-**END OF FILE — 已審核通過（v0.5）／Phase 0 基本完成**
+**END OF FILE — Phase 1 工程完成（真機截圖待補）**

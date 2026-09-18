@@ -29,6 +29,8 @@ export const copy = {
     errorServer: (status: number | null) =>
       `伺服器暫時無法回應（${status ?? "未知"}），請稍後再試。`,
     errorUnknown: "登入失敗，請稍後再試。",
+    errorNoPromoterAccess: "此帳號沒有活動營運權限，請聯絡管理員開通。",
+    errorRateLimited: "嘗試次數過多，請稍後再試。",
   },
   home: {
     title: "我的活動",
