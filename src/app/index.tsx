@@ -24,12 +24,10 @@ import { layout, semantic, space, spacing, type } from "@/constants/theme";
 import { authService } from "@/services/auth.service";
 import { useAuthStore } from "@/stores/auth.store";
 import {
-  getApiErrorCode,
   getApiErrorStatus,
   isNetworkError,
   isServerError,
 } from "@/utils/api-error";
-import { PromoterAccessError } from "@/utils/login-error";
 import {
   type SessionNotice,
   clearSessionNotice,
@@ -72,18 +70,6 @@ export default function LoginScreen() {
 
   const classifyLoginError = (error: unknown): LoginBanner => {
     const status = getApiErrorStatus(error);
-    const code = getApiErrorCode(error);
-
-    if (
-      error instanceof PromoterAccessError ||
-      code === "PROMOTER_ACCESS_REQUIRED"
-    ) {
-      return { tone: "danger", message: copy.auth.errorNoPromoterAccess };
-    }
-
-    if (code === "PROMOTER_SUSPENDED") {
-      return { tone: "danger", message: copy.auth.accountSuspended };
-    }
 
     // 401 = 帳號或密碼錯誤
     if (status === 401) {
@@ -93,10 +79,6 @@ export default function LoginScreen() {
     // 403 = 帳號停用
     if (status === 403) {
       return { tone: "danger", message: copy.auth.accountSuspended };
-    }
-
-    if (status === 429) {
-      return { tone: "warning", message: copy.auth.errorRateLimited };
     }
 
     if (isNetworkError(error)) {

@@ -28,7 +28,7 @@
 
 | 項 | 結果 |
 | --- | --- |
-| 登入端點 | ✅ 已改為 `POST /api/v1/promoter/auth/login` + `GET /api/users/me`（handoff P-6） |
+| 登入端點 | ✅ 暫用 `POST /api/auth/login` + `GET /api/users/me`（promoter claim **延後**） |
 | `tsc` / `lint` | ✅ 全綠 |
 | 真機安裝 | ⏳ 請安裝上方 APK / Dev Client |
 | staging 登入截圖 | ⏳ 用 `505810824@qq.com` 登入後放入本目錄 `login-success.png` |

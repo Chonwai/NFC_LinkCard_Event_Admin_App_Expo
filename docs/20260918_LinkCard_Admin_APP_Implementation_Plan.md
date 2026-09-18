@@ -187,16 +187,16 @@ flowchart TD
 
 | 項 | 內容 |
 | --- | --- |
-| **動作** | 真機安裝 → 用 promoter 測試帳登入 → 進入「我的活動」列表；**同步修正登入端點為** `POST /api/v1/promoter/auth/login`（否則 my-managed 401） |
+| **動作** | 真機安裝 → 用測試帳登入 → 進入「我的活動」列表；**登入暫用** `POST /api/auth/login`（promoter claim 路徑後續再切） |
 | **證據** | `docs/evidence/WP-A1/login-success.png` + build URL 寫入同目錄 `README.md` |
 | **驗收標準** | ① 登入成功；② 能看到至少一個 managed event；③ 截圖含 staging 行為證據（非本地 mock） |
-| **結果** | ✅ 代碼已切 promoter login；測試帳 `505810824@qq.com`；⏳ 截圖待本地真機補 |
+| **結果** | ✅ 代碼維持 `/api/auth/login`；測試帳 `505810824@qq.com`；⏳ 截圖待本地真機補 |
 
 ### Phase 1 Exit Gate
 
 - [x] EAS build URL + APK 可下載  
 - [x] `eas.json` staging/prod env 注入  
-- [x] 登入改 promoter claim 路徑 + `tsc`/`lint` 綠  
+- [x] 登入維持 `/api/auth/login` + `tsc`/`lint` 綠（promoter 路徑延後）  
 - [ ] 真機登入截圖（`505810824@qq.com` → 我的活動）  
 
 ---

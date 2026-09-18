@@ -32,21 +32,10 @@ export interface AuthUser {
   username: string;
   /** Backend returns snake_case field name from the User model */
   display_name?: string;
-  /**
-   * 推廣者／活動營運身分。`GET /api/users/me` 在無此身分時回 `null`。
-   * WP-A1：登入必須走 promoter claim 路徑後再讀此欄。
-   */
-  promoterRole?: {
-    id?: string;
-    roleType?: string;
-    status?: string;
-  } | null;
 }
 
 export interface LoginResponse {
   token: string;
-  /** 秒；promoter login 會回，目前 App 不消費 TTL */
-  expiresIn?: number;
   user: AuthUser;
 }
 
