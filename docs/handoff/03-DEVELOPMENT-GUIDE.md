@@ -29,6 +29,7 @@ LinkCard_Event_Admin_App_Expo/        ← 你在這裡（App）
 ```
 
 **對應 repo**：
+
 - Web（Next.js）→ `LinkCard_Frontend`
 - Backend（Express + Prisma）→ `LinkCard_ExpressJS_Backend`
 - Promoter App（可覆用 NFC 寫卡）→ `LinkCard_Promoter_App_Expo`
@@ -37,12 +38,12 @@ LinkCard_Event_Admin_App_Expo/        ← 你在這裡（App）
 
 ## 2. Branch 策略
 
-| 規則 | 內容 |
-|---|---|
-| 主分支 | `main`（穩定）／`development`（整合）|
+| 規則            | 內容                                              |
+| --------------- | ------------------------------------------------- |
+| 主分支          | `main`（穩定）／`development`（整合）             |
 | 每 WP 開 branch | `wp-a4-token-counter`、`wp-a7-checkin-haptics` 等 |
-| 完成後 | 開 PR 給用戶本人覆核 |
-| **禁止** | 直接 push main / development |
+| 完成後          | 開 PR 給用戶本人覆核                              |
+| **禁止**        | 直接 push main / development                      |
 
 ---
 
@@ -64,12 +65,12 @@ LinkCard_Event_Admin_App_Expo/        ← 你在這裡（App）
 
 ## 4. 測試與品質門檻
 
-| 檢查 | 指令 | 門檻 |
-|---|---|---|
-| TypeScript | `npx tsc --noEmit` | 0 error |
-| Lint | `npm run lint` | 0 error |
-| 測試 | `npm test`（若有）| 全綠 |
-| **真機/瀏覽器驗證** | 手動 | **必做**（tsc 過 ≠ 可用！）|
+| 檢查                | 指令               | 門檻                        |
+| ------------------- | ------------------ | --------------------------- |
+| TypeScript          | `npx tsc --noEmit` | 0 error                     |
+| Lint                | `npm run lint`     | 0 error                     |
+| 測試                | `npm test`（若有） | 全綠                        |
+| **真機/瀏覽器驗證** | 手動               | **必做**（tsc 過 ≠ 可用！） |
 
 > ⚠️ doc 13 §6.1 警示：**「tsc ✅」不等於「可用」**。App 過去從未在真機跑過（真機 0 / 自動化測試 0 / EAS build 0）。每個 WP 完成都要**真機/瀏覽器截圖或錄影**。
 
@@ -78,9 +79,11 @@ LinkCard_Event_Admin_App_Expo/        ← 你在這裡（App）
 ## 5. 環境變數
 
 `.env.local`（勿 commit）：
+
 ```
 EXPO_PUBLIC_API_URL=https://staging-api.link-card.xyz
 ```
+
 > ⚠️ `config.ts` 是 fail-closed + origin-only（安全設定）。改動前先看現有邏輯。
 
 ---
@@ -94,4 +97,3 @@ EXPO_PUBLIC_API_URL=https://staging-api.link-card.xyz
 5. `docs/handoff/04-KNOWN-PITFALLS.md`（踩雷）
 6. `docs/handoff/05-WORK-PACKAGES-QUICK-REF.md`（工作包）
 7. 深入時：`docs/research/16-feiteng2015-work-packages.md`（完整規格）
-

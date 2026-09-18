@@ -17,21 +17,21 @@
 
 ## 報告結構索引
 
-| 文件 | 內容 | 對應你的問題 |
-|---|---|---|
-| `01-completion-audit.md` | 藍圖 vs 完成度**對照矩陣**（Engineering Spec §4/§5 + 批量設計軌道 3 + API 消費清單） | 「完成多少？」 |
-| `02-verification-gaps.md` | **驗證層級盤點**（有代碼/E2E/真機三層）+ P0/P1/P2 **空缺清單** | 「有進行到開發嗎？哪些可信？」 |
-| `03-restart-roadmap.md` | **重啟路徑 8 步**（含 EAS/TestFlight/CORS/品牌資產）+ 風險表 | 「怎麼重啟？」 |
-| `04-loop-state-appendix.md` | 5 個歷史 loop state 摘要 + 完整時間線 | 「之前發生過什麼？」 |
-| `05-handover-blueprint.md` | **交接前開發藍圖**：Web vs App 差距矩陣 + 未開發功能盤點 + Sprint 計畫 + 證據清單 | 「下一步做什麼？交接前補哪些？」 |
-| `05b-meeting-blueprint.md` | **會議整合**：20260914 Meeting 1 + Token v11.3 + 交接藍圖 三來源覆蓋矩陣 + 整合方法 | 「會議討論的功能怎麼落地？」 |
-| `06-feature-list.md` | **功能開發清單**：差異分析（A1 完整/A2 增強/A3 新增/A4 不做）+ P0/P1/P2 完整功能表 | 「要做哪些功能？」 |
-| `07-mvp-schedule.md` | **MVP 排期**：6 週倒推 + 依賴關鍵路徑 + 風險 + 施工順序 | 「11月前怎麼排？」 |
-| `08-appendix.md` | **附錄**：會議 7 決策 ↔ v11.3 D 系列對齊 + UAT + 證據清單 + 戰略層整合 | 「待決策項 & 驗收標準」 |
-| `09-feasibility-review.md` | **交接可行性複審**：10 個 P0 逐項裁決（可開發/阻斷）+ 5 個硬阻斷項 + 契約漂移 + 外派協作風險 + 10 項待裁決 | 「這些內容真的做得出來嗎？」 |
-| `10-app-completion-audit.md` | **App 完成度審計**：14 個 `src/` commit 逐條 + 7 畫面 × 四態 + 10 service 方法 + 48 項死碼 + 9 條旅程 + AU-01..AU-11 未驗證清單 | 「**我做到哪了？還缺什麼？**」 |
-| `11-app-defect-register.md` | **缺陷冊 + 死碼清理清單**：A0..A9 十個缺陷（症狀/根因/重現/最小修法/驗收/歸屬）+ 可刪 vs **絕對不可刪** 對照 | 「**能 build 嗎？哪裡壞了？怎麼修？**」 |
-| `12-app-feature-inventory.md` | **功能現況盤點（交接用）**：35 項可用功能 + 11 頁 × 四態 + 9 條旅程 + 與 09-16 審計的逐項差異 + 四分類缺口 | 「**現在到底有什麼功能？**」 |
+| 文件                          | 內容                                                                                                                            | 對應你的問題                            |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `01-completion-audit.md`      | 藍圖 vs 完成度**對照矩陣**（Engineering Spec §4/§5 + 批量設計軌道 3 + API 消費清單）                                            | 「完成多少？」                          |
+| `02-verification-gaps.md`     | **驗證層級盤點**（有代碼/E2E/真機三層）+ P0/P1/P2 **空缺清單**                                                                  | 「有進行到開發嗎？哪些可信？」          |
+| `03-restart-roadmap.md`       | **重啟路徑 8 步**（含 EAS/TestFlight/CORS/品牌資產）+ 風險表                                                                    | 「怎麼重啟？」                          |
+| `04-loop-state-appendix.md`   | 5 個歷史 loop state 摘要 + 完整時間線                                                                                           | 「之前發生過什麼？」                    |
+| `05-handover-blueprint.md`    | **交接前開發藍圖**：Web vs App 差距矩陣 + 未開發功能盤點 + Sprint 計畫 + 證據清單                                               | 「下一步做什麼？交接前補哪些？」        |
+| `05b-meeting-blueprint.md`    | **會議整合**：20260914 Meeting 1 + Token v11.3 + 交接藍圖 三來源覆蓋矩陣 + 整合方法                                             | 「會議討論的功能怎麼落地？」            |
+| `06-feature-list.md`          | **功能開發清單**：差異分析（A1 完整/A2 增強/A3 新增/A4 不做）+ P0/P1/P2 完整功能表                                              | 「要做哪些功能？」                      |
+| `07-mvp-schedule.md`          | **MVP 排期**：6 週倒推 + 依賴關鍵路徑 + 風險 + 施工順序                                                                         | 「11月前怎麼排？」                      |
+| `08-appendix.md`              | **附錄**：會議 7 決策 ↔ v11.3 D 系列對齊 + UAT + 證據清單 + 戰略層整合                                                          | 「待決策項 & 驗收標準」                 |
+| `09-feasibility-review.md`    | **交接可行性複審**：10 個 P0 逐項裁決（可開發/阻斷）+ 5 個硬阻斷項 + 契約漂移 + 外派協作風險 + 10 項待裁決                      | 「這些內容真的做得出來嗎？」            |
+| `10-app-completion-audit.md`  | **App 完成度審計**：14 個 `src/` commit 逐條 + 7 畫面 × 四態 + 10 service 方法 + 48 項死碼 + 9 條旅程 + AU-01..AU-11 未驗證清單 | 「**我做到哪了？還缺什麼？**」          |
+| `11-app-defect-register.md`   | **缺陷冊 + 死碼清理清單**：A0..A9 十個缺陷（症狀/根因/重現/最小修法/驗收/歸屬）+ 可刪 vs **絕對不可刪** 對照                    | 「**能 build 嗎？哪裡壞了？怎麼修？**」 |
+| `12-app-feature-inventory.md` | **功能現況盤點（交接用）**：35 項可用功能 + 11 頁 × 四態 + 9 條旅程 + 與 09-16 審計的逐項差異 + 四分類缺口                      | 「**現在到底有什麼功能？**」            |
 
 ---
 
@@ -39,20 +39,21 @@
 
 > **VERIFY 結果：PASS — 95.1 / 100**（strict 門檻 93）
 
-| 缺陷 | 修復 | 驗證 |
-| --- | --- | --- |
-| **A0** 🔴 | `config.ts` origin-only + fail-closed guard + `.env.example` | ✅ |
-| **A1** 🔴 | `home` 錯誤橫幅改讀 store `error` | ✅ |
-| **A2** 🟠 | `EventStatus` 對齊後端 enum（6 值） | ✅ |
-| **A3** 🟠 | `checkIn` 回傳值 → 結果卡 5 欄身分核對 | ✅ |
-| **A4** 🟠 | 登出清活動快取（dynamic import 避 cycle） | ✅ |
-| **A5** 🟡 | 移除死狀態 `currentEventId` | ✅ |
-| **A6** 🟠 | 26 行硬編中文 → copy 層（3 新 namespace） | ✅ |
-| **A7** 🟠 | `payloadUrl` 改用 `WEB_BASE_URL` | ✅ |
-| **A8** 🟡 | 移除 `?? fallback` 掩蓋 | ✅ |
-| **A9** 🟡 | 逾時碼分類放寬（4 碼 + `code` 優先） | ✅ |
+| 缺陷      | 修復                                                         | 驗證 |
+| --------- | ------------------------------------------------------------ | ---- |
+| **A0** 🔴 | `config.ts` origin-only + fail-closed guard + `.env.example` | ✅   |
+| **A1** 🔴 | `home` 錯誤橫幅改讀 store `error`                            | ✅   |
+| **A2** 🟠 | `EventStatus` 對齊後端 enum（6 值）                          | ✅   |
+| **A3** 🟠 | `checkIn` 回傳值 → 結果卡 5 欄身分核對                       | ✅   |
+| **A4** 🟠 | 登出清活動快取（dynamic import 避 cycle）                    | ✅   |
+| **A5** 🟡 | 移除死狀態 `currentEventId`                                  | ✅   |
+| **A6** 🟠 | 26 行硬編中文 → copy 層（3 新 namespace）                    | ✅   |
+| **A7** 🟠 | `payloadUrl` 改用 `WEB_BASE_URL`                             | ✅   |
+| **A8** 🟡 | 移除 `?? fallback` 掩蓋                                      | ✅   |
+| **A9** 🟡 | 逾時碼分類放寬（4 碼 + `code` 優先）                         | ✅   |
 
 **額外修復**（VERIFY 過程發現）：
+
 - **N1** 🔴 **跨帳號活動污染**：`clear()` 後舊 in-flight 回應仍寫回 store → 加 `requestId` 世代守衛（harness 實測兩種時序皆 `LEAK=NO`）
 - **F1/F2/L2/L3/N2/N4**：`clear()` 重置 `loading`、共用 `event-status`、統一 fallback、抽出世代述詞、可達 fallback、檔尾換行
 
@@ -64,12 +65,13 @@
 
 > 回答「**之前開發到那些地步 / 那些做了 / 那些還沒做（排除後端 API）**」
 
-| 文件 | 讀者 | 用途 |
-|---|---|---|
-| `docs/research/10-app-completion-audit.md` | **用戶** | 完成度量化 + 我做了什麼 + 缺少什麼 |
-| `docs/research/11-app-defect-register.md` | **feiteng2015** | 施工前的必修缺陷 + 死碼處理指引 |
+| 文件                                       | 讀者            | 用途                               |
+| ------------------------------------------ | --------------- | ---------------------------------- |
+| `docs/research/10-app-completion-audit.md` | **用戶**        | 完成度量化 + 我做了什麼 + 缺少什麼 |
+| `docs/research/11-app-defect-register.md`  | **feiteng2015** | 施工前的必修缺陷 + 死碼處理指引    |
 
 **核心結論**：
+
 - ⏸️ **App 程式碼自 2026-09-12（`040ebd4`）起完全未變動**——14 個 `src/` commit 全在同一天；其後 32 個 commit 全是文件
 - 📐 **規模**：`src/` 36 檔 / 4674 行；**7 個實際畫面**（10 個 route 檔含 3 layout）；route 註冊 **0 缺口**
 - 📊 **完成度**：畫面功能完整 **4/7**；四態覆蓋 **21/28（75%）**；Service 完整驗證 **5/10**；Icon 使用率 **22/34**
@@ -86,14 +88,15 @@
 >
 > 當功能清單從「一人做」變成「兩人分工」，**契約必須先凍結**，否則介面會漂移。
 
-| 文件 | 位置 | 讀者 | 用途 |
-|---|---|---|---|
-| **前端施工計畫** | `docs/20260915_AdminApp_Handoff_for_feiteng2015.md` | feiteng2015 | **30 個 W-ID** × 三批次 × 前置條件 × mock 策略 |
-| **API 契約凍結規格 v1** | `docs/20260915_AdminApp_API_Contract_Freeze_v1.md` | 雙方 | 29 端點 🟢🟡🔴 + 錯誤碼 + 權限矩陣 |
-| **可行性複審** | `docs/research/09-feasibility-review.md` | 用戶 | 裁決依據 + 待決策清單 |
-| **後端待辦** | `LinkCard_ExpressJS_Backend/docs/20260915_AdminApp_Backend_TODOs.md` | 用戶 | 5 阻斷項 + 2 交付判定項（**B-6 / B-7**）施工化 + 排序論證 |
+| 文件                    | 位置                                                                 | 讀者        | 用途                                                      |
+| ----------------------- | -------------------------------------------------------------------- | ----------- | --------------------------------------------------------- |
+| **前端施工計畫**        | `docs/20260915_AdminApp_Handoff_for_feiteng2015.md`                  | feiteng2015 | **30 個 W-ID** × 三批次 × 前置條件 × mock 策略            |
+| **API 契約凍結規格 v1** | `docs/20260915_AdminApp_API_Contract_Freeze_v1.md`                   | 雙方        | 29 端點 🟢🟡🔴 + 錯誤碼 + 權限矩陣                        |
+| **可行性複審**          | `docs/research/09-feasibility-review.md`                             | 用戶        | 裁決依據 + 待決策清單                                     |
+| **後端待辦**            | `LinkCard_ExpressJS_Backend/docs/20260915_AdminApp_Backend_TODOs.md` | 用戶        | 5 阻斷項 + 2 交付判定項（**B-6 / B-7**）施工化 + 排序論證 |
 
 **核心結論**：
+
 - ✅ **5 個 P0 可立即開工**（**9.5** 人日，零後端依賴）：F-03 名單 / F-04 四大卡 / F-05 詳情 / F-08 EAS / F-10 Badge（含 2026-09-16 新增的 W-10..W-15）
 - 🚫 **4 個 P0 被後端阻斷**：F-02 Token（B-1）/ F-06 Credential（無模型）/ F-07 權限（B-4）/ F-01 部分（B-2、B-3）
 - 🔴 **5 個硬阻斷項**：B-1 帳務層 6 端點+冪等全缺 / B-2 checkIn 無覆核 / B-3 無閘口欄位 / B-4 VOLUNTEER 無授權 / B-5 by-code 限流 20次/5min/IP
@@ -104,16 +107,16 @@
 
 ## 關鍵數字速覽
 
-| 面向 | 現況 | 證據 |
-|---|---|---|
-| Commits | 27+5（scaffold→docs snapshot + handover blueprint） | `git log` @ `3e038a2` |
-| Build 健康度 | ✅ tsc 0 / eslint 0 / web export 成功 | 2026-09-14 實測 |
-| P0 功能代碼 | ✅ 8/10 頁面 + 全部 service | `src/app/` 22 檔案 |
-| E2E 驗證 | 🟡 12 項全為 web+staging（9/12） | `PROGRESS.md` |
-| 真機驗證 | ❌ 0 項（NFC/相機/SecureStore/bind） | PROGRESS 自認 + 代碼掃描 |
-| Deploy | ❌ EAS 未初始化、icon 為 Promoter 複製 | `app.json` 無 projectId |
-| 上次 loop 狀態 | active（VERIFY stage）但實質閉合 | `.edison/state/loop-event-admin-app-dev.md` |
-| **Web 後台功能** | ✅ 12/13 個 manage 頁全在 | `LinkCard_Frontend` `find` 實測 |
+| 面向             | 現況                                                | 證據                                        |
+| ---------------- | --------------------------------------------------- | ------------------------------------------- |
+| Commits          | 27+5（scaffold→docs snapshot + handover blueprint） | `git log` @ `3e038a2`                       |
+| Build 健康度     | ✅ tsc 0 / eslint 0 / web export 成功               | 2026-09-14 實測                             |
+| P0 功能代碼      | ✅ 8/10 頁面 + 全部 service                         | `src/app/` 22 檔案                          |
+| E2E 驗證         | 🟡 12 項全為 web+staging（9/12）                    | `PROGRESS.md`                               |
+| 真機驗證         | ❌ 0 項（NFC/相機/SecureStore/bind）                | PROGRESS 自認 + 代碼掃描                    |
+| Deploy           | ❌ EAS 未初始化、icon 為 Promoter 複製              | `app.json` 無 projectId                     |
+| 上次 loop 狀態   | active（VERIFY stage）但實質閉合                    | `.edison/state/loop-event-admin-app-dev.md` |
+| **Web 後台功能** | ✅ 12/13 個 manage 頁全在                           | `LinkCard_Frontend` `find` 實測             |
 
 ---
 
@@ -124,6 +127,7 @@
 **下一步策略**：Web 後台功能已完整（不需大改）；**Admin App 補強現場功能 + Deploy 基建**是主軸。
 
 **交接前必做 4 件事**（~10 小時）：
+
 1. `[eventId]/settings.tsx` 補頁（30 分）
 2. Registrations 列表頁（status filter + 分頁 + 查看，2 小時）— service 已存在
 3. EAS 初始化 + projectId（30 分）

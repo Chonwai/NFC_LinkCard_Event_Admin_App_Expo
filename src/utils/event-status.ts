@@ -1,5 +1,5 @@
-import { copy } from '@/constants/copy.zh-TW';
-import { semantic } from '@/constants/theme';
+import { copy } from "@/constants/copy.zh-TW";
+import { semantic } from "@/constants/theme";
 
 /**
  * 活動狀態（`EventStatus`）→ 顯示文字。
@@ -12,22 +12,22 @@ import { semantic } from '@/constants/theme';
  * （例：`ARCHIVED` 顯示英文）。
  */
 export const EVENT_STATUS_LABEL: Record<string, string> = {
-    DRAFT: copy.eventStatus.draft,
-    PUBLISHED: copy.eventStatus.published,
-    ONGOING: copy.eventStatus.ongoing,
-    COMPLETED: copy.eventStatus.completed,
-    CANCELLED: copy.eventStatus.cancelled,
-    ARCHIVED: copy.eventStatus.archived,
+  DRAFT: copy.eventStatus.draft,
+  PUBLISHED: copy.eventStatus.published,
+  ONGOING: copy.eventStatus.ongoing,
+  COMPLETED: copy.eventStatus.completed,
+  CANCELLED: copy.eventStatus.cancelled,
+  ARCHIVED: copy.eventStatus.archived,
 };
 
 /** 活動狀態 → 徽章色（對應 `semantic.status` tokens）。 */
 export const EVENT_STATUS_TONE: Record<string, keyof typeof semantic.status> = {
-    DRAFT: 'neutral',
-    PUBLISHED: 'available',
-    ONGOING: 'success',
-    COMPLETED: 'neutral',
-    CANCELLED: 'warning',
-    ARCHIVED: 'neutral',
+  DRAFT: "neutral",
+  PUBLISHED: "available",
+  ONGOING: "success",
+  COMPLETED: "neutral",
+  CANCELLED: "warning",
+  ARCHIVED: "neutral",
 };
 
 /**
@@ -38,6 +38,6 @@ export const EVENT_STATUS_TONE: Record<string, keyof typeof semantic.status> = {
  * 與 `home.tsx` 的 inline 表達式行為一致。
  */
 export function getEventStatusLabel(status: string | null | undefined): string {
-    if (!status) return '';
-    return EVENT_STATUS_LABEL[status] || status;
+  if (!status) return "";
+  return EVENT_STATUS_LABEL[status] || status;
 }

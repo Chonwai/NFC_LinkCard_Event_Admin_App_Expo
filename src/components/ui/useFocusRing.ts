@@ -1,6 +1,6 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState } from "react";
 
-import { components } from '@/constants/theme';
+import { components } from "@/constants/theme";
 
 /**
  * 只含 `outline*` 覆寫的最小結構型別。
@@ -11,41 +11,41 @@ import { components } from '@/constants/theme';
  * 同型，因此可同時套用到 `View` / `Pressable` / `TextInput`。
  */
 export interface FocusRingOutline {
-    outlineStyle?: 'solid' | 'dotted' | 'dashed';
-    outlineColor?: string;
-    outlineWidth?: number;
-    outlineOffset?: number;
+  outlineStyle?: "solid" | "dotted" | "dashed";
+  outlineColor?: string;
+  outlineWidth?: number;
+  outlineOffset?: number;
 }
 
 export interface FocusRingProps {
-    onFocus: () => void;
-    onBlur: () => void;
+  onFocus: () => void;
+  onBlur: () => void;
 }
 
 export interface FocusRing {
-    focused: boolean;
-    /** 掛到**被聚焦的那個** `Pressable` / `TextInput` 上 */
-    focusRingProps: FocusRingProps;
-    /**
-     * 品牌色聚焦環：掛到**被聚焦的那個節點**（`Pressable` 本身）上。
-     *
-     * 用 CSS outline 而非邊框，有三個理由：
-     * 1. **不動 layout**：`Chip` / checkbox / tab 的尺寸都量測過（tab 內容區只有
-     *    48 高，icon 28 + label 15 + marginTop 4 = 47，加 2px 上下邊框直接溢出）。
-     * 2. **必須掛在聚焦節點上**：Chromium 的 UA 橘框
-     *    （`outline: 1px auto rgb(229,151,0)`）畫在**被聚焦的元素**上。實測把
-     *    outline 覆寫寫在內層 View 時橘框依然存在——作者 inline style 只在
-     *    同一節點才勝過 UA 樣式。
-     * 3. `outlineColor` 直接吃 `components.focusRing.color`（`#7C3AED`），無游離 hex。
-     */
-    focusRingStyle: FocusRingOutline | undefined;
-    /**
-     * 只關掉 UA 聚焦框、不加任何可見外框（`outlineWidth: 0`）。
-     *
-     * 給**已經用邊框表達聚焦**的元件使用（`Button` / `Card` / `FieldInput`）：
-     * 既有視覺行為不動，只是不再出現「品牌紫邊框 + 橘色 UA 外框」的雙框。
-     */
-    focusRingResetStyle: FocusRingOutline | undefined;
+  focused: boolean;
+  /** 掛到**被聚焦的那個** `Pressable` / `TextInput` 上 */
+  focusRingProps: FocusRingProps;
+  /**
+   * 品牌色聚焦環：掛到**被聚焦的那個節點**（`Pressable` 本身）上。
+   *
+   * 用 CSS outline 而非邊框，有三個理由：
+   * 1. **不動 layout**：`Chip` / checkbox / tab 的尺寸都量測過（tab 內容區只有
+   *    48 高，icon 28 + label 15 + marginTop 4 = 47，加 2px 上下邊框直接溢出）。
+   * 2. **必須掛在聚焦節點上**：Chromium 的 UA 橘框
+   *    （`outline: 1px auto rgb(229,151,0)`）畫在**被聚焦的元素**上。實測把
+   *    outline 覆寫寫在內層 View 時橘框依然存在——作者 inline style 只在
+   *    同一節點才勝過 UA 樣式。
+   * 3. `outlineColor` 直接吃 `components.focusRing.color`（`#7C3AED`），無游離 hex。
+   */
+  focusRingStyle: FocusRingOutline | undefined;
+  /**
+   * 只關掉 UA 聚焦框、不加任何可見外框（`outlineWidth: 0`）。
+   *
+   * 給**已經用邊框表達聚焦**的元件使用（`Button` / `Card` / `FieldInput`）：
+   * 既有視覺行為不動，只是不再出現「品牌紫邊框 + 橘色 UA 外框」的雙框。
+   */
+  focusRingResetStyle: FocusRingOutline | undefined;
 }
 
 /**
@@ -65,31 +65,31 @@ export interface FocusRing {
  * `src/hooks/**`，而 helper 的消費者也全在 UI 層。
  */
 export function useFocusRing(): FocusRing {
-    const [focused, setFocused] = useState(false);
+  const [focused, setFocused] = useState(false);
 
-    const onFocus = useCallback(() => setFocused(true), []);
-    const onBlur = useCallback(() => setFocused(false), []);
+  const onFocus = useCallback(() => setFocused(true), []);
+  const onBlur = useCallback(() => setFocused(false), []);
 
-    const ringColor = components.focusRing.color;
-    const ringWidth = components.focusRing.width;
+  const ringColor = components.focusRing.color;
+  const ringWidth = components.focusRing.width;
 
-    return {
-        focused,
-        focusRingProps: { onFocus, onBlur },
-        focusRingStyle: focused
-            ? {
-                  outlineStyle: 'solid',
-                  outlineColor: ringColor,
-                  outlineWidth: ringWidth,
-                  /** 正值：外框畫在元素外緣，不遮住 label / icon */
-                  outlineOffset: 2,
-              }
-            : undefined,
-        focusRingResetStyle: focused
-            ? {
-                  outlineStyle: 'solid',
-                  outlineWidth: 0,
-              }
-            : undefined,
-    };
+  return {
+    focused,
+    focusRingProps: { onFocus, onBlur },
+    focusRingStyle: focused
+      ? {
+          outlineStyle: "solid",
+          outlineColor: ringColor,
+          outlineWidth: ringWidth,
+          /** 正值：外框畫在元素外緣，不遮住 label / icon */
+          outlineOffset: 2,
+        }
+      : undefined,
+    focusRingResetStyle: focused
+      ? {
+          outlineStyle: "solid",
+          outlineWidth: 0,
+        }
+      : undefined,
+  };
 }

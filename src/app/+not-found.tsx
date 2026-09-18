@@ -1,11 +1,11 @@
-import { StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useRouter } from 'expo-router';
+import { useRouter } from "expo-router";
 
-import { EmptyState } from '@/components/ui/EmptyState';
-import { copy } from '@/constants/copy.zh-TW';
-import { semantic, spacing } from '@/constants/theme';
+import { EmptyState } from "@/components/ui/EmptyState";
+import { copy } from "@/constants/copy.zh-TW";
+import { semantic, spacing } from "@/constants/theme";
 
 /**
  * 未匹配路由（expo-router 的 `+not-found`）。
@@ -21,28 +21,28 @@ import { semantic, spacing } from '@/constants/theme';
  * 反而會讓畫面沒有 `h1`。
  */
 export default function NotFoundScreen() {
-    const insets = useSafeAreaInsets();
-    const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
 
-    return (
-        <View style={[styles.screen, { paddingTop: insets.top }]}>
-            <EmptyState
-                kind="no-results"
-                title={copy.notFound.title}
-                description={copy.notFound.hint}
-                actionLabel={copy.settings.backToEvents}
-                onAction={() => router.replace('/(auth)/home')}
-                testID="not-found"
-            />
-        </View>
-    );
+  return (
+    <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <EmptyState
+        kind="no-results"
+        title={copy.notFound.title}
+        description={copy.notFound.hint}
+        actionLabel={copy.settings.backToEvents}
+        onAction={() => router.replace("/(auth)/home")}
+        testID="not-found"
+      />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    screen: {
-        flex: 1,
-        backgroundColor: semantic.bg.canvas,
-        justifyContent: 'center',
-        padding: spacing.screen,
-    },
+  screen: {
+    flex: 1,
+    backgroundColor: semantic.bg.canvas,
+    justifyContent: "center",
+    padding: spacing.screen,
+  },
 });

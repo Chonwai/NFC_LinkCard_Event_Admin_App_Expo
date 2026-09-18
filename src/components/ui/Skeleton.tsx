@@ -1,17 +1,22 @@
-import { useEffect, useState } from 'react';
-import { Animated, type StyleProp, StyleSheet, type ViewStyle } from 'react-native';
+import { useEffect, useState } from "react";
+import {
+  Animated,
+  type StyleProp,
+  StyleSheet,
+  type ViewStyle,
+} from "react-native";
 
-import { components } from '@/constants/theme';
+import { components } from "@/constants/theme";
 
 export interface SkeletonProps {
-    /** 寬度；預設撐滿父層 */
-    width?: number | `${number}%`;
-    height: number;
-    /** 圓角（預設 `components.skeleton.radius`） */
-    radius?: number;
-    /** true = 跑 shimmer（只動 opacity）；false = 靜態灰塊 */
-    animated?: boolean;
-    style?: StyleProp<ViewStyle>;
+  /** 寬度；預設撐滿父層 */
+  width?: number | `${number}%`;
+  height: number;
+  /** 圓角（預設 `components.skeleton.radius`） */
+  radius?: number;
+  /** true = 跑 shimmer（只動 opacity）；false = 靜態灰塊 */
+  animated?: boolean;
+  style?: StyleProp<ViewStyle>;
 }
 
 /** shimmer 的最低不透明度（只動 opacity 才能 `useNativeDriver`，§8.3 T5） */
@@ -32,62 +37,62 @@ const PULSE_DURATION = 700;
  * `accessibilityState={{ busy: true }}` 承擔（W-13 已移除未使用的 `SkeletonList`）。
  */
 export function Skeleton({
-    width = '100%',
-    height,
-    radius: radiusOverride,
-    animated = true,
-    style,
+  width = "100%",
+  height,
+  radius: radiusOverride,
+  animated = true,
+  style,
 }: SkeletonProps) {
-    /** 以 `useState` 建立：跨 render 穩定，且必須在 render 被讀取（見 BottomSheet 同註解） */
-    const [opacity] = useState(() => new Animated.Value(1));
+  /** 以 `useState` 建立：跨 render 穩定，且必須在 render 被讀取（見 BottomSheet 同註解） */
+  const [opacity] = useState(() => new Animated.Value(1));
 
-    useEffect(() => {
-        if (!animated) {
-            opacity.setValue(1);
-            return;
-        }
+  useEffect(() => {
+    if (!animated) {
+      opacity.setValue(1);
+      return;
+    }
 
-        const loop = Animated.loop(
-            Animated.sequence([
-                Animated.timing(opacity, {
-                    toValue: PULSE_MIN_OPACITY,
-                    duration: PULSE_DURATION,
-                    useNativeDriver: true,
-                    isInteraction: false,
-                }),
-                Animated.timing(opacity, {
-                    toValue: 1,
-                    duration: PULSE_DURATION,
-                    useNativeDriver: true,
-                    isInteraction: false,
-                }),
-            ])
-        );
-        loop.start();
-
-        return () => loop.stop();
-    }, [animated, opacity]);
-
-    return (
-        <Animated.View
-            style={[
-                styles.block,
-                {
-                    width,
-                    height,
-                    borderRadius: radiusOverride ?? components.skeleton.radius,
-                    backgroundColor: components.skeleton.base,
-                    opacity,
-                },
-                style,
-            ]}
-            accessible={false}
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-        />
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: PULSE_MIN_OPACITY,
+          duration: PULSE_DURATION,
+          useNativeDriver: true,
+          isInteraction: false,
+        }),
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: PULSE_DURATION,
+          useNativeDriver: true,
+          isInteraction: false,
+        }),
+      ]),
     );
+    loop.start();
+
+    return () => loop.stop();
+  }, [animated, opacity]);
+
+  return (
+    <Animated.View
+      style={[
+        styles.block,
+        {
+          width,
+          height,
+          borderRadius: radiusOverride ?? components.skeleton.radius,
+          backgroundColor: components.skeleton.base,
+          opacity,
+        },
+        style,
+      ]}
+      accessible={false}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    />
+  );
 }
 
 const styles = StyleSheet.create({
-    block: { alignSelf: 'flex-start' },
+  block: { alignSelf: "flex-start" },
 });

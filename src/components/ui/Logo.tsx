@@ -1,29 +1,29 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from "react-native";
 
-import { Icon } from '@/components/ui/Icon';
-import { layout, semantic, space, type } from '@/constants/theme';
+import { Icon } from "@/components/ui/Icon";
+import { layout, semantic, space, type } from "@/constants/theme";
 
-export type LogoSize = 'sm' | 'md' | 'lg';
+export type LogoSize = "sm" | "md" | "lg";
 
 export interface LogoProps {
-    /** sm 24 / md 40 / lg 64 */
-    size?: LogoSize;
-    /** 是否顯示「LinkCard Event Admin」文字 */
-    withWordmark?: boolean;
-    /** 品牌文字（預設「LinkCard Event Admin」） */
-    wordmark?: string;
-    /** 文字方向 */
-    direction?: 'row' | 'column';
-    /** 無障礙標籤；預設「LinkCard Event Admin」 */
-    accessibilityLabel?: string;
-    testID?: string;
+  /** sm 24 / md 40 / lg 64 */
+  size?: LogoSize;
+  /** 是否顯示「LinkCard Event Admin」文字 */
+  withWordmark?: boolean;
+  /** 品牌文字（預設「LinkCard Event Admin」） */
+  wordmark?: string;
+  /** 文字方向 */
+  direction?: "row" | "column";
+  /** 無障礙標籤；預設「LinkCard Event Admin」 */
+  accessibilityLabel?: string;
+  testID?: string;
 }
 
 const TILE_SIZES: Record<LogoSize, number> = {
-    sm: layout.icon.lg,
-    /** 40 無對應 token，明示為具名常數（§3.12 md = 40） */
-    md: 40,
-    lg: layout.icon.hero,
+  sm: layout.icon.lg,
+  /** 40 無對應 token，明示為具名常數（§3.12 md = 40） */
+  md: 40,
+  lg: layout.icon.hero,
 };
 
 /**
@@ -49,56 +49,60 @@ const TILE_RADIUS_RATIO = 0.25;
  * **禁滿版紫底**：此處紫底僅限 `size × size` 的方塊，非全螢幕（§0.4 第 7 條）。
  */
 export function Logo({
-    size = 'md',
-    withWordmark = true,
-    wordmark = 'LinkCard Event Admin',
-    direction = 'row',
-    accessibilityLabel,
-    testID,
+  size = "md",
+  withWordmark = true,
+  wordmark = "LinkCard Event Admin",
+  direction = "row",
+  accessibilityLabel,
+  testID,
 }: LogoProps) {
-    const tileSize = TILE_SIZES[size];
-    const isColumn = direction === 'column';
+  const tileSize = TILE_SIZES[size];
+  const isColumn = direction === "column";
 
-    return (
-        <View
-            style={[styles.container, isColumn ? styles.column : styles.row]}
-            testID={testID}
-            accessible
-            accessibilityRole="image"
-            accessibilityLabel={accessibilityLabel ?? 'LinkCard Event Admin'}
+  return (
+    <View
+      style={[styles.container, isColumn ? styles.column : styles.row]}
+      testID={testID}
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel={accessibilityLabel ?? "LinkCard Event Admin"}
+    >
+      <View
+        style={{
+          width: tileSize,
+          height: tileSize,
+          borderRadius: tileSize * TILE_RADIUS_RATIO,
+          backgroundColor: semantic.action.primary,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+        accessible={false}
+        importantForAccessibility="no-hide-descendants"
+      >
+        <Icon
+          name="logo-mark"
+          size={tileSize}
+          color={semantic.text.onPrimary}
+        />
+      </View>
+
+      {withWordmark ? (
+        <Text
+          style={isColumn ? styles.wordmarkColumn : styles.wordmarkRow}
+          numberOfLines={1}
+          maxFontSizeMultiplier={layout.maxFontScaleFixed}
         >
-            <View
-                style={{
-                    width: tileSize,
-                    height: tileSize,
-                    borderRadius: tileSize * TILE_RADIUS_RATIO,
-                    backgroundColor: semantic.action.primary,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                }}
-                accessible={false}
-                importantForAccessibility="no-hide-descendants"
-            >
-                <Icon name="logo-mark" size={tileSize} color={semantic.text.onPrimary} />
-            </View>
-
-            {withWordmark ? (
-                <Text
-                    style={isColumn ? styles.wordmarkColumn : styles.wordmarkRow}
-                    numberOfLines={1}
-                    maxFontSizeMultiplier={layout.maxFontScaleFixed}
-                >
-                    {wordmark}
-                </Text>
-            ) : null}
-        </View>
-    );
+          {wordmark}
+        </Text>
+      ) : null}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: { alignSelf: 'flex-start' },
-    row: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
-    column: { alignItems: 'center', gap: space[2] },
-    wordmarkRow: { ...type.h3, color: semantic.text.primary },
-    wordmarkColumn: { ...type.h2, color: semantic.text.primary },
+  container: { alignSelf: "flex-start" },
+  row: { flexDirection: "row", alignItems: "center", gap: space[3] },
+  column: { alignItems: "center", gap: space[2] },
+  wordmarkRow: { ...type.h3, color: semantic.text.primary },
+  wordmarkColumn: { ...type.h2, color: semantic.text.primary },
 });
