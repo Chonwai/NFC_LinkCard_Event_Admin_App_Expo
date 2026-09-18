@@ -24,12 +24,33 @@ export const registrationService = {
   async checkIn(
     eventId: string,
     code: string,
-  ): Promise<{ registration: Registration }> {
+  ): Promise<{ registration: Registration; checkedInAt?: string }> {
     const res = await apiClient.post<
-      ApiResponse<{ registration: Registration }>
+      ApiResponse<{ registration: Registration; checkedInAt?: string }>
     >(`/api/v1/events/${encodeURIComponent(eventId)}/registrations/checkin`, {
       registrationCode: code,
     });
+    return res.data.data;
+  },
+
+  /**
+   * WP-A7 / CHK-03：重複簽到覆核。
+   * B-2 未就緒時後端可能 404；呼叫端應顯示 BLOCKED 骨架，勿當成功。
+   */
+  async checkInOverride(
+    eventId: string,
+    code: string,
+    reason?: string,
+  ): Promise<{ registration: Registration }> {
+    const res = await apiClient.post<
+      ApiResponse<{ registration: Registration }>
+    >(
+      `/api/v1/events/${encodeURIComponent(eventId)}/registrations/checkin/override`,
+      {
+        registrationCode: code,
+        reason: reason ?? "SUPERVISOR_OVERRIDE",
+      },
+    );
     return res.data.data;
   },
 };

@@ -12,6 +12,7 @@ export default function EventLayout() {
     >
       <Stack.Screen name="overview" />
       <Stack.Screen name="check-in" />
+      <Stack.Screen name="walk-in" />
       <Stack.Screen name="nfc-bind" />
       <Stack.Screen name="badges" />
     </Stack>

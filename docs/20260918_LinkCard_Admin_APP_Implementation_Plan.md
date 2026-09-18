@@ -204,66 +204,55 @@ flowchart TD
 ## 7. Phase 2 — WP-A7 簽到三態強化（2.25 人日）
 
 > 對應 DoD：簽到三態齊備 + 震動/大字/音效 + 重複覆核  
-> 主要檔案：`src/app/(auth)/[eventId]/check-in.tsx`、`src/services/registration.service.ts`、`src/constants/copy.zh-TW.ts`  
-> 音效套件：**僅用 `expo-audio`**（契約 C-10；禁止 `expo-av`）
+> **狀態（2026-09-18）**：🟡 工程完成；真機截圖待補  
+> 證據：`docs/evidence/WP-A7/README.md`  
+> 主要檔案：`src/app/(auth)/[eventId]/check-in.tsx`、`walk-in.tsx`、`src/utils/check-in-feedback.ts`  
+> 音效套件：**`expo-audio`**（契約 C-10）
 
 ### Step 2.1 — 簽到流程改為「先查後簽」三態資料模型
 
 | 項 | 內容 |
 | --- | --- |
-| **動作** | 掃碼/手動碼 → `GET .../registrations/by-code/:code`（CHK-01）→ 根據狀態渲染：VALID / DUPLICATE / INVALID；再視情況呼叫 `POST .../checkin`（CHK-02） |
-| **Commit** | `feat(admin-app): WP-A7 introduce check-in three-state model` |
-| **驗收標準** | ① 三種狀態型別在 `src/types` 有定義；② UI 能依 mock 或 staging 切換三態；③ 無效碼不呼叫 checkin |
+| **結果** | ✅ `CheckInUiState` + by-code → VALID/DUPLICATE/INVALID；無效不呼叫 checkin |
 
 ### Step 2.2 — ✅ 有效態結果卡（大字綠畫面）
 
 | 項 | 內容 |
 | --- | --- |
-| **動作** | 成功後全螢幕/大面積綠色結果：姓名、公司、票種、報名時間、Token 餘額（有則顯示）、簽到狀態；按鈕 ≥ 48dp |
-| **Commit** | `feat(admin-app): WP-A7 success result card with green fullscreen` |
-| **驗收標準** | ① 現場 1 米外可辨識「成功」；② 欄位缺資料時 Empty/— 不崩潰；③ 截圖存證 |
+| **結果** | ✅ 大字標題 + 姓名/公司/票種/Email/報名時間/Token/簽到時間 |
 
 ### Step 2.3 — 震動 + 音效
 
 | 項 | 內容 |
 | --- | --- |
-| **動作** | 成功：`Vibration` + `expo-audio` 成功音；失敗/重複：不同震動模式 + 警示音；設定頁可開關（若 Settings 尚無，先常數預設開） |
-| **Commit** | `feat(admin-app): WP-A7 add vibration and expo-audio feedback` |
-| **驗收標準** | ① 真機可聽見/感受到差異；② Web 不崩潰（降級為靜音/無震動）；③ 依賴寫入 `package.json` |
+| **結果** | ✅ `playCheckInFeedback`；Web 無震動、音效失敗靜默降級 |
 
 ### Step 2.4 — ⚠️ 重複簽到 + 主管覆核 UI
 
 | 項 | 內容 |
 | --- | --- |
-| **動作** | 顯示首次簽到時間/地點（API 有則顯示）；提供「申請覆核」→ 呼叫 CHK-03 `POST .../checkin/override`（或契約裁決的等價形式）；無權限顯示提示 |
-| **前置 / 階段完成裁決** | B-2 未就緒時：做 **覆核 UI 骨架** + 明確「後端未開放」Banner，功能驗收標 **BLOCKED**。**用戶已裁決：此狀態算 Phase 2 / WP-A7 階段完成**；B-2 上線後補功能驗收與錄影 |
-| **Commit** | `feat(admin-app): WP-A7 duplicate check-in override flow` |
-| **驗收標準（階段）** | ① 重複態不可靜默二次成功；② 覆核按鈕/流程 UI 可見且有 BLOCKED Banner；③ 骨架截圖存證 |
-| **驗收標準（B-2 後補）** | ① 有權限帳號可覆核放行；② 錄影：重複 → 覆核 → 成功 |
+| **結果** | ✅ 覆核按鈕 + BLOCKED Banner（階段完成裁決）；嘗試 `checkin/override`，失敗維持骨架 |
 
 ### Step 2.5 — ❌ 無效態 + 補報名入口
 
 | 項 | 內容 |
 | --- | --- |
-| **動作** | 無效/未報名：明確錯誤文案 + 「現場補報名」入口（可先 deep link 到 Phase 6 頁面或 placeholder） |
-| **Commit** | `feat(admin-app): WP-A7 invalid state with walk-in entry` |
-| **驗收標準** | ① 無效態不誤判為成功；② 入口可點且不白屏 |
+| **結果** | ✅ 導向 `walk-in` placeholder（WP-A5 前不白屏） |
 
 ### Step 2.6 — 頂部簽到計數
 
 | 項 | 內容 |
 | --- | --- |
-| **動作** | 優先接 CHK-04 `GET .../checkin-stats`；若未交付（C-12 fallback）：用 `status=CHECKED_IN` 的 `pagination.total`，UI 標「總簽到」而非「今日」 |
-| **Commit** | `feat(admin-app): WP-A7 check-in counter header` |
-| **驗收標準** | ① 簽到成功後計數可更新（或下拉刷新後更新）；② 文案不謊稱「今日」若用 fallback |
+| **結果** | ✅ 「總簽到（累計，非今日）」+ `status=CHECKED_IN` pagination.total |
 
 ### Phase 2 Exit Gate
 
-- [ ] 三態截圖（VALID / DUPLICATE / INVALID）  
-- [ ] 震動/音效真機證據（錄影或說明 + 設定）  
-- [ ] 覆核：**UI 骨架 + BLOCKED 截圖**即可勾選階段完成（已裁決）；B-2 後再補完整錄影  
-- [ ] `tsc` / `lint` 綠  
-- [ ] DoD WP-A7 可勾選（覆核項條件化完成）  
+- [x] 三態 UI 齊備（工程）  
+- [x] 震動/音效接入（工程；真機證據待補）  
+- [x] 覆核 UI 骨架 + BLOCKED（已裁決算階段完成）  
+- [x] `tsc` / `lint` 綠  
+- [ ] 真機/瀏覽器三態截圖（請補入 `docs/evidence/WP-A7/`）  
+- [ ] DoD WP-A7 正式勾選（截圖齊備後）  
 
 ---
 

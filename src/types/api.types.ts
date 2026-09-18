@@ -59,14 +59,25 @@ export interface ManagedEventItem {
   exhibitorCount?: number;
 }
 
-/** 報名基本欄位（by-code lookup / check-in 結果） */
+/** 報名基本欄位（by-code / checkin 實測為 flat 欄位） */
 export interface Registration {
   id: string;
   registrationCode: string;
   status: string;
-  eventId: string;
-  createdAt: string;
-  /** 報名者基本資料（欄位值依 event form 動態） */
+  /** 部分回應可能缺此欄 */
+  eventId?: string;
+  createdAt?: string;
+  /** flat 身分欄（staging 實測） */
+  email?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  company?: string | null;
+  jobTitle?: string | null;
+  registrantType?: string | null;
+  tokenBalance?: number | null;
+  checkedInAt?: string | null;
+  ticketType?: { name?: string; title?: string } | null;
+  /** 舊/擴充形狀（可選） */
   profile?: {
     fullName?: string;
     email?: string;
@@ -74,8 +85,8 @@ export interface Registration {
     company?: string;
     jobTitle?: string;
   };
-  /** 動態欄位：由 event form 定義，key 為欄位 label */
   customFields?: Record<string, unknown>;
+  formData?: Record<string, unknown>;
 }
 
 /** Check-in 成功結果 */

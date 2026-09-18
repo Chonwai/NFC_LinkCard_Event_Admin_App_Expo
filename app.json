@@ -59,7 +59,8 @@
           "nfcPermission": "LinkCard Event Admin 使用 NFC 將入場憑證寫入空白 NFC 卡",
           "includeNdefEntitlement": false
         }
-      ]
+      ],
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true
