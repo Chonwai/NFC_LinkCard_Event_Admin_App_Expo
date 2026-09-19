@@ -53,4 +53,72 @@ export const registrationService = {
     );
     return res.data.data;
   },
+
+  /**
+   * POST /v1/events/:eventId/registrations — 與線上報名同一端點。
+   * 付費票會回傳付款資訊，不會在 App 內假裝已完成付款。
+   */
+  async createRegistration(
+    eventId: string,
+    body: {
+      ticketTypeId: string;
+      email: string;
+      firstName?: string;
+      lastName?: string;
+      phone?: string;
+      company?: string;
+    },
+  ): Promise<{
+    registration: {
+      id: string;
+      registrationCode: string;
+      status: string;
+      paymentMethod?: string;
+      stripeCheckoutUrl?: string;
+    };
+  }> {
+    const res = await apiClient.post<
+      ApiResponse<{
+        registration: {
+          id: string;
+          registrationCode: string;
+          status: string;
+          paymentMethod?: string;
+          stripeCheckoutUrl?: string;
+        };
+      }>
+    >(`/api/v1/events/${encodeURIComponent(eventId)}/registrations`, body);
+    return res.data.data;
+  },
+
+  /** GET wallet transactions。無操作員欄位時 UI 顯示 —，不估算。 */
+  async getWalletTransactions(
+    eventId: string,
+    registrationId: string,
+  ): Promise<{
+    transactions: {
+      id: string;
+      type: string;
+      amount: number;
+      description?: string | null;
+      createdAt: string;
+      approvedBy?: string | null;
+    }[];
+  }> {
+    const res = await apiClient.get<
+      ApiResponse<{
+        transactions: {
+          id: string;
+          type: string;
+          amount: number;
+          description?: string | null;
+          createdAt: string;
+          approvedBy?: string | null;
+        }[];
+      }>
+    >(
+      `/api/v1/events/${encodeURIComponent(eventId)}/wallet/${encodeURIComponent(registrationId)}/transactions`,
+    );
+    return res.data.data;
+  },
 };

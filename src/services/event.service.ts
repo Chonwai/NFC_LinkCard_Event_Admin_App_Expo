@@ -2,15 +2,22 @@ import type {
   ApiResponse,
   ManagedEventItem,
   Registration,
+  TicketTypeItem,
 } from "@/types/api.types";
 
 import { apiClient } from "./api";
 
-interface Pagination {
+export interface ListPagination {
   total: number;
   page: number;
-  pageSize: number;
+  limit?: number;
+  pageSize?: number;
   pages?: number;
+  totalPages?: number;
+}
+
+export function listPageCount(pagination?: ListPagination): number {
+  return pagination?.totalPages ?? pagination?.pages ?? 1;
 }
 
 /** GET /v1/events/my-managed — 登入者擁有或 org-role 授權的活動 */
@@ -22,9 +29,9 @@ export const eventService = {
   async getMyManagedEvents(params?: {
     page?: number;
     limit?: number;
-  }): Promise<{ events: ManagedEventItem[]; pagination?: Pagination }> {
+  }): Promise<{ events: ManagedEventItem[]; pagination?: ListPagination }> {
     const res = await apiClient.get<
-      ApiResponse<{ events: ManagedEventItem[]; pagination?: Pagination }>
+      ApiResponse<{ events: ManagedEventItem[]; pagination?: ListPagination }>
     >("/api/v1/events/my-managed", { params });
     const data = res.data.data;
 
@@ -51,16 +58,32 @@ export const eventService = {
     return res.data.data;
   },
 
-  /** GET /v1/events/:eventId/registrations — 報名清單（管理員） */
+  /** GET /v1/events/:eventId/registrations — 報名清單（寫入權限；OPERATOR 仍可能 403） */
   async getRegistrations(
     eventId: string,
-    params?: { page?: number; limit?: number; status?: string },
-  ): Promise<{ registrations: Registration[]; pagination?: Pagination }> {
+    params?: {
+      page?: number;
+      limit?: number;
+      status?: string;
+      ticketTypeId?: string;
+      visibility?: string;
+    },
+  ): Promise<{ registrations: Registration[]; pagination?: ListPagination }> {
     const res = await apiClient.get<
-      ApiResponse<{ registrations: Registration[]; pagination?: Pagination }>
+      ApiResponse<{ registrations: Registration[]; pagination?: ListPagination }>
     >(`/api/v1/events/${encodeURIComponent(eventId)}/registrations`, {
       params,
     });
+    return res.data.data;
+  },
+
+  /** GET /v1/events/:eventId/ticket-types — 補報名選票種 */
+  async listTicketTypes(
+    eventId: string,
+  ): Promise<{ ticketTypes: TicketTypeItem[] }> {
+    const res = await apiClient.get<
+      ApiResponse<{ ticketTypes: TicketTypeItem[] }>
+    >(`/api/v1/events/${encodeURIComponent(eventId)}/ticket-types`);
     return res.data.data;
   },
 };

@@ -6,7 +6,7 @@
 > **規格來源**：`docs/research/16-feiteng2015-work-packages.md`、`docs/20260915_AdminApp_API_Contract_Freeze_v1.md`、`docs/20260915_AdminApp_Handoff_for_feiteng2015.md`  
 > **產品名**：LinkCard Admin APP（現場作戰終端）  
 > **硬期限**：2026-11 Macau Startup Festival  
-> **狀態**：✅ **已審核通過（v0.8）** — Phase 0–3 完成；Phase 4 工程完成（真機錄影待補）
+> **狀態**：✅ **已審核通過（v0.11）** — Phase 7 總驗收：品質全綠；條件化 DoD 結案（截圖/錄影多數待用戶補）
 
 ---
 
@@ -348,8 +348,9 @@ flowchart TD
 ## 10. Phase 5 — WP-A4 Token 櫃台（7.5 人日，待 B-1a）
 
 > 對應 DoD：Token 增值/扣減/流水/二次確認 + 用戶端同步  
-> **已裁決：主交付在 `LinkCard_Frontend`**（`manage/[eventId]/wallet`）；Admin App **只做入口/深鏈或 placeholder，不做完整 Token 櫃台**  
-> 契約：WAL-01..04（既有）+ B-1a 強化；動詞 **`deduct`**
+> **已裁決：主交付在 `LinkCard_Frontend`**（本地 repo：`NFC_LinkCard_NextJS`，`manage/[eventId]/wallet`）；Admin App **只做入口/深鏈或 placeholder，不做完整 Token 櫃台**  
+> 契約：WAL-01..04（既有）+ B-1a 強化；動詞 **`deduct`**  
+> **狀態（2026-09-19）**：🟡 **B-1a 未綠，只做 Step 5.2 骨架**。`EventWalletController` 的 top-up / deduct 沒有 `idempotencyKey`；交易只寫 `approvedBy`，沒有 `initiatedBy`。Step 5.3–5.5 不開工。
 
 ### Step 5.1 — 前置核對（B-1a Gate）
 
@@ -392,18 +393,19 @@ flowchart TD
 
 ### Phase 5 Exit Gate
 
-- [ ] Web 操作錄影  
+- [ ] Web 操作錄影（功能路徑待 B-1a）  
 - [ ] 流水表截圖  
 - [ ] 用戶端同步截圖  
-- [ ] `tsc` / `lint`（Web + App 若有改）  
-- [ ] DoD WP-A4 可勾選（或 BLOCKED+骨架）  
+- [x] `tsc` / `lint`（Web 骨架頁 + App 深鏈）  
+- [x] DoD WP-A4：**BLOCKED + 骨架**（B-1a 未綠；增值/扣減未送出）  
 
 ---
 
 ## 11. Phase 6 — WP-A5 名單 / 搜尋 / 詳情 / 補報名（4.0 人日，待 B-6 + T-1）
 
 > 對應 DoD：搜尋/篩選/排序/詳情/補報名  
-> 新檔建議：`registrations.tsx`、`registrant/[registrationId].tsx`；服務層擴充 `event.service` / `registration.service`
+> 新檔建議：`registrations.tsx`、`registrant/[registrationId].tsx`；服務層擴充 `event.service` / `registration.service`  
+> **狀態（2026-09-19）**：🟡 列表、狀態篩選、詳情、補報名已接既有 API。**B-6 未到**：搜尋/排序只作用在已載入列，畫面有降級說明。**T-1 未修**：OPERATOR 讀名單仍 403，文案要求改用主辦/協調員。
 
 ### Step 6.1 — 名單列表（分頁 + 篩選，可部分先行）
 
@@ -440,15 +442,17 @@ flowchart TD
 
 ### Phase 6 Exit Gate
 
-- [ ] 三種搜尋條件截圖  
+- [ ] 三種搜尋條件截圖（降級搜尋，非全庫）  
 - [ ] 詳情頁截圖  
-- [ ] 補報名證據（或 BLOCKED）  
-- [ ] `tsc` / `lint` 綠  
-- [ ] DoD WP-A5 可勾選（條件化則註明）  
+- [ ] 補報名證據（Email 需在 staging 信箱確認）  
+- [x] `tsc` / `lint` 綠  
+- [ ] DoD WP-A5 可勾選（B-6 / T-1 條件化）  
 
 ---
 
 ## 12. Phase 7 — 總驗收與 DoD 勾選
+
+> **狀態（2026-09-19）**：🟡 品質全綠 + 條件化結案聲明已寫；多數 WP 真機/瀏覽器證據仍待補。彙總見 `docs/evidence/PHASE-7/README.md`。
 
 ### Step 7.1 — 品質全綠複掃
 
@@ -456,6 +460,7 @@ flowchart TD
 | --- | --- |
 | **動作** | 在 Admin App root：`npm run typecheck && npm run lint`；Web 側同等檢查 |
 | **驗收標準** | 兩邊 0 error |
+| **結果** | ✅ Admin App `typecheck` / `lint` 0 error；WP-A4 wallet 三檔 eslint 0 error。Next 全倉 lint exit 0 但有既有 warning |
 
 ### Step 7.2 — 證據包彙總
 
@@ -463,6 +468,7 @@ flowchart TD
 | --- | --- |
 | **動作** | 整理 `docs/evidence/WP-A*/`；每個 WP 一份 `README.md`（build URL / 帳號角色 / 步驟 / 已知限制） |
 | **驗收標準** | 任務卡 DoD 每一條都能指向具體檔案或連結 |
+| **結果** | ✅ 索引見 `docs/evidence/README.md` + `docs/evidence/PHASE-7/README.md`；A1 已有 `login-success.png` |
 
 ### Step 7.3 — 條件化項結案聲明
 
@@ -470,20 +476,21 @@ flowchart TD
 | --- | --- |
 | **動作** | 對仍 BLOCKED 的 A4/A5/A6：寫明缺失前置 ID、已交付骨架範圍、預計解鎖後的補驗收 checklist |
 | **驗收標準** | 審核者可一眼區分「已上線可用」vs「骨架待接」 |
+| **結果** | ✅ 見 `docs/evidence/PHASE-7/README.md` Step 7.3；各 WP README 已補 Phase 7 結案表 |
 
 ### Step 7.4 — 任務卡 DoD 最終勾選表
 
 複製自 Notion 卡，驗收時勾選：
 
-- [ ] **WP-A1** EAS build 成功產出可安裝 APK + 真機登入成功  
-- [ ] **WP-A7** 簽到三態齊備 + 震動/大字/音效 + 重複覆核  
-- [ ] **WP-A8** 降級儀表板數據正確 + **Admin App** check-in 可達（Web/`LinkCard_Frontend` 遷移 **DEFERRED**）  
-- [ ] **WP-A6** NFC 綁定/換卡/補發流程跑通（待 WP-N2）  
-- [ ] **WP-A4** Token 增值/扣減/流水/二次確認 + 用戶端同步（待 B-1a）  
-- [ ] **WP-A5** 搜尋/篩選/排序/詳情/補報名（待 B-6 + T-1）  
-- [ ] 每個 WP：`tsc --noEmit` 0 error + `lint` 0 error  
-- [ ] 每個 WP：真機/瀏覽器截圖或錄影（**tsc 過 ≠ 可用**）  
-- [ ] commit：hackathon 式小步（每子功能一 commit，含 WP 編號）  
+- [x] **WP-A1** EAS build 成功產出可安裝 APK + 真機登入成功（`docs/evidence/WP-A1/login-success.png`）  
+- [ ] **WP-A7** 簽到三態齊備 + 震動/大字/音效 + 重複覆核（工程 ✅；**截圖待補**；覆核骨架+BLOCKED 算階段完成）  
+- [ ] **WP-A8** 降級儀表板數據正確 + **Admin App** check-in 可達（工程 ✅；**截圖待補**；Web/`LinkCard_Frontend` 遷移 **DEFERRED**）  
+- [ ] **WP-A6** NFC 綁定/換卡/補發流程跑通（首次綁定工程 ✅；換卡 **待 WP-N2**；**真機錄影待補**）  
+- [x] **WP-A4** Token 增值/扣減/流水/二次確認 + 用戶端同步（**BLOCKED + 骨架**，待 B-1a；條件化 DoD 允許）  
+- [ ] **WP-A5** 搜尋/篩選/排序/詳情/補報名（工程 ✅；待 B-6 + T-1；**截圖待補**）  
+- [x] 每個 WP：`tsc --noEmit` 0 error + `lint` 0 error（Admin App；Web wallet 範圍）  
+- [ ] 每個 WP：真機/瀏覽器截圖或錄影（**tsc 過 ≠ 可用**；多數待補）  
+- [ ] commit：hackathon 式小步（每子功能一 commit，含 WP 編號）— Phase 5/6 與近期 UI 若未提交，待用戶指示  
 
 ---
 
@@ -568,7 +575,10 @@ flowchart TD
 | v0.6 | 2026-09-18 | Phase 1：eas env 注入；promoter 登入修正；EAS APK FINISHED 記入證據 |
 | v0.7 | 2026-09-19 | Phase 3：概覽四大卡 + 簽到入口；到場率；Token 降級「—」；Web 導覽仍 DEFERRED |
 | v0.8 | 2026-09-19 | Phase 4：NFC 錯誤分態、寫入後讀回、綁定失敗不靜默成功；換卡/補發/退卡 BLOCKED 骨架 |
+| v0.9 | 2026-09-19 | Phase 5：B-1a 未綠，只做 Web Token 櫃台骨架 + App 深鏈；不送出 top-up/deduct |
+| v0.10 | 2026-09-19 | Phase 6：名單分頁與狀態篩選、詳情、補報名；搜尋僅已載入列（B-6）；OPERATOR 讀名單仍 403（T-1） |
+| v0.11 | 2026-09-19 | Phase 7：品質複掃全綠；證據包與條件化 DoD 結案；A1 登入截圖歸檔；多數 WP 截圖/錄影仍待補 |
 
 ---
 
-**END OF FILE — Phase 4 工程完成（真機錄影待補；換卡待 WP-N2）**
+**END OF FILE — Phase 7 條件化結案（品質全綠；證據見 `docs/evidence/PHASE-7/`）**

@@ -17,7 +17,7 @@ import { copy } from "@/constants/copy.zh-TW";
 import { layout, semantic, space, spacing, type } from "@/constants/theme";
 import { eventService } from "@/services/event.service";
 import { useEventStore } from "@/stores/event.store";
-import { getEventStatusLabel } from "@/utils/event-status";
+import { getEventStatusLabel, EVENT_STATUS_TONE } from "@/utils/event-status";
 
 interface StatItem {
   key: string;
@@ -91,6 +91,9 @@ export default function EventOverviewScreen() {
   const [stats, setStats] = useState<StatItem[]>([]);
 
   const event = events.find((e) => e.id === eventId);
+  const statusLabel = getEventStatusLabel(event?.status);
+  const statusTone =
+    semantic.status[EVENT_STATUS_TONE[event?.status ?? ""] ?? "neutral"];
 
   useEffect(() => {
     let active = true;
@@ -176,9 +179,24 @@ export default function EventOverviewScreen() {
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <ScreenHeader
         title={event?.name ?? copy.event.overviewTitle}
-        subtitle={getEventStatusLabel(event?.status)}
         leading="back"
         backFallbackPath="/(auth)/home"
+        right={
+          statusLabel ? (
+            <View
+              style={[styles.statusBadge, { backgroundColor: statusTone.bg }]}
+              accessibilityRole="text"
+              accessibilityLabel={statusLabel}
+            >
+              <Text
+                style={[type.badge, { color: statusTone.fg }]}
+                maxFontSizeMultiplier={layout.maxFontScaleFixed}
+              >
+                {statusLabel}
+              </Text>
+            </View>
+          ) : null
+        }
       />
 
       <ScrollView
@@ -276,6 +294,11 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: spacing.screen,
     justifyContent: "center",
+  },
+  statusBadge: {
+    borderRadius: 999,
+    paddingHorizontal: space[3],
+    paddingVertical: space[1],
   },
   statGrid: {
     flexDirection: "row",

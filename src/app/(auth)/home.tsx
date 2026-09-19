@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { router } from "expo-router";
@@ -11,10 +18,17 @@ import {
   type InlineBannerTone,
 } from "@/components/ui/InlineBanner";
 import { Logo } from "@/components/ui/Logo";
-import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { useFocusRing } from "@/components/ui/useFocusRing";
 import { copy } from "@/constants/copy.zh-TW";
-import { layout, semantic, space, spacing, type } from "@/constants/theme";
+import {
+  hairline,
+  layout,
+  semantic,
+  space,
+  spacing,
+  type,
+} from "@/constants/theme";
 import { useEventStore } from "@/stores/event.store";
 
 /** 活動狀態 → 徽章色（對應 semantic.status tokens） */
@@ -39,6 +53,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const refreshRing = useFocusRing();
   const { events, loading, loadEvents } = useEventStore();
   const [banner, setBanner] = useState<{
     tone: InlineBannerTone;
@@ -98,13 +113,22 @@ export default function HomeScreen() {
         accessibilityLabel={item.name}
       >
         <View style={styles.eventCardHeader}>
-          <Text style={type.h3} numberOfLines={1}>
+          <Text
+            style={[type.h3, styles.eventName]}
+            numberOfLines={2}
+            maxFontSizeMultiplier={layout.maxFontScaleBody}
+          >
             {item.name}
           </Text>
           <View
             style={[styles.statusBadge, { backgroundColor: statusToken.bg }]}
           >
-            <Text style={[type.badge, { color: statusToken.fg }]}>{label}</Text>
+            <Text
+              style={[type.badge, { color: statusToken.fg }]}
+              maxFontSizeMultiplier={layout.maxFontScaleFixed}
+            >
+              {label}
+            </Text>
           </View>
         </View>
 
@@ -148,20 +172,46 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
-      <View style={styles.brandRow}>
-        <Logo size="md" />
-        <View style={styles.brandText}>
-          <Text style={type.h2}>{copy.home.title}</Text>
-          <Text style={[type.caption, styles.tagline]}>{copy.app.tagline}</Text>
+      <View style={styles.header}>
+        <Logo size="sm" wordmark={copy.app.name} />
+        <View style={styles.titleRow}>
+          <View style={styles.pageTitles}>
+            <Text
+              style={styles.pageTitle}
+              accessibilityRole="header"
+              numberOfLines={1}
+              maxFontSizeMultiplier={layout.maxFontScaleFixed}
+            >
+              {copy.home.title}
+            </Text>
+            <Text
+              style={styles.pageSubtitle}
+              numberOfLines={1}
+              maxFontSizeMultiplier={layout.maxFontScaleFixed}
+            >
+              {copy.app.tagline}
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => {
+              void onRefresh();
+            }}
+            disabled={refreshing}
+            accessibilityRole="button"
+            accessibilityLabel={refreshing ? "重新整理中" : "重新整理"}
+            accessibilityState={{ busy: refreshing, disabled: refreshing }}
+            hitSlop={space[2]}
+            style={[styles.refreshButton, refreshRing.focusRingStyle]}
+            {...refreshRing.focusRingProps}
+          >
+            {refreshing ? (
+              <ActivityIndicator color={semantic.action.primary} />
+            ) : (
+              <Icon name="refresh" size="lg" color={semantic.icon.default} />
+            )}
+          </Pressable>
         </View>
       </View>
-
-      <ScreenHeader
-        title={copy.home.title}
-        subtitle={copy.app.tagline}
-        onRefresh={onRefresh}
-        isRefreshing={refreshing}
-      />
 
       {banner ? (
         <View style={styles.bannerWrapper}>
@@ -192,7 +242,7 @@ export default function HomeScreen() {
           renderItem={renderEvent}
           contentContainerStyle={[
             styles.listContent,
-            { paddingBottom: insets.bottom + spacing.safeFooter },
+            { paddingBottom: space[4] },
           ]}
           ItemSeparatorComponent={() => (
             <View style={{ height: spacing.gap }} />
@@ -210,32 +260,54 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: semantic.bg.canvas,
   },
-  brandRow: {
+  header: {
+    paddingHorizontal: spacing.screen,
+    paddingTop: space[2],
+    paddingBottom: space[3],
+    gap: space[2],
+    borderBottomWidth: hairline,
+    borderBottomColor: semantic.border.decorative,
+  },
+  titleRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: spacing.screen,
-    paddingTop: spacing.card,
-    gap: spacing.gap,
+    gap: space[2],
+    minHeight: layout.touchMin,
   },
-  brandText: {
+  refreshButton: {
+    width: layout.touchMin,
+    height: layout.touchMin,
+    marginRight: -space[2],
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pageTitles: {
     flex: 1,
+    minWidth: 0,
+    justifyContent: "center",
+    gap: 0,
   },
-  tagline: {
+  pageTitle: {
+    ...type.h2,
+    color: semantic.text.primary,
+  },
+  pageSubtitle: {
+    ...type.caption,
     color: semantic.text.muted,
-    marginTop: 2,
+    marginTop: 1,
   },
   bannerWrapper: {
     paddingHorizontal: spacing.screen,
-    marginTop: spacing.gap,
+    marginTop: space[3],
   },
   skeletonWrapper: {
     paddingHorizontal: spacing.screen,
-    marginTop: spacing.section,
-    gap: spacing.gap,
+    marginTop: space[4],
+    gap: space[3],
   },
   listContent: {
     paddingHorizontal: spacing.screen,
-    paddingTop: spacing.section,
+    paddingTop: space[4],
   },
   eventCard: {
     backgroundColor: semantic.bg.surface,
@@ -254,6 +326,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: space[3],
   },
+  eventName: {
+    flex: 1,
+    minWidth: 0,
+    color: semantic.text.primary,
+  },
   eventMeta: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -268,6 +345,7 @@ const styles = StyleSheet.create({
     color: semantic.text.muted,
   },
   statusBadge: {
+    flexShrink: 0,
     borderRadius: 999,
     paddingHorizontal: space[3],
     paddingVertical: space[1],

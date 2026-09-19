@@ -169,7 +169,7 @@ export const layout = {
     hero: 64,
   },
   /** Tab bar 內容高度（不含 safe-area bottom inset） */
-  tabBarHeight: 56,
+  tabBarHeight: 52,
   /** ScreenHeader 高度（不含 safe-area top inset） */
   headerHeight: 56,
   /** 固定容器內文字縮放上限（badge / chip / 按鈕） */

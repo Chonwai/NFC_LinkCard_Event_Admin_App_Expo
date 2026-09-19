@@ -1,7 +1,15 @@
 # WP-A8 — 降級儀表板 + Admin App check-in 入口
 
-> 狀態：🟡 **工程完成 / 截圖待補**（2026-09-19）  
+> 狀態：🟡 **工程完成 / 截圖待補**（2026-09-19；Phase 7 複掃）  
 > 本輪僅 Admin App；`LinkCard_Frontend` 遷移 DEFERRED。
+
+## Phase 7 結案
+
+| 項 | 說明 |
+| --- | --- |
+| 已上線可用 | 四大快速操作；到場率；Token「—」；簽到入口 ≤ 2 點 |
+| 延後 | Web manage check-in 導覽（**DEFERRED**） |
+| 待補證據 | 儀表板與導覽截圖 |
 
 ## 已交付
 

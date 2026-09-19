@@ -554,6 +554,23 @@ export default function CheckInScreen() {
                     />
                   ) : null}
                 </View>
+                <Button
+                  label={copy.roster.viewDetail}
+                  variant="secondary"
+                  onPress={() => {
+                    const id = outcome.registration?.id;
+                    if (!id || !eventId) return;
+                    router.push({
+                      pathname:
+                        "/(auth)/[eventId]/registrant/[registrationId]" as never,
+                      params: {
+                        eventId,
+                        registrationId: id,
+                        code: outcome.registration?.registrationCode ?? outcome.code,
+                      },
+                    });
+                  }}
+                />
               </>
             ) : (
               <Text style={styles.identityCode}>{outcome.code}</Text>

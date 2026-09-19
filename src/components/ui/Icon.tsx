@@ -30,6 +30,7 @@ export type IconName =
   | "plus"
   | "search"
   | "filter"
+  | "sort"
   | "flash-on"
   | "flash-off"
   | "pencil"
@@ -149,6 +150,12 @@ const ICON_PATHS: Record<IconName, IconShape> = {
     filled: false,
     d: [
       "M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044c0 .313-.135.61-.372.816L14.5 12v6.75l-5.5 2.5V12L2.872 6.634A1.125 1.125 0 0 1 2.5 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z",
+    ],
+  },
+  sort: {
+    filled: false,
+    d: [
+      "M3 7.5 7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5",
     ],
   },
   "flash-on": {

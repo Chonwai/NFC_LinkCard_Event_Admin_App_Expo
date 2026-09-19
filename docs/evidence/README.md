@@ -1,21 +1,34 @@
-# 驗收證據目錄（Phase 0 建立）
+# 驗收證據目錄
 
-> 對應計畫：`docs/20260918_LinkCard_Admin_APP_Implementation_Plan.md` Step 0.2  
-> 規則：每個 WP 一份子目錄；**tsc 過 ≠ 可用**，必須附真機/瀏覽器截圖或錄影。
+> 對應計畫：`docs/20260918_LinkCard_Admin_APP_Implementation_Plan.md`  
+> 規則：每個 WP 一份子目錄；**tsc 過 ≠ 可用**，必須附真機/瀏覽器截圖或錄影。  
+> **Phase 7 彙總**：見 [PHASE-7/README.md](./PHASE-7/README.md)
 
 ## 目錄結構
 
 ```
 docs/evidence/
 ├── README.md                 ← 本檔
-├── PHASE-0/                  ← 開工準備驗收紀錄
+├── PHASE-0/                  ← 開工準備
+├── PHASE-7/                  ← 總驗收 / 條件化 DoD
 ├── WP-A1/                    ← EAS build + 真機登入
 ├── WP-A7/                    ← 簽到三態
 ├── WP-A8/                    ← 降級儀表板 + App check-in 入口
 ├── WP-A6/                    ← NFC
-├── WP-A4/                    ← Token（Web 主交付；證據可放此或 Frontend repo）
+├── WP-A4/                    ← Token（Web 主交付）
 └── WP-A5/                    ← 名單 / 詳情 / 補報名
 ```
+
+## 狀態速覽（2026-09-19 Phase 7）
+
+| WP | 工程 | 使用者證據 | 條件化 |
+| --- | --- | --- | --- |
+| A1 | ✅ | ✅ `login-success.png` | — |
+| A7 | ✅ | ⏳ | 覆核待 B-2 |
+| A8 | ✅ | ⏳ | Web DEFERRED |
+| A6 | ✅ | ⏳ | 換卡待 WP-N2 |
+| A4 | ✅ 骨架 | ⏳ | 送出待 B-1a |
+| A5 | ✅ | ⏳ | B-6 / T-1 |
 
 ## 每個 WP 目錄建議內容
 

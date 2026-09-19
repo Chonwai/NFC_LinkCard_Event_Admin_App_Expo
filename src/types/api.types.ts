@@ -73,6 +73,7 @@ export interface Registration {
   lastName?: string | null;
   company?: string | null;
   jobTitle?: string | null;
+  phone?: string | null;
   registrantType?: string | null;
   tokenBalance?: number | null;
   checkedInAt?: string | null;
@@ -89,7 +90,23 @@ export interface Registration {
   formData?: Record<string, unknown>;
 }
 
-/** Check-in 成功結果 */
+export interface TicketTypeItem {
+  id: string;
+  name?: string;
+  displayName?: string;
+  price?: number | string;
+  currency?: string;
+  isHidden?: boolean;
+}
+
+export interface WalletTransactionItem {
+  id: string;
+  type: string;
+  amount: number;
+  description?: string | null;
+  createdAt: string;
+  approvedBy?: string | null;
+}
 export interface CheckInResult {
   registration: Registration;
   checkedInAt: string;

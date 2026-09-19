@@ -71,6 +71,30 @@ export function getRegistrationCode(reg: Registration): string {
   return trimOrNull(reg.registrationCode) ?? copy.checkIn.dash;
 }
 
+export function maskEmail(value: string | null | undefined): string {
+  const email = trimOrNull(value ?? undefined);
+  if (!email) return copy.checkIn.dash;
+  const [user, domain] = email.split("@");
+  if (!user || !domain) return copy.checkIn.dash;
+  return `${user.slice(0, 1)}***@${domain}`;
+}
+
+export function maskPhone(value: string | null | undefined): string {
+  const phone = trimOrNull(value ?? undefined);
+  if (!phone) return copy.checkIn.dash;
+  const compact = phone.replace(/\s/g, "");
+  if (compact.length <= 4) return "****";
+  return `${"*".repeat(compact.length - 4)}${compact.slice(-4)}`;
+}
+
+export function getRegistrationPhone(reg: Registration): string {
+  return (
+    trimOrNull(reg.profile?.phone) ??
+    trimOrNull(reg.phone ?? undefined) ??
+    copy.checkIn.dash
+  );
+}
+
 /** 已簽到（重複態判斷） */
 export function isAlreadyCheckedIn(reg: Registration): boolean {
   const status = (reg.status ?? "").toUpperCase();

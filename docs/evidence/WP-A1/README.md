@@ -1,6 +1,6 @@
 # WP-A1 — EAS Build + 真機登入
 
-> 狀態：🟡 **工程完成 / 真機登入截圖待補**（2026-09-18）  
+> 狀態：🟢 **工程完成 / 登入截圖已附**（2026-09-19 Phase 7）  
 > 測試帳：`505810824@qq.com`（密碼由本地持有，不入版控）
 
 ## Step 1.1 — EAS profile + env
@@ -31,7 +31,7 @@
 | 登入端點 | ✅ 暫用 `POST /api/auth/login` + `GET /api/users/me`（promoter claim **延後**） |
 | `tsc` / `lint` | ✅ 全綠 |
 | 真機安裝 | ⏳ 請安裝上方 APK / Dev Client |
-| staging 登入截圖 | ⏳ 用 `505810824@qq.com` 登入後放入本目錄 `login-success.png` |
+| staging 登入截圖 | ✅ `docs/evidence/WP-A1/login-success.png` |
 
 ### 建議真機步驟
 

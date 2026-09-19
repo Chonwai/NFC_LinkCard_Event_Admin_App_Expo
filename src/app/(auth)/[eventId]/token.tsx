@@ -1,10 +1,11 @@
-import { StyleSheet, View } from "react-native";
+import { Linking, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { router, useLocalSearchParams } from "expo-router";
 
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { WEB_BASE_URL } from "@/constants/config";
 import { copy } from "@/constants/copy.zh-TW";
 import { semantic, spacing } from "@/constants/theme";
 
@@ -40,6 +41,16 @@ export default function TokenPlaceholderScreen() {
               router.replace("/(auth)/home");
             }
           }}
+          secondaryLabel={eventId ? copy.event.tokenOpenWeb : undefined}
+          onSecondary={
+            eventId
+              ? () => {
+                  void Linking.openURL(
+                    `${WEB_BASE_URL}/manage/${eventId}/wallet`,
+                  );
+                }
+              : undefined
+          }
           testID="token-placeholder"
         />
       </View>

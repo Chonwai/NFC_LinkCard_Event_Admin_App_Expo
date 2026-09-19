@@ -15,6 +15,7 @@ export default function EventLayout() {
       <Stack.Screen name="walk-in" />
       <Stack.Screen name="token" />
       <Stack.Screen name="registrations" />
+      <Stack.Screen name="registrant/[registrationId]" />
       <Stack.Screen name="nfc-bind" />
       <Stack.Screen name="badges" />
     </Stack>
