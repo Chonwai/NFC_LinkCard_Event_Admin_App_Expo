@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -57,6 +58,7 @@ const SESSION_NOTICE_BANNERS: Record<SessionNotice, LoginBanner> = {
  * - 錯誤一律走 `InlineBanner`（不中斷流程）
  * - `Logo` mark 補上品牌識別
  * - 錯誤分類依 HTTP 狀態與網路特徵（401 / 網路 / 5xx）
+ * - 窄屏：較小 Logo、較緊間距，避免鍵盤彈起時表單被擠出可視區
  */
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -67,6 +69,8 @@ export default function LoginScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const sessionNotice = useSessionNotice();
+  const { height: windowHeight } = useWindowDimensions();
+  const compact = windowHeight < 720;
 
   const classifyLoginError = (error: unknown): LoginBanner => {
     const status = getApiErrorStatus(error);
@@ -126,19 +130,28 @@ export default function LoginScreen() {
     <KeyboardAvoidingView
       style={styles.root}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? insets.top : 0}
     >
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
-          { paddingTop: insets.top + spacing.group },
+          {
+            paddingTop: insets.top + (compact ? space[4] : space[6]),
+            paddingBottom: Math.max(insets.bottom, space[4]) + space[4],
+          },
         ]}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <Logo size="lg" withWordmark direction="column" />
+        <Logo
+          size={compact ? "md" : "lg"}
+          withWordmark
+          direction="column"
+        />
 
         <Text
-          style={styles.title}
+          style={[styles.title, compact && styles.titleCompact]}
           accessibilityRole="header"
           numberOfLines={1}
           maxFontSizeMultiplier={layout.maxFontScaleFixed}
@@ -153,7 +166,10 @@ export default function LoginScreen() {
           {copy.app.tagline}
         </Text>
 
-        <Card padding={space[5]} style={styles.card}>
+        <Card
+          padding={compact ? space[4] : space[5]}
+          style={[styles.card, compact && styles.cardCompact]}
+        >
           <FieldInput
             label={copy.auth.emailLabel}
             value={email}
@@ -214,21 +230,36 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: semantic.bg.canvas },
   scroll: { flex: 1 },
   content: {
+    flexGrow: 1,
     paddingHorizontal: spacing.screen,
-    paddingBottom: spacing.safeFooter,
     alignItems: "center",
+    width: "100%",
+    maxWidth: 480,
+    alignSelf: "center",
   },
   title: {
     ...type.h1,
     color: semantic.text.primary,
-    marginTop: spacing.section,
-  },
-  subtitle: {
-    ...type.body,
-    color: semantic.text.secondary,
-    marginTop: space[2],
+    marginTop: space[5],
     textAlign: "center",
   },
-  card: { alignSelf: "stretch", marginTop: spacing.section },
-  field: { marginBottom: spacing.gap },
+  titleCompact: {
+    ...type.h2,
+    marginTop: space[4],
+  },
+  subtitle: {
+    ...type.caption,
+    color: semantic.text.secondary,
+    marginTop: space[1],
+    textAlign: "center",
+  },
+  card: {
+    alignSelf: "stretch",
+    marginTop: space[5],
+    width: "100%",
+  },
+  cardCompact: {
+    marginTop: space[4],
+  },
+  field: { marginBottom: space[3] },
 });

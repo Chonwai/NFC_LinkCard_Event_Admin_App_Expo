@@ -61,7 +61,7 @@ export function Logo({
 
   return (
     <View
-      style={[styles.container, isColumn ? styles.column : styles.row]}
+      style={isColumn ? styles.column : styles.row}
       testID={testID}
       accessible
       accessibilityRole="image"
@@ -100,9 +100,22 @@ export function Logo({
 }
 
 const styles = StyleSheet.create({
-  container: { alignSelf: "flex-start" },
-  row: { flexDirection: "row", alignItems: "center", gap: space[3] },
-  column: { alignItems: "center", gap: space[2] },
+  /** row：靠左（header 旁）；column：整組置中（登入頁） */
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: space[3],
+  },
+  column: {
+    alignItems: "center",
+    alignSelf: "center",
+    gap: space[2],
+  },
   wordmarkRow: { ...type.h3, color: semantic.text.primary },
-  wordmarkColumn: { ...type.h2, color: semantic.text.primary },
+  wordmarkColumn: {
+    ...type.h2,
+    color: semantic.text.primary,
+    textAlign: "center",
+  },
 });

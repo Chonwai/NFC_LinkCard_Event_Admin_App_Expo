@@ -37,7 +37,7 @@ export interface FieldInputProps {
   /** 密碼欄位（顯示／隱藏切換由父層提供） */
   secureTextEntry?: boolean;
   /**
-   * 顯示「顯示／隱藏密碼」切換鈕（C8 新增）。
+   * 顯示密碼可見度切換鈕（眼睛 icon；C8 新增）。
    * 只在 `secureTextEntry` 時有意義；切換鈕為 48×48 觸控區、`aria-pressed` 同步。
    */
   revealable?: boolean;
@@ -114,73 +114,73 @@ export function FieldInput({
         {required ? <Text style={styles.required}> *</Text> : null}
       </Text>
 
-      <TextInput
-        ref={inputRef}
-        style={[
-          styles.input,
-          canReveal && styles.inputWithAccessory,
-          {
-            borderColor,
-            borderWidth: focused
-              ? components.field.focusRingWidth
-              : components.field.borderWidth,
-            backgroundColor: isDisabled
-              ? semantic.action.primaryDisabledBg
-              : components.field.bg,
-            color: isDisabled ? semantic.text.disabled : semantic.text.primary,
-            textAlignVertical: multiline ? "top" : "center",
-          },
-          multiline && styles.inputMultiline,
-          /** M-5：只歸零 UA 橘框；聚焦環仍由 `focusRingWidth` 邊框承擔 */
-          focusRingResetStyle,
-        ]}
-        value={value}
-        onChangeText={onChangeText}
-        onFocus={handleFocus}
-        onBlur={() => focusRingProps.onBlur()}
-        placeholder={placeholder}
-        placeholderTextColor={semantic.text.muted}
-        selectionColor={semantic.action.primary}
-        keyboardType={keyboardType}
-        autoCapitalize={autoCapitalize}
-        autoCorrect={autoCorrect}
-        editable={editable}
-        multiline={multiline}
-        secureTextEntry={secureTextEntry && !revealed}
-        testID={testID}
-        accessibilityLabel={required ? `${label}，必填` : label}
-        accessibilityState={{ disabled: isDisabled }}
-        /** H1（C12）：RNW 0.21 不映射 `accessibilityState` → 補 `aria-disabled` */
-        aria-disabled={isDisabled}
-        accessibilityHint={error ?? placeholder}
-      />
-
-      {canReveal ? (
-        <Pressable
-          onPress={() => setRevealed((previous) => !previous)}
-          disabled={isDisabled}
-          accessibilityRole="button"
-          /**
-           * 用文字而非圖示：凍結的 34 個 icon 沒有 eye／eye-off，
-           * 而拿手電筒圖示（`flash-on`）代表密碼顯示在語意上是錯的。
-           */
-          accessibilityLabel={revealed ? "隱藏密碼" : "顯示密碼"}
-          /** RNW 0.21 不映射 `accessibilityState`，故同時給 aria-*（C6 H1 發現） */
-          accessibilityState={{ disabled: isDisabled, selected: revealed }}
-          aria-pressed={revealed}
-          /** H1（C12）：同上的 `aria-disabled` 補完 */
+      <View style={styles.inputShell}>
+        <TextInput
+          ref={inputRef}
+          style={[
+            styles.input,
+            canReveal && styles.inputWithAccessory,
+            {
+              borderColor,
+              borderWidth: focused
+                ? components.field.focusRingWidth
+                : components.field.borderWidth,
+              backgroundColor: isDisabled
+                ? semantic.action.primaryDisabledBg
+                : components.field.bg,
+              color: isDisabled ? semantic.text.disabled : semantic.text.primary,
+              textAlignVertical: multiline ? "top" : "center",
+            },
+            multiline && styles.inputMultiline,
+            /** M-5：只歸零 UA 橘框；聚焦環仍由 `focusRingWidth` 邊框承擔 */
+            focusRingResetStyle,
+          ]}
+          value={value}
+          onChangeText={onChangeText}
+          onFocus={handleFocus}
+          onBlur={() => focusRingProps.onBlur()}
+          placeholder={placeholder}
+          placeholderTextColor={semantic.text.muted}
+          selectionColor={semantic.action.primary}
+          keyboardType={keyboardType}
+          autoCapitalize={autoCapitalize}
+          autoCorrect={autoCorrect}
+          editable={editable}
+          multiline={multiline}
+          secureTextEntry={secureTextEntry && !revealed}
+          testID={testID}
+          accessibilityLabel={required ? `${label}，必填` : label}
+          accessibilityState={{ disabled: isDisabled }}
+          /** H1（C12）：RNW 0.21 不映射 `accessibilityState` → 補 `aria-disabled` */
           aria-disabled={isDisabled}
-          style={styles.reveal}
-          testID={testID != null ? `${testID}-reveal` : undefined}
-        >
-          <Text
-            style={styles.revealLabel}
-            maxFontSizeMultiplier={layout.maxFontScaleFixed}
+          accessibilityHint={error ?? placeholder}
+        />
+
+        {canReveal ? (
+          <Pressable
+            onPress={() => setRevealed((previous) => !previous)}
+            disabled={isDisabled}
+            accessibilityRole="button"
+            accessibilityLabel={revealed ? "隱藏密碼" : "顯示密碼"}
+            /** RNW 0.21 不映射 `accessibilityState`，故同時給 aria-*（C6 H1 發現） */
+            accessibilityState={{ disabled: isDisabled, selected: revealed }}
+            aria-pressed={revealed}
+            /** H1（C12）：同上的 `aria-disabled` 補完 */
+            aria-disabled={isDisabled}
+            style={styles.reveal}
+            hitSlop={space[1]}
+            testID={testID != null ? `${testID}-reveal` : undefined}
           >
-            {revealed ? "隱藏" : "顯示"}
-          </Text>
-        </Pressable>
-      ) : null}
+            <Icon
+              name={revealed ? "eye-off" : "eye"}
+              size="md"
+              color={
+                isDisabled ? semantic.icon.disabled : semantic.icon.brand
+              }
+            />
+          </Pressable>
+        ) : null}
+      </View>
 
       {hasError ? (
         <View
@@ -214,6 +214,10 @@ const styles = StyleSheet.create({
     marginBottom: space[2],
   },
   required: { color: semantic.text.danger },
+  inputShell: {
+    position: "relative",
+    alignSelf: "stretch",
+  },
   input: {
     minHeight: components.field.minHeight,
     borderRadius: components.field.radius,
@@ -223,20 +227,16 @@ const styles = StyleSheet.create({
     ...type.bodyLg,
   },
   /** 右側留出 48×48 切換鈕的寬度，避免文字被鈕遮住 */
-  inputWithAccessory: { paddingRight: layout.touchMin + space[4] },
+  inputWithAccessory: { paddingRight: layout.touchMin + space[2] },
   inputMultiline: { minHeight: MULTILINE_MIN_HEIGHT },
   reveal: {
     position: "absolute",
     right: 0,
+    top: 0,
     bottom: 0,
     width: layout.touchMin,
-    height: layout.touchMin,
     alignItems: "center",
     justifyContent: "center",
-  },
-  revealLabel: {
-    ...type.badge,
-    color: semantic.action.ghostLabel,
   },
   errorRow: {
     flexDirection: "row",
