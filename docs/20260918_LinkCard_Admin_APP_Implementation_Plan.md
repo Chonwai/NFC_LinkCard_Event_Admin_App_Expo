@@ -6,7 +6,7 @@
 > **規格來源**：`docs/research/16-feiteng2015-work-packages.md`、`docs/20260915_AdminApp_API_Contract_Freeze_v1.md`、`docs/20260915_AdminApp_Handoff_for_feiteng2015.md`  
 > **產品名**：LinkCard Admin APP（現場作戰終端）  
 > **硬期限**：2026-11 Macau Startup Festival  
-> **狀態**：✅ **已審核通過（v0.6）** — Phase 0 完成；Phase 1 工程完成（真機截圖待補）
+> **狀態**：✅ **已審核通過（v0.8）** — Phase 0–3 完成；Phase 4 工程完成（真機錄影待補）
 
 ---
 
@@ -259,7 +259,8 @@ flowchart TD
 ## 8. Phase 3 — WP-A8 降級儀表板 + Admin App check-in 入口（1.0 人日）
 
 > 對應 DoD：降級儀表板數據正確 + check-in 可達  
-> **已裁決（v0.4）**：**本輪僅在 Admin App 實施** check-in 入口與儀表板；**暫不在 `LinkCard_Frontend` 開工**。Web manage 導覽留待後續遷移（見 Step 3.3 延後項）。
+> **已裁決（v0.4）**：**本輪僅在 Admin App 實施** check-in 入口與儀表板；**暫不在 `LinkCard_Frontend` 開工**。Web manage 導覽留待後續遷移（見 Step 3.3 延後項）。  
+> **狀態（2026-09-19）**：🟡 工程完成；儀表板／導覽截圖待補
 
 ### Step 3.1 — Admin App：check-in 入口 + 四大功能卡 / 概覽補強
 
@@ -296,9 +297,9 @@ flowchart TD
 
 - [ ] 儀表板截圖（Admin App）  
 - [ ] **Admin App** check-in 導覽實測證據  
-- [ ] ~~Web check-in 導覽~~ → **本輪 DEFERRED**（遷移後補證據）  
-- [ ] `tsc` / `lint`（Admin App）  
-- [ ] DoD WP-A8 可勾選（Web 項標延後）  
+- [x] ~~Web check-in 導覽~~ → **本輪 DEFERRED**（遷移後補證據）  
+- [x] `tsc` / `lint`（Admin App）  
+- [ ] DoD WP-A8 可勾選（截圖齊備後；Web 項標延後）  
 
 ---
 
@@ -306,7 +307,8 @@ flowchart TD
 
 > 對應 DoD：NFC 綁定/換卡/補發流程跑通（待 WP-N2）  
 > 主要檔案：`nfc-bind.tsx`、`nfc.service.ts`、`nfc-utils.ts`  
-> **必須用 Dev Build / 真機 Android**（Expo Go 不可靠）
+> **必須用 Dev Build / 真機 Android**（Expo Go 不可靠）  
+> **狀態（2026-09-19）**：🟡 工程完成；真機綁定錄影與錯誤截圖待補。換卡/補發/退卡為 BLOCKED 骨架（WP-N2）
 
 ### Step 4.1 — 錯誤路徑三態（可立即開工）
 
@@ -337,9 +339,9 @@ flowchart TD
 
 - [ ] 綁定成功錄影  
 - [ ] 錯誤路徑截圖  
-- [ ] 換卡錄影 **或** BLOCKED+骨架證據  
-- [ ] `tsc` / `lint` 綠  
-- [ ] DoD WP-A6 可勾選（條件化則註明）  
+- [x] 換卡錄影 **或** BLOCKED+骨架證據（骨架已做；錄影待 WP-N2）  
+- [x] `tsc` / `lint` 綠  
+- [ ] DoD WP-A6 可勾選（條件化：換卡待 WP-N2；真機錄影待補）  
 
 ---
 
@@ -564,7 +566,9 @@ flowchart TD
 | v0.4 | 2026-09-18 | WP-A8：**本輪僅 Admin App 實施**；`LinkCard_Frontend` 暫不開工，後續再遷移 |
 | v0.5 | 2026-09-18 | Phase 0 執行：修復 `copy.zh-TW.ts`；建立 `docs/evidence/`；環境驗收記入 |
 | v0.6 | 2026-09-18 | Phase 1：eas env 注入；promoter 登入修正；EAS APK FINISHED 記入證據 |
+| v0.7 | 2026-09-19 | Phase 3：概覽四大卡 + 簽到入口；到場率；Token 降級「—」；Web 導覽仍 DEFERRED |
+| v0.8 | 2026-09-19 | Phase 4：NFC 錯誤分態、寫入後讀回、綁定失敗不靜默成功；換卡/補發/退卡 BLOCKED 骨架 |
 
 ---
 
-**END OF FILE — Phase 1 工程完成（真機截圖待補）**
+**END OF FILE — Phase 4 工程完成（真機錄影待補；換卡待 WP-N2）**

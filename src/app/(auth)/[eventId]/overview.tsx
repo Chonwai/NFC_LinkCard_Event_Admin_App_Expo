@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 
 import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import {
   InlineBanner,
@@ -16,36 +17,67 @@ import { copy } from "@/constants/copy.zh-TW";
 import { layout, semantic, space, spacing, type } from "@/constants/theme";
 import { eventService } from "@/services/event.service";
 import { useEventStore } from "@/stores/event.store";
+import { getEventStatusLabel } from "@/utils/event-status";
 
 interface StatItem {
   key: string;
   label: string;
-  value: number;
+  value: string;
   icon: IconName;
 }
+
+type EventRoute =
+  | "check-in"
+  | "token"
+  | "registrations"
+  | "nfc-bind"
+  | "badges";
 
 interface QuickAction {
   key: string;
   label: string;
   icon: IconName;
-  route: string;
+  route: EventRoute;
 }
 
+/**
+ * 會議四大卡：掃碼簽到 / Token / 名單 / NFC。
+ * Badge 為既有頁，保留以免深鏈才進得去。
+ * Token、名單尚未實作，進 placeholder，不崩潰。
+ */
 const QUICK_ACTIONS: QuickAction[] = [
   {
     key: "check-in",
-    label: copy.event.checkInTitle,
+    label: copy.event.scanCheckIn,
     icon: "qr-code",
     route: "check-in",
+  },
+  {
+    key: "token",
+    label: copy.event.tokenTitle,
+    icon: "plus",
+    route: "token",
+  },
+  {
+    key: "registrations",
+    label: copy.event.registrationsTitle,
+    icon: "users",
+    route: "registrations",
   },
   { key: "nfc", label: copy.nfc.writeTitle, icon: "nfc", route: "nfc-bind" },
   {
     key: "badges",
-    label: copy.event.badgesTitle ?? "Badge",
+    label: copy.event.badgesTitle,
     icon: "clipboard-check",
     route: "badges",
   },
 ];
+
+/** 到場率只用報名總數與已簽到數計算；分母為 0 時不顯示 0%。 */
+function formatAttendanceRate(checkedIn: number, total: number): string {
+  if (total <= 0) return copy.event.dash;
+  return `${Math.round((checkedIn / total) * 100)}%`;
+}
 
 export default function EventOverviewScreen() {
   const insets = useSafeAreaInsets();
@@ -76,24 +108,32 @@ export default function EventOverviewScreen() {
           }),
         ]);
         if (!active) return;
+        const total = totalRes.pagination?.total ?? 0;
+        const checkedIn = checkedInRes.pagination?.total ?? 0;
         setStats([
           {
             key: "registrations",
             label: copy.event.registrations,
-            value: totalRes.pagination?.total ?? 0,
+            value: String(total),
             icon: "users",
           },
           {
             key: "checkedIn",
             label: copy.event.checkedIn,
-            value: checkedInRes.pagination?.total ?? 0,
+            value: String(checkedIn),
             icon: "check-circle",
           },
           {
             key: "exhibitors",
             label: copy.event.exhibitors,
-            value: event?.exhibitorCount ?? 0,
+            value: String(event?.exhibitorCount ?? 0),
             icon: "archive",
+          },
+          {
+            key: "attendance",
+            label: copy.event.attendanceRate,
+            value: formatAttendanceRate(checkedIn, total),
+            icon: "check",
           },
         ]);
       } catch {
@@ -111,11 +151,32 @@ export default function EventOverviewScreen() {
     };
   }, [eventId, event?.exhibitorCount]);
 
+  if (!eventId) {
+    return (
+      <View style={[styles.screen, { paddingTop: insets.top }]}>
+        <ScreenHeader
+          title={copy.event.overviewTitle}
+          leading="back"
+          backFallbackPath="/(auth)/home"
+        />
+        <View style={styles.emptyBody}>
+          <EmptyState
+            kind="no-results"
+            headingLevel={2}
+            title={copy.event.unavailableTitle}
+            description={copy.event.unavailableHint}
+            testID="overview-empty"
+          />
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <ScreenHeader
         title={event?.name ?? copy.event.overviewTitle}
-        subtitle={event?.status ?? ""}
+        subtitle={getEventStatusLabel(event?.status)}
         leading="back"
         backFallbackPath="/(auth)/home"
       />
@@ -135,6 +196,7 @@ export default function EventOverviewScreen() {
             <Skeleton width="48%" height={96} radius={12} />
             <Skeleton width="48%" height={96} radius={12} />
             <Skeleton width="48%" height={96} radius={12} />
+            <Skeleton width="48%" height={96} radius={12} />
           </View>
         ) : (
           <View style={styles.statGrid}>
@@ -148,8 +210,29 @@ export default function EventOverviewScreen() {
           </View>
         )}
 
+        {!loading ? (
+          <Card style={styles.tokenCard} testID="overview-token-degraded">
+            <Text style={type.h3}>{copy.event.tokenTitle}</Text>
+            <View style={styles.tokenRow}>
+              <Text style={[type.body, styles.tokenLabel]}>
+                {copy.event.tokenIssued}
+              </Text>
+              <Text style={type.h3}>{copy.event.dash}</Text>
+            </View>
+            <View style={styles.tokenRow}>
+              <Text style={[type.body, styles.tokenLabel]}>
+                {copy.event.tokenConsumed}
+              </Text>
+              <Text style={type.h3}>{copy.event.dash}</Text>
+            </View>
+            <Text style={[type.caption, styles.tokenHint]}>
+              {copy.event.tokenDegradedHint}
+            </Text>
+          </Card>
+        ) : null}
+
         <Text style={[type.h3, styles.sectionTitle]}>
-          {copy.event.quickActions ?? "快速操作"}
+          {copy.event.quickActions}
         </Text>
         <View style={styles.actionGrid}>
           {QUICK_ACTIONS.map((a) => (
@@ -167,6 +250,7 @@ export default function EventOverviewScreen() {
               ]}
               accessibilityRole="button"
               accessibilityLabel={a.label}
+              testID={`overview-action-${a.key}`}
             >
               <Icon name={a.icon} size="lg" color={semantic.icon.brand} />
               <Text style={[type.label, styles.actionLabel]}>{a.label}</Text>
@@ -188,6 +272,11 @@ const styles = StyleSheet.create({
     paddingTop: spacing.section,
     gap: spacing.section,
   },
+  emptyBody: {
+    flex: 1,
+    padding: spacing.screen,
+    justifyContent: "center",
+  },
   statGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -201,6 +290,21 @@ const styles = StyleSheet.create({
   statLabel: {
     color: semantic.text.muted,
   },
+  tokenCard: {
+    width: "100%",
+    gap: space[2],
+  },
+  tokenRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  tokenLabel: {
+    color: semantic.text.secondary,
+  },
+  tokenHint: {
+    color: semantic.text.muted,
+  },
   sectionTitle: {
     marginTop: spacing.gap,
   },
@@ -210,7 +314,7 @@ const styles = StyleSheet.create({
     gap: spacing.gap,
   },
   actionCard: {
-    width: "31%",
+    width: "48%",
     minHeight: layout.touchMin * 2,
     backgroundColor: semantic.bg.surface,
     borderRadius: 12,

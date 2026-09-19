@@ -1,5 +1,7 @@
 import { Platform } from "react-native";
 
+import { WEB_BASE_URL } from "@/constants/config";
+
 /**
  * ⚠️ Web-safe NFC 工具層
  *
@@ -14,17 +16,61 @@ const isNative = Platform.OS !== "web";
 type NfcManagerModule = typeof import("react-native-nfc-manager");
 type NfcManagerModuleType = Awaited<Promise<NfcManagerModule>>;
 
+export type NfcFlowErrorKind =
+  | "unsupported"
+  | "invalid-uid"
+  | "write-failed"
+  | "uri-mismatch";
+
+/** 寫卡階段的可分類錯誤。後端 bind 失敗不走這裡。 */
+export class NfcFlowError extends Error {
+  readonly kind: NfcFlowErrorKind;
+
+  constructor(kind: NfcFlowErrorKind, message: string) {
+    super(message);
+    this.name = "NfcFlowError";
+    this.kind = kind;
+  }
+}
+
 async function loadNfcManager(): Promise<NfcManagerModuleType> {
   if (!isNative) {
-    throw new Error("NFC is not supported on web");
+    throw new NfcFlowError("unsupported", "NFC is not supported on web");
   }
   return import("react-native-nfc-manager");
+}
+
+/** 4 / 7 / 10 byte UID，允許稍長的廠商格式；拒絕空值與奇數長度。 */
+export function isValidTagUid(tagUid: string): boolean {
+  return /^[0-9A-F]{8,32}$/.test(tagUid) && tagUid.length % 2 === 0;
+}
+
+/** 參加者頁網址。registrationId 不做 encode，避免把 UUID 的連字號轉義。 */
+export function buildRegistrationProfileUrl(registrationId: string): string {
+  const id = registrationId.trim();
+  if (!id) {
+    throw new NfcFlowError("write-failed", "missing registration id");
+  }
+  return `${WEB_BASE_URL}/u/${id}`;
+}
+
+function urlsMatch(expected: string, actual: string): boolean {
+  const norm = (value: string) => value.trim().replace(/\/$/, "").toLowerCase();
+  const left = norm(expected);
+  const right = norm(actual);
+  if (left === right) return true;
+  try {
+    const path = new URL(expected).pathname.replace(/\/$/, "").toLowerCase();
+    return path.length > 1 && right.endsWith(path);
+  } catch {
+    return false;
+  }
 }
 
 /** Build a URI NDEF message pointing to a profile URL */
 export async function buildUriNdefMessage(url: string): Promise<number[]> {
   if (!url.startsWith("https://") && !url.startsWith("http://")) {
-    throw new Error(`Invalid profile URL for NFC write: ${url}`);
+    throw new NfcFlowError("write-failed", `Invalid profile URL: ${url}`);
   }
   const { Ndef } = await loadNfcManager();
   return Ndef.encodeMessage([Ndef.uriRecord(url)]);
@@ -36,26 +82,39 @@ export function normalizeTagUid(tagUid: string): string {
 }
 
 /**
- * Perform a full write session:
- * 1. Request Ndef technology
- * 2. Write message
- * 3. Cancel technology
- *
- * ⚠️  iOS only supports NDEF-formatted tags. Ensure cards are pre-formatted.
- * ⚠️  Web 不支援（直接 throw）。
+ * 寫入 URI 後立刻讀回。讀回不符或沒有 UID 時拋錯，呼叫端不得接著 bind。
  */
 export async function writeUriToCard(
   url: string,
-): Promise<{ tagUid: string | null }> {
-  const { default: NfcManager, NfcTech } = await loadNfcManager();
+): Promise<{ tagUid: string; writtenUri: string }> {
+  const { default: NfcManager, NfcTech, Ndef } = await loadNfcManager();
   await NfcManager.requestTechnology(NfcTech.Ndef);
   try {
     const tag = await NfcManager.getTag();
+    const tagUid = tag?.id ? normalizeTagUid(tag.id) : "";
+    if (!isValidTagUid(tagUid)) {
+      throw new NfcFlowError("invalid-uid", tagUid || "missing");
+    }
+
     const bytes = await buildUriNdefMessage(url);
-    await NfcManager.ndefHandler.writeNdefMessage(bytes);
-    return {
-      tagUid: tag?.id ? normalizeTagUid(tag.id) : null,
-    };
+    await NfcManager.ndefHandler.writeNdefMessage(bytes, {
+      reconnectAfterWrite: true,
+    });
+
+    const readBack = await NfcManager.ndefHandler.getNdefMessage();
+    const payload = readBack?.ndefMessage?.[0]?.payload;
+    if (!payload || payload.length === 0) {
+      throw new NfcFlowError("write-failed", "empty read-back");
+    }
+    const writtenUri = Ndef.uri.decodePayload(Uint8Array.from(payload));
+    if (!urlsMatch(url, writtenUri)) {
+      throw new NfcFlowError("uri-mismatch", writtenUri);
+    }
+    return { tagUid, writtenUri };
+  } catch (error) {
+    if (error instanceof NfcFlowError) throw error;
+    const message = error instanceof Error ? error.message : "write failed";
+    throw new NfcFlowError("write-failed", message);
   } finally {
     try {
       await NfcManager.cancelTechnologyRequest();

@@ -1,7 +1,6 @@
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Platform,
   Pressable,
   ScrollView,
@@ -12,14 +11,12 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useLocalSearchParams, router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon, type IconName } from "@/components/ui/Icon";
-import {
-  InlineBanner,
-  type InlineBannerTone,
-} from "@/components/ui/InlineBanner";
+import { InlineBanner } from "@/components/ui/InlineBanner";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { copy } from "@/constants/copy.zh-TW";
 import {
@@ -33,26 +30,74 @@ import {
 import { nfcService } from "@/services/nfc.service";
 import { registrationService } from "@/services/registration.service";
 import {
+  classifyNfcBindError,
+  type NfcBindFailureKind,
+} from "@/utils/nfc-bind-errors";
+import {
+  buildRegistrationProfileUrl,
   isNfcSupported,
-  normalizeTagUid,
   startNfc,
   writeUriToCard,
 } from "@/utils/nfc-utils";
+import { getRegistrationDisplayName } from "@/utils/registration-display";
 
 type BadgeType = "WRISTBAND" | "CARD" | "QR_ONLY";
+
+interface AttendeeContext {
+  registrationId: string;
+  code: string;
+  displayName: string;
+}
 
 type FlowState =
   | { phase: "lookup" }
   | { phase: "lookup-loading" }
-  | { phase: "confirm"; registrationId: string; code: string }
-  | { phase: "writing" }
-  | { phase: "done"; ok: boolean; message: string };
+  | ({ phase: "confirm" } & AttendeeContext)
+  | ({ phase: "writing"; mode: "write" | "bind" } & AttendeeContext)
+  | ({
+      phase: "error";
+      kind: NfcBindFailureKind;
+      tagUid?: string;
+      payloadUrl: string;
+    } & AttendeeContext)
+  | ({ phase: "done"; tagUid: string; payloadUrl: string } & AttendeeContext);
 
 const BADGE_TYPES: { key: BadgeType; label: string; icon: IconName }[] = [
-  { key: "WRISTBAND", label: "手環", icon: "check" },
-  { key: "CARD", label: "卡片", icon: "check" },
-  { key: "QR_ONLY", label: "QR", icon: "qr-code" },
+  { key: "WRISTBAND", label: copy.nfc.badgeTypeWristband, icon: "check" },
+  { key: "CARD", label: copy.nfc.badgeTypeCard, icon: "check" },
+  { key: "QR_ONLY", label: copy.nfc.badgeTypeQr, icon: "qr-code" },
 ];
+
+const FAILURE_COPY: Record<NfcBindFailureKind, string> = {
+  unsupported:
+    Platform.OS === "ios"
+      ? copy.nfc.iosWriteNotSupported
+      : copy.nfc.webNotSupported,
+  "invalid-uid": copy.nfc.invalidTagUid,
+  duplicate: copy.nfc.duplicateBind,
+  "bound-other": copy.nfc.boundOther,
+  "write-failed": copy.nfc.writeFailed,
+  "uri-mismatch": copy.nfc.uriMismatch,
+  "bind-failed": copy.nfc.bindFailed,
+};
+
+function writeBlockedMessage(): string | null {
+  if (Platform.OS === "web") return copy.nfc.webNotSupported;
+  if (Platform.OS === "ios") return copy.nfc.iosWriteNotSupported;
+  return null;
+}
+
+function BlockedCardActions() {
+  return (
+    <View style={styles.blockedBox} testID="nfc-replace-blocked">
+      <Text style={type.h3}>{copy.nfc.replaceTitle}</Text>
+      <InlineBanner tone="warning" message={copy.nfc.replaceBlocked} />
+      <Button label={copy.nfc.replaceCard} disabled onPress={() => undefined} />
+      <Button label={copy.nfc.reissueCard} disabled onPress={() => undefined} />
+      <Button label={copy.nfc.returnCard} disabled onPress={() => undefined} />
+    </View>
+  );
+}
 
 export default function NfcBindScreen() {
   const insets = useSafeAreaInsets();
@@ -60,96 +105,150 @@ export default function NfcBindScreen() {
   const [code, setCode] = useState("");
   const [badgeType, setBadgeType] = useState<BadgeType>("WRISTBAND");
   const [state, setState] = useState<FlowState>({ phase: "lookup" });
-  const [banner, setBanner] = useState<{
-    tone: InlineBannerTone;
-    message: string;
-  } | null>(null);
+  const [lookupError, setLookupError] = useState<string | null>(null);
+  const blocked = writeBlockedMessage();
 
   const lookup = useCallback(async () => {
     if (!eventId || !code.trim()) return;
     setState({ phase: "lookup-loading" });
-    setBanner(null);
+    setLookupError(null);
     try {
       const { registration } = await registrationService.getByCode(
         eventId,
         code.trim(),
       );
-      const registrationId = (registration as { id?: string }).id;
-      if (!registrationId) {
-        setBanner({ tone: "danger", message: copy.nfc.bindFailed });
+      if (!registration.id) {
+        setLookupError(copy.nfc.bindFailed);
         setState({ phase: "lookup" });
         return;
       }
-      setState({ phase: "confirm", registrationId, code: code.trim() });
+      setState({
+        phase: "confirm",
+        registrationId: registration.id,
+        code: code.trim(),
+        displayName: getRegistrationDisplayName(registration),
+      });
     } catch {
-      setBanner({ tone: "danger", message: copy.checkIn.registrationNotFound });
+      setLookupError(copy.checkIn.registrationNotFound);
       setState({ phase: "lookup" });
     }
   }, [eventId, code]);
 
-  const writeAndBind = useCallback(async () => {
-    if (!eventId || state.phase !== "confirm") return;
-
-    // iOS 不支援實體寫卡（資訊層提示），主要使用裝置為 Android
-    if (Platform.OS === "ios") {
-      Alert.alert(copy.nfc.iosWriteNotSupported);
-      return;
-    }
-
-    setState({ phase: "writing" });
-    setBanner(null);
-    try {
-      const supported = await isNfcSupported();
-      if (!supported) {
-        setBanner({ tone: "warning", message: copy.settings.nfcNotSupported });
-        setState({
-          phase: "confirm",
-          registrationId: state.registrationId,
-          code: state.code,
-        });
-        return;
-      }
-      await startNfc();
-
-      const payloadUrl = `https://linkcard.xyz/u/${state.registrationId}`;
-      const { tagUid } = await writeUriToCard(payloadUrl);
-
-      if (!tagUid) {
-        setBanner({ tone: "danger", message: copy.nfc.bindFailed });
-        setState({
-          phase: "confirm",
-          registrationId: state.registrationId,
-          code: state.code,
-        });
-        return;
-      }
-
-      // 綁定 badge ↔ registration（OPERATOR+）
-      await nfcService.bind(
-        eventId,
-        state.registrationId,
-        normalizeTagUid(tagUid),
-        {
-          badgeType,
-        },
-      );
-
-      setState({ phase: "done", ok: true, message: copy.nfc.bindSuccess });
-    } catch {
-      setBanner({ tone: "danger", message: copy.nfc.bindFailed });
+  const fail = useCallback(
+    (
+      ctx: AttendeeContext,
+      error: unknown,
+      payloadUrl: string,
+      tagUid?: string,
+    ) => {
+      const kind = classifyNfcBindError(error);
       setState({
-        phase: "confirm",
-        registrationId: state.registrationId,
-        code: state.code,
+        phase: "error",
+        kind,
+        payloadUrl,
+        tagUid,
+        ...ctx,
       });
-    }
-  }, [eventId, state, badgeType]);
+    },
+    [],
+  );
+
+  const bindOnly = useCallback(
+    async (ctx: AttendeeContext, tagUid: string, payloadUrl: string) => {
+      if (!eventId) return;
+      setState({ phase: "writing", mode: "bind", ...ctx });
+      try {
+        await nfcService.bind(eventId, ctx.registrationId, tagUid, {
+          badgeType,
+        });
+        setState({ phase: "done", tagUid, payloadUrl, ...ctx });
+      } catch (error) {
+        fail(ctx, error, payloadUrl, tagUid);
+      }
+    },
+    [badgeType, eventId, fail],
+  );
+
+  const writeAndBind = useCallback(
+    async (ctx: AttendeeContext) => {
+      if (!eventId) return;
+      if (blocked) {
+        setState({
+          phase: "error",
+          kind: "unsupported",
+          payloadUrl: "",
+          ...ctx,
+        });
+        return;
+      }
+
+      setState({ phase: "writing", mode: "write", ...ctx });
+      const payloadUrl = buildRegistrationProfileUrl(ctx.registrationId);
+      try {
+        const supported = await isNfcSupported();
+        if (!supported) {
+          setState({
+            phase: "error",
+            kind: "unsupported",
+            payloadUrl,
+            ...ctx,
+          });
+          return;
+        }
+        await startNfc();
+        const { tagUid } = await writeUriToCard(payloadUrl);
+        await bindOnly(ctx, tagUid, payloadUrl);
+      } catch (error) {
+        fail(ctx, error, payloadUrl);
+      }
+    },
+    [bindOnly, blocked, eventId, fail],
+  );
 
   const reset = useCallback(() => {
     setCode("");
-    setBanner(null);
+    setLookupError(null);
     setState({ phase: "lookup" });
   }, []);
+
+  const backToConfirm = useCallback((ctx: AttendeeContext) => {
+    setState({ phase: "confirm", ...ctx });
+  }, []);
+
+  if (!eventId) {
+    return (
+      <View style={[styles.screen, { paddingTop: insets.top }]}>
+        <ScreenHeader
+          title={copy.nfc.writeTitle}
+          leading="back"
+          backFallbackPath="/(auth)/home"
+        />
+        <View style={styles.emptyBody}>
+          <EmptyState
+            kind="no-results"
+            headingLevel={2}
+            title={copy.event.unavailableTitle}
+            description={copy.event.unavailableHint}
+            testID="nfc-bind-empty"
+          />
+        </View>
+      </View>
+    );
+  }
+
+  const attendee =
+    state.phase === "lookup" || state.phase === "lookup-loading" ? null : state;
+  const payloadPreview = attendee
+    ? buildRegistrationProfileUrl(attendee.registrationId)
+    : null;
+  const errorMessage =
+    state.phase === "error"
+      ? state.kind === "bind-failed" && state.tagUid
+        ? copy.nfc.bindFailedAfterWrite
+        : FAILURE_COPY[state.kind]
+      : null;
+  const canRetryBind =
+    state.phase === "error" && state.kind === "bind-failed" && !!state.tagUid;
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -165,14 +264,21 @@ export default function NfcBindScreen() {
           { paddingBottom: insets.bottom + spacing.safeFooter },
         ]}
       >
-        {banner ? (
-          <InlineBanner tone={banner.tone} message={banner.message} />
+        {blocked ? (
+          <InlineBanner
+            tone="warning"
+            message={blocked}
+            testID="nfc-unsupported"
+          />
+        ) : null}
+        {lookupError ? (
+          <InlineBanner tone="danger" message={lookupError} />
         ) : null}
 
         {state.phase === "lookup" || state.phase === "lookup-loading" ? (
           <>
             <Text style={[type.caption, styles.stepHint]}>
-              ① 輸入報名編號以查詢參加者
+              {copy.nfc.stepLookupHint}
             </Text>
             <TextInput
               value={code}
@@ -190,13 +296,21 @@ export default function NfcBindScreen() {
               loading={state.phase === "lookup-loading"}
               disabled={!code.trim()}
             />
+            <BlockedCardActions />
           </>
         ) : null}
 
-        {state.phase === "confirm" ? (
+        {state.phase === "confirm" && payloadPreview ? (
           <>
             <Text style={[type.caption, styles.stepHint]}>
-              ② 選擇 Badge 類型，然後將空白 NFC 卡靠近手機背面
+              {copy.nfc.stepChooseTypeHint}
+            </Text>
+            <Text style={type.h3}>{state.displayName}</Text>
+            <Text style={[type.caption, styles.stepHint]}>
+              {copy.nfc.payloadPreview}
+            </Text>
+            <Text style={styles.url} selectable>
+              {payloadPreview}
             </Text>
             <View style={styles.badgeTypeRow}>
               {BADGE_TYPES.map((b) => (
@@ -208,6 +322,7 @@ export default function NfcBindScreen() {
                     badgeType === b.key && styles.badgeTypeActive,
                   ]}
                   accessibilityRole="button"
+                  accessibilityState={{ selected: badgeType === b.key }}
                   accessibilityLabel={b.label}
                 >
                   <Icon
@@ -236,10 +351,12 @@ export default function NfcBindScreen() {
               ))}
             </View>
             <Button
-              label="開始寫入 NFC 卡"
-              onPress={() => void writeAndBind()}
+              label={copy.nfc.startWrite}
+              onPress={() => void writeAndBind(state)}
+              disabled={blocked != null}
             />
-            <Button label="重新輸入" variant="ghost" onPress={reset} />
+            <Button label={copy.nfc.retype} variant="ghost" onPress={reset} />
+            <BlockedCardActions />
           </>
         ) : null}
 
@@ -247,29 +364,67 @@ export default function NfcBindScreen() {
           <View style={styles.centerBox}>
             <ActivityIndicator size="large" color={semantic.icon.brand} />
             <Text style={[type.body, styles.loadingText]}>
-              寫入中，請保持卡片靠近…
+              {state.mode === "bind" ? copy.nfc.binding : copy.nfc.writing}
             </Text>
           </View>
         ) : null}
 
-        {state.phase === "done" ? (
+        {state.phase === "error" && errorMessage ? (
           <View
-            style={[
-              styles.doneCard,
-              state.ok ? styles.doneOk : styles.doneFail,
-            ]}
+            style={[styles.doneCard, styles.doneFail]}
+            testID="nfc-bind-error"
           >
             <Icon
-              name={state.ok ? "check-circle" : "x-circle"}
+              name="x-circle"
               size="xl"
-              color={
-                state.ok
-                  ? semantic.status.success.fg
-                  : semantic.status.danger.fg
-              }
+              color={semantic.status.danger.fg}
             />
-            <Text style={[type.h3, styles.doneTitle]}>{state.message}</Text>
-            <Button label="繼續下一張" onPress={reset} />
+            <Text style={[type.h3, styles.doneTitle]}>{errorMessage}</Text>
+            {state.tagUid && state.kind !== "bind-failed" ? (
+              <Text style={[type.body, styles.doneTitle]}>
+                {copy.nfc.bindFailedAfterWrite}
+              </Text>
+            ) : null}
+            {canRetryBind ? (
+              <Button
+                label={copy.nfc.retryBind}
+                onPress={() =>
+                  void bindOnly(state, state.tagUid as string, state.payloadUrl)
+                }
+              />
+            ) : state.kind === "bound-other" ? (
+              <Button
+                label={copy.nfc.retype}
+                onPress={() => backToConfirm(state)}
+              />
+            ) : (
+              <Button
+                label={copy.nfc.retryWrite}
+                onPress={() => void writeAndBind(state)}
+                disabled={blocked != null}
+              />
+            )}
+            <Button label={copy.nfc.retype} variant="ghost" onPress={reset} />
+            {state.kind === "bound-other" ? <BlockedCardActions /> : null}
+          </View>
+        ) : null}
+
+        {state.phase === "done" ? (
+          <View style={[styles.doneCard, styles.doneOk]} testID="nfc-bind-success">
+            <Icon
+              name="check-circle"
+              size="xl"
+              color={semantic.status.success.fg}
+            />
+            <Text style={[type.h3, styles.doneTitle]}>{copy.nfc.bindSuccess}</Text>
+            <Text style={[type.caption, styles.stepHint]}>
+              {copy.nfc.writtenUid}
+            </Text>
+            <Text style={styles.url}>{state.tagUid}</Text>
+            <Text style={styles.url} selectable>
+              {state.payloadUrl}
+            </Text>
+            <Button label={copy.nfc.continueNext} onPress={reset} />
             <Button
               label={copy.settings.backToEvents}
               variant="ghost"
@@ -285,7 +440,16 @@ export default function NfcBindScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: semantic.bg.canvas },
   body: { padding: spacing.screen, gap: spacing.section },
+  emptyBody: {
+    flex: 1,
+    padding: spacing.screen,
+    justifyContent: "center",
+  },
   stepHint: { color: semantic.text.muted },
+  url: {
+    ...type.mono,
+    color: semantic.text.primary,
+  },
   input: {
     backgroundColor: semantic.bg.surface,
     borderWidth: 1,
@@ -340,4 +504,8 @@ const styles = StyleSheet.create({
     borderColor: semantic.status.danger.border,
   },
   doneTitle: { textAlign: "center" },
+  blockedBox: {
+    gap: spacing.gap,
+    marginTop: spacing.gap,
+  },
 });
