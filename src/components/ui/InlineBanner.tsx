@@ -18,6 +18,11 @@ export interface InlineBannerProps {
   /** 可關閉 */
   dismissible?: boolean;
   onDismiss?: () => void;
+  /**
+   * 緊湊版：較小內距、無外底 margin、訊息用 caption。
+   * 適合表單頁連續堆疊多則提示時減少佔高。
+   */
+  compact?: boolean;
   testID?: string;
 }
 
@@ -60,6 +65,7 @@ export function InlineBanner({
   onAction,
   dismissible = false,
   onDismiss,
+  compact = false,
   testID,
 }: InlineBannerProps) {
   const toneToken = TONE_TOKENS[tone];
@@ -75,6 +81,7 @@ export function InlineBanner({
     <View
       style={[
         styles.banner,
+        compact && styles.bannerCompact,
         { backgroundColor: toneToken.bg, borderColor: toneToken.border },
       ]}
       testID={testID}
@@ -101,7 +108,10 @@ export function InlineBanner({
         ) : null}
 
         <Text
-          style={[styles.message, { color: toneToken.fg }]}
+          style={[
+            compact ? styles.messageCompact : styles.message,
+            { color: toneToken.fg },
+          ]}
           maxFontSizeMultiplier={layout.maxFontScaleBody}
         >
           {message}
@@ -152,12 +162,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[4],
     marginBottom: space[4],
   },
+  bannerCompact: {
+    paddingVertical: space[2],
+    paddingHorizontal: space[3],
+    marginBottom: 0,
+  },
   /** icon 不壓縮；與文字第一行的光學對齊由 marginTop 微調 */
   icon: { marginTop: space[1] },
   /** 文字區 `flexShrink: 1` 讓長訊息換行而不推擠右側動作 */
   content: { flex: 1, flexShrink: 1, marginLeft: space[2] },
   title: { ...type.label },
   message: { ...type.body },
+  messageCompact: { ...type.caption },
   action: {
     alignSelf: "flex-start",
     minHeight: TOUCH_TARGET,

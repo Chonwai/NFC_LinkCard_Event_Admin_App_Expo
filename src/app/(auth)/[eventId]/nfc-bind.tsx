@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 
 import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { InlineBanner } from "@/components/ui/InlineBanner";
@@ -89,13 +90,48 @@ function writeBlockedMessage(): string | null {
 
 function BlockedCardActions() {
   return (
-    <View style={styles.blockedBox} testID="nfc-replace-blocked">
-      <Text style={type.h3}>{copy.nfc.replaceTitle}</Text>
-      <InlineBanner tone="warning" message={copy.nfc.replaceBlocked} />
-      <Button label={copy.nfc.replaceCard} disabled onPress={() => undefined} />
-      <Button label={copy.nfc.reissueCard} disabled onPress={() => undefined} />
-      <Button label={copy.nfc.returnCard} disabled onPress={() => undefined} />
-    </View>
+    <Card
+      padding={space[3]}
+      style={styles.blockedCard}
+      testID="nfc-replace-blocked"
+    >
+      <Text
+        style={styles.blockedTitle}
+        maxFontSizeMultiplier={layout.maxFontScaleFixed}
+      >
+        {copy.nfc.replaceTitle}
+      </Text>
+      <InlineBanner compact tone="warning" message={copy.nfc.replaceBlocked} />
+      <View style={styles.blockedActions}>
+        <View style={styles.blockedActionItem}>
+          <Button
+            label={copy.nfc.replaceCard}
+            variant="secondary"
+            size="md"
+            disabled
+            onPress={() => undefined}
+          />
+        </View>
+        <View style={styles.blockedActionItem}>
+          <Button
+            label={copy.nfc.reissueCard}
+            variant="secondary"
+            size="md"
+            disabled
+            onPress={() => undefined}
+          />
+        </View>
+        <View style={styles.blockedActionItem}>
+          <Button
+            label={copy.nfc.returnCard}
+            variant="secondary"
+            size="md"
+            disabled
+            onPress={() => undefined}
+          />
+        </View>
+      </View>
+    </Card>
   );
 }
 
@@ -263,99 +299,123 @@ export default function NfcBindScreen() {
           styles.body,
           { paddingBottom: insets.bottom + spacing.safeFooter },
         ]}
+        keyboardShouldPersistTaps="handled"
       >
-        {blocked ? (
-          <InlineBanner
-            tone="warning"
-            message={blocked}
-            testID="nfc-unsupported"
-          />
-        ) : null}
-        {lookupError ? (
-          <InlineBanner tone="danger" message={lookupError} />
+        {blocked || lookupError ? (
+          <View style={styles.alerts}>
+            {blocked ? (
+              <InlineBanner
+                compact
+                tone="warning"
+                message={blocked}
+                testID="nfc-unsupported"
+              />
+            ) : null}
+            {lookupError ? (
+              <InlineBanner compact tone="danger" message={lookupError} />
+            ) : null}
+          </View>
         ) : null}
 
         {state.phase === "lookup" || state.phase === "lookup-loading" ? (
           <>
-            <Text style={[type.caption, styles.stepHint]}>
-              {copy.nfc.stepLookupHint}
-            </Text>
-            <TextInput
-              value={code}
-              onChangeText={setCode}
-              placeholder={copy.checkIn.codePlaceholder}
-              placeholderTextColor={semantic.text.muted}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              style={styles.input}
-              accessibilityLabel={copy.checkIn.codePlaceholder}
-            />
-            <Button
-              label={copy.checkIn.submit}
-              onPress={() => void lookup()}
-              loading={state.phase === "lookup-loading"}
-              disabled={!code.trim()}
-            />
+            <View style={styles.formBlock}>
+              <Text
+                style={styles.stepHint}
+                maxFontSizeMultiplier={layout.maxFontScaleBody}
+              >
+                {copy.nfc.stepLookupHint}
+              </Text>
+              <TextInput
+                value={code}
+                onChangeText={setCode}
+                placeholder={copy.checkIn.codePlaceholder}
+                placeholderTextColor={semantic.text.muted}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                style={styles.input}
+                accessibilityLabel={copy.checkIn.codePlaceholder}
+              />
+              <Button
+                label={copy.checkIn.submit}
+                onPress={() => void lookup()}
+                loading={state.phase === "lookup-loading"}
+                disabled={!code.trim()}
+              />
+            </View>
             <BlockedCardActions />
           </>
         ) : null}
 
         {state.phase === "confirm" && payloadPreview ? (
           <>
-            <Text style={[type.caption, styles.stepHint]}>
-              {copy.nfc.stepChooseTypeHint}
-            </Text>
-            <Text style={type.h3}>{state.displayName}</Text>
-            <Text style={[type.caption, styles.stepHint]}>
-              {copy.nfc.payloadPreview}
-            </Text>
-            <Text style={styles.url} selectable>
-              {payloadPreview}
-            </Text>
-            <View style={styles.badgeTypeRow}>
-              {BADGE_TYPES.map((b) => (
-                <Pressable
-                  key={b.key}
-                  onPress={() => setBadgeType(b.key)}
-                  style={[
-                    styles.badgeType,
-                    badgeType === b.key && styles.badgeTypeActive,
-                  ]}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: badgeType === b.key }}
-                  accessibilityLabel={b.label}
-                >
-                  <Icon
-                    name={b.icon}
-                    size="sm"
-                    color={
-                      badgeType === b.key
-                        ? semantic.icon.brand
-                        : semantic.icon.muted
-                    }
-                  />
-                  <Text
+            <View style={styles.formBlock}>
+              <Text
+                style={styles.stepHint}
+                maxFontSizeMultiplier={layout.maxFontScaleBody}
+              >
+                {copy.nfc.stepChooseTypeHint}
+              </Text>
+              <Text
+                style={type.h3}
+                maxFontSizeMultiplier={layout.maxFontScaleFixed}
+              >
+                {state.displayName}
+              </Text>
+              <Text
+                style={styles.stepHint}
+                maxFontSizeMultiplier={layout.maxFontScaleBody}
+              >
+                {copy.nfc.payloadPreview}
+              </Text>
+              <Text style={styles.url} selectable>
+                {payloadPreview}
+              </Text>
+              <View style={styles.badgeTypeRow}>
+                {BADGE_TYPES.map((b) => (
+                  <Pressable
+                    key={b.key}
+                    onPress={() => setBadgeType(b.key)}
                     style={[
-                      type.label,
-                      {
-                        color:
-                          badgeType === b.key
-                            ? semantic.text.primary
-                            : semantic.text.muted,
-                      },
+                      styles.badgeType,
+                      badgeType === b.key && styles.badgeTypeActive,
                     ]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: badgeType === b.key }}
+                    accessibilityLabel={b.label}
                   >
-                    {b.label}
-                  </Text>
-                </Pressable>
-              ))}
+                    <Icon
+                      name={b.icon}
+                      size="sm"
+                      color={
+                        badgeType === b.key
+                          ? semantic.icon.brand
+                          : semantic.icon.muted
+                      }
+                    />
+                    <Text
+                      style={[
+                        type.label,
+                        {
+                          color:
+                            badgeType === b.key
+                              ? semantic.text.primary
+                              : semantic.text.muted,
+                        },
+                      ]}
+                    >
+                      {b.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              <Button
+                label={copy.nfc.startWrite}
+                onPress={() => void writeAndBind(state)}
+                disabled={blocked != null}
+              />
+              <Button label={copy.nfc.retype} variant="ghost" onPress={reset} />
             </View>
-            <Button
-              label={copy.nfc.startWrite}
-              onPress={() => void writeAndBind(state)}
-              disabled={blocked != null}
-            />
-            <Button label={copy.nfc.retype} variant="ghost" onPress={reset} />
             <BlockedCardActions />
           </>
         ) : null}
@@ -439,13 +499,26 @@ export default function NfcBindScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: semantic.bg.canvas },
-  body: { padding: spacing.screen, gap: spacing.section },
+  body: {
+    paddingHorizontal: spacing.screen,
+    paddingTop: space[4],
+    gap: space[4],
+  },
   emptyBody: {
     flex: 1,
     padding: spacing.screen,
     justifyContent: "center",
   },
-  stepHint: { color: semantic.text.muted },
+  alerts: {
+    gap: space[2],
+  },
+  formBlock: {
+    gap: space[3],
+  },
+  stepHint: {
+    ...type.caption,
+    color: semantic.text.muted,
+  },
   url: {
     ...type.mono,
     color: semantic.text.primary,
@@ -464,7 +537,7 @@ const styles = StyleSheet.create({
   },
   badgeTypeRow: {
     flexDirection: "row",
-    gap: spacing.gap,
+    gap: space[2],
   },
   badgeType: {
     flex: 1,
@@ -484,15 +557,15 @@ const styles = StyleSheet.create({
   },
   centerBox: {
     alignItems: "center",
-    gap: spacing.gap,
-    paddingVertical: spacing.group,
+    gap: space[3],
+    paddingVertical: space[6],
   },
   loadingText: { color: semantic.text.muted },
   doneCard: {
     alignItems: "center",
-    gap: spacing.gap,
+    gap: space[3],
     borderRadius: 16,
-    padding: spacing.group,
+    padding: space[4],
     borderWidth: 1,
   },
   doneOk: {
@@ -504,8 +577,19 @@ const styles = StyleSheet.create({
     borderColor: semantic.status.danger.border,
   },
   doneTitle: { textAlign: "center" },
-  blockedBox: {
-    gap: spacing.gap,
-    marginTop: spacing.gap,
+  blockedCard: {
+    gap: space[3],
+  },
+  blockedTitle: {
+    ...type.h3,
+    color: semantic.text.primary,
+  },
+  blockedActions: {
+    flexDirection: "row",
+    gap: space[2],
+  },
+  blockedActionItem: {
+    flex: 1,
+    minWidth: 0,
   },
 });

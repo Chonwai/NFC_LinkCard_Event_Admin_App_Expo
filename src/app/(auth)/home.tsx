@@ -173,44 +173,45 @@ export default function HomeScreen() {
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Logo size="sm" wordmark={copy.app.name} />
-        <View style={styles.titleRow}>
-          <View style={styles.pageTitles}>
-            <Text
-              style={styles.pageTitle}
-              accessibilityRole="header"
-              numberOfLines={1}
-              maxFontSizeMultiplier={layout.maxFontScaleFixed}
-            >
-              {copy.home.title}
-            </Text>
-            <Text
-              style={styles.pageSubtitle}
-              numberOfLines={1}
-              maxFontSizeMultiplier={layout.maxFontScaleFixed}
-            >
-              {copy.app.tagline}
-            </Text>
-          </View>
-          <Pressable
-            onPress={() => {
-              void onRefresh();
-            }}
-            disabled={refreshing}
-            accessibilityRole="button"
-            accessibilityLabel={refreshing ? "重新整理中" : "重新整理"}
-            accessibilityState={{ busy: refreshing, disabled: refreshing }}
-            hitSlop={space[2]}
-            style={[styles.refreshButton, refreshRing.focusRingStyle]}
-            {...refreshRing.focusRingProps}
-          >
-            {refreshing ? (
-              <ActivityIndicator color={semantic.action.primary} />
-            ) : (
-              <Icon name="refresh" size="lg" color={semantic.icon.default} />
-            )}
-          </Pressable>
+        <View style={styles.headerBrand}>
+          <Logo size="sm" withWordmark wordmark={copy.app.name} />
         </View>
+        <Pressable
+          onPress={() => {
+            void onRefresh();
+          }}
+          disabled={refreshing}
+          accessibilityRole="button"
+          accessibilityLabel={refreshing ? "重新整理中" : "重新整理"}
+          accessibilityState={{ busy: refreshing, disabled: refreshing }}
+          hitSlop={space[2]}
+          style={[styles.refreshButton, refreshRing.focusRingStyle]}
+          {...refreshRing.focusRingProps}
+        >
+          {refreshing ? (
+            <ActivityIndicator color={semantic.action.primary} />
+          ) : (
+            <Icon name="refresh" size="lg" color={semantic.icon.default} />
+          )}
+        </Pressable>
+      </View>
+
+      <View style={styles.bodyHeader}>
+        <Text
+          style={styles.pageTitle}
+          accessibilityRole="header"
+          numberOfLines={1}
+          maxFontSizeMultiplier={layout.maxFontScaleFixed}
+        >
+          {copy.home.title}
+        </Text>
+        <Text
+          style={styles.pageSubtitle}
+          numberOfLines={1}
+          maxFontSizeMultiplier={layout.maxFontScaleFixed}
+        >
+          {copy.app.tagline}
+        </Text>
       </View>
 
       {banner ? (
@@ -261,18 +262,21 @@ const styles = StyleSheet.create({
     backgroundColor: semantic.bg.canvas,
   },
   header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    minHeight: layout.headerHeight,
     paddingHorizontal: spacing.screen,
-    paddingTop: space[2],
-    paddingBottom: space[3],
+    paddingTop: space[1],
+    paddingBottom: space[2],
     gap: space[2],
     borderBottomWidth: hairline,
     borderBottomColor: semantic.border.decorative,
   },
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space[2],
-    minHeight: layout.touchMin,
+  headerBrand: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: "center",
   },
   refreshButton: {
     width: layout.touchMin,
@@ -281,11 +285,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  pageTitles: {
-    flex: 1,
-    minWidth: 0,
-    justifyContent: "center",
-    gap: 0,
+  bodyHeader: {
+    paddingHorizontal: spacing.screen,
+    paddingTop: space[4],
+    paddingBottom: space[2],
+    gap: space[1],
   },
   pageTitle: {
     ...type.h2,
@@ -294,20 +298,19 @@ const styles = StyleSheet.create({
   pageSubtitle: {
     ...type.caption,
     color: semantic.text.muted,
-    marginTop: 1,
   },
   bannerWrapper: {
     paddingHorizontal: spacing.screen,
-    marginTop: space[3],
+    marginBottom: space[2],
   },
   skeletonWrapper: {
     paddingHorizontal: spacing.screen,
-    marginTop: space[4],
+    marginTop: space[2],
     gap: space[3],
   },
   listContent: {
     paddingHorizontal: spacing.screen,
-    paddingTop: space[4],
+    paddingTop: space[2],
   },
   eventCard: {
     backgroundColor: semantic.bg.surface,

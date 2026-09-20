@@ -113,7 +113,7 @@ export interface CheckInResult {
   alreadyCheckedIn?: boolean;
 }
 
-/** Badge 狀態（nfc lookup / badges list） */
+/** Badge 狀態（nfc badges list） */
 export type BadgeStatus =
   "UNASSIGNED" | "BOUND" | "ACTIVE" | "DEACTIVATED" | "LOST";
 
@@ -122,4 +122,17 @@ export interface BadgeInfo {
   status: BadgeStatus;
   registrationId: string | null;
   boundAt: string | null;
+}
+
+/**
+ * GET /nfc/lookup 實際回傳（EventRegistrationService.lookupNfcBadge）。
+ * 公開查詢綁定後的參加者摘要，**不是** `{ badge: BadgeInfo }`。
+ */
+export interface NfcLookupResult {
+  profileUrl: string | null;
+  displayName: string;
+  company: string | null;
+  jobTitle: string | null;
+  registrantType: string;
+  registrationId: string | null;
 }

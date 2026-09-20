@@ -26,6 +26,14 @@ interface StatItem {
   icon: IconName;
 }
 
+interface TokenStatItem {
+  key: string;
+  label: string;
+  icon: IconName;
+  /** 卡片強調色（發放／消耗語意） */
+  tone: "issued" | "consumed";
+}
+
 type EventRoute =
   | "check-in"
   | "token"
@@ -89,6 +97,7 @@ export default function EventOverviewScreen() {
     message: string;
   } | null>(null);
   const [stats, setStats] = useState<StatItem[]>([]);
+  const [tokenStats, setTokenStats] = useState<TokenStatItem[]>([]);
 
   const event = events.find((e) => e.id === eventId);
   const statusLabel = getEventStatusLabel(event?.status);
@@ -121,22 +130,36 @@ export default function EventOverviewScreen() {
             icon: "users",
           },
           {
-            key: "checkedIn",
-            label: copy.event.checkedIn,
-            value: String(checkedIn),
-            icon: "check-circle",
-          },
-          {
             key: "exhibitors",
             label: copy.event.exhibitors,
             value: String(event?.exhibitorCount ?? 0),
             icon: "archive",
           },
           {
+            key: "checkedIn",
+            label: copy.event.checkedIn,
+            value: String(checkedIn),
+            icon: "check-circle",
+          },
+          {
             key: "attendance",
             label: copy.event.attendanceRate,
             value: formatAttendanceRate(checkedIn, total),
             icon: "check",
+          },
+        ]);
+        setTokenStats([
+          {
+            key: "tokenIssued",
+            label: copy.event.tokenIssued,
+            icon: "plus",
+            tone: "issued",
+          },
+          {
+            key: "tokenConsumed",
+            label: copy.event.tokenConsumed,
+            icon: "x-circle",
+            tone: "consumed",
           },
         ]);
       } catch {
@@ -210,44 +233,122 @@ export default function EventOverviewScreen() {
         ) : null}
 
         {loading ? (
-          <View style={styles.statGrid}>
-            <Skeleton width="48%" height={96} radius={12} />
-            <Skeleton width="48%" height={96} radius={12} />
-            <Skeleton width="48%" height={96} radius={12} />
-            <Skeleton width="48%" height={96} radius={12} />
+          <View style={styles.loadingBlock}>
+            <View style={styles.statGrid}>
+              {Array.from({ length: 4 }).map((_, index) => (
+                <Skeleton
+                  key={`stat-skel-${index}`}
+                  width="48%"
+                  height={88}
+                  radius={12}
+                />
+              ))}
+            </View>
+            <Skeleton width="100%" height={20} radius={6} />
+            <View style={styles.statGrid}>
+              <Skeleton width="48%" height={88} radius={12} />
+              <Skeleton width="48%" height={88} radius={12} />
+            </View>
           </View>
         ) : (
-          <View style={styles.statGrid}>
-            {stats.map((s) => (
-              <Card key={s.key} style={styles.statCard}>
-                <Icon name={s.icon} size="lg" color={semantic.icon.brand} />
-                <Text style={type.h1}>{s.value}</Text>
-                <Text style={[type.caption, styles.statLabel]}>{s.label}</Text>
-              </Card>
-            ))}
-          </View>
-        )}
+          <>
+            <View style={styles.statGrid} testID="overview-stats">
+              {stats.map((s) => (
+                <Card
+                  key={s.key}
+                  padding={space[3]}
+                  style={styles.statCard}
+                  testID={`overview-stat-${s.key}`}
+                >
+                  <View style={styles.statHeader}>
+                    <View style={styles.statIconWrap}>
+                      <Icon
+                        name={s.icon}
+                        size="sm"
+                        color={semantic.icon.brand}
+                      />
+                    </View>
+                    <Text
+                      style={styles.statLabel}
+                      numberOfLines={1}
+                      maxFontSizeMultiplier={layout.maxFontScaleBody}
+                    >
+                      {s.label}
+                    </Text>
+                  </View>
+                  <Text
+                    style={styles.statValue}
+                    numberOfLines={1}
+                    maxFontSizeMultiplier={layout.maxFontScaleFixed}
+                  >
+                    {s.value}
+                  </Text>
+                </Card>
+              ))}
+            </View>
 
-        {!loading ? (
-          <Card style={styles.tokenCard} testID="overview-token-degraded">
-            <Text style={type.h3}>{copy.event.tokenTitle}</Text>
-            <View style={styles.tokenRow}>
-              <Text style={[type.body, styles.tokenLabel]}>
-                {copy.event.tokenIssued}
+            <View style={styles.tokenSection} testID="overview-token-degraded">
+              <Text
+                style={styles.sectionTitle}
+                maxFontSizeMultiplier={layout.maxFontScaleFixed}
+              >
+                {copy.event.tokenTitle}
               </Text>
-              <Text style={type.h3}>{copy.event.dash}</Text>
-            </View>
-            <View style={styles.tokenRow}>
-              <Text style={[type.body, styles.tokenLabel]}>
-                {copy.event.tokenConsumed}
+              <View style={styles.statGrid}>
+                {tokenStats.map((t) => {
+                  const accent =
+                    t.tone === "issued"
+                      ? semantic.status.success
+                      : semantic.status.warning;
+                  return (
+                    <Card
+                      key={t.key}
+                      padding={space[3]}
+                      style={styles.statCard}
+                      testID={`overview-stat-${t.key}`}
+                    >
+                      <View style={styles.statHeader}>
+                        <View
+                          style={[
+                            styles.statIconWrap,
+                            { backgroundColor: accent.bg },
+                          ]}
+                        >
+                          <Icon
+                            name={t.icon}
+                            size="sm"
+                            color={accent.fg}
+                          />
+                        </View>
+                        <Text
+                          style={styles.statLabel}
+                          numberOfLines={1}
+                          maxFontSizeMultiplier={layout.maxFontScaleBody}
+                        >
+                          {t.label}
+                        </Text>
+                      </View>
+                      <Text
+                        style={styles.statValue}
+                        numberOfLines={1}
+                        maxFontSizeMultiplier={layout.maxFontScaleFixed}
+                        accessibilityLabel={`${t.label}：0`}
+                      >
+                        0
+                      </Text>
+                    </Card>
+                  );
+                })}
+              </View>
+              <Text
+                style={styles.tokenHint}
+                maxFontSizeMultiplier={layout.maxFontScaleBody}
+              >
+                {copy.event.tokenDegradedHint}
               </Text>
-              <Text style={type.h3}>{copy.event.dash}</Text>
             </View>
-            <Text style={[type.caption, styles.tokenHint]}>
-              {copy.event.tokenDegradedHint}
-            </Text>
-          </Card>
-        ) : null}
+          </>
+        )}
 
         <Text style={[type.h3, styles.sectionTitle]}>
           {copy.event.quickActions}
@@ -287,8 +388,8 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: spacing.screen,
-    paddingTop: spacing.section,
-    gap: spacing.section,
+    paddingTop: space[4],
+    gap: space[4],
   },
   emptyBody: {
     flex: 1,
@@ -300,45 +401,61 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[3],
     paddingVertical: space[1],
   },
+  loadingBlock: {
+    gap: space[3],
+  },
   statGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: spacing.gap,
+    gap: space[2],
   },
   statCard: {
     width: "48%",
-    alignItems: "center",
+    flexGrow: 1,
     gap: space[2],
   },
-  statLabel: {
-    color: semantic.text.muted,
-  },
-  tokenCard: {
-    width: "100%",
-    gap: space[2],
-  },
-  tokenRow: {
+  statHeader: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: space[2],
   },
-  tokenLabel: {
+  statIconWrap: {
+    width: layout.icon.md + space[2],
+    height: layout.icon.md + space[2],
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: semantic.bg.brandSoft,
+  },
+  statLabel: {
+    ...type.label,
     color: semantic.text.secondary,
+    flex: 1,
+    minWidth: 0,
+  },
+  statValue: {
+    ...type.display,
+    color: semantic.text.primary,
+  },
+  tokenSection: {
+    gap: space[2],
   },
   tokenHint: {
+    ...type.caption,
     color: semantic.text.muted,
   },
   sectionTitle: {
-    marginTop: spacing.gap,
+    ...type.h3,
+    color: semantic.text.primary,
   },
   actionGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: spacing.gap,
+    gap: space[2],
   },
   actionCard: {
     width: "48%",
-    minHeight: layout.touchMin * 2,
+    minHeight: layout.touchMin * 1.75,
     backgroundColor: semantic.bg.surface,
     borderRadius: 12,
     borderWidth: 1,
@@ -346,7 +463,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: space[2],
-    padding: spacing.card,
+    paddingVertical: space[3],
+    paddingHorizontal: space[2],
   },
   actionPressed: {
     backgroundColor: semantic.bg.pressedOnLight,

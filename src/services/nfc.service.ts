@@ -1,4 +1,4 @@
-import type { ApiResponse, BadgeInfo } from "@/types/api.types";
+import type { ApiResponse, BadgeInfo, NfcLookupResult } from "@/types/api.types";
 
 import { apiClient } from "./api";
 
@@ -8,15 +8,20 @@ interface BadgeListResponse {
 }
 
 export const nfcService = {
-  /** GET /v1/events/:eventId/nfc/lookup — 公開查 badge（by uid 或 qr） */
+  /**
+   * GET /v1/events/:eventId/nfc/lookup — 公開查 badge（by uid 或 qr）
+   *
+   * 成功時回傳綁定後的參加者摘要（displayName / registrationId…），
+   * 與 listBadges 的 `BadgeInfo` 形狀不同。
+   */
   async lookup(
     eventId: string,
     opts: { uid?: string; qr?: string },
-  ): Promise<{ badge?: BadgeInfo }> {
+  ): Promise<NfcLookupResult> {
     const params = new URLSearchParams();
     if (opts.uid) params.set("uid", opts.uid);
     if (opts.qr) params.set("qr", opts.qr);
-    const res = await apiClient.get<ApiResponse<{ badge?: BadgeInfo }>>(
+    const res = await apiClient.get<ApiResponse<NfcLookupResult>>(
       `/api/v1/events/${encodeURIComponent(eventId)}/nfc/lookup?${params.toString()}`,
     );
     return res.data.data;
