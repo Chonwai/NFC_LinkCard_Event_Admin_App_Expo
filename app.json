@@ -10,7 +10,7 @@
     "backgroundColor": "#F9FAFB",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "xyz.linkcard.event-admin",
+      "bundleIdentifier": "xyz.linkcard.event_admin",
       "infoPlist": {
         "NSCameraUsageDescription": "LinkCard Event Admin 使用相機掃描報名 QR code 進行報到",
         "NFCReaderUsageDescription": "LinkCard Event Admin 使用 NFC 將入場憑證寫入空白 NFC 卡",
@@ -26,11 +26,8 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "CAMERA",
-        "NFC",
         "android.permission.CAMERA",
-        "android.permission.NFC",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.NFC"
       ]
     },
     "web": {
