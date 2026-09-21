@@ -1,0 +1,44 @@
+# 既有格式債（`CRA-V1-016`）。
+#
+# 下列檔案在 audit 快照（loop base `1411faa`, 2026-09-20）時就已經不符合
+# prettier，不是這個 loop 造成的。逐檔比對過：把該檔在 `1411faa` 的 blob 餵給
+# prettier，24 個全部都已經是 dirty。
+#
+# 本 loop 自己新增或改壞的 5 個（`app.json` + `tests/api-error`,
+# `tests/lookup-timeout`, `tests/nfc-bind-errors`, `tests/registration-display`）
+# 已在同一顆 commit 用 `prettier --write` 修掉，因此**不在**本清單內，
+# 也不需要例外。
+#
+# 為什麼不一併 `prettier --write` 全修：那會產生一份與本次修復無關的大量 diff，
+# 把真正的變更埋掉。這裡改為明列——讀者看得到「哪些檔案被排除、為什麼」。
+# `npm run format`（`--write .`）刻意**不吃**本清單，所以清債的方式就是：
+# 執行 `npm run format`，再把該檔從本清單移除。
+#
+# 只允許移除，不允許新增。新檔案不過 prettier 就修它，不要加進來。
+#
+# 路徑含 `[` `]` 者必須轉義成 `\[` `\]`，否則會被當成 gitignore 的字元集。
+# 本清單的內容即為權威；條目數 = 扣除註解與空行後的行數。
+docs/20260918_LinkCard_Admin_APP_Implementation_Plan.md
+docs/evidence/PHASE-0/README.md
+docs/evidence/PHASE-7/README.md
+docs/evidence/README.md
+docs/evidence/WP-A1/README.md
+docs/evidence/WP-A4/README.md
+docs/evidence/WP-A5/README.md
+docs/evidence/WP-A6/README.md
+docs/evidence/WP-A7/README.md
+docs/evidence/WP-A8/README.md
+src/app/(auth)/\[eventId\]/badges.tsx
+src/app/(auth)/\[eventId\]/check-in.tsx
+src/app/(auth)/\[eventId\]/nfc-bind.tsx
+src/app/(auth)/\[eventId\]/overview.tsx
+src/app/(auth)/\[eventId\]/registrant/\[registrationId\].tsx
+src/app/(auth)/\[eventId\]/registrations.tsx
+src/app/(auth)/\[eventId\]/walk-in.tsx
+src/app/(auth)/settings.tsx
+src/app/index.tsx
+src/components/ui/FieldInput.tsx
+src/constants/copy.zh-TW.ts
+src/services/event.service.ts
+src/services/nfc.service.ts
+src/utils/registration-display.ts

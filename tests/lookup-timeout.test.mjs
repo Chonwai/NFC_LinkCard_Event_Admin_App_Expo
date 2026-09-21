@@ -14,7 +14,8 @@ import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-const { API_TIMEOUT_MS, LOOKUP_TIMEOUT_MS } = await import("@/constants/config");
+const { API_TIMEOUT_MS, LOOKUP_TIMEOUT_MS } =
+  await import("@/constants/config");
 
 const REPO_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),

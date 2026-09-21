@@ -44,7 +44,9 @@ test("getApiErrorCode：取後端錯誤碼，空字串視為沒有", () => {
     "REGISTRATION_NOT_CONFIRMED",
   );
   assert.equal(
-    getApiErrorCode({ response: { status: 400, data: { error: { code: "" } } } }),
+    getApiErrorCode({
+      response: { status: 400, data: { error: { code: "" } } },
+    }),
     null,
   );
   assert.equal(getApiErrorCode(null), null);
@@ -102,7 +104,10 @@ test("isNetworkError：沒有任何 code 時才退回 message 特徵", () => {
   assert.equal(isNetworkError({ message: "Failed to fetch" }), true);
   assert.equal(isNetworkError({ message: "socket hang up" }), true);
   assert.equal(isNetworkError({ message: "timeout of 3000ms exceeded" }), true);
-  assert.equal(isNetworkError({ message: "Request failed with status 404" }), false);
+  assert.equal(
+    isNetworkError({ message: "Request failed with status 404" }),
+    false,
+  );
   assert.equal(isNetworkError(null), false);
 });
 
@@ -121,7 +126,9 @@ test("getTerminalAuthReason：401 過期、403 停用、其餘 null", () => {
     "403 以外的狀態碼不算",
   );
   assert.equal(
-    getTerminalAuthReason(httpError(403, { error: { code: "USER_SUSPENDED" } })),
+    getTerminalAuthReason(
+      httpError(403, { error: { code: "USER_SUSPENDED" } }),
+    ),
     "suspended",
   );
   assert.equal(

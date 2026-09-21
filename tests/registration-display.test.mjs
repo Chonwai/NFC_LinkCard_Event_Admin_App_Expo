@@ -43,10 +43,7 @@ test("getRegistrationDisplayName：profile 全名 > 姓+名 > email > 破折號"
     "Ming Wang",
   );
 
-  assert.equal(
-    getRegistrationDisplayName({ email: "a@b.com" }),
-    "a@b.com",
-  );
+  assert.equal(getRegistrationDisplayName({ email: "a@b.com" }), "a@b.com");
 
   assert.equal(
     getRegistrationDisplayName({
@@ -94,7 +91,10 @@ test("getRegistrationTicketType：票種名 > 票種標題 > 報名類型中文�
 
 test("getRegistrationCode：缺值破折號，不吐空字串", () => {
   assert.equal(getRegistrationCode({ registrationCode: "LC-001" }), "LC-001");
-  assert.equal(getRegistrationCode({ registrationCode: "   " }), copy.checkIn.dash);
+  assert.equal(
+    getRegistrationCode({ registrationCode: "   " }),
+    copy.checkIn.dash,
+  );
   assert.equal(getRegistrationCode({}), copy.checkIn.dash);
 });
 
@@ -117,7 +117,10 @@ test("isAlreadyCheckedIn：狀態為 CHECKED_IN 或有報到時間", () => {
   assert.equal(isAlreadyCheckedIn({ status: "CHECKED_IN" }), true);
   assert.equal(isAlreadyCheckedIn({ status: "checked_in" }), true);
   assert.equal(
-    isAlreadyCheckedIn({ status: "CONFIRMED", checkedInAt: "2026-09-21T10:00:00Z" }),
+    isAlreadyCheckedIn({
+      status: "CONFIRMED",
+      checkedInAt: "2026-09-21T10:00:00Z",
+    }),
     true,
   );
   assert.equal(isAlreadyCheckedIn({ status: "CONFIRMED" }), false);
@@ -137,8 +140,14 @@ test("isRegistrationNotCheckInEligible：五種不可直接簽到的狀態", () 
   }
 
   // CONFIRMED / CHECKED_IN 是可簽到或已簽到，不屬此類。
-  assert.equal(isRegistrationNotCheckInEligible({ status: "CONFIRMED" }), false);
-  assert.equal(isRegistrationNotCheckInEligible({ status: "CHECKED_IN" }), false);
+  assert.equal(
+    isRegistrationNotCheckInEligible({ status: "CONFIRMED" }),
+    false,
+  );
+  assert.equal(
+    isRegistrationNotCheckInEligible({ status: "CHECKED_IN" }),
+    false,
+  );
   assert.equal(isRegistrationNotCheckInEligible({}), false);
 });
 

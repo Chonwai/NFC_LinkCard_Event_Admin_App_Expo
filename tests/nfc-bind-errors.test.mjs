@@ -15,7 +15,8 @@ mock.module("react-native", {
   namedExports: { Platform: { OS: "android" } },
 });
 
-const { NFC_WRITE_TIMEOUT_MS, NfcFlowError } = await import("@/utils/nfc-utils");
+const { NFC_WRITE_TIMEOUT_MS, NfcFlowError } =
+  await import("@/utils/nfc-utils");
 const { classifyNfcBindError } = await import("@/utils/nfc-bind-errors");
 
 /** 後端錯誤 envelope（有 response ＝ 伺服器有回應） */
@@ -43,9 +44,18 @@ test("寫卡例外：4 個既有 kind 各自對應到互斥的分類", () => {
 });
 
 test("後端錯誤碼：UID 類 → invalid-uid", () => {
-  assert.equal(classifyNfcBindError(apiError(400, "INVALID_TAG_UID")), "invalid-uid");
-  assert.equal(classifyNfcBindError(apiError(400, "TAG_UID_INVALID")), "invalid-uid");
-  assert.equal(classifyNfcBindError(apiError(400, "TAG_UID_MISSING")), "invalid-uid");
+  assert.equal(
+    classifyNfcBindError(apiError(400, "INVALID_TAG_UID")),
+    "invalid-uid",
+  );
+  assert.equal(
+    classifyNfcBindError(apiError(400, "TAG_UID_INVALID")),
+    "invalid-uid",
+  );
+  assert.equal(
+    classifyNfcBindError(apiError(400, "TAG_UID_MISSING")),
+    "invalid-uid",
+  );
 });
 
 test("後端錯誤碼：「報名已有卡」→ bound-other，優先於「UID 重複」", () => {
@@ -86,7 +96,10 @@ test("沒有可辨識錯誤碼時，退回 HTTP 狀態碼", () => {
 
 test("無法分類的錯誤 → bind-failed（不得當成成功）", () => {
   assert.equal(classifyNfcBindError(new Error("boom")), "bind-failed");
-  assert.equal(classifyNfcBindError({ message: "Network Error" }), "bind-failed");
+  assert.equal(
+    classifyNfcBindError({ message: "Network Error" }),
+    "bind-failed",
+  );
   assert.equal(classifyNfcBindError(null), "bind-failed");
   assert.equal(classifyNfcBindError(undefined), "bind-failed");
 });

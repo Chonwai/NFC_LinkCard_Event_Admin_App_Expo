@@ -1,0 +1,16 @@
+# 永久排除清單（prettier）。
+#
+# `package.json` 的 `format:check` 顯式列出三個 ignore 檔：
+#   --ignore-path .gitignore                  保留 prettier 的預設行為
+#   --ignore-path .prettierignore             本檔
+#   --ignore-path .prettierignore-baseline    既有格式債
+# 一旦顯式指定 `--ignore-path`，prettier 就不再自動套用預設值，所以 `.gitignore`
+# 必須一併列出——否則 `node_modules` 會被掃進來。
+#
+# 新增永久排除項目請寫在這裡，不要寫進 baseline。
+
+# 產物／快取：即使哪天被 git 追蹤也不該被 prettier 檢查
+.expo/
+dist/
+web-build/
+.eas/dist/

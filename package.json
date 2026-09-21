@@ -51,7 +51,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format:check": "prettier --check . --ignore-path .gitignore --ignore-path .prettierignore --ignore-path .prettierignore-baseline",
     "prepare": "husky",
     "typecheck": "tsc --noEmit",
     "test": "node scripts/require-node-version.mjs && node --import ./tests/register-alias-loader.mjs --experimental-test-module-mocks --test tests/*.test.mjs"
