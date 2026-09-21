@@ -130,12 +130,6 @@ export default function EventOverviewScreen() {
             icon: "users",
           },
           {
-            key: "exhibitors",
-            label: copy.event.exhibitors,
-            value: String(event?.exhibitorCount ?? 0),
-            icon: "archive",
-          },
-          {
             key: "checkedIn",
             label: copy.event.checkedIn,
             value: String(checkedIn),
@@ -198,6 +192,26 @@ export default function EventOverviewScreen() {
     );
   }
 
+  /**
+   * 參展商數來自 event store，不來自本頁呼叫的登記 API，因此**在 render 時推導**。
+   * 原本寫在 effect 裡，會被 `react-hooks/exhaustive-deps` 要求把
+   * `event?.exhibitorCount` 列入 deps，而那個 dep 又會在 store 載入後重打
+   * 兩支 API（`CRA-V1-025`）。移出 effect 後兩件事一起消失。
+   * 尚未載入時顯示破折號而非 `0`，與 Token 卡同一套「未知 ≠ 零」慣例（`CRA-V1-015`）。
+   */
+  const exhibitorStat: StatItem = {
+    key: "exhibitors",
+    label: copy.event.exhibitors,
+    value:
+      event?.exhibitorCount == null
+        ? copy.event.dash
+        : String(event.exhibitorCount),
+    icon: "archive",
+  };
+  /** 維持原本的卡片順序：報名人數 → 參展商 → 已報到 → 到場率 */
+  const displayStats = [...stats];
+  displayStats.splice(1, 0, exhibitorStat);
+
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <ScreenHeader
@@ -253,7 +267,7 @@ export default function EventOverviewScreen() {
         ) : (
           <>
             <View style={styles.statGrid} testID="overview-stats">
-              {stats.map((s) => (
+              {displayStats.map((s) => (
                 <Card
                   key={s.key}
                   padding={space[3]}
