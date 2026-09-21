@@ -31,14 +31,15 @@
 
 ## 📚 完整研究文件（深入時查閱）
 
-| 文件              | 路徑                                                   | 用途                                          |
-| ----------------- | ------------------------------------------------------ | --------------------------------------------- |
-| doc 13 差距矩陣   | `research/13-app-vs-web-feature-gap-matrix.md`         | App/Web/Backend 逐模組差距 + stale claim 更正 |
-| doc 14 NFC 硬體   | `research/14-nfc-hardware-and-batch-write-research.md` | ACR122U/NTAG215 評估 + 批次架構               |
-| doc 15 策略路線圖 | `research/15-admin-app-strategic-roadmap.md`           | 三階段路線 + 風險 + 排期                      |
-| doc 16 工作包     | `research/16-feiteng2015-work-packages.md`             | 完整工作包規格（WP-A1..B4）                   |
-| API 契約          | `20260915_AdminApp_API_Contract_Freeze_v1.md`          | 全端點清單 + request/response 契約            |
-| 交接文件          | `20260915_AdminApp_Handoff_for_feiteng2015.md`         | 既有 W-01..W-32 工作項 + B/C 編號             |
+| 文件              | 路徑                                                                                              | 用途                                                                               |
+| ----------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| doc 13 差距矩陣   | `research/13-app-vs-web-feature-gap-matrix.md`                                                    | App/Web/Backend 逐模組差距 + stale claim 更正                                      |
+| doc 14 NFC 硬體   | `research/14-nfc-hardware-and-batch-write-research.md`                                            | ACR122U/NTAG215 評估 + 批次架構                                                    |
+| doc 15 策略路線圖 | `research/15-admin-app-strategic-roadmap.md`                                                      | 三階段路線 + 風險 + 排期                                                           |
+| doc 16 工作包     | `research/16-feiteng2015-work-packages.md`                                                        | 完整工作包規格（WP-A1..B4）                                                        |
+| API 契約          | `20260915_AdminApp_API_Contract_Freeze_v1.md`                                                     | 全端點清單 + request/response 契約                                                 |
+| 交接文件          | `20260915_AdminApp_Handoff_for_feiteng2015.md`                                                    | 既有 W-01..W-32 工作項 + B/C 編號                                                  |
+| 開放決策登錄      | `../../LinkCard_ExpressJS_Backend/docs/20260921_LinkCard_Open_Decisions_and_Residual_Register.md` | 跨三個 repo 的未決事項、刻意未做項與「先不要做」禁制清單。**不改變任何完成度判定** |
 
 ---
 
