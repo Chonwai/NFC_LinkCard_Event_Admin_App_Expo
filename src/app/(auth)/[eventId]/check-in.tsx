@@ -78,6 +78,13 @@ export default function CheckInScreen() {
   const [overrideBusy, setOverrideBusy] = useState(false);
   const [overrideBanner, setOverrideBanner] = useState<string | null>(null);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /**
+   * 掃描的同步門閂（CRA-V1-008）。
+   * `state.phase` 要等 re-render 才生效，同一個 tick 內的第二次 barcode event
+   * 會讀到尚未更新的 `idle` 而一起通過守衛 → 兩次 lookup、兩次 check-in。
+   * ref 同步生效，補上這個縫隙。
+   */
+  const scanInFlight = useRef(false);
 
   const clearResetTimer = () => {
     if (resetTimer.current) {
@@ -239,8 +246,14 @@ export default function CheckInScreen() {
 
   const onBarcodeScanned = useCallback(
     (data: { data: string }) => {
+      // ref 擋同 tick 的重複事件；state 擋跨 render 的殘留態。兩者互補不可互換。
+      if (scanInFlight.current) return;
       if (state.phase !== "idle") return;
-      void doLookupThenCheckIn(data.data);
+      scanInFlight.current = true;
+      // 唯一的釋放點：任何結束路徑（成功 / 失敗 / 提前 return）都會經過 finally。
+      void doLookupThenCheckIn(data.data).finally(() => {
+        scanInFlight.current = false;
+      });
     },
     [state.phase, doLookupThenCheckIn],
   );
