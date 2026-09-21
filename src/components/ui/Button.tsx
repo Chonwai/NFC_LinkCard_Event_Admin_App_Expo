@@ -9,6 +9,7 @@ import {
 } from "react-native";
 
 import { useFocusRing } from "@/components/ui/useFocusRing";
+import { needsOutlineFocusRing } from "@/components/ui/focusRingContrast";
 import { components, layout, space, type } from "@/constants/theme";
 
 export type ButtonVariant =
@@ -58,7 +59,8 @@ export function Button({
   accessibilityHint,
   testID,
 }: ButtonProps) {
-  const { focused, focusRingProps, focusRingResetStyle } = useFocusRing();
+  const { focused, focusRingProps, focusRingStyle, focusRingResetStyle } =
+    useFocusRing();
   const scale = useRef(new Animated.Value(1)).current;
 
   const isInactive = disabled || loading;
@@ -66,6 +68,24 @@ export function Button({
   const variantToken = components.button[variant];
   const colorToken = isInactive ? components.button.disabled : variantToken;
   const minHeight = size === "lg" ? layout.ctaHeight : layout.buttonHeight;
+
+  /**
+   * `F-04`：聚焦指示是內描邊（把邊框畫成 `components.focusRing.color`），
+   * 而 `primary` 的底**就是同一個 `purple[600]`** → 環與底 1:1，聚焦時外觀
+   * 完全不變。實測（`docs/evidence/UI-REVIEW/14-login-focus-login-btn.png`）：
+   * 聚焦中的登入 CTA `outlineWidth: 0px`、`border: 0`、`boxShadow: none`。
+   *
+   * 環與底色分不出來時改走**外框**（`focusRingStyle`：畫在元素外緣、落在
+   * 卡片的淺色底上）——與 `home.tsx` 的重新整理鈕、`Chip`、tab 同一個既有機制，
+   * 不動 `theme.ts` 的色票與 `useFocusRing` 的語義。未填色的 variant
+   * （secondary / ghost / danger）紫色描邊本來就看得到，維持原行為不動。
+   */
+  const ringInvisibleOnFill = needsOutlineFocusRing(
+    colorToken.bg,
+    components.focusRing.color,
+  );
+  const ringViaOutline = focused && ringInvisibleOnFill;
+  const ringViaBorder = focused && !ringInvisibleOnFill;
 
   const animateScale = (toValue: number) => {
     Animated.timing(scale, {
@@ -96,13 +116,21 @@ export function Button({
       aria-busy={loading}
       testID={testID}
       /**
-       * M-5：聚焦環仍由下方 `components.focusRing` 的邊框承擔；
-       * `focusRingResetStyle` 只把 Chromium 的 UA 橘框歸零，避免雙框。
+       * M-5：聚焦環由下方 `components.focusRing` 承擔。
+       * `focusRingResetStyle` 只把 Chromium 的 UA 橘框歸零（避免雙框）；
+       * `ringViaOutline`（`F-04`）則是真的把品牌環畫在這個節點的外緣，
+       * 因為內描邊在填色 variant 上會與底色同色而等於不存在。
        */
       style={
         fullWidth
-          ? [styles.pressableFull, focusRingResetStyle]
-          : [styles.pressableHug, focusRingResetStyle]
+          ? [
+              styles.pressableFull,
+              ringViaOutline ? focusRingStyle : focusRingResetStyle,
+            ]
+          : [
+              styles.pressableHug,
+              ringViaOutline ? focusRingStyle : focusRingResetStyle,
+            ]
       }
     >
       {({ pressed }) => (
@@ -115,10 +143,10 @@ export function Button({
               paddingHorizontal: variantToken.paddingHorizontal,
               backgroundColor:
                 pressed && !isInactive ? variantToken.bgPressed : colorToken.bg,
-              borderColor: focused
+              borderColor: ringViaBorder
                 ? components.focusRing.color
                 : colorToken.borderColor,
-              borderWidth: focused
+              borderWidth: ringViaBorder
                 ? components.focusRing.width
                 : colorToken.borderWidth,
               transform: [{ scale }],
