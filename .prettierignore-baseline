@@ -2,12 +2,31 @@
 #
 # 下列檔案在 audit 快照（loop base `1411faa`, 2026-09-20）時就已經不符合
 # prettier，不是這個 loop 造成的。逐檔比對過：把該檔在 `1411faa` 的 blob 餵給
-# prettier，24 個全部都已經是 dirty。
+# prettier，當時每一條都已經是 dirty（2026-09-21 以 `--stdin-filepath` 重跑
+# 一次確認，24/24 皆為 dirty）。
 #
 # 本 loop 自己新增或改壞的 5 個（`app.json` + `tests/api-error`,
 # `tests/lookup-timeout`, `tests/nfc-bind-errors`, `tests/registration-display`）
 # 已在同一顆 commit 用 `prettier --write` 修掉，因此**不在**本清單內，
 # 也不需要例外。
+#
+# ── `CRA-V1-001` 修正（2026-09-21）────────────────────────────────────────
+# `src/app/(auth)/[eventId]/check-in.tsx` 與 `src/constants/copy.zh-TW.ts`
+# **已從本清單移除**。
+#
+# 這兩檔在 `1411faa` 確實是 dirty，當初列進來是對的。但本 loop 後續把它們
+# 改成乾淨的了（在 HEAD `f5d0f6c` 上兩者皆為 prettier-clean），卻忘了把它們
+# 從清單拿掉。留在清單裡的代價是：**閘門對這兩個檔完全失效**——走完整條
+# ignore 鏈的 `prettier --check` 會跳過清單內的檔案，所以下次有人再把它們
+# 改壞，`format:check` 與 pre-commit 都不會出聲。
+#
+# 為什麼特別在意這兩檔：它們是本 loop 改動最多的檔案之一（`check-in.tsx`
+# 828 行；`copy.zh-TW.ts` 是所有 UI 字串的落點），也就是「之後最可能再被改」
+# 的檔案。排除一個不會再被動的舊檔案，與排除一個每天在動的檔案，風險不同。
+#
+# 移除前後都量過：24 條在 `1411faa` 全部為 dirty；其中只有這 2 條在本 loop
+# 期間被整理乾淨。另外 22 條在 HEAD 上**仍為 dirty**，因此它們留在清單裡
+# 是正確的，不是忘了刪。
 #
 # 為什麼不一併 `prettier --write` 全修：那會產生一份與本次修復無關的大量 diff，
 # 把真正的變更埋掉。這裡改為明列——讀者看得到「哪些檔案被排除、為什麼」。
@@ -29,7 +48,6 @@ docs/evidence/WP-A6/README.md
 docs/evidence/WP-A7/README.md
 docs/evidence/WP-A8/README.md
 src/app/(auth)/\[eventId\]/badges.tsx
-src/app/(auth)/\[eventId\]/check-in.tsx
 src/app/(auth)/\[eventId\]/nfc-bind.tsx
 src/app/(auth)/\[eventId\]/overview.tsx
 src/app/(auth)/\[eventId\]/registrant/\[registrationId\].tsx
@@ -38,7 +56,6 @@ src/app/(auth)/\[eventId\]/walk-in.tsx
 src/app/(auth)/settings.tsx
 src/app/index.tsx
 src/components/ui/FieldInput.tsx
-src/constants/copy.zh-TW.ts
 src/services/event.service.ts
 src/services/nfc.service.ts
 src/utils/registration-display.ts
