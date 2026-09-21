@@ -182,7 +182,9 @@ export default function HomeScreen() {
           }}
           disabled={refreshing}
           accessibilityRole="button"
-          accessibilityLabel={refreshing ? "重新整理中" : "重新整理"}
+          accessibilityLabel={
+            refreshing ? copy.home.refreshing : copy.home.refresh
+          }
           accessibilityState={{ busy: refreshing, disabled: refreshing }}
           hitSlop={space[2]}
           style={[styles.refreshButton, refreshRing.focusRingStyle]}

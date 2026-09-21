@@ -13,7 +13,7 @@ import {
 export const CHECK_IN_ERROR_MESSAGES: Record<string, string> = {
   REGISTRATION_NOT_FOUND: copy.checkIn.registrationNotFound,
   REGISTRATION_NOT_CONFIRMED: copy.checkIn.notConfirmed,
-  REGISTRATION_LOOKUP_RATE_LIMITED: "查詢過於頻繁，請稍後再試",
+  REGISTRATION_LOOKUP_RATE_LIMITED: copy.checkIn.rateLimited,
   INSUFFICIENT_PERMISSION: copy.checkIn.notEnoughPermission,
   ALREADY_CHECKED_IN: copy.checkIn.alreadyCheckedIn,
 };

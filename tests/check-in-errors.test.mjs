@@ -79,7 +79,7 @@ test("後端錯誤碼優先於狀態碼 fallback", () => {
   );
   assert.equal(
     resolveCheckInErrorMessage(apiError(429, "REGISTRATION_LOOKUP_RATE_LIMITED")),
-    "查詢過於頻繁，請稍後再試",
+    copy.checkIn.rateLimited,
   );
 });
 

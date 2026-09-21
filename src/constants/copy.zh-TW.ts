@@ -36,6 +36,9 @@ export const copy = {
     emptyHint: "當你被指派為活動管理員時，活動會顯示在這裡",
     loadFailed: "載入活動失敗，請稍後再試",
     retry: "重新載入",
+    /** 手動重新整理鈕的讀屏標籤（CRA-V1-023：原為硬編字串） */
+    refresh: "重新整理",
+    refreshing: "重新整理中",
   },
   event: {
     overviewTitle: "活動概覽",
@@ -130,6 +133,8 @@ export const copy = {
      * 前者是「人工核對」，後者是「這張票不存在」，現場處置完全不同。
      */
     networkError: "網路連線異常，請改用人工核對或稍後重試",
+    /** 後端 `REGISTRATION_LOOKUP_RATE_LIMITED`（CRA-V1-023：原為硬編字串） */
+    rateLimited: "查詢過於頻繁，請稍後再試",
     cameraUnavailable: "無法取得相機權限",
     autoResetIn: "即將自動重置",
     switchToManual: "改用輸入模式",
