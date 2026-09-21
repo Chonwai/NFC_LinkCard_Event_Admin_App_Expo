@@ -1,8 +1,8 @@
 /**
- * `CRA-V1-002` 的風險控制測試（計畫 §11 `R-3`）。
+ * `CRA-V1-002` 與 `F-02` 的風險控制測試（計畫 §11 `R-3`）。
  *
- * 這個檔案存在的唯一理由：證明「加入網路分支」**不會**把真正的 404 吃掉。
- * 若哪天有人把判定順序對調、或用 `||` 串接，下面第二組斷言會立刻失敗。
+ * 這個檔案存在的唯一理由：證明「加入網路分支與 5xx 分支」**不會**把真正的 404
+ * 吃掉。若哪天有人把判定順序對調、或用 `||` 串接，下面第二組斷言會立刻失敗。
  */
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -90,14 +90,47 @@ test("未知錯誤碼但有後端 message → 顯示該 message", () => {
   );
 });
 
-test("未知錯誤碼且無 message → 回「找不到此報名」而非空白", () => {
+test("未知錯誤碼且無 message：4xx → 回「找不到此報名」而非空白", () => {
   assert.equal(
-    resolveCheckInErrorMessage(apiError(500, "SOMETHING_NEW")),
+    resolveCheckInErrorMessage(apiError(400, "SOMETHING_NEW")),
     copy.checkIn.registrationNotFound,
   );
   assert.equal(
     resolveCheckInErrorMessage(new Error("boom")),
     copy.checkIn.registrationNotFound,
+  );
+});
+
+test("F-02：未映射的 5xx → 伺服器文案，**不得**講成「找不到此報名」", () => {
+  // 閘道回 HTML：沒有 response.data.error，所以既沒有 code 也沒有 message。
+  assert.equal(
+    resolveCheckInErrorMessage({ response: { status: 502 } }),
+    copy.checkIn.serverError,
+  );
+
+  for (const status of [500, 502, 503, 504]) {
+    const message = resolveCheckInErrorMessage(
+      apiError(status, "SOMETHING_NEW"),
+    );
+    assert.equal(message, copy.checkIn.serverError, String(status));
+    assert.notEqual(
+      message,
+      copy.checkIn.registrationNotFound,
+      String(status),
+    );
+  }
+
+  // 5xx 分支先於「優先用後端 message」：後端的 5xx 訊息對現場不可行動。
+  assert.equal(
+    resolveCheckInErrorMessage(apiError(500, "SOMETHING_NEW", "Bad Gateway")),
+    copy.checkIn.serverError,
+  );
+});
+
+test("F-02：已映射的錯誤碼仍優先於 5xx 分支", () => {
+  assert.equal(
+    resolveCheckInErrorMessage(apiError(503, "ALREADY_CHECKED_IN")),
+    copy.checkIn.alreadyCheckedIn,
   );
 });
 

@@ -133,6 +133,13 @@ export const copy = {
      * 前者是「人工核對」，後者是「這張票不存在」，現場處置完全不同。
      */
     networkError: "網路連線異常，請改用人工核對或稍後重試",
+    /**
+     * `F-02`：伺服器有回應、但不是 4xx（5xx／閘道回 HTML）時的文案。
+     * **不可**與 `registrationNotFound` 混用——後端壞掉時把有效票講成
+     * 「不存在」，現場會照著作廢它；與 `networkError` 分開是因為
+     * 「連不上」與「伺服器壞了」對操作者的下一步不同（重試 vs 換網路）。
+     */
+    serverError: "伺服器暫時異常，請改用人工核對或稍後重試",
     /** 後端 `REGISTRATION_LOOKUP_RATE_LIMITED`（CRA-V1-023：原為硬編字串） */
     rateLimited: "查詢過於頻繁，請稍後再試",
     cameraUnavailable: "無法取得相機權限",
