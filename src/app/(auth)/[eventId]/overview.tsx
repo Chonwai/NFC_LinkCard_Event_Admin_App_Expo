@@ -332,9 +332,9 @@ export default function EventOverviewScreen() {
                         style={styles.statValue}
                         numberOfLines={1}
                         maxFontSizeMultiplier={layout.maxFontScaleFixed}
-                        accessibilityLabel={`${t.label}：0`}
+                        accessibilityLabel={`${t.label}：${copy.event.dash}`}
                       >
-                        0
+                        {copy.event.dash}
                       </Text>
                     </Card>
                   );

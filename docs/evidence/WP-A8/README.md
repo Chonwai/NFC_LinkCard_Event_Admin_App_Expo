@@ -23,6 +23,16 @@
 | 3.3 | Web manage check-in 導覽 | ⏸️ DEFERRED |
 | 品質 | `tsc` / `lint` | ✅ |
 
+> **Token「—」的裁定來源（2026-09-21，`DEFAULT-APPLIED`）**
+>
+> 本表原先就寫「Token 顯示『—』」，但 `overview.tsx` 的 Token 卡實際硬編 `0`，
+> 且 `accessibilityLabel` 亦為 `：0` → 文件與程式不一致（`CRA-V1-003`／`006`）。
+> 依 loop `audit-remediation` 的 default-decision 政策，**採文件既定值**：
+> 可見值與讀屏標籤統一為 `copy.event.dash`（`"—"`）。
+>
+> 推翻成本：`overview.tsx` 兩處改回數值 ＝ 2 行，並反轉本註記一行。
+> 數值來源：`WP-ADM-04`。
+
 ## 待補
 
 - [ ] 儀表板截圖（含到場率與 Token「—」）
