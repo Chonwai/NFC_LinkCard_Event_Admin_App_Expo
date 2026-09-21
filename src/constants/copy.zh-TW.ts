@@ -125,6 +125,11 @@ export const copy = {
     registrationNotFound: "找不到此報名，請確認編號",
     notConfirmed: "此報名尚未確認",
     notEnoughPermission: "權限不足，無法執行報到",
+    /**
+     * CRA-V1-002：連不上伺服器時的文案。**不可**與 `registrationNotFound` 混用——
+     * 前者是「人工核對」，後者是「這張票不存在」，現場處置完全不同。
+     */
+    networkError: "網路連線異常，請改用人工核對或稍後重試",
     cameraUnavailable: "無法取得相機權限",
     autoResetIn: "即將自動重置",
     switchToManual: "改用輸入模式",

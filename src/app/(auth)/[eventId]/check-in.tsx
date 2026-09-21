@@ -31,7 +31,8 @@ import { eventService } from "@/services/event.service";
 import { registrationService } from "@/services/registration.service";
 import type { CheckInUiState } from "@/types/check-in.types";
 import type { Registration } from "@/types/api.types";
-import { getApiErrorCode, getApiErrorMessage, getApiErrorStatus } from "@/utils/api-error";
+import { getApiErrorCode } from "@/utils/api-error";
+import { resolveCheckInErrorMessage } from "@/utils/check-in-errors";
 import { playCheckInFeedback } from "@/utils/check-in-feedback";
 import {
   getRegistrationCheckedInAt,
@@ -44,14 +45,6 @@ import {
   isAlreadyCheckedIn,
   isRegistrationNotCheckInEligible,
 } from "@/utils/registration-display";
-
-const LOOKUP_ERROR_MESSAGES: Record<string, string> = {
-  REGISTRATION_NOT_FOUND: copy.checkIn.registrationNotFound,
-  REGISTRATION_NOT_CONFIRMED: copy.checkIn.notConfirmed,
-  REGISTRATION_LOOKUP_RATE_LIMITED: "查詢過於頻繁，請稍後再試",
-  INSUFFICIENT_PERMISSION: copy.checkIn.notEnoughPermission,
-  ALREADY_CHECKED_IN: copy.checkIn.alreadyCheckedIn,
-};
 
 function formatDateTime(iso: string | null | undefined): string {
   if (!iso) return copy.checkIn.dash;
@@ -172,18 +165,11 @@ export default function CheckInScreen() {
         const lookedUp = await registrationService.getByCode(eventId, code);
         registration = lookedUp.registration;
       } catch (err) {
-        const status = getApiErrorStatus(err);
-        const codeKey = getApiErrorCode(err);
-        const message =
-          (codeKey != null && LOOKUP_ERROR_MESSAGES[codeKey]) ||
-          (status === 404
-            ? copy.checkIn.registrationNotFound
-            : getApiErrorMessage(err, copy.checkIn.registrationNotFound));
         await showOutcome({
           phase: "outcome",
           kind: "invalid",
           code,
-          message,
+          message: resolveCheckInErrorMessage(err),
         });
         return;
       }
@@ -239,14 +225,11 @@ export default function CheckInScreen() {
           });
           return;
         }
-        const message =
-          (codeKey != null && LOOKUP_ERROR_MESSAGES[codeKey]) ||
-          getApiErrorMessage(err, copy.checkIn.registrationNotFound);
         await showOutcome({
           phase: "outcome",
           kind: "invalid",
           code,
-          message,
+          message: resolveCheckInErrorMessage(err),
           registration,
         });
       }
