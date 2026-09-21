@@ -30,6 +30,31 @@ docs/evidence/
 | A4 | ✅ 骨架 | ⏳ | 送出待 B-1a |
 | A5 | ✅ | ⏳ | B-6 / T-1 |
 
+## ⚠️ type gate 更正（2026-09-21）
+
+`tsconfig.json` 自 scaffold commit `c569f83` 起就帶著 `"ignoreDeprecations": "6.0"`，
+這與本地安裝的 **TypeScript 5.9.3** 不相容：
+
+```
+$ npx tsc --noEmit
+tsconfig.json(9,27): error TS5103: Invalid value for '--ignoreDeprecations'.
+# exit 2
+```
+
+TS5103 是 **config 層**錯誤，在檢查任何檔案之前就中止。也就是說，
+**本目錄下所有 `tsc ✅` 在 2026-09-21 之前都不是量測結果，而是「從未執行」**。
+`lint ✅` 不受影響（`npm run lint` 一直是 exit 0）。
+
+移除該鍵之後的實測（TypeScript 5.9.3，2026-09-21，`--listFiles` 顯示讀入 49 個 `src/**` 檔案）：
+
+| 指令 | 結果 |
+| --- | --- |
+| `npx tsc --noEmit` | **exit 0**（無輸出） |
+| 先植入 `const probe: number = "x"` 再跑 | **exit 2**＋`TS2322`（證明這個 gate 有牙齒，不是空跑） |
+
+結論：程式碼本身型別乾淨（0 error）；出問題的是「閘門沒開」，不是「閘門沒過」。
+各 WP 子文件的一行 `tsc` 註記已改為指向本節。
+
 ## 每個 WP 目錄建議內容
 
 | 檔案 | 說明 |

@@ -21,7 +21,7 @@
 | 3.2 | 報名人數 / 已報到 / 參展商保留；到場率 = 已簽到 ÷ 報名數 | ✅ |
 | 3.2 | Token 總發放 / 已消耗顯示「—」（無 WAL-10 / checkin-stats） | ✅ 不造假 |
 | 3.3 | Web manage check-in 導覽 | ⏸️ DEFERRED |
-| 品質 | `tsc` / `lint` | ✅ |
+| 品質 | `tsc` / `lint` | ✅（`tsc` 於 2026-09-21 才首次真正執行；見 [evidence/README.md](../README.md) 的 type gate 更正） |
 
 > **Token「—」的裁定來源（2026-09-21，`DEFAULT-APPLIED`）**
 >

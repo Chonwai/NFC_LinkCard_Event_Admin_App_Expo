@@ -28,7 +28,7 @@
 | Web `/manage/[eventId]/wallet`：查詢、掃碼提示、餘額「—」、增值、扣減清單、流水表、確認 Modal | ✅ 不送出 |
 | 側邊欄與總覽卡片入口 | ✅ |
 | Admin App Token 卡：placeholder +「在網頁打開櫃台」 | ✅ |
-| `eslint`（Web 三檔）/ Admin App `tsc` | ✅ |
+| `eslint`（Web 三檔）/ Admin App `tsc` | ✅（Admin App `tsc` 於 2026-09-21 才首次真正執行；見 [evidence/README.md](../README.md) 的 type gate 更正） |
 
 ## 待補（B-1a 之後）
 

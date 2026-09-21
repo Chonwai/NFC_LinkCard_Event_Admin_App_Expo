@@ -23,7 +23,7 @@
 | 4.2 | 寫入後讀回；不符則不呼叫 `POST /nfc/bind` | ✅ |
 | 4.2 | 已寫入但 bind 失敗時提示勿發放，並可只重試綁定 | ✅ |
 | 4.3 | 換卡 / 補發 / 退卡按鈕 disabled + WP-N2 Banner | ✅ 骨架 |
-| 品質 | `tsc` / `lint` | ✅ |
+| 品質 | `tsc` / `lint` | ✅（`tsc` 於 2026-09-21 才首次真正執行；見 [evidence/README.md](../README.md) 的 type gate 更正） |
 
 ## 待補
 

@@ -29,7 +29,7 @@
 | 項 | 結果 |
 | --- | --- |
 | 登入端點 | ✅ 暫用 `POST /api/auth/login` + `GET /api/users/me`（promoter claim **延後**） |
-| `tsc` / `lint` | ✅ 全綠 |
+| `tsc` / `lint` | ✅ 全綠（`tsc` 於 2026-09-21 才首次真正執行；見 [evidence/README.md](../README.md) 的 type gate 更正） |
 | 真機安裝 | ⏳ 請安裝上方 APK / Dev Client |
 | staging 登入截圖 | ✅ `docs/evidence/WP-A1/login-success.png` |
 

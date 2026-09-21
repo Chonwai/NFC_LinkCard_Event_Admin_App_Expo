@@ -20,7 +20,7 @@
 | 2.4 | 重複態 + 覆核按鈕 + BLOCKED Banner（B-2 未就緒算階段完成） | ✅ |
 | 2.5 | 無效態 + 現場補報名 placeholder（`walk-in`） | ✅ |
 | 2.6 | 頂部「總簽到」（非今日）fallback 計數 | ✅ |
-| 品質 | `tsc` / `lint` | ✅ |
+| 品質 | `tsc` / `lint` | ✅（`tsc` 於 2026-09-21 才首次真正執行；見 [evidence/README.md](../README.md) 的 type gate 更正） |
 
 ## 待補（真機／瀏覽器）
 

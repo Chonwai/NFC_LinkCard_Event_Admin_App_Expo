@@ -54,7 +54,7 @@
 - [ ] **WP-A6** 首次綁定工程 ✅；換卡 **BLOCKED→骨架**；**真機錄影待補**  
 - [x] **WP-A4** **BLOCKED + 骨架**（條件化 DoD 允許）  
 - [ ] **WP-A5** 工程 ✅（B-6/T-1 條件化）；**截圖待補**  
-- [x] 每個 WP：`tsc` / `lint`（Admin App 全綠；Web wallet 三檔綠）  
+- [x] 每個 WP：`tsc` / `lint`（Admin App 全綠；Web wallet 三檔綠）— ⚠️ Admin App 的 `tsc` 於 2026-09-21 才首次真正執行，見 [evidence/README.md](../README.md) 的 type gate 更正  
 - [ ] 每個 WP：真機/瀏覽器截圖或錄影（多數仍待補，見上表）  
 - [ ] commit：小步 + WP 編號（Phase 5/6 與近期 UI 優化若尚未提交，請用戶指示後再 commit）
 
