@@ -32,6 +32,10 @@ import { registrationService } from "@/services/registration.service";
 import type { CheckInUiState } from "@/types/check-in.types";
 import type { Registration } from "@/types/api.types";
 import { getApiErrorCode } from "@/utils/api-error";
+import {
+  getCheckInOutcomeDetail,
+  getCheckInOutcomeHeadline,
+} from "@/utils/check-in-display";
 import { resolveCheckInErrorMessage } from "@/utils/check-in-errors";
 import { playCheckInFeedback } from "@/utils/check-in-feedback";
 import {
@@ -285,6 +289,17 @@ export default function CheckInScreen() {
   };
 
   const outcome = state.phase === "outcome" ? state : null;
+  /**
+   * 結果卡的兩行字都來自 `utils/check-in-display`（單一來源）。
+   *
+   * `F-01`：先前標題與色票寫在這裡、`message` 卻沒有任何一個分支渲染它，
+   * 於是「閘道 502」與「這張票不存在」在畫面上逐字相同。判定的結果必須被
+   * 顯示出來，否則判定本身不改變操作者看到什麼。
+   */
+  const outcomeHeadline = outcome
+    ? getCheckInOutcomeHeadline(outcome.kind)
+    : null;
+  const outcomeDetail = outcome ? getCheckInOutcomeDetail(outcome) : null;
   const outcomeColors =
     outcome?.kind === "valid"
       ? {
@@ -292,7 +307,6 @@ export default function CheckInScreen() {
           border: semantic.status.success.border,
           fg: semantic.status.success.fg,
           icon: "check-circle" as const,
-          headline: copy.checkIn.validHeadline,
         }
       : outcome?.kind === "duplicate"
         ? {
@@ -300,14 +314,12 @@ export default function CheckInScreen() {
             border: semantic.status.warning.border,
             fg: semantic.status.warning.fg,
             icon: "alert-triangle" as const,
-            headline: copy.checkIn.duplicateHeadline,
           }
         : {
             bg: semantic.status.danger.bg,
             border: semantic.status.danger.border,
             fg: semantic.status.danger.fg,
             icon: "x-circle" as const,
-            headline: copy.checkIn.invalidHeadline,
           };
 
   return (
@@ -348,7 +360,9 @@ export default function CheckInScreen() {
             <Icon
               name="qr-code"
               size="sm"
-              color={mode === "scan" ? semantic.icon.brand : semantic.icon.muted}
+              color={
+                mode === "scan" ? semantic.icon.brand : semantic.icon.muted
+              }
             />
             <Text
               style={[
@@ -507,9 +521,23 @@ export default function CheckInScreen() {
                 style={[styles.resultHeadline, { color: outcomeColors.fg }]}
                 accessibilityRole="header"
               >
-                {outcomeColors.headline}
+                {outcomeHeadline}
               </Text>
             </View>
+
+            {/*
+              `F-01`：第二行是操作者唯一的判別依據——「無效報名」在三種失敗
+              之間本來就相同，只有這一行能區分「這張票不存在」與「後端壞了」。
+              沒有新資訊時（成功態）`outcomeDetail` 為 null，不渲染。
+            */}
+            {outcomeDetail != null ? (
+              <Text
+                style={styles.resultDetail}
+                maxFontSizeMultiplier={layout.maxFontScaleBody}
+              >
+                {outcomeDetail}
+              </Text>
+            ) : null}
 
             {outcome.registration ? (
               <>
@@ -540,8 +568,7 @@ export default function CheckInScreen() {
                         getRegistrationCheckedInAt(outcome.registration),
                     )}
                   />
-                  {getRegistrationTokenBalance(outcome.registration) !=
-                  null ? (
+                  {getRegistrationTokenBalance(outcome.registration) != null ? (
                     <InfoRow
                       label={copy.checkIn.attendeeTokenBalance}
                       value={String(
@@ -562,7 +589,9 @@ export default function CheckInScreen() {
                       params: {
                         eventId,
                         registrationId: id,
-                        code: outcome.registration?.registrationCode ?? outcome.code,
+                        code:
+                          outcome.registration?.registrationCode ??
+                          outcome.code,
                       },
                     });
                   }}
@@ -576,9 +605,7 @@ export default function CheckInScreen() {
               <View style={styles.actions}>
                 <InlineBanner
                   tone="warning"
-                  message={
-                    overrideBanner ?? copy.checkIn.overrideBlockedBanner
-                  }
+                  message={overrideBanner ?? copy.checkIn.overrideBlockedBanner}
                 />
                 <Button
                   label={copy.checkIn.requestOverride}
@@ -695,9 +722,7 @@ const styles = StyleSheet.create({
     color: semantic.text.primary,
     minHeight: layout.buttonHeight,
     // Web search input 避免瀏覽器預設樣式撐破
-    ...(Platform.OS === "web"
-      ? ({ outlineStyle: "none" } as object)
-      : null),
+    ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as object) : null),
   },
   clearButton: {
     width: layout.buttonHeight,
@@ -732,6 +757,15 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 28,
     fontWeight: "700",
+    textAlign: "center",
+  },
+  /**
+   * 結果卡第二行（`F-01`）。字色走 `text.primary`：卡的底色是三態的淺色底
+   * （red-50 / amber-50 / green-50），深灰在三個底色上都遠高於 4.5:1。
+   */
+  resultDetail: {
+    ...type.body,
+    color: semantic.text.primary,
     textAlign: "center",
   },
   identityName: {
