@@ -20,7 +20,9 @@ export type NfcFlowErrorKind =
   | "unsupported"
   | "invalid-uid"
   | "write-failed"
-  | "uri-mismatch";
+  | "uri-mismatch"
+  | "timeout"
+  | "cancelled";
 
 /** 寫卡階段的可分類錯誤。後端 bind 失敗不走這裡。 */
 export class NfcFlowError extends Error {
@@ -82,44 +84,106 @@ export function normalizeTagUid(tagUid: string): string {
 }
 
 /**
+ * 寫卡（含讀回驗證）的總逾時（`CRA-V1-009`／§7 `R-10`）。
+ *
+ * 放在本模組而非 `constants/config.ts`：這是**裝置互動**的上限，不是 API 設定，
+ * 且只有 `writeUriToCard` 一個讀者。20 秒＝「貼卡 → 寫入 → 讀回」的正常上限；
+ * 超過就是卡沒貼好或讀寫器卡住，不該讓畫面永遠停在「寫入中」。
+ */
+export const NFC_WRITE_TIMEOUT_MS = 20000;
+
+/**
  * 寫入 URI 後立刻讀回。讀回不符或沒有 UID 時拋錯，呼叫端不得接著 bind。
+ *
+ * **讀回驗證是刻意保留的設計**（稽核 §6.5 #7 明列為正向設計）：只寫不讀會讓
+ * 「寫壞的卡」到閘口才被發現。逾時與取消只是外面多一層上限與出口，
+ * 不改變驗證流程本身。
+ *
+ * 逾時／取消會以 `NfcFlowError` 拋出；被中斷時底層 NFC session 仍由 `finally`
+ * 的 `cancelTechnologyRequest()` 收拾。
  */
 export async function writeUriToCard(
   url: string,
+  options?: { timeoutMs?: number; signal?: AbortSignal },
 ): Promise<{ tagUid: string; writtenUri: string }> {
   const { default: NfcManager, NfcTech, Ndef } = await loadNfcManager();
-  await NfcManager.requestTechnology(NfcTech.Ndef);
-  try {
-    const tag = await NfcManager.getTag();
-    const tagUid = tag?.id ? normalizeTagUid(tag.id) : "";
-    if (!isValidTagUid(tagUid)) {
-      throw new NfcFlowError("invalid-uid", tagUid || "missing");
-    }
+  const timeoutMs = options?.timeoutMs ?? NFC_WRITE_TIMEOUT_MS;
+  const signal = options?.signal;
 
-    const bytes = await buildUriNdefMessage(url);
-    await NfcManager.ndefHandler.writeNdefMessage(bytes, {
-      reconnectAfterWrite: true,
-    });
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let abortListener: (() => void) | null = null;
 
-    const readBack = await NfcManager.ndefHandler.getNdefMessage();
-    const payload = readBack?.ndefMessage?.[0]?.payload;
-    if (!payload || payload.length === 0) {
-      throw new NfcFlowError("write-failed", "empty read-back");
+  const interruption = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(
+        new NfcFlowError("timeout", `NFC write timed out after ${timeoutMs}ms`),
+      );
+    }, timeoutMs);
+
+    if (signal) {
+      abortListener = () => {
+        reject(new NfcFlowError("cancelled", "NFC write cancelled"));
+      };
+      if (signal.aborted) {
+        abortListener();
+      } else {
+        signal.addEventListener("abort", abortListener, { once: true });
+      }
     }
-    const writtenUri = Ndef.uri.decodePayload(Uint8Array.from(payload));
-    if (!urlsMatch(url, writtenUri)) {
-      throw new NfcFlowError("uri-mismatch", writtenUri);
-    }
-    return { tagUid, writtenUri };
-  } catch (error) {
-    if (error instanceof NfcFlowError) throw error;
-    const message = error instanceof Error ? error.message : "write failed";
-    throw new NfcFlowError("write-failed", message);
-  } finally {
+  });
+
+  const write = (async (): Promise<{
+    tagUid: string;
+    writtenUri: string;
+  }> => {
+    await NfcManager.requestTechnology(NfcTech.Ndef);
     try {
-      await NfcManager.cancelTechnologyRequest();
-    } catch {
-      // session closing race 不阻斷主流程
+      const tag = await NfcManager.getTag();
+      const tagUid = tag?.id ? normalizeTagUid(tag.id) : "";
+      if (!isValidTagUid(tagUid)) {
+        throw new NfcFlowError("invalid-uid", tagUid || "missing");
+      }
+
+      const bytes = await buildUriNdefMessage(url);
+      await NfcManager.ndefHandler.writeNdefMessage(bytes, {
+        reconnectAfterWrite: true,
+      });
+
+      const readBack = await NfcManager.ndefHandler.getNdefMessage();
+      const payload = readBack?.ndefMessage?.[0]?.payload;
+      if (!payload || payload.length === 0) {
+        throw new NfcFlowError("write-failed", "empty read-back");
+      }
+      const writtenUri = Ndef.uri.decodePayload(Uint8Array.from(payload));
+      if (!urlsMatch(url, writtenUri)) {
+        throw new NfcFlowError("uri-mismatch", writtenUri);
+      }
+      return { tagUid, writtenUri };
+    } catch (error) {
+      if (error instanceof NfcFlowError) throw error;
+      const message = error instanceof Error ? error.message : "write failed";
+      throw new NfcFlowError("write-failed", message);
+    } finally {
+      try {
+        await NfcManager.cancelTechnologyRequest();
+      } catch {
+        // session closing race 不阻斷主流程
+      }
+    }
+  })();
+
+  // 輸掉 race 之後 write 仍可能以 rejection 收尾（例如逾時後才讀寫失敗）；
+  // 先掛一個處理器，避免 unhandled rejection 在 RN 上變成紅屏雜訊。
+  void write.catch(() => undefined);
+
+  try {
+    return await Promise.race([write, interruption]);
+  } finally {
+    if (timer !== null) {
+      clearTimeout(timer);
+    }
+    if (signal && abortListener) {
+      signal.removeEventListener("abort", abortListener);
     }
   }
 }

@@ -9,6 +9,8 @@ export type NfcBindFailureKind =
   | "bound-other"
   | "write-failed"
   | "uri-mismatch"
+  | "timeout"
+  | "cancelled"
   | "bind-failed";
 
 const INVALID_UID_CODES = new Set([
@@ -40,6 +42,8 @@ export function classifyNfcBindError(error: unknown): NfcBindFailureKind {
     if (error.kind === "unsupported") return "unsupported";
     if (error.kind === "invalid-uid") return "invalid-uid";
     if (error.kind === "uri-mismatch") return "uri-mismatch";
+    if (error.kind === "timeout") return "timeout";
+    if (error.kind === "cancelled") return "cancelled";
     return "write-failed";
   }
 

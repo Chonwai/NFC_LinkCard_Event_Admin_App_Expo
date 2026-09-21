@@ -15,7 +15,7 @@ mock.module("react-native", {
   namedExports: { Platform: { OS: "android" } },
 });
 
-const { NfcFlowError } = await import("@/utils/nfc-utils");
+const { NFC_WRITE_TIMEOUT_MS, NfcFlowError } = await import("@/utils/nfc-utils");
 const { classifyNfcBindError } = await import("@/utils/nfc-bind-errors");
 
 /** 後端錯誤 envelope（有 response ＝ 伺服器有回應） */
@@ -23,7 +23,7 @@ function apiError(status, code) {
   return { response: { status, data: { error: { code } } } };
 }
 
-test("寫卡例外：4 種 NfcFlowError 各自對應到互斥的分類", () => {
+test("寫卡例外：4 個既有 kind 各自對應到互斥的分類", () => {
   assert.equal(
     classifyNfcBindError(new NfcFlowError("unsupported", "web")),
     "unsupported",
@@ -89,4 +89,21 @@ test("無法分類的錯誤 → bind-failed（不得當成成功）", () => {
   assert.equal(classifyNfcBindError({ message: "Network Error" }), "bind-failed");
   assert.equal(classifyNfcBindError(null), "bind-failed");
   assert.equal(classifyNfcBindError(undefined), "bind-failed");
+});
+
+test("CRA-V1-009：逾時與取消有專屬分類，不與 write-failed 混用", () => {
+  assert.equal(
+    classifyNfcBindError(
+      new NfcFlowError("timeout", "NFC write timed out after 20000ms"),
+    ),
+    "timeout",
+  );
+  assert.equal(
+    classifyNfcBindError(new NfcFlowError("cancelled", "NFC write cancelled")),
+    "cancelled",
+  );
+});
+
+test("CRA-V1-009：寫卡逾時為 20s（D9 預設）", () => {
+  assert.equal(NFC_WRITE_TIMEOUT_MS, 20000);
 });

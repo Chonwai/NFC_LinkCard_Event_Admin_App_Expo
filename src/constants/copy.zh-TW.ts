@@ -256,6 +256,12 @@ export const copy = {
     bindFailedAfterWrite: "卡片已寫入網址，但後端尚未綁定。請重試綁定；成功前不要發放這張卡",
     retryWrite: "重試寫卡",
     retryBind: "重試綁定",
+    /** CRA-V1-009：寫卡逾時（預設 20s）後的處置文案，不得講成成功 */
+    writeTimeout: "寫卡逾時，已停止等待。卡片可能沒有寫入，請重新靠近再試，勿當成成功",
+    /** 寫入中的取消控制（CRA-V1-009） */
+    cancelWrite: "取消寫卡",
+    /** 使用者主動取消時的狀態文案（正常路徑會直接回確認畫面） */
+    writeCancelled: "已取消寫卡",
     payloadPreview: "將寫入",
     writtenUid: "卡片編號",
     replaceTitle: "換卡 / 補發 / 退卡",
