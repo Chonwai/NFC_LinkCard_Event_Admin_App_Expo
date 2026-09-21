@@ -31,26 +31,7 @@ import {
 } from "@/constants/theme";
 import { useEventStore } from "@/stores/event.store";
 import { formatCount } from "@/utils/count-display";
-
-/** 活動狀態 → 徽章色（對應 semantic.status tokens） */
-const STATUS_TONE: Record<string, keyof typeof semantic.status> = {
-  PUBLISHED: "available",
-  REGISTRATION_OPEN: "success",
-  ONGOING: "success",
-  DRAFT: "neutral",
-  COMPLETED: "neutral",
-  CANCELLED: "warning",
-};
-
-/** 活動狀態 → 顯示文字 */
-const STATUS_LABEL: Record<string, string> = {
-  PUBLISHED: "已發布",
-  REGISTRATION_OPEN: "報名中",
-  ONGOING: "進行中",
-  DRAFT: "草稿",
-  COMPLETED: "已結束",
-  CANCELLED: "已取消",
-};
+import { EVENT_STATUS_TONE, getEventStatusLabel } from "@/utils/event-status";
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -92,9 +73,8 @@ export default function HomeScreen() {
   }, [loadEvents]);
 
   const renderEvent = ({ item }: { item: (typeof events)[number] }) => {
-    const tone = STATUS_TONE[item.status] ?? "neutral";
-    const label =
-      STATUS_LABEL[item.status] ?? item.status ?? copy.event.unknownStatus;
+    const tone = EVENT_STATUS_TONE[item.status] ?? "neutral";
+    const label = getEventStatusLabel(item.status) || copy.event.unknownStatus;
     const statusToken = semantic.status[tone];
 
     return (
@@ -184,7 +164,7 @@ export default function HomeScreen() {
           disabled={refreshing}
           accessibilityRole="button"
           accessibilityLabel={
-            refreshing ? copy.home.refreshing : copy.home.refresh
+            refreshing ? copy.common.refreshing : copy.common.refresh
           }
           accessibilityState={{ busy: refreshing, disabled: refreshing }}
           hitSlop={space[2]}

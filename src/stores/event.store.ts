@@ -1,5 +1,6 @@
 import { create } from "zustand";
 
+import { copy } from "@/constants/copy.zh-TW";
 import type { ManagedEventItem } from "@/types/api.types";
 
 import { eventService } from "@/services/event.service";
@@ -29,7 +30,12 @@ export const useEventStore = create<EventState>((set, get) => ({
     } catch (err) {
       set({
         loading: false,
-        error: err instanceof Error ? err.message : "載入活動失敗",
+        /**
+         * 這是使用者可見文字（列表頁的錯誤橫幅會有同樣一句），因此走 `copy`。
+         * 沿用 `copy.home.loadFailed` 的同一個鍵，不在此另立一份重複字串；
+         * 畫面自己 catch 時也拿同一個鍵（`NEW-D2-04`）。
+         */
+        error: err instanceof Error ? err.message : copy.home.loadFailed,
       });
     }
   },

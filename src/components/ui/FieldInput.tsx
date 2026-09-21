@@ -12,6 +12,7 @@ import {
 
 import { Icon } from "@/components/ui/Icon";
 import { useFocusRing } from "@/components/ui/useFocusRing";
+import { copy } from "@/constants/copy.zh-TW";
 import { components, layout, semantic, space, type } from "@/constants/theme";
 
 export interface FieldInputProps {
@@ -149,7 +150,9 @@ export function FieldInput({
           multiline={multiline}
           secureTextEntry={secureTextEntry && !revealed}
           testID={testID}
-          accessibilityLabel={required ? `${label}，必填` : label}
+          accessibilityLabel={
+            required ? copy.common.requiredLabel(label) : label
+          }
           accessibilityState={{ disabled: isDisabled }}
           /** H1（C12）：RNW 0.21 不映射 `accessibilityState` → 補 `aria-disabled` */
           aria-disabled={isDisabled}
@@ -161,7 +164,9 @@ export function FieldInput({
             onPress={() => setRevealed((previous) => !previous)}
             disabled={isDisabled}
             accessibilityRole="button"
-            accessibilityLabel={revealed ? "隱藏密碼" : "顯示密碼"}
+            accessibilityLabel={
+              revealed ? copy.common.hidePassword : copy.common.revealPassword
+            }
             /** RNW 0.21 不映射 `accessibilityState`，故同時給 aria-*（C6 H1 發現） */
             accessibilityState={{ disabled: isDisabled, selected: revealed }}
             aria-pressed={revealed}

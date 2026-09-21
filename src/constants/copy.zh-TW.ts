@@ -10,6 +10,33 @@ export const copy = {
     version: "1.0.0",
     tagline: "活動現場營運工具",
   },
+  /**
+   * 跨畫面共用的通用文案。
+   *
+   * `src/components/ui/*` 是被多個畫面重用的葉節點元件，它們的讀屏標籤不屬於
+   * 任何單一畫面，因此不能住在某個畫面的 namespace 裡。原則同 `notFound`：
+   * 已有同義字串就沿用既有鍵，不另立重複字串。
+   */
+  common: {
+    /** 標頭返回鈕的讀屏標籤（消費端：`components/ui/ScreenHeader`） */
+    back: "返回",
+    /**
+     * 手動重新整理鈕的讀屏標籤／忙碌態。
+     * 消費端：`components/ui/ScreenHeader`、`app/(auth)/home.tsx`。
+     * `CRA-V1-023` 原本把這兩個字串建在 `home` namespace（當時只有活動列表
+     * 有這顆鈕）；`ScreenHeader` 也提供同一顆鈕之後上移到 `common`，
+     * 全站維持單一字串來源。
+     */
+    refresh: "重新整理",
+    refreshing: "重新整理中",
+    /** 可關閉橫幅（fatal/info banner）關閉鈕的讀屏標籤。消費端：`components/ui/InlineBanner` */
+    dismiss: "關閉提示",
+    /** 必填欄位的讀屏標籤。消費端：`components/ui/FieldInput` */
+    requiredLabel: (label: string) => `${label}，必填`,
+    /** 密碼欄位顯示／隱藏切換鈕的讀屏標籤。消費端：`components/ui/FieldInput` */
+    revealPassword: "顯示密碼",
+    hidePassword: "隱藏密碼",
+  },
   auth: {
     emailLabel: "電子郵件",
     emailPlaceholder: "you@example.com",
@@ -36,9 +63,7 @@ export const copy = {
     emptyHint: "當你被指派為活動管理員時，活動會顯示在這裡",
     loadFailed: "載入活動失敗，請稍後再試",
     retry: "重新載入",
-    /** 手動重新整理鈕的讀屏標籤（CRA-V1-023：原為硬編字串） */
-    refresh: "重新整理",
-    refreshing: "重新整理中",
+    /** 重新整理鈕的文案已上移到 `common.refresh` / `common.refreshing`（ScreenHeader 也要用） */
   },
   event: {
     overviewTitle: "活動概覽",
@@ -70,14 +95,25 @@ export const copy = {
     unavailableHint: "此連結可能不完整，或活動已被移除",
   },
   /**
-   * 活動狀態標籤（6 值）——直接鏡射後端 `EventStatus` enum
+   * 活動狀態標籤——鏡射後端 `EventStatus` enum
    * （`LinkCard_ExpressJS_Backend/prisma/schema.prisma`）。
-   * 消費端：`app/(auth)/home.tsx` 的 `STATUS_LABEL`。
+   * 消費端：`src/utils/event-status.ts` 的 `EVENT_STATUS_LABEL`——這是唯一映射處，
+   * 畫面不得各自再寫一份（活動列表先前就有一份重複的，`NEW-D2-04` 已收斂）。
+   *
+   * 鍵集合刻意取 **repo 內兩個宣告的聯集**：`types/api.types.ts` 宣告
+   * `DRAFT / PUBLISHED / REGISTRATION_OPEN / ONGOING / ENDED / CANCELLED`，
+   * 本檔另依後端 `prisma` 宣告 `COMPLETED` / `ARCHIVED`。任一值漏掉，畫面就會
+   * 把原始 enum（英文）直接端給操作者。
+   *
+   * 尚未有文案的是 `ENDED`（只在 `api.types.ts` 出現）；刻意不在此推測它的
+   * 顯示文字，遇未知值仍回退為原始字串。
    */
   eventStatus: {
     draft: "草稿",
     published: "已發布",
+    registrationOpen: "報名中",
     ongoing: "進行中",
+    /** 後端 `prisma` 的值 */
     completed: "已結束",
     cancelled: "已取消",
     archived: "已封存",
