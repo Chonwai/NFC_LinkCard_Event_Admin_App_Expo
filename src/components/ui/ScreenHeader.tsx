@@ -34,6 +34,7 @@ export type BackFallbackPath =
   | "/(auth)/[eventId]/overview"
   | "/(auth)/[eventId]/check-in"
   | "/(auth)/[eventId]/nfc-bind"
+  | "/(auth)/[eventId]/nfc-read"
   | "/(auth)/[eventId]/badges";
 
 export interface ScreenHeaderProps {

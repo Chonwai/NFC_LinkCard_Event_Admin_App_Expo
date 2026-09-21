@@ -39,6 +39,7 @@ type EventRoute =
   | "token"
   | "registrations"
   | "nfc-bind"
+  | "nfc-read"
   | "badges";
 
 interface QuickAction {
@@ -49,9 +50,7 @@ interface QuickAction {
 }
 
 /**
- * 會議四大卡：掃碼簽到 / Token / 名單 / NFC。
- * Badge 為既有頁，保留以免深鏈才進得去。
- * Token、名單尚未實作，進 placeholder，不崩潰。
+ * 會議快速操作：掃碼簽到 / Token / 名單 / NFC 寫卡 / 讀取 tagUid / Badge。
  */
 const QUICK_ACTIONS: QuickAction[] = [
   {
@@ -73,6 +72,12 @@ const QUICK_ACTIONS: QuickAction[] = [
     route: "registrations",
   },
   { key: "nfc", label: copy.nfc.writeTitle, icon: "nfc", route: "nfc-bind" },
+  {
+    key: "nfc-read",
+    label: copy.nfc.readTitle,
+    icon: "search",
+    route: "nfc-read",
+  },
   {
     key: "badges",
     label: copy.event.badgesTitle,

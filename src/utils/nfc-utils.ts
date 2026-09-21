@@ -141,3 +141,31 @@ export async function startNfc(): Promise<void> {
   const { default: NfcManager } = await loadNfcManager();
   await NfcManager.start();
 }
+
+/**
+ * 只讀取卡片硬體 UID（不寫入、不綁定）。
+ * 優先 Ndef，並相容僅有 NfcA 的空白卡。
+ */
+export async function readTagUid(): Promise<string> {
+  const { default: NfcManager, NfcTech } = await loadNfcManager();
+  const techs = [NfcTech.Ndef, NfcTech.NfcA].filter(Boolean);
+  await NfcManager.requestTechnology(techs);
+  try {
+    const tag = await NfcManager.getTag();
+    const tagUid = tag?.id ? normalizeTagUid(tag.id) : "";
+    if (!isValidTagUid(tagUid)) {
+      throw new NfcFlowError("invalid-uid", tagUid || "missing");
+    }
+    return tagUid;
+  } catch (error) {
+    if (error instanceof NfcFlowError) throw error;
+    const message = error instanceof Error ? error.message : "read failed";
+    throw new NfcFlowError("write-failed", message);
+  } finally {
+    try {
+      await NfcManager.cancelTechnologyRequest();
+    } catch {
+      // session closing race 不阻斷主流程
+    }
+  }
+}
