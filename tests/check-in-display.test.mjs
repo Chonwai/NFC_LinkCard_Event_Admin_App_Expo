@@ -19,8 +19,13 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 const { copy } = await import("@/constants/copy.zh-TW");
-const { getCheckInOutcomeDetail, getCheckInOutcomeHeadline } =
-  await import("@/utils/check-in-display");
+const {
+  CHECK_IN_COUNTER_LOADING,
+  getCheckInCounterHint,
+  getCheckInCounterValue,
+  getCheckInOutcomeDetail,
+  getCheckInOutcomeHeadline,
+} = await import("@/utils/check-in-display");
 const { resolveCheckInErrorMessage } = await import("@/utils/check-in-errors");
 
 const REPO_ROOT = path.resolve(
@@ -182,5 +187,45 @@ test("[static] 結果卡真的渲染第二行（否則這只是一個沒有讀�
     source,
     /getCheckInOutcomeHeadline\(outcome\.kind\)/,
     "標題也必須走同一個來源，不得在畫面另寫一份",
+  );
+});
+
+/**
+ * `F-03`：總簽到計數讀不到時，破折號必須帶著原因。
+ * 同一屏的其他破折號都有解釋（`event.tokenDegradedHint`、`nfcEmptyHint`、
+ * `orgEmptyHint`），只有這一顆數字沒有——而它正好是現場最需要看懂的那一顆。
+ */
+test("F-03：讀取失敗時說明文字與正常態不同，且說出原因", () => {
+  const degraded = getCheckInCounterHint(true);
+  const healthy = getCheckInCounterHint(false);
+
+  assert.notEqual(degraded, healthy, "失敗態不得沿用「（累計，非今日）」");
+  assert.equal(degraded, copy.checkIn.counterUnavailableHint);
+  assert.ok(degraded.includes("讀取失敗"), degraded);
+  assert.equal(healthy, copy.checkIn.counterFallbackHint);
+  assert.ok(!healthy.includes("讀取失敗"), healthy);
+});
+
+test("F-03：讀不到顯示破折號，但真正的 0 仍然顯示 0", () => {
+  assert.equal(getCheckInCounterValue(true, 42), copy.checkIn.dash);
+  assert.equal(getCheckInCounterValue(true, null), copy.checkIn.dash);
+  assert.equal(getCheckInCounterValue(false, 0), "0");
+  assert.equal(getCheckInCounterValue(false, 42), "42");
+  assert.equal(getCheckInCounterValue(false, null), CHECK_IN_COUNTER_LOADING);
+  assert.notEqual(getCheckInCounterValue(false, 0), copy.checkIn.dash);
+});
+
+test("[static] 計數的兩個值都走 check-in-display，畫面不再自己寫死", () => {
+  const source = readSource("src/app/(auth)/[eventId]/check-in.tsx");
+
+  assert.match(source, /getCheckInCounterHint\(counterError\)/);
+  assert.match(
+    source,
+    /getCheckInCounterValue\(counterError, checkedInTotal\)/,
+  );
+  assert.doesNotMatch(
+    source,
+    /copy\.checkIn\.counterFallbackHint/,
+    "正常態的提示字串也必須走同一個來源",
   );
 });

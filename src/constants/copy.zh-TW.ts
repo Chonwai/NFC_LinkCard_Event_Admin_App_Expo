@@ -84,9 +84,11 @@ export const copy = {
     badgesTitle: "Badge",
     backToOverview: "返回概覽",
     modulePlaceholderTitle: "功能建置中",
-    tokenPlaceholderHint: "Token 櫃台以 Web 為主（WP-A4）。App 只保留入口，不做完整櫃台。",
+    tokenPlaceholderHint:
+      "Token 櫃台以 Web 為主（WP-A4）。App 只保留入口，不做完整櫃台。",
     tokenOpenWeb: "在網頁打開櫃台",
-    registrationsPlaceholderHint: "名單、搜尋與詳情將於 WP-A5 交付。目前僅保留入口。",
+    registrationsPlaceholderHint:
+      "名單、搜尋與詳情將於 WP-A5 交付。目前僅保留入口。",
     /**
      * W-12：`eventId` 路由參數缺失（空字串 / `undefined`）時的空態文案。
      * 消費端：`overview.tsx` / `check-in.tsx` / `nfc-bind.tsx`。
@@ -194,6 +196,15 @@ export const copy = {
     checkedInAt: "報到時間",
     totalCheckedIn: "總簽到",
     counterFallbackHint: "（累計，非今日）",
+    /**
+     * `F-03`：計數讀取失敗時**取代** `counterFallbackHint`。
+     *
+     * 單獨一個破折號讀不出原因——操作者無法分辨「今天還沒有人報到」與
+     * 「這個數字沒讀到」，而兩者的下一步完全不同（繼續作業 vs 重新整理）。
+     * 同慣例見 `event.tokenDegradedHint`、`roster.nfcEmptyHint`、
+     * `roster.orgEmptyHint`：破折號一律帶著「為什麼是破折號」。
+     */
+    counterUnavailableHint: "（讀取失敗，請重新整理）",
     validHeadline: "報到成功",
     duplicateHeadline: "重複簽到",
     invalidHeadline: "無效報名",
@@ -205,7 +216,8 @@ export const copy = {
     walkInEntry: "現場補報名",
     walkInTitle: "現場補報名",
     walkInPlaceholderTitle: "補報名功能建置中",
-    walkInPlaceholderHint: "完整表單將於名單模組（WP-A5）交付；目前僅保留入口。",
+    walkInPlaceholderHint:
+      "完整表單將於名單模組（WP-A5）交付；目前僅保留入口。",
     walkInEmail: "電子郵件",
     walkInFirstName: "名",
     walkInLastName: "姓",
@@ -214,7 +226,8 @@ export const copy = {
     walkInTicket: "票種",
     walkInSubmit: "建立報名",
     walkInSuccess: "已建立報名",
-    walkInPaymentNote: "此票需要付款。報名已建立，但尚未完成付款，不能當成已入場。",
+    walkInPaymentNote:
+      "此票需要付款。報名已建立，但尚未完成付款，不能當成已入場。",
     walkInGoCheckIn: "前往簽到",
     walkInGoNfc: "前往寫卡",
     walkInNeedEmail: "請輸入有效的 Email",
@@ -296,11 +309,13 @@ export const copy = {
     boundOther: "此報名已綁定其他卡片。換卡需等後端就緒，目前無法自動作廢舊卡",
     writeFailed: "寫卡失敗。卡片內容可能沒有更新，請靠近後重試，勿當成成功",
     uriMismatch: "寫入後讀回的網址與預期不符，已中止綁定。請重試，勿當成成功",
-    bindFailedAfterWrite: "卡片已寫入網址，但後端尚未綁定。請重試綁定；成功前不要發放這張卡",
+    bindFailedAfterWrite:
+      "卡片已寫入網址，但後端尚未綁定。請重試綁定；成功前不要發放這張卡",
     retryWrite: "重試寫卡",
     retryBind: "重試綁定",
     /** CRA-V1-009：寫卡逾時（預設 20s）後的處置文案，不得講成成功 */
-    writeTimeout: "寫卡逾時，已停止等待。卡片可能沒有寫入，請重新靠近再試，勿當成成功",
+    writeTimeout:
+      "寫卡逾時，已停止等待。卡片可能沒有寫入，請重新靠近再試，勿當成成功",
     /** 寫入中的取消控制（CRA-V1-009） */
     cancelWrite: "取消寫卡",
     /** 使用者主動取消時的狀態文案（正常路徑會直接回確認畫面） */

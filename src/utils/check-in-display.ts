@@ -57,3 +57,36 @@ export function getCheckInOutcomeDetail(
 
   return message;
 }
+
+/** 總簽到計數「還沒讀到」時顯示的哨兵值（與 `count-display` 同語意） */
+export const CHECK_IN_COUNTER_LOADING = "…";
+
+/**
+ * 總簽到計數的顯示值（`F-03`）。
+ *
+ * 讀取失敗顯示破折號——這個數字**沒讀到**，不是 0；真正的 0 仍然顯示 0
+ * （與 `utils/count-display` 同一條「未知 ≠ 零」的規則）。
+ */
+export function getCheckInCounterValue(
+  counterError: boolean,
+  total: number | null,
+): string {
+  if (counterError) {
+    return copy.checkIn.dash;
+  }
+
+  return total == null ? CHECK_IN_COUNTER_LOADING : String(total);
+}
+
+/**
+ * 總簽到計數的說明文字（`F-03`）。
+ *
+ * 破折號必須帶著原因：讀取失敗時換成「（讀取失敗，請重新整理）」，
+ * 否則操作者無法分辨「沒人報到」與「沒讀到」——這是這一屏唯一沒有解釋
+ * 破折號的地方，而它正好是現場最需要看懂的那一顆數字。
+ */
+export function getCheckInCounterHint(counterError: boolean): string {
+  return counterError
+    ? copy.checkIn.counterUnavailableHint
+    : copy.checkIn.counterFallbackHint;
+}

@@ -33,6 +33,8 @@ import type { CheckInUiState } from "@/types/check-in.types";
 import type { Registration } from "@/types/api.types";
 import { getApiErrorCode } from "@/utils/api-error";
 import {
+  getCheckInCounterHint,
+  getCheckInCounterValue,
   getCheckInOutcomeDetail,
   getCheckInOutcomeHeadline,
 } from "@/utils/check-in-display";
@@ -336,14 +338,13 @@ export default function CheckInScreen() {
       <View style={styles.counterBar}>
         <Text style={[type.label, styles.counterLabel]}>
           {copy.checkIn.totalCheckedIn}
-          <Text style={type.caption}>{copy.checkIn.counterFallbackHint}</Text>
+          {/* `F-03`：破折號必須說明原因（讀取失敗 ≠ 今天沒人報到） */}
+          <Text style={type.caption}>
+            {getCheckInCounterHint(counterError)}
+          </Text>
         </Text>
         <Text style={[type.h3, styles.counterValue]}>
-          {counterError
-            ? copy.checkIn.dash
-            : checkedInTotal == null
-              ? "…"
-              : String(checkedInTotal)}
+          {getCheckInCounterValue(counterError, checkedInTotal)}
         </Text>
       </View>
 
