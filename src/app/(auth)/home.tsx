@@ -30,6 +30,7 @@ import {
   type,
 } from "@/constants/theme";
 import { useEventStore } from "@/stores/event.store";
+import { formatCount } from "@/utils/count-display";
 
 /** 活動狀態 → 徽章色（對應 semantic.status tokens） */
 const STATUS_TONE: Record<string, keyof typeof semantic.status> = {
@@ -152,7 +153,7 @@ export default function HomeScreen() {
               color={semantic.text.muted}
             />
             <Text style={[type.caption, styles.metaText]}>
-              {item.registrationCount ?? 0} {copy.event.registrations}
+              {formatCount(item.registrationCount)} {copy.event.registrations}
             </Text>
           </View>
           <View style={styles.metaItem}>
@@ -162,7 +163,7 @@ export default function HomeScreen() {
               color={semantic.text.muted}
             />
             <Text style={[type.caption, styles.metaText]}>
-              {item.exhibitorCount ?? 0} {copy.event.exhibitors}
+              {formatCount(item.exhibitorCount)} {copy.event.exhibitors}
             </Text>
           </View>
         </View>

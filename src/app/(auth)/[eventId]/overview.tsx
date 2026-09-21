@@ -17,6 +17,7 @@ import { copy } from "@/constants/copy.zh-TW";
 import { layout, semantic, space, spacing, type } from "@/constants/theme";
 import { eventService } from "@/services/event.service";
 import { useEventStore } from "@/stores/event.store";
+import { formatCount } from "@/utils/count-display";
 import { getEventStatusLabel, EVENT_STATUS_TONE } from "@/utils/event-status";
 
 interface StatItem {
@@ -198,14 +199,12 @@ export default function EventOverviewScreen() {
    * `event?.exhibitorCount` 列入 deps，而那個 dep 又會在 store 載入後重打
    * 兩支 API（`CRA-V1-025`）。移出 effect 後兩件事一起消失。
    * 尚未載入時顯示破折號而非 `0`，與 Token 卡同一套「未知 ≠ 零」慣例（`CRA-V1-015`）。
+   * 轉換抽到 `formatCount`，與活動列表（`home.tsx`）共用同一條規則（`NEW-D2-03`）。
    */
   const exhibitorStat: StatItem = {
     key: "exhibitors",
     label: copy.event.exhibitors,
-    value:
-      event?.exhibitorCount == null
-        ? copy.event.dash
-        : String(event.exhibitorCount),
+    value: formatCount(event?.exhibitorCount),
     icon: "archive",
   };
   /** 維持原本的卡片順序：報名人數 → 參展商 → 已報到 → 到場率 */
