@@ -99,8 +99,14 @@ export const NFC_WRITE_TIMEOUT_MS = 20000;
  * 「寫壞的卡」到閘口才被發現。逾時與取消只是外面多一層上限與出口，
  * 不改變驗證流程本身。
  *
- * 逾時／取消會以 `NfcFlowError` 拋出；被中斷時底層 NFC session 仍由 `finally`
- * 的 `cancelTechnologyRequest()` 收拾。
+ * 逾時／取消會以 `NfcFlowError` 拋出。
+ *
+ * **讀取器的釋放責任在外層**（`F-01`）：內層的 `cancelTechnologyRequest()`
+ * 只在內層操作 settle 時才會跑，而逾時之所以存在，正是因為內層可能**永不
+ * settle**——那種情況下讀取器被永久佔住，Android 上後續 `requestTechnology`
+ * 全部失敗，現場整個場次再也寫不了卡。因此外層 `finally` 另做一次 best-effort
+ * 釋放；正常路徑會變成**第二次** cancel，其例外一律吞掉（沒開的／已關的 session
+ * 會 reject，那不是呼叫端該看到的事）。
  */
 export async function writeUriToCard(
   url: string,
@@ -184,6 +190,16 @@ export async function writeUriToCard(
     }
     if (signal && abortListener) {
       signal.removeEventListener("abort", abortListener);
+    }
+    /**
+     * best-effort 釋放（`F-01`）。逾時／取消時內層 `write` 可能永不 settle，
+     * 內層 `finally` 因此永遠不會執行 —— 這裡是那種情境下**唯一**的釋放點。
+     * 成功路徑則是第二次 cancel，失敗一律吞掉。
+     */
+    try {
+      await NfcManager.cancelTechnologyRequest();
+    } catch {
+      // 已完成或未啟用的 session 會 reject；不改變主流程的結果。
     }
   }
 }
