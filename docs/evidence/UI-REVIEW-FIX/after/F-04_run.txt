@@ -1,0 +1,20 @@
+login-only 那一輪（plan L2，port 9251）的 driver log
+
+chrome up: ws://127.0.0.1:9251/devtools/browser/b67c2e1c-18c2-4f65-a608-74171d20153d
+session 295826BF
+viewport 390x844 -> {"w":390,"h":844,"ow":390,"oh":844,"dpr":1}
+navigate http://localhost:8162/ ready=true
+eval clearStorage ok
+navigate http://localhost:8162/ ready=true
+waitFor loginCta -> true
+eval focusArm ok
+eval focusEnsureCta ok
+eval focusLoginCta ok
+shot 01-login-focus-cta
+eval focusArmReveal ok
+eval focusEnsureReveal ok
+eval focusReveal ok
+shot 02-login-focus-reveal-control
+
+consoleErrors:
+[]

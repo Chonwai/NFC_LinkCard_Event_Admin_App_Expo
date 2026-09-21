@@ -1,0 +1,19 @@
+CHECK-IN — valid registration, settled success state (findings F-10, F-11)
+
+Same navigation and mocks as 84-checkin-valid-prefetch; this shot is taken after
+the state settled, to check whether a confirmation affordance appears late.
+
+Rendered text, byte-exact:
+  報到成功 / 張 詠恩 / ABC-999 / Email / cheung.wing.yan@verylongcompanydomain.com.hk
+  / 公司 / 香港創新科技發展有限公司 / 票種 / VIP 全日通行證
+  / 報到時間 / 9/21/2026, 12:00:00 PM / Token 餘額 / 3 / 查看詳情 / 即將自動重置…
+
+Measurements: verdict 報到成功 22px/700; name 20px/700; email overflowed
+(w220 vs scrollWidth 350, clip=true); viewport 844 / scrollHeight 844, no scroll.
+
+Findings recorded from this state:
+- The only actions are 返回 (48x48) and 查看詳情 (322x48). There is NO 繼續掃碼,
+  even though the duplicate and 404 screens both offer it. Recovery for the next
+  person relies entirely on the auto-reset.
+- 即將自動重置… is rendered with NO remaining-seconds count, although
+  copy.checkIn.autoResetIn exists. The operator cannot see how long they have.

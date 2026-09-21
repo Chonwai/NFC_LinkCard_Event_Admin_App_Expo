@@ -1,0 +1,28 @@
+CHECK-IN — lookup while the SERVER IS BROKEN (502) — finding F-01, the worst defect found
+
+Navigated identically to 81: fresh navigation to /EVT-1/check-in → 手動輸入 →
+typed ABC-999 → tapped 查詢並報到.
+Mock: /api/v1/events/EVT-1/registrations/by-code/ABC-999 -> 502
+{success:false, message:"<html>502 Bad Gateway</html>"}  (the gateway-answers-HTML
+shape, i.e. no error code and no usable message).
+Mock hit confirmed: json:502:/api/v1/events/EVT-1/registrations/by-code/ABC-999
+
+Rendered text, byte-exact:
+  Check-in / 總簽到（累計，非今日） / 42 / 無效報名 / ABC-999 / 現場補報名 / 繼續掃碼
+
+THIS IS BYTE-IDENTICAL TO THE 404 SCREEN in 81-checkin-404. Same headline
+無效報名 at the same 22px/700, same button boxes at the same coordinates
+(現場補報名 y182-230, 繼續掃碼 y238-286), same absence of any explanation.
+
+Why this is Critical: an operator at a door, with a queue, whose gateway hiccups,
+is told the ticket is 無效報名 ("invalid registration"). Nothing on the screen
+distinguishes "this ticket does not exist" from "the server is down". The
+operator's rational next action is to treat a valid ticket as invalid and turn a
+paying attendee away.
+
+The app's own copy module forbids exactly this. src/constants/copy.zh-TW.ts,
+copy.checkIn.serverError, carries the comment:
+  「**不可**與 `registrationNotFound` 混用——後端壞掉時把有效票講成「不存在」，
+     現場會照著作廢它」
+and copy.checkIn.serverError = 「伺服器暫時異常，請改用人工核對或稍後重試」.
+That string, and copy.checkIn.networkError, appear nowhere on this screen.

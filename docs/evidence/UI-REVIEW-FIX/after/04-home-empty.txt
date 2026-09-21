@@ -1,0 +1,26 @@
+HOME — 真的沒有活動（F-02 的對照組）— after
+
+Navigated: http://localhost:8162/home
+Mock: /api/v1/events/my-managed → 200 {events: [], pagination.total: 0}
+Mock hits (all, from this run):
+json:200:/api/users/me
+json:200:/api/users/me
+json:200:/api/v1/events/my-managed?limit=100
+json:200:/api/users/me
+json:200:/api/v1/events/EVT-1/registrations?limit=1&status=CHECKED_IN
+json:200:/api/users/me
+json:404:/api/v1/events/EVT-1/registrations/by-code/ABC-999
+json:200:/api/v1/events/EVT-1/registrations?limit=1&status=CHECKED_IN
+json:200:/api/users/me
+json:502:/api/v1/events/EVT-1/registrations/by-code/ABC-999
+json:200:/api/users/me
+
+Rendered text, byte-exact:
+LinkCard Event Admin
+我的活動
+活動現場營運工具
+沒有管理中的活動
+當你被指派為活動管理員時，活動會顯示在這裡
+重新載入
+我的活動
+設定

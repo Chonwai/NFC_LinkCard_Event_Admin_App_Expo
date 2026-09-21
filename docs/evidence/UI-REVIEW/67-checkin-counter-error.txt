@@ -1,0 +1,30 @@
+CHECK-IN — the 總簽到 counter when its endpoint FAILS (finding F-03)
+
+Navigated: fresh navigation to /EVT-1/check-in with the counter request mocked to
+FAIL. Mock: /api/v1/events/EVT-1/registrations?limit=1&status=CHECKED_IN -> fail
+(CDP ConnectionFailed). No other mock changed.
+
+Rendered text, byte-exact:
+  Check-in / 總簽到（累計，非今日） / — / 掃描模式 / 手動輸入
+  / 無法取得相機權限 / 改用輸入模式 / 掃描報名 QR code
+
+Compare with the healthy state (shot 60), where the same slot reads 42.
+
+THE DEFECT: the counter renders as — with the hint 「（累計，非今日）」, which
+explains only WHAT the number counts (cumulative, not today) and says nothing
+about WHY it is a dash. An operator cannot tell "no one has checked in yet" from
+"the number failed to load". This is precisely the sibling app's defect class
+that this review was asked to hunt for.
+
+THE APP ALREADY SOLVES THIS ELSEWHERE — which is what makes it an inconsistency
+rather than a missing capability:
+- event.tokenDegradedHint = 「尚無活動級彙總端點，不顯示估算數字」, rendered on the
+  overview screen exactly to explain its dashes (see shot 41).
+- copy.checkIn.nfcEmptyHint = 「後端還不能用報名編號反查 NFC，這裡顯示 —。」
+- copy.checkIn.orgEmptyHint = 「沒有依使用者查社團的接口，這裡顯示 —。」
+Those three strings establish an in-house convention of explaining a dash. The
+check-in counter is the one place that breaks it.
+
+Also note the counter is styled identically whether it holds a number or a dash —
+fs 17, weight 600, rgb(17,24,39), i.e. a failed read is presented in exactly the
+same visual weight as a real value.

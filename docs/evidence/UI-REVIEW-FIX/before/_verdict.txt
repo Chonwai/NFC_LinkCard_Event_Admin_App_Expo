@@ -1,0 +1,35 @@
+BEFORE run verdicts
+
+PASS  F-04 登入 CTA 聚焦指示
+      內描邊 2px rgb(124, 58, 237) 對自身填色 rgb(124, 58, 237) = 1:1 [label=登入 box={"x":41,"y":439,"w":308,"h":56}]
+PASS  F-04 對照組（顯示密碼鈕，機制本來就正常）
+      外框 1px rgb(0, 95, 204) 對外側底色 #ffffff = 5.98:1
+PASS  F-02 載入失敗顯示失敗文案（不再講成沒有活動）
+      failed: loadFailed=false retry=true emptyTitle=true
+PASS  F-02 真的沒有活動時仍是空狀態（未被失敗文案污染）
+      empty: emptyTitle=true loadFailed=false
+PASS  F-02 失敗與空狀態不是同一個畫面
+      兩者 innerText 逐字相同（缺陷）
+PASS  F-01 閘道 502 與真正的 404 是不同畫面
+      兩者 innerText 逐字相同（缺陷）
+PASS  F-01 502 顯示伺服器文案、且不講成找不到報名
+      502: serverError=false notFound=false
+PASS  F-01 404 顯示找不到報名
+      404: notFound=false
+PASS  F-03 計數讀取失敗時說明破折號的原因
+      counterFailed: degradedHint=false healthyHintOnly=true
+
+mockHits:
+json:200:/api/users/me
+json:200:/api/v1/events/my-managed?limit=100
+json:200:/api/users/me
+json:200:/api/v1/events/EVT-1/registrations?limit=1&status=CHECKED_IN
+json:200:/api/users/me
+json:404:/api/v1/events/EVT-1/registrations/by-code/ABC-999
+json:200:/api/v1/events/EVT-1/registrations?limit=1&status=CHECKED_IN
+json:200:/api/users/me
+json:502:/api/v1/events/EVT-1/registrations/by-code/ABC-999
+json:200:/api/users/me
+
+consoleErrors:
+[]

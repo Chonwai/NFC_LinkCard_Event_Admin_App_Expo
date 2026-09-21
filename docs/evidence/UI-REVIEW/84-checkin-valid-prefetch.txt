@@ -1,0 +1,18 @@
+CHECK-IN — valid registration, captured IMMEDIATELY after the lookup (finding F-10)
+
+Navigated: /EVT-1/check-in → 手動輸入 → typed ABC-999 → tapped 查詢並報到.
+Mock: by-code -> 200 with status CONFIRMED, plus
+/api/v1/events/EVT-1/registrations/checkin -> 200.
+Mock hits confirm the write already happened in this same step:
+  json:200:/api/v1/events/EVT-1/registrations/by-code/ABC-999
+  json:200:/api/v1/events/EVT-1/registrations/checkin
+
+Rendered text: 報到成功 / 張 詠恩 / ... / 查看詳情 / 即將自動重置…
+
+What this proves: there is NO preview-then-confirm step. One tap on
+查詢並報到 performs the lookup AND commits the attendance write. By the time this
+screenshot was taken the POST had already fired. The button label is honest about
+that contract (查詢並報到 = "look up and check in"), so this is recorded as a
+design decision to be confirmed with the PM rather than a defect — but it does
+mean there is no undo, and combined with finding F-01 (a 502 rendered as
+無效報名) the operator has no way to reverse a mistaken action from this screen.
