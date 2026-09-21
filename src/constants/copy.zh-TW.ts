@@ -79,6 +79,19 @@ export const copy = {
     tokenConsumed: "Token 消耗",
     tokenDegradedHint: "尚無活動級彙總端點，不顯示估算數字",
     dash: "—",
+    /**
+     * `CRA-V1-002`：破折號的說明文字。
+     *
+     * 破折號自己讀不出原因——操作者分不出「真的掛零」與「這個數字沒拿到」。
+     * `checkIn.counterUnavailableHint` 已經處理了總簽到計數那一顆，活動列表
+     * 與活動概覽卻還是裸的破折號，同一條慣例在三個畫面上只落實了一個。
+     *
+     * 活動列表（`home.tsx`）與活動概覽（`overview.tsx`）共用這一句，因為兩邊
+     * 講的是同一件事。只在畫面上真的出現破折號時才渲染（由
+     * `utils/count-display.getCountUnavailableHint` 決定），否則每張卡片都會
+     * 多一行沒有資訊的字。
+     */
+    countUnavailableHint: "（破折號＝未取得此數字，不是 0）",
     unknownStatus: "未知狀態",
     quickActions: "快速操作",
     badgesTitle: "Badge",

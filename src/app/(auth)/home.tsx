@@ -27,7 +27,7 @@ import {
   type,
 } from "@/constants/theme";
 import { useEventStore } from "@/stores/event.store";
-import { formatCount } from "@/utils/count-display";
+import { formatCount, getCountUnavailableHint } from "@/utils/count-display";
 import { getEventListPhase } from "@/utils/event-list-phase";
 import { EVENT_STATUS_TONE, getEventStatusLabel } from "@/utils/event-status";
 
@@ -65,6 +65,15 @@ export default function HomeScreen() {
     const tone = EVENT_STATUS_TONE[item.status] ?? "neutral";
     const label = getEventStatusLabel(item.status) || copy.event.unknownStatus;
     const statusToken = semantic.status[tone];
+    /**
+     * `CRA-V1-002`：這一屏的兩個計數只要有一個未知，就在下方補一行說明。
+     * 破折號本身讀不出「真的掛零」與「沒拿到數字」的差別，而兩者的下一步不同
+     * （前者不用處理，後者要去查為什麼）。
+     */
+    const countHint = getCountUnavailableHint(
+      item.registrationCount,
+      item.exhibitorCount,
+    );
 
     return (
       <Pressable
@@ -136,6 +145,14 @@ export default function HomeScreen() {
             </Text>
           </View>
         </View>
+        {countHint ? (
+          <Text
+            style={[type.caption, styles.countHint]}
+            maxFontSizeMultiplier={layout.maxFontScaleBody}
+          >
+            {countHint}
+          </Text>
+        ) : null}
       </Pressable>
     );
   };
@@ -321,6 +338,12 @@ const styles = StyleSheet.create({
   },
   metaText: {
     color: semantic.text.muted,
+  },
+  /** `CRA-V1-002`：只在真的出現破折號時才渲染的說明行 */
+  countHint: {
+    ...type.caption,
+    color: semantic.text.muted,
+    marginTop: space[1],
   },
   statusBadge: {
     flexShrink: 0,

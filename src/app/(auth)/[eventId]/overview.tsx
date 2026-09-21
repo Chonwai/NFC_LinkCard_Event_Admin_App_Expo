@@ -17,7 +17,7 @@ import { copy } from "@/constants/copy.zh-TW";
 import { layout, semantic, space, spacing, type } from "@/constants/theme";
 import { eventService } from "@/services/event.service";
 import { useEventStore } from "@/stores/event.store";
-import { formatCount } from "@/utils/count-display";
+import { formatCount, getCountUnavailableHint } from "@/utils/count-display";
 import { getEventStatusLabel, EVENT_STATUS_TONE } from "@/utils/event-status";
 
 interface StatItem {
@@ -25,6 +25,11 @@ interface StatItem {
   label: string;
   value: string;
   icon: IconName;
+  /**
+   * 值為破折號時的原因（`CRA-V1-002`）。
+   * 沒有原因就不要寫，卡片不會多出那一行。
+   */
+  hint?: string | null;
 }
 
 interface TokenStatItem {
@@ -36,11 +41,7 @@ interface TokenStatItem {
 }
 
 type EventRoute =
-  | "check-in"
-  | "token"
-  | "registrations"
-  | "nfc-bind"
-  | "badges";
+  "check-in" | "token" | "registrations" | "nfc-bind" | "badges";
 
 interface QuickAction {
   key: string;
@@ -205,6 +206,13 @@ export default function EventOverviewScreen() {
     key: "exhibitors",
     label: copy.event.exhibitors,
     value: formatCount(event?.exhibitorCount),
+    /**
+     * `CRA-V1-002`：破折號的原因寫在**這張卡裡面**，不寫在格線下面。
+     * 同一格網格裡的「到場率」也會顯示破折號，但那一個的原因是「分母為 0」
+     * （見 `formatAttendanceRate`），與本卡不同；放在格線下面會被讀成兩者共用
+     * 同一個原因。值與說明同源（同一個 `event?.exhibitorCount`），不會互相說謊。
+     */
+    hint: getCountUnavailableHint(event?.exhibitorCount),
     icon: "archive",
   };
   /** 維持原本的卡片順序：報名人數 → 參展商 → 已報到 → 到場率 */
@@ -296,6 +304,14 @@ export default function EventOverviewScreen() {
                   >
                     {s.value}
                   </Text>
+                  {s.hint ? (
+                    <Text
+                      style={styles.hintCaption}
+                      maxFontSizeMultiplier={layout.maxFontScaleBody}
+                    >
+                      {s.hint}
+                    </Text>
+                  ) : null}
                 </Card>
               ))}
             </View>
@@ -327,11 +343,7 @@ export default function EventOverviewScreen() {
                             { backgroundColor: accent.bg },
                           ]}
                         >
-                          <Icon
-                            name={t.icon}
-                            size="sm"
-                            color={accent.fg}
-                          />
+                          <Icon name={t.icon} size="sm" color={accent.fg} />
                         </View>
                         <Text
                           style={styles.statLabel}
@@ -354,7 +366,7 @@ export default function EventOverviewScreen() {
                 })}
               </View>
               <Text
-                style={styles.tokenHint}
+                style={styles.hintCaption}
                 maxFontSizeMultiplier={layout.maxFontScaleBody}
               >
                 {copy.event.tokenDegradedHint}
@@ -453,7 +465,8 @@ const styles = StyleSheet.create({
   tokenSection: {
     gap: space[2],
   },
-  tokenHint: {
+  /** 兩處區塊說明共用（`CRA-V1-002` 後不再各寫一份） */
+  hintCaption: {
     ...type.caption,
     color: semantic.text.muted,
   },

@@ -15,7 +15,8 @@ import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-const { formatCount } = await import("@/utils/count-display");
+const { formatCount, getCountUnavailableHint } =
+  await import("@/utils/count-display");
 const { copy } = await import("@/constants/copy.zh-TW");
 
 const REPO_ROOT = path.resolve(
@@ -69,4 +70,55 @@ test("[static] 活動概覽的參展商卡走同一個轉換", () => {
     /formatCount\(event\?\.exhibitorCount\)/,
     "概覽的參展商卡必須與列表共用同一個轉換",
   );
+});
+
+test("破折號的說明只在真的出現破折號時回傳（`CRA-V1-002`）", () => {
+  assert.equal(
+    getCountUnavailableHint(3, 4),
+    null,
+    "兩個數字都拿到時不該多一行說明",
+  );
+  assert.equal(
+    getCountUnavailableHint(0, 0),
+    null,
+    "真正的 0 不算未知，不得把它講成沒拿到",
+  );
+  assert.equal(
+    getCountUnavailableHint(3, undefined),
+    copy.event.countUnavailableHint,
+  );
+  assert.equal(
+    getCountUnavailableHint(null, 4),
+    copy.event.countUnavailableHint,
+  );
+  assert.equal(
+    getCountUnavailableHint(undefined),
+    copy.event.countUnavailableHint,
+    "單一參數的呼叫形式（概覽）也必須生效",
+  );
+});
+
+test("[static] 兩張會出現破折號的畫面都把它說明出來了", () => {
+  const home = readSource("src/app/(auth)/home.tsx");
+
+  assert.match(
+    home,
+    /getCountUnavailableHint\(\s*item\.registrationCount,\s*item\.exhibitorCount,?\s*\)/,
+    "活動列表的兩個計數必須走同一條說明推導",
+  );
+  assert.match(home, /\{countHint\}/, "推導出來不等於有渲染");
+
+  const overview = readSource("src/app/(auth)/[eventId]/overview.tsx");
+
+  assert.match(
+    overview,
+    /getCountUnavailableHint\(event\?\.exhibitorCount\)/,
+    "概覽的參展商卡必須與列表共用同一個轉換",
+  );
+  assert.match(
+    overview,
+    /hint:\s*getCountUnavailableHint\(event\?\.exhibitorCount\)/,
+    "概覽的參展商卡同樣要說明破折號，且與顯示值同源",
+  );
+  assert.match(overview, /\{s\.hint\}/, "推導出來不等於有渲染");
 });

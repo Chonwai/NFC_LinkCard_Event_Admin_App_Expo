@@ -16,3 +16,22 @@ import { copy } from "@/constants/copy.zh-TW";
 export function formatCount(value: number | null | undefined): string {
   return value == null ? copy.event.dash : String(value);
 }
+
+/**
+ * 破折號的說明文字（`CRA-V1-002`）。
+ *
+ * `formatCount` 把「未知」畫成破折號，但破折號本身讀不出原因：操作者分不出
+ * 「真的掛零」與「這個數字沒拿到」。`check-in.tsx` 的總簽到計數已經有這條規則
+ * （`getCheckInCounterHint`），活動列表與活動概覽卻還是裸的破折號——同一條慣例
+ * 在三個畫面上只落實了一個。
+ *
+ * 回傳 `null` 代表這一屏不會出現破折號，呼叫端據此不渲染說明行；全部已知時
+ * 多一行說明只是雜訊。真值 `0` 不算未知，與 `formatCount` 同一條判準。
+ */
+export function getCountUnavailableHint(
+  ...values: (number | null | undefined)[]
+): string | null {
+  return values.some((value) => value == null)
+    ? copy.event.countUnavailableHint
+    : null;
+}
