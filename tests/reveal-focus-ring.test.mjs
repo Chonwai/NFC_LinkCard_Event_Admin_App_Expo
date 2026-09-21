@@ -4,8 +4,13 @@
  * 缺陷的性質是「歸屬錯誤」，不是使用者可見的缺陷。`FieldInput` 的顯示密碼
  * `Pressable` 從來沒有掛過任何聚焦環，卻在紀錄裡被當成「同一個畫面上健康的
  * 對照組」——`6804354` 用它來佐證 CTA 是唯一的問題。實際上它會顯示聚焦環，
- * 靠的是 Chromium 的 UA 框（`outline: 1px auto rgb(0,95,204)`，實測見
- * `/tmp/lc-exe-focusmeasure.json`），不是 `components.focusRing`。
+ * 靠的是 Chromium 的 UA 框，不是 `components.focusRing`。實測（headless
+ * Chromium 153、390×844 不需要，這一顆在任何尺寸都一樣）：UA 框是
+ * `outline: 1px auto rgb(0, 95, 204)`、`outline-offset: 0`，量到的對比是
+ * **5.98:1**；本檔的 runtime 半算出的品牌環（`#7C3AED` on `#FFFFFF`）是
+ * **5.70:1**、寬度 2px。兩者都過 WCAG，差別在**誰決定的**：前者是瀏覽器預設，
+ * 後者是凍結 token。量測方式與逐值輸出記在引入本檔的那顆 commit body 裡
+ * （`git log -1 --format=%b <sha>`），不指向 `/tmp`。
  * WCAG 2.4.7 因此一直是被滿足的，但滿足它的是瀏覽器的預設值：換瀏覽器、
  * 換版本，或哪天有人補一句 `outline: none`，指示就消失了。
  *
