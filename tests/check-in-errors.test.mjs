@@ -20,7 +20,9 @@ function apiError(status, code, message) {
   return {
     response: {
       status,
-      data: { error: { ...(code ? { code } : {}), ...(message ? { message } : {}) } },
+      data: {
+        error: { ...(code ? { code } : {}), ...(message ? { message } : {}) },
+      },
     },
   };
 }
@@ -78,7 +80,9 @@ test("後端錯誤碼優先於狀態碼 fallback", () => {
     copy.checkIn.alreadyCheckedIn,
   );
   assert.equal(
-    resolveCheckInErrorMessage(apiError(429, "REGISTRATION_LOOKUP_RATE_LIMITED")),
+    resolveCheckInErrorMessage(
+      apiError(429, "REGISTRATION_LOOKUP_RATE_LIMITED"),
+    ),
     copy.checkIn.rateLimited,
   );
 });
@@ -113,11 +117,7 @@ test("F-02：未映射的 5xx → 伺服器文案，**不得**講成「找不到
       apiError(status, "SOMETHING_NEW"),
     );
     assert.equal(message, copy.checkIn.serverError, String(status));
-    assert.notEqual(
-      message,
-      copy.checkIn.registrationNotFound,
-      String(status),
-    );
+    assert.notEqual(message, copy.checkIn.registrationNotFound, String(status));
   }
 
   // 5xx 分支先於「優先用後端 message」：後端的 5xx 訊息對現場不可行動。
