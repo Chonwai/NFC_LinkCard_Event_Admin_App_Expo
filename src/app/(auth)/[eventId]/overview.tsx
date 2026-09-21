@@ -175,7 +175,7 @@ export default function EventOverviewScreen() {
     return () => {
       active = false;
     };
-  }, [eventId, event?.exhibitorCount]);
+  }, [eventId]);
 
   if (!eventId) {
     return (
