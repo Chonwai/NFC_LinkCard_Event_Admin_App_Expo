@@ -13,10 +13,7 @@ import { router } from "expo-router";
 
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
-import {
-  InlineBanner,
-  type InlineBannerTone,
-} from "@/components/ui/InlineBanner";
+import { InlineBanner } from "@/components/ui/InlineBanner";
 import { Logo } from "@/components/ui/Logo";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useFocusRing } from "@/components/ui/useFocusRing";
@@ -31,45 +28,37 @@ import {
 } from "@/constants/theme";
 import { useEventStore } from "@/stores/event.store";
 import { formatCount } from "@/utils/count-display";
+import { getEventListPhase } from "@/utils/event-list-phase";
 import { EVENT_STATUS_TONE, getEventStatusLabel } from "@/utils/event-status";
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const refreshRing = useFocusRing();
-  const { events, loading, loadEvents } = useEventStore();
-  const [banner, setBanner] = useState<{
-    tone: InlineBannerTone;
-    message: string;
-  } | null>(null);
+  const { events, loading, loadEvents, error } = useEventStore();
   const [refreshing, setRefreshing] = useState(false);
-  const [reloadKey, setReloadKey] = useState(0);
+
+  /**
+   * `F-02`：失敗態只能從 store 讀。
+   *
+   * `loadEvents()` **不 rethrow**（失敗收進 `state.error`），所以包在這裡的
+   * `try/catch` 永遠不會觸發；先前是靠這個死掉的 catch 顯示橫幅，結果載入失敗
+   * 與「真的沒有活動」是同一個畫面，`copy.home.loadFailed` 也就永遠不可達。
+   */
+  const phase = getEventListPhase({ loading, error, count: events.length });
+  const loadFailed = error != null;
+
+  const retry = useCallback(() => {
+    void loadEvents();
+  }, [loadEvents]);
 
   useEffect(() => {
-    let active = true;
-
-    async function load() {
-      setBanner(null);
-      try {
-        await loadEvents();
-        if (!active) return;
-      } catch {
-        if (!active) return;
-        setBanner({ tone: "danger", message: copy.home.loadFailed });
-      }
-    }
-
-    void load();
-
-    return () => {
-      active = false;
-    };
-  }, [loadEvents, reloadKey]);
+    void loadEvents();
+  }, [loadEvents]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadEvents();
     setRefreshing(false);
-    setBanner(null);
   }, [loadEvents]);
 
   const renderEvent = ({ item }: { item: (typeof events)[number] }) => {
@@ -197,29 +186,32 @@ export default function HomeScreen() {
         </Text>
       </View>
 
-      {banner ? (
+      {loadFailed ? (
         <View style={styles.bannerWrapper}>
-          <InlineBanner tone={banner.tone} message={banner.message} />
+          <InlineBanner
+            tone="danger"
+            message={copy.home.loadFailed}
+            actionLabel={copy.home.retry}
+            onAction={retry}
+          />
         </View>
       ) : null}
 
-      {loading && events.length === 0 ? (
+      {phase === "loading" ? (
         <View style={styles.skeletonWrapper}>
           <Skeleton width="100%" height={96} radius={12} />
           <Skeleton width="100%" height={96} radius={12} />
           <Skeleton width="100%" height={96} radius={12} />
         </View>
-      ) : events.length === 0 ? (
+      ) : phase === "empty" ? (
         <EmptyState
           icon="empty-card"
           title={copy.home.emptyTitle}
           description={copy.home.emptyHint}
           actionLabel={copy.home.retry}
-          onAction={() => {
-            setReloadKey((key) => key + 1);
-          }}
+          onAction={retry}
         />
-      ) : (
+      ) : phase === "list" ? (
         <FlatList
           data={events}
           keyExtractor={(item) => item.id}
@@ -234,7 +226,7 @@ export default function HomeScreen() {
           onRefresh={onRefresh}
           refreshing={refreshing}
         />
-      )}
+      ) : null}
     </View>
   );
 }
