@@ -40,6 +40,9 @@
     "prettier": "^3.9.6",
     "typescript": "~5.9.3"
   },
+  "engines": {
+    "node": ">=22.3"
+  },
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
@@ -51,7 +54,7 @@
     "format:check": "prettier --check .",
     "prepare": "husky",
     "typecheck": "tsc --noEmit",
-    "test": "node --import ./tests/register-alias-loader.mjs --experimental-test-module-mocks --test tests/*.test.mjs"
+    "test": "node scripts/require-node-version.mjs && node --import ./tests/register-alias-loader.mjs --experimental-test-module-mocks --test tests/*.test.mjs"
   },
   "private": true
 }
