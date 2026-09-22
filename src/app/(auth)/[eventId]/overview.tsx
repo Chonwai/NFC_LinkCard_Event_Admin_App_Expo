@@ -41,7 +41,12 @@ interface TokenStatItem {
 }
 
 type EventRoute =
-  "check-in" | "token" | "registrations" | "nfc-bind" | "badges";
+  | "check-in"
+  | "token"
+  | "registrations"
+  | "nfc-bind"
+  | "nfc-read"
+  | "badges";
 
 interface QuickAction {
   key: string;
@@ -51,9 +56,7 @@ interface QuickAction {
 }
 
 /**
- * 會議四大卡：掃碼簽到 / Token / 名單 / NFC。
- * Badge 為既有頁，保留以免深鏈才進得去。
- * Token、名單尚未實作，進 placeholder，不崩潰。
+ * 會議快速操作：掃碼簽到 / Token / 名單 / NFC 寫卡 / 讀取 tagUid / Badge。
  */
 const QUICK_ACTIONS: QuickAction[] = [
   {
@@ -75,6 +78,12 @@ const QUICK_ACTIONS: QuickAction[] = [
     route: "registrations",
   },
   { key: "nfc", label: copy.nfc.writeTitle, icon: "nfc", route: "nfc-bind" },
+  {
+    key: "nfc-read",
+    label: copy.nfc.readTitle,
+    icon: "search",
+    route: "nfc-read",
+  },
   {
     key: "badges",
     label: copy.event.badgesTitle,
@@ -101,7 +110,7 @@ export default function EventOverviewScreen() {
   const [stats, setStats] = useState<StatItem[]>([]);
   const [tokenStats, setTokenStats] = useState<TokenStatItem[]>([]);
 
-  const event = events.find((e) => e.id === eventId);
+  const event = events.find((e: any) => e.id === eventId);
   const statusLabel = getEventStatusLabel(event?.status);
   const statusTone =
     semantic.status[EVENT_STATUS_TONE[event?.status ?? ""] ?? "neutral"];
