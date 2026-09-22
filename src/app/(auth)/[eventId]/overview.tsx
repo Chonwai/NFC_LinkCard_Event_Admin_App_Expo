@@ -110,7 +110,7 @@ export default function EventOverviewScreen() {
   const [stats, setStats] = useState<StatItem[]>([]);
   const [tokenStats, setTokenStats] = useState<TokenStatItem[]>([]);
 
-  const event = events.find((e: any) => e.id === eventId);
+  const event = events.find((e) => e.id === eventId);
   const statusLabel = getEventStatusLabel(event?.status);
   const statusTone =
     semantic.status[EVENT_STATUS_TONE[event?.status ?? ""] ?? "neutral"];
