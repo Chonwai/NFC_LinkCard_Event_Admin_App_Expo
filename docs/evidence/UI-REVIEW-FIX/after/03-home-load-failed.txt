@@ -1,0 +1,25 @@
+HOME — 活動清單載入失敗（F-02）— after
+
+Navigated: http://localhost:8162/home（localStorage 帶 lc_event_admin_token）
+Mock: /api/v1/events/my-managed → CDP ConnectionFailed
+Mock hits (all, from this run):
+json:200:/api/users/me
+json:200:/api/users/me
+json:200:/api/v1/events/my-managed?limit=100
+json:200:/api/users/me
+json:200:/api/v1/events/EVT-1/registrations?limit=1&status=CHECKED_IN
+json:200:/api/users/me
+json:404:/api/v1/events/EVT-1/registrations/by-code/ABC-999
+json:200:/api/v1/events/EVT-1/registrations?limit=1&status=CHECKED_IN
+json:200:/api/users/me
+json:502:/api/v1/events/EVT-1/registrations/by-code/ABC-999
+json:200:/api/users/me
+
+Rendered text, byte-exact:
+LinkCard Event Admin
+我的活動
+活動現場營運工具
+載入活動失敗，請稍後再試
+重新載入
+我的活動
+設定

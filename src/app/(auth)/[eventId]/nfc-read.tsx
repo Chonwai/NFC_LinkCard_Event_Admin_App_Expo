@@ -19,7 +19,14 @@ import { Icon } from "@/components/ui/Icon";
 import { InlineBanner } from "@/components/ui/InlineBanner";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { copy } from "@/constants/copy.zh-TW";
-import { layout, radius, semantic, space, spacing, type } from "@/constants/theme";
+import {
+  layout,
+  radius,
+  semantic,
+  space,
+  spacing,
+  type,
+} from "@/constants/theme";
 import {
   NfcFlowError,
   isNfcSupported,
@@ -144,9 +151,7 @@ export default function NfcReadScreen() {
           />
         ) : null}
 
-        {error ? (
-          <InlineBanner compact tone="danger" message={error} />
-        ) : null}
+        {error ? <InlineBanner compact tone="danger" message={error} /> : null}
 
         <Text
           style={styles.hint}

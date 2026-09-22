@@ -70,7 +70,10 @@ export const eventService = {
     },
   ): Promise<{ registrations: Registration[]; pagination?: ListPagination }> {
     const res = await apiClient.get<
-      ApiResponse<{ registrations: Registration[]; pagination?: ListPagination }>
+      ApiResponse<{
+        registrations: Registration[];
+        pagination?: ListPagination;
+      }>
     >(`/api/v1/events/${encodeURIComponent(eventId)}/registrations`, {
       params,
     });

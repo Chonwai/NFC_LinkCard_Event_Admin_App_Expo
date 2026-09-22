@@ -1,0 +1,26 @@
+CHECK-IN — 總簽到計數讀取失敗（F-03）— after
+
+Navigated: /EVT-1/check-in（計數端點失敗）
+Mock: /api/v1/events/EVT-1/registrations?limit=1&status=CHECKED_IN → CDP ConnectionFailed
+Mock hits (all, from this run):
+json:200:/api/users/me
+json:200:/api/users/me
+json:200:/api/v1/events/my-managed?limit=100
+json:200:/api/users/me
+json:200:/api/v1/events/EVT-1/registrations?limit=1&status=CHECKED_IN
+json:200:/api/users/me
+json:404:/api/v1/events/EVT-1/registrations/by-code/ABC-999
+json:200:/api/v1/events/EVT-1/registrations?limit=1&status=CHECKED_IN
+json:200:/api/users/me
+json:502:/api/v1/events/EVT-1/registrations/by-code/ABC-999
+json:200:/api/users/me
+
+Rendered text, byte-exact:
+Check-in
+總簽到（讀取失敗，請重新整理）
+—
+掃描模式
+手動輸入
+無法取得相機權限
+改用輸入模式
+掃描報名 QR code

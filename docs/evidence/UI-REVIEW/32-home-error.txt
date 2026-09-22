@@ -1,0 +1,34 @@
+HOME — the event list when its endpoint FAILS (finding F-02)
+
+Navigated: /home with /api/v1/events/my-managed?limit=100 mocked to FAIL
+(CDP ConnectionFailed). Screenshot taken after navigation completed.
+
+Rendered text, byte-exact:
+  沒有管理中的活動
+  當你被指派為活動管理員時，活動會顯示在這裡
+  重新載入
+
+THIS IS BYTE-IDENTICAL to 31-home-empty.png, which was captured with the endpoint
+mocked to return ZERO events. The operator is told they manage no events, with no
+indication that anything went wrong.
+
+Root cause, read from source:
+- src/stores/event.store.ts:23 `loadEvents()` catches the failure and does
+  `set({ loading: false, error: ... })` — it NEVER rethrows.
+- src/app/(auth)/home.tsx:57 destructures `{ events, loading, loadEvents }` — it
+  never reads `error`.
+- Therefore the catch block at home.tsx:74-76, whose only job is
+  `setBanner({ tone: "danger", message: copy.home.loadFailed })`, is UNREACHABLE
+  on the initial-load path, and copy.home.loadFailed
+  (「載入活動失敗，請稍後再試」) is never rendered here.
+- src/app/(auth)/home.tsx:88 `onRefresh` also calls loadEvents() and then does
+  setBanner(null), so a manual retry cannot surface it either.
+
+The same dead string is used successfully by other screens —
+badges.tsx:135/166 and overview.tsx:161 all reach their own setBanner — so this is
+a home-screen wiring gap, not a missing string.
+
+User impact: an event admin arriving on site whose network hiccups is told their
+account manages no events. The rational reading is that they have been removed
+from the event. A 重新載入 button is present, which limits the damage, but the
+statement on screen is false and the failure is silent.

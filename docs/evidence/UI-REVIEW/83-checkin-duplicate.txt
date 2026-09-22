@@ -1,0 +1,32 @@
+CHECK-IN — registration already checked in (duplicate) (findings F-07, F-08, F-09)
+
+Navigated: /EVT-1/check-in → 手動輸入 → typed ABC-999 → tapped 查詢並報到.
+Mock: by-code -> 200 with registration status CHECKED_IN, checkedInAt
+2026-09-21T03:12:00Z, and deliberately long identity fields
+(email cheung.wing.yan@verylongcompanydomain.com.hk,
+ company 香港創新科技發展有限公司, name 張 詠恩).
+
+Rendered text, byte-exact:
+  重複簽到 / 張 詠恩 / ABC-999 / Email / cheung.wing.yan@verylongcompanydomain.com.hk
+  / 公司 / 香港創新科技發展有限公司 / 票種 / VIP 全日通行證
+  / 報到時間 / 9/21/2026, 11:12:00 AM / Token 餘額 / 3 / 查看詳情
+  / 覆核 API 尚未開放（BLOCKED／待後端 B-2）。現場請人工放行並記錄。
+  / 申請主管覆核 / 繼續掃碼
+
+Measurements and what they mean:
+- Verdict 重複簽到 22px/700; attendee name 張 詠恩 20px/700 — legible at arm's
+  length. Good.
+- EMAIL OVERFLOWS: measured w=220, scrollWidth=350, clientWidth=220, clip=true.
+  A 43-character address cannot be read in full. The name is NOT truncated, so
+  two attendees sharing the name 張 詠恩 cannot be told apart on this screen.
+- TIMESTAMP IS US-FORMATTED: "9/21/2026, 11:12:00 AM" — M/D/YYYY with a 12-hour
+  clock. This is a Hong Kong event and the rest of the app is zh-TW
+  (conventional zh-TW would be 2026/9/21 11:12 or 2026年9月21日).
+- BLOCKED FEATURE, HONESTLY LABELLED: the banner
+  「覆核 API 尚未開放（BLOCKED／待後端 B-2）。現場請人工放行並記錄。」
+  renders in full (fs 15, w 264, no clipping). This is good trust copy.
+- BUT 申請主管覆核 IS ENABLED: 322x48, disabled=false, aria-disabled=null,
+  while the banner immediately above it says the API is not available. Tapping it
+  only produces a toast that it cannot work. An enabled control whose only
+  outcome is "this does not work" violates interaction honesty.
+- 繼續掃碼 is present, so the operator can serve the next person without leaving.

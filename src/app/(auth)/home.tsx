@@ -13,10 +13,7 @@ import { router } from "expo-router";
 
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
-import {
-  InlineBanner,
-  type InlineBannerTone,
-} from "@/components/ui/InlineBanner";
+import { InlineBanner } from "@/components/ui/InlineBanner";
 import { Logo } from "@/components/ui/Logo";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useFocusRing } from "@/components/ui/useFocusRing";
@@ -30,71 +27,53 @@ import {
   type,
 } from "@/constants/theme";
 import { useEventStore } from "@/stores/event.store";
-
-/** 活動狀態 → 徽章色（對應 semantic.status tokens） */
-const STATUS_TONE: Record<string, keyof typeof semantic.status> = {
-  PUBLISHED: "available",
-  REGISTRATION_OPEN: "success",
-  ONGOING: "success",
-  DRAFT: "neutral",
-  COMPLETED: "neutral",
-  CANCELLED: "warning",
-};
-
-/** 活動狀態 → 顯示文字 */
-const STATUS_LABEL: Record<string, string> = {
-  PUBLISHED: "已發布",
-  REGISTRATION_OPEN: "報名中",
-  ONGOING: "進行中",
-  DRAFT: "草稿",
-  COMPLETED: "已結束",
-  CANCELLED: "已取消",
-};
+import { formatCount, getCountUnavailableHint } from "@/utils/count-display";
+import { getEventListPhase } from "@/utils/event-list-phase";
+import { EVENT_STATUS_TONE, getEventStatusLabel } from "@/utils/event-status";
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const refreshRing = useFocusRing();
-  const { events, loading, loadEvents } = useEventStore();
-  const [banner, setBanner] = useState<{
-    tone: InlineBannerTone;
-    message: string;
-  } | null>(null);
+  const { events, loading, loadEvents, error } = useEventStore();
   const [refreshing, setRefreshing] = useState(false);
-  const [reloadKey, setReloadKey] = useState(0);
+
+  /**
+   * `F-02`：失敗態只能從 store 讀。
+   *
+   * `loadEvents()` **不 rethrow**（失敗收進 `state.error`），所以包在這裡的
+   * `try/catch` 永遠不會觸發；先前是靠這個死掉的 catch 顯示橫幅，結果載入失敗
+   * 與「真的沒有活動」是同一個畫面，`copy.home.loadFailed` 也就永遠不可達。
+   */
+  const phase = getEventListPhase({ loading, error, count: events.length });
+  const loadFailed = error != null;
+
+  const retry = useCallback(() => {
+    void loadEvents();
+  }, [loadEvents]);
 
   useEffect(() => {
-    let active = true;
-
-    async function load() {
-      setBanner(null);
-      try {
-        await loadEvents();
-        if (!active) return;
-      } catch {
-        if (!active) return;
-        setBanner({ tone: "danger", message: copy.home.loadFailed });
-      }
-    }
-
-    void load();
-
-    return () => {
-      active = false;
-    };
-  }, [loadEvents, reloadKey]);
+    void loadEvents();
+  }, [loadEvents]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadEvents();
     setRefreshing(false);
-    setBanner(null);
   }, [loadEvents]);
 
   const renderEvent = ({ item }: { item: (typeof events)[number] }) => {
-    const tone = STATUS_TONE[item.status] ?? "neutral";
-    const label =
-      STATUS_LABEL[item.status] ?? item.status ?? copy.event.unknownStatus;
+    const tone = EVENT_STATUS_TONE[item.status] ?? "neutral";
+    const label = getEventStatusLabel(item.status) || copy.event.unknownStatus;
     const statusToken = semantic.status[tone];
+    /**
+     * `CRA-V1-002`：這一屏的兩個計數只要有一個未知，就在下方補一行說明。
+     * 破折號本身讀不出「真的掛零」與「沒拿到數字」的差別，而兩者的下一步不同
+     * （前者不用處理，後者要去查為什麼）。
+     */
+    const countHint = getCountUnavailableHint(
+      item.registrationCount,
+      item.exhibitorCount,
+    );
 
     return (
       <Pressable
@@ -152,7 +131,7 @@ export default function HomeScreen() {
               color={semantic.text.muted}
             />
             <Text style={[type.caption, styles.metaText]}>
-              {item.registrationCount ?? 0} {copy.event.registrations}
+              {formatCount(item.registrationCount)} {copy.event.registrations}
             </Text>
           </View>
           <View style={styles.metaItem}>
@@ -162,10 +141,18 @@ export default function HomeScreen() {
               color={semantic.text.muted}
             />
             <Text style={[type.caption, styles.metaText]}>
-              {item.exhibitorCount ?? 0} {copy.event.exhibitors}
+              {formatCount(item.exhibitorCount)} {copy.event.exhibitors}
             </Text>
           </View>
         </View>
+        {countHint ? (
+          <Text
+            style={[type.caption, styles.countHint]}
+            maxFontSizeMultiplier={layout.maxFontScaleBody}
+          >
+            {countHint}
+          </Text>
+        ) : null}
       </Pressable>
     );
   };
@@ -182,7 +169,9 @@ export default function HomeScreen() {
           }}
           disabled={refreshing}
           accessibilityRole="button"
-          accessibilityLabel={refreshing ? "重新整理中" : "重新整理"}
+          accessibilityLabel={
+            refreshing ? copy.common.refreshing : copy.common.refresh
+          }
           accessibilityState={{ busy: refreshing, disabled: refreshing }}
           hitSlop={space[2]}
           style={[styles.refreshButton, refreshRing.focusRingStyle]}
@@ -214,29 +203,32 @@ export default function HomeScreen() {
         </Text>
       </View>
 
-      {banner ? (
+      {loadFailed ? (
         <View style={styles.bannerWrapper}>
-          <InlineBanner tone={banner.tone} message={banner.message} />
+          <InlineBanner
+            tone="danger"
+            message={copy.home.loadFailed}
+            actionLabel={copy.home.retry}
+            onAction={retry}
+          />
         </View>
       ) : null}
 
-      {loading && events.length === 0 ? (
+      {phase === "loading" ? (
         <View style={styles.skeletonWrapper}>
           <Skeleton width="100%" height={96} radius={12} />
           <Skeleton width="100%" height={96} radius={12} />
           <Skeleton width="100%" height={96} radius={12} />
         </View>
-      ) : events.length === 0 ? (
+      ) : phase === "empty" ? (
         <EmptyState
           icon="empty-card"
           title={copy.home.emptyTitle}
           description={copy.home.emptyHint}
           actionLabel={copy.home.retry}
-          onAction={() => {
-            setReloadKey((key) => key + 1);
-          }}
+          onAction={retry}
         />
-      ) : (
+      ) : phase === "list" ? (
         <FlatList
           data={events}
           keyExtractor={(item) => item.id}
@@ -251,7 +243,7 @@ export default function HomeScreen() {
           onRefresh={onRefresh}
           refreshing={refreshing}
         />
-      )}
+      ) : null}
     </View>
   );
 }
@@ -346,6 +338,12 @@ const styles = StyleSheet.create({
   },
   metaText: {
     color: semantic.text.muted,
+  },
+  /** `CRA-V1-002`：只在真的出現破折號時才渲染的說明行 */
+  countHint: {
+    ...type.caption,
+    color: semantic.text.muted,
+    marginTop: space[1],
   },
   statusBadge: {
     flexShrink: 0,

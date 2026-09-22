@@ -55,15 +55,11 @@ export function getRegistrationEmail(reg: Registration): string {
   );
 }
 
-export function getRegistrationTokenBalance(
-  reg: Registration,
-): number | null {
+export function getRegistrationTokenBalance(reg: Registration): number | null {
   return typeof reg.tokenBalance === "number" ? reg.tokenBalance : null;
 }
 
-export function getRegistrationCheckedInAt(
-  reg: Registration,
-): string | null {
+export function getRegistrationCheckedInAt(reg: Registration): string | null {
   return reg.checkedInAt ?? null;
 }
 

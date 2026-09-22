@@ -1,0 +1,76 @@
+LOGIN — 主要 CTA 的聚焦指示（F-04）— before
+
+Navigated: http://localhost:8162/  → 以鍵盤／程式聚焦 aria-label="登入" 的那顆按鈕
+Mock: 無（登入頁不發請求；/api/users/me 已 mock 為 200）
+Mock hits (all, from this run):
+json:200:/api/users/me
+json:200:/api/v1/events/my-managed?limit=100
+json:200:/api/users/me
+json:200:/api/v1/events/EVT-1/registrations?limit=1&status=CHECKED_IN
+json:200:/api/users/me
+json:404:/api/v1/events/EVT-1/registrations/by-code/ABC-999
+json:200:/api/v1/events/EVT-1/registrations?limit=1&status=CHECKED_IN
+json:200:/api/users/me
+json:502:/api/v1/events/EVT-1/registrations/by-code/ABC-999
+json:200:/api/users/me
+
+measured (getComputedStyle，聚焦中)：
+{
+  "focused": true,
+  "isTarget": true,
+  "sel": "[data-lc-probe=\"login\"]",
+  "active": {
+    "tag": "button",
+    "label": "登入",
+    "box": {
+      "x": 41,
+      "y": 439,
+      "w": 308,
+      "h": 56
+    },
+    "outline": {
+      "width": 0,
+      "style": "solid",
+      "color": "rgb(0, 95, 204)",
+      "offset": "0px",
+      "contrastVsBehind": null
+    },
+    "border": {
+      "width": 0,
+      "color": "rgb(0, 0, 0)",
+      "contrastVsOwnFill": null,
+      "contrastVsBehind": null
+    },
+    "bg": "rgba(0, 0, 0, 0)",
+    "behindHex": "#ffffff",
+    "boxShadow": "none"
+  },
+  "inner": {
+    "tag": "div",
+    "label": "登入",
+    "box": {
+      "x": 41,
+      "y": 439,
+      "w": 308,
+      "h": 56
+    },
+    "outline": {
+      "width": 3,
+      "style": "none",
+      "color": "rgb(0, 0, 0)",
+      "offset": "0px",
+      "contrastVsBehind": 3.69
+    },
+    "border": {
+      "width": 2,
+      "color": "rgb(124, 58, 237)",
+      "contrastVsOwnFill": 1,
+      "contrastVsBehind": 1
+    },
+    "bg": "rgb(124, 58, 237)",
+    "behindHex": "#7c3aed",
+    "boxShadow": "none"
+  }
+}
+
+判讀：看不見 — 內描邊 2px rgb(124, 58, 237) 對自身填色 rgb(124, 58, 237) = 1:1

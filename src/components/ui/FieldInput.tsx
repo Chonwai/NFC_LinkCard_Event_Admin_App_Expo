@@ -12,6 +12,7 @@ import {
 
 import { Icon } from "@/components/ui/Icon";
 import { useFocusRing } from "@/components/ui/useFocusRing";
+import { copy } from "@/constants/copy.zh-TW";
 import { components, layout, semantic, space, type } from "@/constants/theme";
 
 export interface FieldInputProps {
@@ -85,6 +86,19 @@ export function FieldInput({
   testID,
 }: FieldInputProps) {
   const { focused, focusRingProps, focusRingResetStyle } = useFocusRing();
+  /**
+   * `CRA-V1-003`：顯示密碼鈕自己的聚焦環，**不能共用**上面那一組。
+   *
+   * 共用會讓「聚焦在眼睛圖示上」被讀成「輸入框被聚焦」，輸入框邊框會跟著加粗
+   * 到 `focusRingWidth`——那是視覺 regression，不是無障礙改善。
+   *
+   * 在此之前這一顆鈕**完全沒有掛任何聚焦環**，靠的是 Chromium 自己的
+   * UA 框（`outline: 1px auto rgb(0,95,204)`）。它剛好過 WCAG 2.4.7，但那不是
+   * 這個 App 的決定，是瀏覽器的預設值：換瀏覽器、換版本、或哪天有人補上
+   * `outline: none`，指示就消失了。掛上自家 token 之後，這顆鈕與 `Button`、
+   * `Chip`、tab 用同一套 `components.focusRing`。
+   */
+  const revealRing = useFocusRing();
   /** 密碼明碼顯示（僅在 `revealable` 時可切換） */
   const [revealed, setRevealed] = useState(false);
 
@@ -128,7 +142,9 @@ export function FieldInput({
               backgroundColor: isDisabled
                 ? semantic.action.primaryDisabledBg
                 : components.field.bg,
-              color: isDisabled ? semantic.text.disabled : semantic.text.primary,
+              color: isDisabled
+                ? semantic.text.disabled
+                : semantic.text.primary,
               textAlignVertical: multiline ? "top" : "center",
             },
             multiline && styles.inputMultiline,
@@ -149,7 +165,9 @@ export function FieldInput({
           multiline={multiline}
           secureTextEntry={secureTextEntry && !revealed}
           testID={testID}
-          accessibilityLabel={required ? `${label}，必填` : label}
+          accessibilityLabel={
+            required ? copy.common.requiredLabel(label) : label
+          }
           accessibilityState={{ disabled: isDisabled }}
           /** H1（C12）：RNW 0.21 不映射 `accessibilityState` → 補 `aria-disabled` */
           aria-disabled={isDisabled}
@@ -160,23 +178,30 @@ export function FieldInput({
           <Pressable
             onPress={() => setRevealed((previous) => !previous)}
             disabled={isDisabled}
+            {...revealRing.focusRingProps}
             accessibilityRole="button"
-            accessibilityLabel={revealed ? "隱藏密碼" : "顯示密碼"}
+            accessibilityLabel={
+              revealed ? copy.common.hidePassword : copy.common.revealPassword
+            }
             /** RNW 0.21 不映射 `accessibilityState`，故同時給 aria-*（C6 H1 發現） */
             accessibilityState={{ disabled: isDisabled, selected: revealed }}
             aria-pressed={revealed}
             /** H1（C12）：同上的 `aria-disabled` 補完 */
             aria-disabled={isDisabled}
-            style={styles.reveal}
+            /**
+             * `CRA-V1-003`：外框式聚焦環（`outline`），掛在被聚焦的這個節點上。
+             * 這一顆鈕沒有自己的底色（坐在 `field.bg` 上），所以不需要
+             * `needsOutlineFocusRing` 的內描邊／外框二選一——紫對白一直是
+             * `5.70:1`。
+             */
+            style={[styles.reveal, revealRing.focusRingStyle]}
             hitSlop={space[1]}
             testID={testID != null ? `${testID}-reveal` : undefined}
           >
             <Icon
               name={revealed ? "eye-off" : "eye"}
               size="md"
-              color={
-                isDisabled ? semantic.icon.disabled : semantic.icon.brand
-              }
+              color={isDisabled ? semantic.icon.disabled : semantic.icon.brand}
             />
           </Pressable>
         ) : null}

@@ -1,4 +1,5 @@
 import type { ApiResponse, Registration } from "@/types/api.types";
+import { LOOKUP_TIMEOUT_MS } from "@/constants/config";
 
 import { apiClient } from "./api";
 
@@ -16,6 +17,7 @@ export const registrationService = {
       ApiResponse<{ registration: Registration }>
     >(
       `/api/v1/events/${encodeURIComponent(eventId)}/registrations/by-code/${encodeURIComponent(code)}`,
+      { timeout: LOOKUP_TIMEOUT_MS },
     );
     return res.data.data;
   },

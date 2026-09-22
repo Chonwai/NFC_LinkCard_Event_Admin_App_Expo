@@ -40,6 +40,9 @@
     "prettier": "^3.9.6",
     "typescript": "~5.9.3"
   },
+  "engines": {
+    "node": ">=22.3"
+  },
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
@@ -48,9 +51,11 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format:check": "prettier --check . --ignore-path .gitignore --ignore-path .prettierignore --ignore-path .prettierignore-baseline",
     "prepare": "husky",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "regenerate:typed-routes": "expo customize tsconfig.json",
+    "test": "node scripts/require-node-version.mjs && node --import ./tests/register-alias-loader.mjs --experimental-test-module-mocks --test tests/*.test.mjs"
   },
   "private": true
 }

@@ -10,6 +10,33 @@ export const copy = {
     version: "1.0.0",
     tagline: "活動現場營運工具",
   },
+  /**
+   * 跨畫面共用的通用文案。
+   *
+   * `src/components/ui/*` 是被多個畫面重用的葉節點元件，它們的讀屏標籤不屬於
+   * 任何單一畫面，因此不能住在某個畫面的 namespace 裡。原則同 `notFound`：
+   * 已有同義字串就沿用既有鍵，不另立重複字串。
+   */
+  common: {
+    /** 標頭返回鈕的讀屏標籤（消費端：`components/ui/ScreenHeader`） */
+    back: "返回",
+    /**
+     * 手動重新整理鈕的讀屏標籤／忙碌態。
+     * 消費端：`components/ui/ScreenHeader`、`app/(auth)/home.tsx`。
+     * `CRA-V1-023` 原本把這兩個字串建在 `home` namespace（當時只有活動列表
+     * 有這顆鈕）；`ScreenHeader` 也提供同一顆鈕之後上移到 `common`，
+     * 全站維持單一字串來源。
+     */
+    refresh: "重新整理",
+    refreshing: "重新整理中",
+    /** 可關閉橫幅（fatal/info banner）關閉鈕的讀屏標籤。消費端：`components/ui/InlineBanner` */
+    dismiss: "關閉提示",
+    /** 必填欄位的讀屏標籤。消費端：`components/ui/FieldInput` */
+    requiredLabel: (label: string) => `${label}，必填`,
+    /** 密碼欄位顯示／隱藏切換鈕的讀屏標籤。消費端：`components/ui/FieldInput` */
+    revealPassword: "顯示密碼",
+    hidePassword: "隱藏密碼",
+  },
   auth: {
     emailLabel: "電子郵件",
     emailPlaceholder: "you@example.com",
@@ -36,6 +63,7 @@ export const copy = {
     emptyHint: "當你被指派為活動管理員時，活動會顯示在這裡",
     loadFailed: "載入活動失敗，請稍後再試",
     retry: "重新載入",
+    /** 重新整理鈕的文案已上移到 `common.refresh` / `common.refreshing`（ScreenHeader 也要用） */
   },
   event: {
     overviewTitle: "活動概覽",
@@ -51,14 +79,29 @@ export const copy = {
     tokenConsumed: "Token 消耗",
     tokenDegradedHint: "尚無活動級彙總端點，不顯示估算數字",
     dash: "—",
+    /**
+     * `CRA-V1-002`：破折號的說明文字。
+     *
+     * 破折號自己讀不出原因——操作者分不出「真的掛零」與「這個數字沒拿到」。
+     * `checkIn.counterUnavailableHint` 已經處理了總簽到計數那一顆，活動列表
+     * 與活動概覽卻還是裸的破折號，同一條慣例在三個畫面上只落實了一個。
+     *
+     * 活動列表（`home.tsx`）與活動概覽（`overview.tsx`）共用這一句，因為兩邊
+     * 講的是同一件事。只在畫面上真的出現破折號時才渲染（由
+     * `utils/count-display.getCountUnavailableHint` 決定），否則每張卡片都會
+     * 多一行沒有資訊的字。
+     */
+    countUnavailableHint: "（破折號＝未取得此數字，不是 0）",
     unknownStatus: "未知狀態",
     quickActions: "快速操作",
     badgesTitle: "Badge",
     backToOverview: "返回概覽",
     modulePlaceholderTitle: "功能建置中",
-    tokenPlaceholderHint: "Token 櫃台以 Web 為主（WP-A4）。App 只保留入口，不做完整櫃台。",
+    tokenPlaceholderHint:
+      "Token 櫃台以 Web 為主（WP-A4）。App 只保留入口，不做完整櫃台。",
     tokenOpenWeb: "在網頁打開櫃台",
-    registrationsPlaceholderHint: "名單、搜尋與詳情將於 WP-A5 交付。目前僅保留入口。",
+    registrationsPlaceholderHint:
+      "名單、搜尋與詳情將於 WP-A5 交付。目前僅保留入口。",
     /**
      * W-12：`eventId` 路由參數缺失（空字串 / `undefined`）時的空態文案。
      * 消費端：`overview.tsx` / `check-in.tsx` / `nfc-bind.tsx`。
@@ -67,14 +110,25 @@ export const copy = {
     unavailableHint: "此連結可能不完整，或活動已被移除",
   },
   /**
-   * 活動狀態標籤（6 值）——直接鏡射後端 `EventStatus` enum
+   * 活動狀態標籤——鏡射後端 `EventStatus` enum
    * （`LinkCard_ExpressJS_Backend/prisma/schema.prisma`）。
-   * 消費端：`app/(auth)/home.tsx` 的 `STATUS_LABEL`。
+   * 消費端：`src/utils/event-status.ts` 的 `EVENT_STATUS_LABEL`——這是唯一映射處，
+   * 畫面不得各自再寫一份（活動列表先前就有一份重複的，`NEW-D2-04` 已收斂）。
+   *
+   * 鍵集合刻意取 **repo 內兩個宣告的聯集**：`types/api.types.ts` 宣告
+   * `DRAFT / PUBLISHED / REGISTRATION_OPEN / ONGOING / ENDED / CANCELLED`，
+   * 本檔另依後端 `prisma` 宣告 `COMPLETED` / `ARCHIVED`。任一值漏掉，畫面就會
+   * 把原始 enum（英文）直接端給操作者。
+   *
+   * 尚未有文案的是 `ENDED`（只在 `api.types.ts` 出現）；刻意不在此推測它的
+   * 顯示文字，遇未知值仍回退為原始字串。
    */
   eventStatus: {
     draft: "草稿",
     published: "已發布",
+    registrationOpen: "報名中",
     ongoing: "進行中",
+    /** 後端 `prisma` 的值 */
     completed: "已結束",
     cancelled: "已取消",
     archived: "已封存",
@@ -125,6 +179,20 @@ export const copy = {
     registrationNotFound: "找不到此報名，請確認編號",
     notConfirmed: "此報名尚未確認",
     notEnoughPermission: "權限不足，無法執行報到",
+    /**
+     * CRA-V1-002：連不上伺服器時的文案。**不可**與 `registrationNotFound` 混用——
+     * 前者是「人工核對」，後者是「這張票不存在」，現場處置完全不同。
+     */
+    networkError: "網路連線異常，請改用人工核對或稍後重試",
+    /**
+     * `F-02`：伺服器有回應、但不是 4xx（5xx／閘道回 HTML）時的文案。
+     * **不可**與 `registrationNotFound` 混用——後端壞掉時把有效票講成
+     * 「不存在」，現場會照著作廢它；與 `networkError` 分開是因為
+     * 「連不上」與「伺服器壞了」對操作者的下一步不同（重試 vs 換網路）。
+     */
+    serverError: "伺服器暫時異常，請改用人工核對或稍後重試",
+    /** 後端 `REGISTRATION_LOOKUP_RATE_LIMITED`（CRA-V1-023：原為硬編字串） */
+    rateLimited: "查詢過於頻繁，請稍後再試",
     cameraUnavailable: "無法取得相機權限",
     enableCamera: "允許使用相機",
     autoResetIn: "即將自動重置",
@@ -142,6 +210,15 @@ export const copy = {
     checkedInAt: "報到時間",
     totalCheckedIn: "總簽到",
     counterFallbackHint: "（累計，非今日）",
+    /**
+     * `F-03`：計數讀取失敗時**取代** `counterFallbackHint`。
+     *
+     * 單獨一個破折號讀不出原因——操作者無法分辨「今天還沒有人報到」與
+     * 「這個數字沒讀到」，而兩者的下一步完全不同（繼續作業 vs 重新整理）。
+     * 同慣例見 `event.tokenDegradedHint`、`roster.nfcEmptyHint`、
+     * `roster.orgEmptyHint`：破折號一律帶著「為什麼是破折號」。
+     */
+    counterUnavailableHint: "（讀取失敗，請重新整理）",
     validHeadline: "報到成功",
     duplicateHeadline: "重複簽到",
     invalidHeadline: "無效報名",
@@ -153,7 +230,8 @@ export const copy = {
     walkInEntry: "現場補報名",
     walkInTitle: "現場補報名",
     walkInPlaceholderTitle: "補報名功能建置中",
-    walkInPlaceholderHint: "完整表單將於名單模組（WP-A5）交付；目前僅保留入口。",
+    walkInPlaceholderHint:
+      "完整表單將於名單模組（WP-A5）交付；目前僅保留入口。",
     walkInEmail: "電子郵件",
     walkInFirstName: "名",
     walkInLastName: "姓",
@@ -162,7 +240,8 @@ export const copy = {
     walkInTicket: "票種",
     walkInSubmit: "建立報名",
     walkInSuccess: "已建立報名",
-    walkInPaymentNote: "此票需要付款。報名已建立，但尚未完成付款，不能當成已入場。",
+    walkInPaymentNote:
+      "此票需要付款。報名已建立，但尚未完成付款，不能當成已入場。",
     walkInGoCheckIn: "前往簽到",
     walkInGoNfc: "前往寫卡",
     walkInNeedEmail: "請輸入有效的 Email",
@@ -244,9 +323,17 @@ export const copy = {
     boundOther: "此報名已綁定其他卡片。換卡需等後端就緒，目前無法自動作廢舊卡",
     writeFailed: "寫卡失敗。卡片內容可能沒有更新，請靠近後重試，勿當成成功",
     uriMismatch: "寫入後讀回的網址與預期不符，已中止綁定。請重試，勿當成成功",
-    bindFailedAfterWrite: "卡片已寫入網址，但後端尚未綁定。請重試綁定；成功前不要發放這張卡",
+    bindFailedAfterWrite:
+      "卡片已寫入網址，但後端尚未綁定。請重試綁定；成功前不要發放這張卡",
     retryWrite: "重試寫卡",
     retryBind: "重試綁定",
+    /** CRA-V1-009：寫卡逾時（預設 20s）後的處置文案，不得講成成功 */
+    writeTimeout:
+      "寫卡逾時，已停止等待。卡片可能沒有寫入，請重新靠近再試，勿當成成功",
+    /** 寫入中的取消控制（CRA-V1-009） */
+    cancelWrite: "取消寫卡",
+    /** 使用者主動取消時的狀態文案（正常路徑會直接回確認畫面） */
+    writeCancelled: "已取消寫卡",
     payloadPreview: "將寫入",
     writtenUid: "卡片編號",
     replaceTitle: "換卡 / 補發 / 退卡",

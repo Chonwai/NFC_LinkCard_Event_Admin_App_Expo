@@ -1,0 +1,26 @@
+CHECK-IN — 閘道壞掉（502，回 HTML，無 code 無 message）（F-01）— after
+
+Navigated: 同上
+Mock: /api/v1/events/EVT-1/registrations/by-code/ABC-999 → 502 {success:false,message:'<html>502 Bad Gateway</html>'}
+Mock hits (all, from this run):
+json:200:/api/users/me
+json:200:/api/users/me
+json:200:/api/v1/events/my-managed?limit=100
+json:200:/api/users/me
+json:200:/api/v1/events/EVT-1/registrations?limit=1&status=CHECKED_IN
+json:200:/api/users/me
+json:404:/api/v1/events/EVT-1/registrations/by-code/ABC-999
+json:200:/api/v1/events/EVT-1/registrations?limit=1&status=CHECKED_IN
+json:200:/api/users/me
+json:502:/api/v1/events/EVT-1/registrations/by-code/ABC-999
+json:200:/api/users/me
+
+Rendered text, byte-exact:
+Check-in
+總簽到（累計，非今日）
+42
+無效報名
+伺服器暫時異常，請改用人工核對或稍後重試
+ABC-999
+現場補報名
+繼續掃碼

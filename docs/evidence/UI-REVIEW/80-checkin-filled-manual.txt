@@ -1,0 +1,19 @@
+CHECK-IN — manual entry, code typed, submit ENABLED (finding F-06)
+
+Navigated: /  → set localStorage token → /EVT-1/check-in → tapped 手動輸入
+→ typed ABC-999 into input[role="search"] → screenshot.
+
+What it shows / measures:
+- Input: x37 y427 w316 h48, font 14px, aria-label = placeholder = 輸入報名編號.
+  The field has NO visible label; the placeholder is the only label. Because an
+  aria-label is also present this is acceptable for screen readers.
+- Submit 查詢並報到 350x56 is now ENABLED and measured as:
+  aria-disabled=null, disabled=false, tabindex="0",
+  background rgb(124,58,237), label rgb(255,255,255) at 16px, radius 12px.
+  White on #7c3aed = 5.70:1 -> passes WCAG AA for normal text.
+
+Why this shot matters: it is the only capture in the whole review that proves the
+button CAN become enabled. In shots 61 the same button measures
+aria-disabled="true", disabled=true, tabindex="-1", label rgba(16,16,16,0.3),
+and it never became enabled in the r6/r6b/r6c runs because the harness typed into
+the wrong selector. See INDEX.md, harness fault 1.

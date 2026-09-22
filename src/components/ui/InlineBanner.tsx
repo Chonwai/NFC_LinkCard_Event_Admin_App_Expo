@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { useFocusRing } from "@/components/ui/useFocusRing";
+import { copy } from "@/constants/copy.zh-TW";
 import { layout, radius, semantic, space, type } from "@/constants/theme";
 
 /** 與 `semantic.status` 對齊；原本的 `error` 更名為 `danger` */
@@ -140,7 +141,7 @@ export function InlineBanner({
         <Pressable
           onPress={onDismiss}
           accessibilityRole="button"
-          accessibilityLabel="關閉提示"
+          accessibilityLabel={copy.common.dismiss}
           style={[styles.dismiss, dismissRing.focusRingStyle]}
           {...dismissRing.focusRingProps}
         >

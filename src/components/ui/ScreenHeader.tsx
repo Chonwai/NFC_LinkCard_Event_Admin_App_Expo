@@ -12,6 +12,7 @@ import { router } from "expo-router";
 
 import { Icon } from "@/components/ui/Icon";
 import { useFocusRing } from "@/components/ui/useFocusRing";
+import { copy } from "@/constants/copy.zh-TW";
 import {
   hairline,
   layout,
@@ -106,7 +107,7 @@ export function ScreenHeader({
           <Pressable
             onPress={handleBack}
             accessibilityRole="button"
-            accessibilityLabel="返回"
+            accessibilityLabel={copy.common.back}
             hitSlop={space[2]}
             style={[styles.iconButton, backRing.focusRingStyle]}
             {...backRing.focusRingProps}
@@ -141,7 +142,9 @@ export function ScreenHeader({
               onPress={onRefresh}
               disabled={isRefreshing}
               accessibilityRole="button"
-              accessibilityLabel={isRefreshing ? "重新整理中" : "重新整理"}
+              accessibilityLabel={
+                isRefreshing ? copy.common.refreshing : copy.common.refresh
+              }
               accessibilityState={{
                 busy: isRefreshing,
                 disabled: isRefreshing,

@@ -1,0 +1,76 @@
+LOGIN — 對照組：顯示密碼鈕的聚焦指示（機制本來就正常）— before
+
+Navigated: 同上，改聚焦 aria-label 含「顯示密碼」的按鈕
+Mock: 無
+Mock hits (all, from this run):
+json:200:/api/users/me
+json:200:/api/v1/events/my-managed?limit=100
+json:200:/api/users/me
+json:200:/api/v1/events/EVT-1/registrations?limit=1&status=CHECKED_IN
+json:200:/api/users/me
+json:404:/api/v1/events/EVT-1/registrations/by-code/ABC-999
+json:200:/api/v1/events/EVT-1/registrations?limit=1&status=CHECKED_IN
+json:200:/api/users/me
+json:502:/api/v1/events/EVT-1/registrations/by-code/ABC-999
+json:200:/api/users/me
+
+measured：
+{
+  "focused": true,
+  "isTarget": true,
+  "sel": "[data-lc-probe=\"reveal\"]",
+  "active": {
+    "tag": "button",
+    "label": "顯示密碼",
+    "box": {
+      "x": 301,
+      "y": 371,
+      "w": 48,
+      "h": 56
+    },
+    "outline": {
+      "width": 1,
+      "style": "auto",
+      "color": "rgb(0, 95, 204)",
+      "offset": "0px",
+      "contrastVsBehind": 5.98
+    },
+    "border": {
+      "width": 0,
+      "color": "rgb(0, 0, 0)",
+      "contrastVsOwnFill": null,
+      "contrastVsBehind": null
+    },
+    "bg": "rgba(0, 0, 0, 0)",
+    "behindHex": "#ffffff",
+    "boxShadow": "none"
+  },
+  "inner": {
+    "tag": "div",
+    "label": "DIV",
+    "box": {
+      "x": 315,
+      "y": 389,
+      "w": 20,
+      "h": 20
+    },
+    "outline": {
+      "width": 3,
+      "style": "none",
+      "color": "rgb(0, 0, 0)",
+      "offset": "0px",
+      "contrastVsBehind": 21
+    },
+    "border": {
+      "width": 0,
+      "color": "rgb(0, 0, 0)",
+      "contrastVsOwnFill": null,
+      "contrastVsBehind": null
+    },
+    "bg": "rgba(0, 0, 0, 0)",
+    "behindHex": "#ffffff",
+    "boxShadow": "none"
+  }
+}
+
+判讀：看得見 — 外框 1px rgb(0, 95, 204) 對外側底色 #ffffff = 5.98:1

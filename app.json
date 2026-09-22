@@ -25,13 +25,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": [
-        "CAMERA",
-        "NFC",
-        "android.permission.CAMERA",
-        "android.permission.NFC",
-        "android.permission.RECORD_AUDIO"
-      ]
+      "permissions": ["android.permission.CAMERA", "android.permission.NFC"]
     },
     "web": {
       "favicon": "./assets/favicon.png",

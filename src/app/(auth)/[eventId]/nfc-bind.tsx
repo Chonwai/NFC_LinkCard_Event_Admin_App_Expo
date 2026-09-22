@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -79,6 +79,8 @@ const FAILURE_COPY: Record<NfcBindFailureKind, string> = {
   "bound-other": copy.nfc.boundOther,
   "write-failed": copy.nfc.writeFailed,
   "uri-mismatch": copy.nfc.uriMismatch,
+  timeout: copy.nfc.writeTimeout,
+  cancelled: copy.nfc.writeCancelled,
   "bind-failed": copy.nfc.bindFailed,
 };
 
@@ -142,6 +144,8 @@ export default function NfcBindScreen() {
   const [badgeType, setBadgeType] = useState<BadgeType>("WRISTBAND");
   const [state, setState] = useState<FlowState>({ phase: "lookup" });
   const [lookupError, setLookupError] = useState<string | null>(null);
+  /** 進行中的寫卡控制器；寫入中有「取消」可 abort 它（CRA-V1-009）。 */
+  const writeAbortRef = useRef<AbortController | null>(null);
   const blocked = writeBlockedMessage();
 
   const lookup = useCallback(async () => {
@@ -220,6 +224,8 @@ export default function NfcBindScreen() {
 
       setState({ phase: "writing", mode: "write", ...ctx });
       const payloadUrl = buildRegistrationProfileUrl(ctx.registrationId);
+      const controller = new AbortController();
+      writeAbortRef.current = controller;
       try {
         const supported = await isNfcSupported();
         if (!supported) {
@@ -232,14 +238,27 @@ export default function NfcBindScreen() {
           return;
         }
         await startNfc();
-        const { tagUid } = await writeUriToCard(payloadUrl);
+        const { tagUid } = await writeUriToCard(payloadUrl, {
+          signal: controller.signal,
+        });
         await bindOnly(ctx, tagUid, payloadUrl);
       } catch (error) {
+        if (classifyNfcBindError(error) === "cancelled") {
+          // 使用者主動取消：回確認畫面即可，不該給一張看起來像失敗的卡。
+          setState({ phase: "confirm", ...ctx });
+          return;
+        }
         fail(ctx, error, payloadUrl);
+      } finally {
+        writeAbortRef.current = null;
       }
     },
     [bindOnly, blocked, eventId, fail],
   );
+
+  const cancelWrite = useCallback(() => {
+    writeAbortRef.current?.abort();
+  }, []);
 
   const reset = useCallback(() => {
     setCode("");
@@ -426,6 +445,14 @@ export default function NfcBindScreen() {
             <Text style={[type.body, styles.loadingText]}>
               {state.mode === "bind" ? copy.nfc.binding : copy.nfc.writing}
             </Text>
+            {/* 只有寫卡階段可能無限等待；bind 走 axios，本身有 15s 逾時。 */}
+            {state.mode === "write" ? (
+              <Button
+                label={copy.nfc.cancelWrite}
+                variant="ghost"
+                onPress={cancelWrite}
+              />
+            ) : null}
           </View>
         ) : null}
 
@@ -434,11 +461,7 @@ export default function NfcBindScreen() {
             style={[styles.doneCard, styles.doneFail]}
             testID="nfc-bind-error"
           >
-            <Icon
-              name="x-circle"
-              size="xl"
-              color={semantic.status.danger.fg}
-            />
+            <Icon name="x-circle" size="xl" color={semantic.status.danger.fg} />
             <Text style={[type.h3, styles.doneTitle]}>{errorMessage}</Text>
             {state.tagUid && state.kind !== "bind-failed" ? (
               <Text style={[type.body, styles.doneTitle]}>
@@ -470,13 +493,18 @@ export default function NfcBindScreen() {
         ) : null}
 
         {state.phase === "done" ? (
-          <View style={[styles.doneCard, styles.doneOk]} testID="nfc-bind-success">
+          <View
+            style={[styles.doneCard, styles.doneOk]}
+            testID="nfc-bind-success"
+          >
             <Icon
               name="check-circle"
               size="xl"
               color={semantic.status.success.fg}
             />
-            <Text style={[type.h3, styles.doneTitle]}>{copy.nfc.bindSuccess}</Text>
+            <Text style={[type.h3, styles.doneTitle]}>
+              {copy.nfc.bindSuccess}
+            </Text>
             <Text style={[type.caption, styles.stepHint]}>
               {copy.nfc.writtenUid}
             </Text>

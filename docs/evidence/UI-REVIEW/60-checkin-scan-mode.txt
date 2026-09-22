@@ -1,0 +1,22 @@
+CHECK-IN — default tab 掃描模式, camera unavailable (finding F-12)
+
+Navigated: /  → token → /EVT-1/check-in. This is the state the screen lands in
+by default; no interaction was performed.
+
+Rendered text, byte-exact:
+  Check-in / 總簽到（累計，非今日） / 42
+  / 掃描模式 / 手動輸入
+  / 無法取得相機權限 / 改用輸入模式 / 掃描報名 QR code
+
+Measurements: 無法取得相機權限 15px rgb(75,85,99) on #f9fafb = 7.23:1;
+改用輸入模式 16px/600 rgb(124,58,237) on #ffffff = 5.70:1 (passes AA).
+
+What it means: the CORE job of this app — scan a QR code — could not be exercised
+at all in the reviewed environment, because the web build cannot obtain a camera.
+Only this permission-denied state was reachable. This is a genuine scope
+limitation of the review, recorded in the report §4, not a product defect.
+
+Credit where due: the permission-denied state is well handled. It names the
+problem, offers exactly one recovery action (改用輸入模式) sized as a full-width
+control, and keeps 掃描報名 QR code as the screen's stated purpose. This is the
+single best-designed failure state in the app.

@@ -1,0 +1,26 @@
+CHECK-IN — 查不到這筆報名（404）（F-01）— after
+
+Navigated: /EVT-1/check-in → 手動輸入 → 輸入 ABC-999 → 查詢並報到
+Mock: /api/v1/events/EVT-1/registrations/by-code/ABC-999 → 404 REGISTRATION_NOT_FOUND
+Mock hits (all, from this run):
+json:200:/api/users/me
+json:200:/api/users/me
+json:200:/api/v1/events/my-managed?limit=100
+json:200:/api/users/me
+json:200:/api/v1/events/EVT-1/registrations?limit=1&status=CHECKED_IN
+json:200:/api/users/me
+json:404:/api/v1/events/EVT-1/registrations/by-code/ABC-999
+json:200:/api/v1/events/EVT-1/registrations?limit=1&status=CHECKED_IN
+json:200:/api/users/me
+json:502:/api/v1/events/EVT-1/registrations/by-code/ABC-999
+json:200:/api/users/me
+
+Rendered text, byte-exact:
+Check-in
+總簽到（累計，非今日）
+42
+無效報名
+找不到此報名，請確認編號
+ABC-999
+現場補報名
+繼續掃碼

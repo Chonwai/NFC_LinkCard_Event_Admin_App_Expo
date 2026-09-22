@@ -1,0 +1,22 @@
+CHECK-IN — lookup of a code that does not exist (404) (finding F-05)
+
+Navigated: /EVT-1/check-in → 手動輸入 → typed ABC-999 → tapped 查詢並報到.
+Mock: /api/v1/events/EVT-1/registrations/by-code/ABC-999 -> 404
+{success:false, error:{code:"REGISTRATION_NOT_FOUND", message:"找不到報名"}}.
+Mock hit confirmed: json:404:/api/v1/events/EVT-1/registrations/by-code/ABC-999
+
+Rendered text (document.body.innerText, byte-exact):
+  Check-in / 總簽到（累計，非今日） / 42 / 無效報名 / ABC-999 / 現場補報名 / 繼續掃碼
+
+Measurements:
+- Headline 無效報名: 22px, weight 700, width 84, no overflow.
+- Buttons: 現場補報名 322x48, 繼續掃碼 322x48, 返回 48x48 — all pass WCAG
+  2.5.8 AA (24px) and the app's own layout.touchMin = 48.
+- viewport height 844, document scrollHeight 844: the whole result fits the
+  screen, no scrolling. hasInput=false, i.e. the input is gone and the operator
+  must tap 繼續掃碼 to serve the next person.
+
+Defect recorded here: the specific, actionable copy `copy.checkIn.registrationNotFound`
+(「找不到此報名，請確認編號」) is defined in src/constants/copy.zh-TW.ts but does
+NOT appear anywhere in the rendered text. The operator gets a bare verdict with
+no instruction to re-check the number.

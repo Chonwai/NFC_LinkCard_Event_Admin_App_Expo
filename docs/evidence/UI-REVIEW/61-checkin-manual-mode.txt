@@ -1,0 +1,23 @@
+CHECK-IN — manual tab, empty field, submit DISABLED (findings F-06, F-04, F-13)
+
+Navigated: /EVT-1/check-in → tapped 手動輸入. No text entered.
+
+Rendered text: Check-in / 總簽到（累計，非今日） / 42 / 掃描模式 / 手動輸入 / 查詢並報到
+
+Measurements:
+- Submit 查詢並報到: box 350x56 but aria-disabled="true", disabled=true,
+  tabindex="-1"; label colour rgba(16,16,16,0.3) and the measured rendered
+  colour rgb(107,114,128) on #f9fafb = 4.63:1. Disabled text is exempt from
+  WCAG contrast, so this is not raised as a contrast defect.
+- MODE TABS: both 掃描模式 and 手動輸入 measure 104x40 and are
+  <div tabindex="0" role=null> — no role, and no aria-selected. They are in the
+  tab order but announce nothing to a screen reader; a returning operator gets
+  "掃描模式" as bare text with no indication it is a selected tab.
+  Height 40 < the app's own layout.touchMin=48, but well above the 24px WCAG
+  2.5.8 AA floor. src/app/(auth)/[eventId]/check-in.tsx:463 declares hitSlop={8},
+  which would extend the touchable area on native to ~56 — but react-native-web
+  ignores hitSlop, so what is measured here (40) is what a browser gets. This is
+  materially better than the sibling app's ~26x22 control and is recorded as a
+  Medium, not a High.
+- F-06: the disabled button gives NO reason. There is no hint text explaining
+  that a registration number must be entered first.

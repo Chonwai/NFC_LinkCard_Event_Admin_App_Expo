@@ -6,29 +6,29 @@
 
 ## Phase 7 結案
 
-| 項 | 說明 |
-| --- | --- |
-| 已上線可用 | 無（不可對真實餘額做 top-up/deduct） |
-| 骨架待接 | Web 櫃台全 UI；確認 Modal **不送出**；App「在網頁打開櫃台」 |
-| 缺失前置 | **B-1a**：`idempotencyKey` + 發起人欄（現僅 `approvedBy`） |
-| 解鎖後補驗收 | 快捷增值不雙記；deduct；流水含操作員；用戶端同步錄影 |
+| 項           | 說明                                                        |
+| ------------ | ----------------------------------------------------------- |
+| 已上線可用   | 無（不可對真實餘額做 top-up/deduct）                        |
+| 骨架待接     | Web 櫃台全 UI；確認 Modal **不送出**；App「在網頁打開櫃台」 |
+| 缺失前置     | **B-1a**：`idempotencyKey` + 發起人欄（現僅 `approvedBy`）  |
+| 解鎖後補驗收 | 快捷增值不雙記；deduct；流水含操作員；用戶端同步錄影        |
 
 ## B-1a Gate（未綠，因此不做 Step 5.3–5.5）
 
-| 檢查 | 結果 |
-| --- | --- |
-| `idempotencyKey` | ❌ `EventWalletController.topUp` / `deduct` 的 body 沒有這個欄位 |
-| `initiatedBy` | ❌ `EventWalletTransaction` 只有 `approvedBy`，top-up 把操作員寫進 `approvedBy` |
-| 因此 | 不呼叫 top-up / deduct，避免沒有冪等與發起人時雙記、也無法對帳 |
+| 檢查             | 結果                                                                            |
+| ---------------- | ------------------------------------------------------------------------------- |
+| `idempotencyKey` | ❌ `EventWalletController.topUp` / `deduct` 的 body 沒有這個欄位                |
+| `initiatedBy`    | ❌ `EventWalletTransaction` 只有 `approvedBy`，top-up 把操作員寫進 `approvedBy` |
+| 因此             | 不呼叫 top-up / deduct，避免沒有冪等與發起人時雙記、也無法對帳                  |
 
 ## 已交付（Step 5.2）
 
-| 項 | 結果 |
-| --- | --- |
-| Web `/manage/[eventId]/wallet`：查詢、掃碼提示、餘額「—」、增值、扣減清單、流水表、確認 Modal | ✅ 不送出 |
-| 側邊欄與總覽卡片入口 | ✅ |
-| Admin App Token 卡：placeholder +「在網頁打開櫃台」 | ✅ |
-| `eslint`（Web 三檔）/ Admin App `tsc` | ✅ |
+| 項                                                                                            | 結果                                                                                                        |
+| --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Web `/manage/[eventId]/wallet`：查詢、掃碼提示、餘額「—」、增值、扣減清單、流水表、確認 Modal | ✅ 不送出                                                                                                   |
+| 側邊欄與總覽卡片入口                                                                          | ✅                                                                                                          |
+| Admin App Token 卡：placeholder +「在網頁打開櫃台」                                           | ✅                                                                                                          |
+| `eslint`（Web 三檔）/ Admin App `tsc`                                                         | ✅（Admin App `tsc` 於 2026-09-21 才首次真正執行；見 [evidence/README.md](../README.md) 的 type gate 更正） |
 
 ## 待補（B-1a 之後）
 

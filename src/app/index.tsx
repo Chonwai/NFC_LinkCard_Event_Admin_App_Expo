@@ -167,11 +167,7 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Logo
-          size={compact ? "md" : "lg"}
-          withWordmark
-          direction="column"
-        />
+        <Logo size={compact ? "md" : "lg"} withWordmark direction="column" />
 
         <Text
           style={[styles.title, compact && styles.titleCompact]}

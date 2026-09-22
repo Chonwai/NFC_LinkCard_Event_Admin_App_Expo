@@ -1,0 +1,67 @@
+LOGIN — 主要 CTA 的聚焦指示（F-04）— after
+
+Navigated: http://localhost:8162/（先 localStorage.clear() 再重載，否則前一次 run 留下的 token 會把 / 導向 /home，登入頁根本不會 render）
+Mock: /api/users/me → 200
+Mock hits:
+json:200:/api/users/me
+
+measured（getComputedStyle，聚焦中）：
+{
+  "focused": true,
+  "isTarget": true,
+  "sel": "[data-lc-probe=\"login\"]",
+  "active": {
+    "tag": "button",
+    "label": "登入",
+    "box": {
+      "x": 41,
+      "y": 439,
+      "w": 308,
+      "h": 56
+    },
+    "outline": {
+      "width": 2,
+      "style": "solid",
+      "color": "rgb(124, 58, 237)",
+      "offset": "2px",
+      "contrastVsBehind": 5.7
+    },
+    "border": {
+      "width": 0,
+      "color": "rgb(0, 0, 0)",
+      "contrastVsOwnFill": null,
+      "contrastVsBehind": null
+    },
+    "bg": "rgba(0, 0, 0, 0)",
+    "behindHex": "#ffffff",
+    "boxShadow": "none"
+  },
+  "inner": {
+    "tag": "div",
+    "label": "登入",
+    "box": {
+      "x": 41,
+      "y": 439,
+      "w": 308,
+      "h": 56
+    },
+    "outline": {
+      "width": 3,
+      "style": "none",
+      "color": "rgb(0, 0, 0)",
+      "offset": "0px",
+      "contrastVsBehind": 3.69
+    },
+    "border": {
+      "width": 0,
+      "color": "rgba(0, 0, 0, 0)",
+      "contrastVsOwnFill": null,
+      "contrastVsBehind": null
+    },
+    "bg": "rgb(124, 58, 237)",
+    "behindHex": "#7c3aed",
+    "boxShadow": "none"
+  }
+}
+
+判讀：看得見 — 外框 2px rgb(124, 58, 237) 對外側底色 #ffffff = 5.7:1（自身填色 rgb(124, 58, 237)、內描邊 0px）

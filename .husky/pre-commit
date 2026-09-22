@@ -1,0 +1,36 @@
+# 專案自己的 pre-commit hook（`CRA-V1-016`）。
+#
+# husky 9 只產生 `.husky/_/`（husky 自己的 dispatcher，`git config core.hooksPath`
+# 指向它）。那個 dispatcher 會找同名的 `.husky/<hook>`，找到就以 `sh -e` 執行；
+# 這個檔案就是它。先前 `.husky/` 裡只有 `_/`，所以 husky 裝了卻什麼都沒做。
+#
+# 不要在 hook 裡寫 `#!/usr/bin/env sh` 或 source `.husky/_/husky.sh`：
+# husky 9 會印 deprecation，husky 10 會直接失敗（`_/husky.sh` 的內容就是那段訊息）。
+#
+# 閘門選擇：
+# - typecheck / lint 是整個 repo、決定性、目前為綠（約 3s + 10s），提交前最值得擋。
+# - 格式只檢查**這次要提交的檔案**，並套用與 CI 相同的 ignore 鏈。理由：
+#   工作區裡可能有其他 agent 未提交的檔案、以及 24 個既有格式債檔
+#   （見 .prettierignore-baseline），hook 不該因為那些東西擋人；但「新增一個
+#   不合格式的檔案」一定會出現在 staged 裡，那才是要防的。
+#   prettier 對「命令列明列的檔案」同樣會套用 `--ignore-path`（已實測：
+#   明列 .prettierignore-baseline 內的檔案時 exit 0，拿掉 ignore 鏈則 exit 1），
+#   所以這裡不需要自己扣清單。
+# - 測試留在 CI：它需要 Node >= 22.3 與 --experimental-test-module-mocks，
+#   而且 `npm test` 自己就會先跑 `scripts/require-node-version.mjs`。
+
+npm run typecheck || exit 1
+npm run lint || exit 1
+
+targets=$(git diff --cached --name-only --diff-filter=ACMR)
+
+if [ -z "$targets" ]; then
+  echo "pre-commit: 這次提交沒有檔案，略過格式檢查"
+  exit 0
+fi
+
+printf '%s\n' "$targets" |
+  xargs npx prettier --check --ignore-unknown \
+    --ignore-path .gitignore \
+    --ignore-path .prettierignore \
+    --ignore-path .prettierignore-baseline || exit 1
