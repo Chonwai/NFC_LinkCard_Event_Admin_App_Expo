@@ -27,6 +27,9 @@ jobs:
       - name: Node version guard
         run: node scripts/require-node-version.mjs
 
+      - name: Regenerate typed routes
+        run: npm run regenerate:typed-routes
+
       - name: Typecheck
         run: npm run typecheck
 
