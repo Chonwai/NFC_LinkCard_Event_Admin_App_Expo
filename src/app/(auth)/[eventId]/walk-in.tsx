@@ -52,7 +52,9 @@ export default function WalkInScreen() {
       try {
         const res = await eventService.listTicketTypes(eventId);
         if (!active) return;
-        const visible = (res.ticketTypes ?? []).filter((item) => !item.isHidden);
+        const visible = (res.ticketTypes ?? []).filter(
+          (item) => !item.isHidden,
+        );
         setTickets(visible);
         setTicketId(visible[0]?.id ?? "");
       } catch {
@@ -93,7 +95,8 @@ export default function WalkInScreen() {
       setCreated({
         id: reg.id,
         code: reg.registrationCode,
-        needsPayment: Boolean(reg.stripeCheckoutUrl) || reg.status === "PENDING_PAYMENT",
+        needsPayment:
+          Boolean(reg.stripeCheckoutUrl) || reg.status === "PENDING_PAYMENT",
       });
     } catch (err) {
       const code = getApiErrorCode(err);
@@ -157,7 +160,9 @@ export default function WalkInScreen() {
               />
             </View>
           ) : loadingTickets ? (
-            <Text style={[type.body, styles.muted]}>{copy.checkIn.checking}</Text>
+            <Text style={[type.body, styles.muted]}>
+              {copy.checkIn.checking}
+            </Text>
           ) : tickets.length === 0 ? (
             <EmptyState
               kind="no-results"

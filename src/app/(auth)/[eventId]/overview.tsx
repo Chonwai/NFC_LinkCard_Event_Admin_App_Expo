@@ -41,12 +41,7 @@ interface TokenStatItem {
 }
 
 type EventRoute =
-  | "check-in"
-  | "token"
-  | "registrations"
-  | "nfc-bind"
-  | "nfc-read"
-  | "badges";
+  "check-in" | "token" | "registrations" | "nfc-bind" | "nfc-read" | "badges";
 
 interface QuickAction {
   key: string;

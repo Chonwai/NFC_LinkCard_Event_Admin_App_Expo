@@ -1,11 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import Constants from "expo-constants";
@@ -110,9 +104,7 @@ export default function SettingsScreen() {
   const username = user?.username?.trim() || null;
   /** 與 email / 顯示名稱重複時不另列一欄 */
   const showUsername =
-    username != null &&
-    username !== email &&
-    username !== displayName;
+    username != null && username !== email && username !== displayName;
 
   const nfcStatus: "checking" | "supported" | "unsupported" =
     nfcOk == null ? "checking" : nfcOk ? "supported" : "unsupported";
@@ -152,10 +144,7 @@ export default function SettingsScreen() {
                 <InfoRow label={copy.settings.emailLabel} value={email} />
               ) : null}
               {showUsername ? (
-                <InfoRow
-                  label={copy.settings.usernameLabel}
-                  value={username}
-                />
+                <InfoRow label={copy.settings.usernameLabel} value={username} />
               ) : null}
               {displayName == null && email == null && !showUsername ? (
                 <Text

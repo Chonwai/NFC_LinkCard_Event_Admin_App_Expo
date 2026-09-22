@@ -22,13 +22,7 @@ import {
   maskPhone,
 } from "@/utils/registration-display";
 
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) {
+function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <View style={styles.section}>
       <Text style={type.h3}>{title}</Text>
@@ -131,7 +125,9 @@ export default function RegistrantDetailScreen() {
               />
               <Row
                 label={copy.checkIn.attendeeEmail}
-                value={maskEmail(registration.email ?? registration.profile?.email)}
+                value={maskEmail(
+                  registration.email ?? registration.profile?.email,
+                )}
               />
               <Row
                 label={copy.roster.phone}

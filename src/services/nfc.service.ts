@@ -1,4 +1,8 @@
-import type { ApiResponse, BadgeInfo, NfcLookupResult } from "@/types/api.types";
+import type {
+  ApiResponse,
+  BadgeInfo,
+  NfcLookupResult,
+} from "@/types/api.types";
 
 import { apiClient } from "./api";
 

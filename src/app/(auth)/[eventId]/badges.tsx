@@ -333,10 +333,7 @@ export default function BadgesScreen() {
                   ]}
                 >
                   <Text
-                    style={[
-                      type.badge,
-                      { color: semantic.status.success.fg },
-                    ]}
+                    style={[type.badge, { color: semantic.status.success.fg }]}
                     maxFontSizeMultiplier={layout.maxFontScaleFixed}
                   >
                     {STATUS_LABELS.BOUND}

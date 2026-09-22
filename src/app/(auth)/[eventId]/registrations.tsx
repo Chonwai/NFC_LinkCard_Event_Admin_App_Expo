@@ -20,10 +20,7 @@ import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { copy } from "@/constants/copy.zh-TW";
 import { layout, semantic, space, spacing, type } from "@/constants/theme";
-import {
-  eventService,
-  listPageCount,
-} from "@/services/event.service";
+import { eventService, listPageCount } from "@/services/event.service";
 import type { Registration } from "@/types/api.types";
 import { getApiErrorStatus } from "@/utils/api-error";
 import {
@@ -302,7 +299,10 @@ export default function RegistrationsScreen() {
                         accessibilityState={{ selected }}
                       >
                         <Text
-                          style={[styles.optionText, selected && styles.optionOn]}
+                          style={[
+                            styles.optionText,
+                            selected && styles.optionOn,
+                          ]}
                           numberOfLines={1}
                           maxFontSizeMultiplier={layout.maxFontScaleFixed}
                         >
@@ -333,7 +333,10 @@ export default function RegistrationsScreen() {
                         accessibilityState={{ selected }}
                       >
                         <Text
-                          style={[styles.optionText, selected && styles.optionOn]}
+                          style={[
+                            styles.optionText,
+                            selected && styles.optionOn,
+                          ]}
                           maxFontSizeMultiplier={layout.maxFontScaleFixed}
                         >
                           {label}
@@ -449,9 +452,7 @@ export default function RegistrationsScreen() {
                   name={copied ? "clipboard-check" : "copy"}
                   size="sm"
                   color={
-                    copied
-                      ? semantic.status.success.fg
-                      : semantic.icon.muted
+                    copied ? semantic.status.success.fg : semantic.icon.muted
                   }
                 />
               </Pressable>

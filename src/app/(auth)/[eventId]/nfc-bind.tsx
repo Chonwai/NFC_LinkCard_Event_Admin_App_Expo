@@ -461,11 +461,7 @@ export default function NfcBindScreen() {
             style={[styles.doneCard, styles.doneFail]}
             testID="nfc-bind-error"
           >
-            <Icon
-              name="x-circle"
-              size="xl"
-              color={semantic.status.danger.fg}
-            />
+            <Icon name="x-circle" size="xl" color={semantic.status.danger.fg} />
             <Text style={[type.h3, styles.doneTitle]}>{errorMessage}</Text>
             {state.tagUid && state.kind !== "bind-failed" ? (
               <Text style={[type.body, styles.doneTitle]}>
@@ -497,13 +493,18 @@ export default function NfcBindScreen() {
         ) : null}
 
         {state.phase === "done" ? (
-          <View style={[styles.doneCard, styles.doneOk]} testID="nfc-bind-success">
+          <View
+            style={[styles.doneCard, styles.doneOk]}
+            testID="nfc-bind-success"
+          >
             <Icon
               name="check-circle"
               size="xl"
               color={semantic.status.success.fg}
             />
-            <Text style={[type.h3, styles.doneTitle]}>{copy.nfc.bindSuccess}</Text>
+            <Text style={[type.h3, styles.doneTitle]}>
+              {copy.nfc.bindSuccess}
+            </Text>
             <Text style={[type.caption, styles.stepHint]}>
               {copy.nfc.writtenUid}
             </Text>
