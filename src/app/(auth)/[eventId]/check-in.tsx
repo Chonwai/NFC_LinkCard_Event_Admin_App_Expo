@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { CameraView } from "expo-camera";
+import { CameraView, useCameraPermissions } from "expo-camera";
 import { router, useLocalSearchParams } from "expo-router";
 
 import { Button } from "@/components/ui/Button";
@@ -75,6 +75,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 export default function CheckInScreen() {
   const insets = useSafeAreaInsets();
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
+  const [permission, requestPermission] = useCameraPermissions();
   const [mode, setMode] = useState<"scan" | "manual">("scan");
   const [scanning, setScanning] = useState(true);
   const [manualCode, setManualCode] = useState("");
@@ -135,12 +136,32 @@ export default function CheckInScreen() {
 
   useEffect(() => clearResetTimer, []);
 
+  const ensureCameraPermission = useCallback(async () => {
+    if (permission?.granted) return true;
+    const result = await requestPermission();
+    return result.granted;
+  }, [permission?.granted, requestPermission]);
+
   const resetToIdle = useCallback(() => {
     clearResetTimer();
     setOverrideBanner(null);
     setState({ phase: "idle" });
     setScanning(true);
   }, []);
+
+  /** 進入掃描模式時請求相機權限（hook 本身不會自動彈系統對話框） */
+  useEffect(() => {
+    if (mode !== "scan") return;
+    let active = true;
+    void ensureCameraPermission().then((granted) => {
+      if (!active) return;
+      if (!granted) setCameraError(true);
+      else setCameraError(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, [mode, ensureCameraPermission]);
 
   const showOutcome = useCallback(
     async (next: Extract<CheckInUiState, { phase: "outcome" }>) => {
@@ -345,6 +366,7 @@ export default function CheckInScreen() {
           <Pressable
             onPress={() => {
               setMode("scan");
+              setCameraError(false);
               resetToIdle();
             }}
             style={[styles.modeTab, mode === "scan" && styles.modeTabActive]}
@@ -405,22 +427,41 @@ export default function CheckInScreen() {
       <View style={styles.body}>
         {mode === "scan" && state.phase === "idle" ? (
           <View style={styles.cameraContainer}>
-            {cameraError ? (
+            {permission == null ? (
+              <View style={styles.cameraFallback}>
+                <ActivityIndicator size="large" color={semantic.icon.brand} />
+              </View>
+            ) : !permission.granted || cameraError ? (
               <View style={styles.cameraFallback}>
                 <Icon name="camera" size="xl" color={semantic.icon.muted} />
                 <Text style={[type.body, styles.cameraFallbackText]}>
                   {copy.checkIn.cameraUnavailable}
                 </Text>
                 <Button
+                  label={copy.checkIn.enableCamera}
+                  onPress={() => {
+                    setCameraError(false);
+                    void ensureCameraPermission().then((granted) => {
+                      if (!granted) setCameraError(true);
+                    });
+                  }}
+                />
+                <Button
                   label={copy.checkIn.switchToManual}
                   variant="secondary"
-                  onPress={() => setMode("manual")}
+                  onPress={() => {
+                    setMode("manual");
+                    setScanning(false);
+                  }}
                 />
               </View>
             ) : (
               <CameraView
                 style={styles.camera}
                 facing="back"
+                barcodeScannerSettings={{
+                  barcodeTypes: ["qr"],
+                }}
                 onBarcodeScanned={scanning ? onBarcodeScanned : undefined}
                 onMountError={() => setCameraError(true)}
               />
@@ -668,17 +709,24 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.screen,
     gap: space[2],
   },
-  cameraContainer: { flex: 1, gap: spacing.gap },
-  camera: { flex: 1, borderRadius: 16, overflow: "hidden" },
+  cameraContainer: { flex: 1, gap: spacing.gap, minHeight: 240 },
+  camera: { flex: 1, borderRadius: 16, overflow: "hidden", minHeight: 240 },
   cameraFallback: {
     flex: 1,
+    minHeight: 240,
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.gap,
+    paddingHorizontal: space[4],
   },
   cameraFallbackText: { color: semantic.text.muted, textAlign: "center" },
   scanHint: { color: semantic.text.muted, textAlign: "center" },
-  manualBox: { gap: spacing.gap, justifyContent: "center", flex: 1 },
+  /** 手動輸入：貼齊頂部，不要垂直置中 */
+  manualBox: {
+    gap: spacing.gap,
+    alignSelf: "stretch",
+    justifyContent: "flex-start",
+  },
   inputWrap: {
     flexDirection: "row",
     alignItems: "center",

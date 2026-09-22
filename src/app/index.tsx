@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -30,6 +30,10 @@ import {
   isServerError,
 } from "@/utils/api-error";
 import {
+  loadRememberedLogin,
+  saveRememberedLogin,
+} from "@/utils/remembered-login";
+import {
   type SessionNotice,
   clearSessionNotice,
   useSessionNotice,
@@ -59,6 +63,7 @@ const SESSION_NOTICE_BANNERS: Record<SessionNotice, LoginBanner> = {
  * - `Logo` mark 補上品牌識別
  * - 錯誤分類依 HTTP 狀態與網路特徵（401 / 網路 / 5xx）
  * - 窄屏：較小 Logo、較緊間距，避免鍵盤彈起時表單被擠出可視區
+ * - 成功登入後記住 Email／密碼，登出再進頁可預填
  */
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -71,6 +76,22 @@ export default function LoginScreen() {
   const sessionNotice = useSessionNotice();
   const { height: windowHeight } = useWindowDimensions();
   const compact = windowHeight < 720;
+
+  useEffect(() => {
+    let active = true;
+    void loadRememberedLogin().then((remembered) => {
+      if (!active || remembered == null) return;
+      setEmail((previous) =>
+        previous.trim() === "" ? remembered.email : previous,
+      );
+      setPassword((previous) =>
+        previous === "" ? remembered.password : previous,
+      );
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const classifyLoginError = (error: unknown): LoginBanner => {
     const status = getApiErrorStatus(error);
@@ -115,8 +136,10 @@ export default function LoginScreen() {
     setLoading(true);
 
     try {
-      const data = await authService.login(email.trim(), password);
+      const trimmedEmail = email.trim();
+      const data = await authService.login(trimmedEmail, password);
       await setAuth(data.token, data.user);
+      await saveRememberedLogin(trimmedEmail, password);
       clearSessionNotice();
       router.replace("/(auth)/home");
     } catch (error) {

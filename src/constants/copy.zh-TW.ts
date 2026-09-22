@@ -126,6 +126,7 @@ export const copy = {
     notConfirmed: "此報名尚未確認",
     notEnoughPermission: "權限不足，無法執行報到",
     cameraUnavailable: "無法取得相機權限",
+    enableCamera: "允許使用相機",
     autoResetIn: "即將自動重置",
     switchToManual: "改用輸入模式",
     switchToScan: "改用掃描模式",
