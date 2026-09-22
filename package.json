@@ -53,7 +53,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check . --ignore-path .gitignore --ignore-path .prettierignore --ignore-path .prettierignore-baseline",
     "prepare": "husky",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "expo customize tsconfig.json && tsc --noEmit",
     "test": "node scripts/require-node-version.mjs && node --import ./tests/register-alias-loader.mjs --experimental-test-module-mocks --test tests/*.test.mjs"
   },
   "private": true
