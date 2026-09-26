@@ -69,6 +69,7 @@ export const registrationService = {
       lastName?: string;
       phone?: string;
       company?: string;
+      consent?: { tosVersion: string; privacyAcceptedAt: string };
     },
   ): Promise<{
     registration: {

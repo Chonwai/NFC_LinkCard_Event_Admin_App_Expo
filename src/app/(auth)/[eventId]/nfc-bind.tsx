@@ -35,7 +35,6 @@ import {
   type NfcBindFailureKind,
 } from "@/utils/nfc-bind-errors";
 import {
-  buildRegistrationProfileUrl,
   isNfcSupported,
   startNfc,
   writeUriToCard,
@@ -48,6 +47,8 @@ interface AttendeeContext {
   registrationId: string;
   code: string;
   displayName: string;
+  /** X-23 預設：讀 BE by-code 回傳的完整 profileUrl，不在 App 內自組 origin */
+  profileUrl: string | null;
 }
 
 type FlowState =
@@ -167,6 +168,7 @@ export default function NfcBindScreen() {
         registrationId: registration.id,
         code: code.trim(),
         displayName: getRegistrationDisplayName(registration),
+        profileUrl: registration.profileUrl ?? null,
       });
     } catch {
       setLookupError(copy.checkIn.registrationNotFound);
@@ -223,7 +225,17 @@ export default function NfcBindScreen() {
       }
 
       setState({ phase: "writing", mode: "write", ...ctx });
-      const payloadUrl = buildRegistrationProfileUrl(ctx.registrationId);
+      // X-23: prefer BE full profileUrl; never assemble a second origin in the App.
+      const payloadUrl = ctx.profileUrl?.trim() ?? "";
+      if (!payloadUrl) {
+        setState({
+          phase: "error",
+          kind: "write-failed",
+          payloadUrl: "",
+          ...ctx,
+        });
+        return;
+      }
       const controller = new AbortController();
       writeAbortRef.current = controller;
       try {
@@ -293,9 +305,7 @@ export default function NfcBindScreen() {
 
   const attendee =
     state.phase === "lookup" || state.phase === "lookup-loading" ? null : state;
-  const payloadPreview = attendee
-    ? buildRegistrationProfileUrl(attendee.registrationId)
-    : null;
+  const payloadPreview = attendee?.profileUrl ?? null;
   const errorMessage =
     state.phase === "error"
       ? state.kind === "bind-failed" && state.tagUid

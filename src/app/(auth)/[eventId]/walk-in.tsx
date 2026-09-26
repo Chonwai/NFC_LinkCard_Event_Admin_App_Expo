@@ -15,6 +15,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FieldInput } from "@/components/ui/FieldInput";
+import { Icon } from "@/components/ui/Icon";
 import { InlineBanner } from "@/components/ui/InlineBanner";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { copy } from "@/constants/copy.zh-TW";
@@ -23,7 +24,10 @@ import { eventService } from "@/services/event.service";
 import { registrationService } from "@/services/registration.service";
 import type { TicketTypeItem } from "@/types/api.types";
 import { getApiErrorCode, getApiErrorMessage } from "@/utils/api-error";
-import { isValidEmail } from "@/utils/validation";
+import {
+  EVENT_CONSENT_TOS_VERSION,
+  validateWalkInConsent,
+} from "@/utils/walk-in-validation";
 
 export default function WalkInScreen() {
   const insets = useSafeAreaInsets();
@@ -35,6 +39,7 @@ export default function WalkInScreen() {
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [company, setCompany] = useState("");
+  const [consent, setConsent] = useState(false);
   const [loadingTickets, setLoadingTickets] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,12 +77,9 @@ export default function WalkInScreen() {
 
   async function submit() {
     if (!eventId) return;
-    if (!ticketId) {
-      setError(copy.checkIn.walkInNeedTicket);
-      return;
-    }
-    if (!isValidEmail(email.trim())) {
-      setError(copy.checkIn.walkInNeedEmail);
+    const gate = validateWalkInConsent({ ticketId, email, consent });
+    if (!gate.ok) {
+      setError(copy.checkIn[gate.key]);
       return;
     }
     setSubmitting(true);
@@ -90,6 +92,10 @@ export default function WalkInScreen() {
         lastName: lastName.trim() || undefined,
         phone: phone.trim() || undefined,
         company: company.trim() || undefined,
+        consent: {
+          tosVersion: EVENT_CONSENT_TOS_VERSION,
+          privacyAcceptedAt: new Date().toISOString(),
+        },
       });
       const reg = result.registration;
       setCreated({
@@ -98,6 +104,7 @@ export default function WalkInScreen() {
         needsPayment:
           Boolean(reg.stripeCheckoutUrl) || reg.status === "PENDING_PAYMENT",
       });
+      setConsent(false);
     } catch (err) {
       const code = getApiErrorCode(err);
       setError(
@@ -111,7 +118,7 @@ export default function WalkInScreen() {
   }
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
+    <View style={styles.screen}>
       <ScreenHeader
         title={copy.checkIn.walkInTitle}
         leading="back"
@@ -128,13 +135,16 @@ export default function WalkInScreen() {
           ]}
           keyboardShouldPersistTaps="handled"
         >
-          {error ? <InlineBanner tone="danger" message={error} /> : null}
+          {error ? (
+            <InlineBanner compact tone="danger" message={error} />
+          ) : null}
           {created ? (
             <View style={styles.success} testID="walk-in-success">
               <Text style={type.h2}>{copy.checkIn.walkInSuccess}</Text>
               <Text style={type.body}>{created.code}</Text>
               {created.needsPayment ? (
                 <InlineBanner
+                  compact
                   tone="warning"
                   message={copy.checkIn.walkInPaymentNote}
                 />
@@ -172,23 +182,31 @@ export default function WalkInScreen() {
             />
           ) : (
             <>
-              <Text style={type.label}>{copy.checkIn.walkInTicket}</Text>
-              <View style={styles.tickets}>
-                {tickets.map((ticket) => {
-                  const label = ticket.displayName || ticket.name || ticket.id;
-                  const on = ticket.id === ticketId;
-                  return (
-                    <Pressable
-                      key={ticket.id}
-                      onPress={() => setTicketId(ticket.id)}
-                      style={[styles.ticket, on && styles.ticketOn]}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: on }}
-                    >
-                      <Text style={type.label}>{label}</Text>
-                    </Pressable>
-                  );
-                })}
+              <View style={styles.ticketBlock}>
+                <Text style={type.label}>{copy.checkIn.walkInTicket}</Text>
+                <View style={styles.tickets}>
+                  {tickets.map((ticket) => {
+                    const label =
+                      ticket.displayName || ticket.name || ticket.id;
+                    const on = ticket.id === ticketId;
+                    return (
+                      <Pressable
+                        key={ticket.id}
+                        onPress={() => setTicketId(ticket.id)}
+                        style={[styles.ticket, on && styles.ticketOn]}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: on }}
+                      >
+                        <Text
+                          style={[type.caption, on && styles.ticketLabelOn]}
+                          numberOfLines={1}
+                        >
+                          {label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
               </View>
               <FieldInput
                 label={copy.checkIn.walkInEmail}
@@ -219,6 +237,26 @@ export default function WalkInScreen() {
                 value={company}
                 onChangeText={setCompany}
               />
+              <Pressable
+                onPress={() => setConsent((v) => !v)}
+                style={styles.consentRow}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: consent }}
+                testID="walk-in-consent"
+              >
+                <View style={[styles.checkbox, consent && styles.checkboxOn]}>
+                  {consent ? (
+                    <Icon
+                      name="check"
+                      size={14}
+                      color={semantic.action.onPrimary}
+                    />
+                  ) : null}
+                </View>
+                <Text style={[type.body, styles.consentLabel]}>
+                  {copy.checkIn.walkInConsentLabel}
+                </Text>
+              </Pressable>
               <Button
                 label={copy.checkIn.walkInSubmit}
                 loading={submitting}
@@ -235,20 +273,53 @@ export default function WalkInScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: semantic.bg.canvas },
   flex: { flex: 1 },
-  body: { padding: spacing.screen, gap: spacing.section },
+  body: {
+    paddingHorizontal: spacing.screen,
+    paddingTop: space[3],
+    gap: space[3],
+  },
   muted: { color: semantic.text.muted },
-  tickets: { flexDirection: "row", flexWrap: "wrap", gap: space[2] },
+  ticketBlock: { gap: space[1] },
+  tickets: { flexDirection: "row", flexWrap: "wrap", gap: space[1] },
   ticket: {
     borderWidth: 1,
     borderColor: semantic.border.decorative,
-    borderRadius: radius.md,
-    paddingHorizontal: space[3],
-    paddingVertical: space[3],
+    borderRadius: radius.sm,
+    paddingHorizontal: space[2],
+    paddingVertical: space[1],
     backgroundColor: semantic.bg.surface,
   },
   ticketOn: {
     borderColor: semantic.border.interactiveSelected,
-    backgroundColor: semantic.bg.brandSoft,
+    backgroundColor: semantic.bg.brandSoftStrong,
+  },
+  ticketLabelOn: {
+    color: semantic.action.primary,
+    fontWeight: "600",
+  },
+  consentRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: space[2],
+    paddingVertical: space[1],
+  },
+  consentLabel: {
+    flex: 1,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderWidth: 2,
+    borderColor: semantic.border.interactive,
+    borderRadius: 4,
+    marginTop: 1,
+    backgroundColor: semantic.bg.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkboxOn: {
+    borderColor: semantic.action.primary,
+    backgroundColor: semantic.action.primary,
   },
   success: { gap: spacing.gap },
 });

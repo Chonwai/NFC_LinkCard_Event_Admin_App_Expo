@@ -239,6 +239,7 @@ export const copy = {
     walkInCompany: "公司",
     walkInTicket: "票種",
     walkInSubmit: "建立報名",
+    walkInConsentLabel: "我已閱讀並同意服務條款與隱私政策",
     walkInSuccess: "已建立報名",
     walkInPaymentNote:
       "此票需要付款。報名已建立，但尚未完成付款，不能當成已入場。",
@@ -246,6 +247,7 @@ export const copy = {
     walkInGoNfc: "前往寫卡",
     walkInNeedEmail: "請輸入有效的 Email",
     walkInNeedTicket: "請先選擇票種",
+    walkInNeedConsent: "請先閱讀並同意條款",
     walkInFailed: "補報名失敗，請稍後再試",
     walkInNotAccepting: "此活動目前不接受報名",
     walkInNoTickets: "沒有可選的票種",

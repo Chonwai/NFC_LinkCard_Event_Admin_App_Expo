@@ -43,7 +43,8 @@ export const API_TIMEOUT_MS = 15000;
 export const LOOKUP_TIMEOUT_MS = 3000;
 
 /**
- * 用戶端網頁 origin。NFC 寫入 `${WEB_BASE_URL}/u/:registrationId`。
+ * 用戶端網頁 origin。NFC 寫入優先用 BE 回傳的完整 `profileUrl`（X-23）；
+ * `buildRegistrationProfileUrl` 僅作 `/p/{slug}` 輔助組裝（同源 WEB_BASE_URL）。
  * 與 API origin 分開：staging API 與 staging Web 不是同一台。
  * 未設定時預設 production，確認頁會顯示實際網址，避免靜默寫錯環境。
  */

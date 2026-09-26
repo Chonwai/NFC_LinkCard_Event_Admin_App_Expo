@@ -88,6 +88,8 @@ export interface Registration {
   };
   customFields?: Record<string, unknown>;
   formData?: Record<string, unknown>;
+  /** C-1: 完整 URL（含 origin）；null＝profile 尚未就緒（X-23 預設讀此欄，不自組 origin） */
+  profileUrl?: string | null;
 }
 
 export interface TicketTypeItem {

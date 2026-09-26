@@ -47,13 +47,13 @@ export function isValidTagUid(tagUid: string): boolean {
   return /^[0-9A-F]{8,32}$/.test(tagUid) && tagUid.length % 2 === 0;
 }
 
-/** 參加者頁網址。registrationId 不做 encode，避免把 UUID 的連字號轉義。 */
-export function buildRegistrationProfileUrl(registrationId: string): string {
-  const id = registrationId.trim();
-  if (!id) {
-    throw new NfcFlowError("write-failed", "missing registration id");
+/** 參加者名片網址（C-1）。slug 不做 encode，避免把連字號轉義。 */
+export function buildRegistrationProfileUrl(slug: string): string {
+  const id = String(slug ?? "").trim();
+  if (!id || id === "null" || id === "undefined") {
+    throw new NfcFlowError("write-failed", "missing profile slug");
   }
-  return `${WEB_BASE_URL}/u/${id}`;
+  return `${WEB_BASE_URL}/p/${id}`;
 }
 
 function urlsMatch(expected: string, actual: string): boolean {
