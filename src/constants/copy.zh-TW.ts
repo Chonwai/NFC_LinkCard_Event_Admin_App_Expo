@@ -248,6 +248,8 @@ export const copy = {
     walkInNeedEmail: "請輸入有效的 Email",
     walkInNeedTicket: "請先選擇票種",
     walkInNeedConsent: "請先閱讀並同意條款",
+    walkInConsentRequired: "請先閱讀並同意條款",
+    walkInConsentVersionMismatch: "條款已更新，請重新閱讀並同意",
     walkInFailed: "補報名失敗，請稍後再試",
     walkInNotAccepting: "此活動目前不接受報名",
     walkInNoTickets: "沒有可選的票種",

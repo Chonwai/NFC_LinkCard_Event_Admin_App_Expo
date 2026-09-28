@@ -23,11 +23,9 @@ import { radius, semantic, space, spacing, type } from "@/constants/theme";
 import { eventService } from "@/services/event.service";
 import { registrationService } from "@/services/registration.service";
 import type { TicketTypeItem } from "@/types/api.types";
-import { getApiErrorCode, getApiErrorMessage } from "@/utils/api-error";
-import {
-  EVENT_CONSENT_TOS_VERSION,
-  validateWalkInConsent,
-} from "@/utils/walk-in-validation";
+import { mapWalkInError } from "@/utils/walk-in-error-map";
+import { buildWalkInRegistrationBody } from "@/utils/walk-in-payload";
+import { validateWalkInConsent } from "@/utils/walk-in-validation";
 
 export default function WalkInScreen() {
   const insets = useSafeAreaInsets();
@@ -85,18 +83,17 @@ export default function WalkInScreen() {
     setSubmitting(true);
     setError(null);
     try {
-      const result = await registrationService.createRegistration(eventId, {
-        ticketTypeId: ticketId,
-        email: email.trim(),
-        firstName: firstName.trim() || undefined,
-        lastName: lastName.trim() || undefined,
-        phone: phone.trim() || undefined,
-        company: company.trim() || undefined,
-        consent: {
-          tosVersion: EVENT_CONSENT_TOS_VERSION,
-          privacyAcceptedAt: new Date().toISOString(),
-        },
-      });
+      const result = await registrationService.createRegistration(
+        eventId,
+        buildWalkInRegistrationBody({
+          ticketId,
+          email,
+          firstName,
+          lastName,
+          phone,
+          company,
+        }),
+      );
       const reg = result.registration;
       setCreated({
         id: reg.id,
@@ -106,12 +103,7 @@ export default function WalkInScreen() {
       });
       setConsent(false);
     } catch (err) {
-      const code = getApiErrorCode(err);
-      setError(
-        code === "EVENT_NOT_ACCEPTING_REGISTRATIONS"
-          ? copy.checkIn.walkInNotAccepting
-          : getApiErrorMessage(err, copy.checkIn.walkInFailed),
-      );
+      setError(mapWalkInError(err, copy.checkIn.walkInFailed));
     } finally {
       setSubmitting(false);
     }

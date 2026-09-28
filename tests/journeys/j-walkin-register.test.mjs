@@ -15,10 +15,23 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { copy } from "@/constants/copy.zh-TW";
+import { mapWalkInError } from "@/utils/walk-in-error-map";
+import { buildWalkInRegistrationBody } from "@/utils/walk-in-payload";
 import {
   EVENT_CONSENT_TOS_VERSION,
   validateWalkInConsent,
 } from "@/utils/walk-in-validation";
+
+/** 造一個與 axios 同形的後端錯誤（`options.response.data.error.code`）。 */
+function apiError(code, message) {
+  return {
+    response: {
+      status: 400,
+      data: { error: message === undefined ? { code } : { code, message } },
+    },
+  };
+}
 
 describe("J-WALKIN-REGISTER 現場代填送出 [persona:staff-onsite]", () => {
   it("given 票種與 email 已填且已勾同意, when 通過送出前守衛, then 回 ok", () => {
@@ -65,23 +78,77 @@ describe("J-WALKIN-REGISTER 現場代填送出 [persona:staff-onsite]", () => {
     assert.equal(EVENT_CONSENT_TOS_VERSION, "event-tos-v1");
   });
 
-  it(
-    "given 票種與 email 已填且已勾同意, when 組出送出 payload, then 帶 consent.tosVersion 與 ISO 的 privacyAcceptedAt",
-    { todo: true },
-    () => {},
-  );
+  it("given 票種與 email 已填且已勾同意, when 組出送出 payload, then 帶 consent.tosVersion 與 ISO 的 privacyAcceptedAt", () => {
+    const body = buildWalkInRegistrationBody({
+      ticketId: "t1",
+      email: "  a@b.co  ",
+      firstName: " 阿 ",
+      lastName: "",
+      phone: "",
+      company: "",
+    });
 
-  it(
-    "given 伺服器回 400 CONSENT_REQUIRED, when 映射錯誤, then 文案為「請先閱讀並同意條款」",
-    { todo: true },
-    () => {},
-  );
+    assert.equal(body.ticketTypeId, "t1");
+    assert.equal(body.email, "a@b.co");
+    assert.equal(body.firstName, "阿");
+    assert.equal(body.consent.tosVersion, EVENT_CONSENT_TOS_VERSION);
+    assert.match(body.consent.privacyAcceptedAt, /^\d{4}-\d{2}-\d{2}T/);
+    assert.equal(
+      Number.isNaN(Date.parse(body.consent.privacyAcceptedAt)),
+      false,
+    );
+  });
 
-  it(
-    "given 伺服器回 400 CONSENT_VERSION_MISMATCH, when 映射錯誤, then 文案與 CONSENT_REQUIRED 可分辨",
-    { todo: true },
-    () => {},
-  );
+  it("given 選填欄位為空白, when 組出送出 payload, then 以 undefined 帶出（不送空字串）", () => {
+    const body = buildWalkInRegistrationBody({
+      ticketId: "t1",
+      email: "a@b.co",
+      firstName: "   ",
+      lastName: "   ",
+      phone: "   ",
+      company: "   ",
+    });
+
+    assert.deepEqual(
+      [body.firstName, body.lastName, body.phone, body.company],
+      [undefined, undefined, undefined, undefined],
+    );
+    assert.equal("firstName" in body, true);
+  });
+
+  it("given 伺服器回 400 CONSENT_REQUIRED, when 映射錯誤, then 文案為「請先閱讀並同意條款」", () => {
+    assert.equal(
+      mapWalkInError(apiError("CONSENT_REQUIRED"), copy.checkIn.walkInFailed),
+      copy.checkIn.walkInConsentRequired,
+    );
+  });
+
+  it("given 伺服器回 400 CONSENT_VERSION_MISMATCH, when 映射錯誤, then 文案與 CONSENT_REQUIRED 可分辨", () => {
+    const required = mapWalkInError(
+      apiError("CONSENT_REQUIRED"),
+      copy.checkIn.walkInFailed,
+    );
+    const mismatch = mapWalkInError(
+      apiError("CONSENT_VERSION_MISMATCH"),
+      copy.checkIn.walkInFailed,
+    );
+
+    assert.equal(mismatch, copy.checkIn.walkInConsentVersionMismatch);
+    assert.notEqual(mismatch, required);
+    // 兩者都不得落回泛用文案，否則現場分不出「還沒同意」與「條款改版」。
+    assert.notEqual(mismatch, copy.checkIn.walkInFailed);
+    assert.notEqual(required, copy.checkIn.walkInFailed);
+  });
+
+  it("given 伺服器回 EVENT_NOT_ACCEPTING_REGISTRATIONS, when 映射錯誤, then 維持既有專屬文案（不得被本次擴充蓋掉）", () => {
+    assert.equal(
+      mapWalkInError(
+        apiError("EVENT_NOT_ACCEPTING_REGISTRATIONS"),
+        copy.checkIn.walkInFailed,
+      ),
+      copy.checkIn.walkInNotAccepting,
+    );
+  });
 
   it(
     "given API 逾時後重按送出, when 佇列重新進入, then 不得產生第二筆報名（corner，探索後固化）",
