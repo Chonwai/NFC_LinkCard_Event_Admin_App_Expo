@@ -65,8 +65,8 @@ type FlowState =
   | ({ phase: "done"; tagUid: string; payloadUrl: string } & AttendeeContext);
 
 const BADGE_TYPES: { key: BadgeType; label: string; icon: IconName }[] = [
-  { key: "WRISTBAND", label: copy.nfc.badgeTypeWristband, icon: "check" },
   { key: "CARD", label: copy.nfc.badgeTypeCard, icon: "check" },
+  { key: "WRISTBAND", label: copy.nfc.badgeTypeWristband, icon: "check" },
   { key: "QR_ONLY", label: copy.nfc.badgeTypeQr, icon: "qr-code" },
 ];
 
@@ -142,7 +142,7 @@ export default function NfcBindScreen() {
   const insets = useSafeAreaInsets();
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
   const [code, setCode] = useState("");
-  const [badgeType, setBadgeType] = useState<BadgeType>("WRISTBAND");
+  const [badgeType, setBadgeType] = useState<BadgeType>("CARD");
   const [state, setState] = useState<FlowState>({ phase: "lookup" });
   const [lookupError, setLookupError] = useState<string | null>(null);
   /** 進行中的寫卡控制器；寫入中有「取消」可 abort 它（CRA-V1-009）。 */
