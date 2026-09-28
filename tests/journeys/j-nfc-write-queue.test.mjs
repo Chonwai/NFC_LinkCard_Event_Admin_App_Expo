@@ -154,9 +154,24 @@ describe("J-NFC-WRITE-QUEUE 寫卡流程狀態機 [persona:staff-onsite]", () =>
     assert.match(body, /const \{ tagUid \} = await writeUriToCard\(/);
 
     // 現場看到的字：寫卡失敗 → 自己的文案，不得是成功文案。
+    // ① 接線（static）：錯誤映射表把 `write-failed` 指向 `copy.nfc.writeFailed`。
     assert.match(
       NFC_BIND_SCREEN,
       /["']write-failed["']:\s*copy\.nfc\.writeFailed/,
+    );
+    // ② 被指向的文案本身必須存在、非空，且與「綁定失敗」可區分。
+    //    E7 / V1 finding `M2`：原本只有 ①。① 的 pattern 是 **regex literal**，
+    //    其中的 `copy` 不會被插值 ⇒ 只證明原始碼含這段文字，**從未證明**
+    //    `copy.nfc.writeFailed` 存在或非空（ESLint 的 `no-unused-vars` 是此事的機械證據）。
+    assert.equal(typeof copy.nfc.writeFailed, "string");
+    assert.ok(
+      copy.nfc.writeFailed.trim().length > 0,
+      "copy.nfc.writeFailed 不得為空字串",
+    );
+    assert.notEqual(
+      copy.nfc.writeFailed,
+      copy.nfc.bindFailed,
+      "寫入失敗與綁定失敗不得共用同一句話（現場無法分辨該重寫卡或重綁定）",
     );
   });
 
