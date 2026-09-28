@@ -182,31 +182,23 @@ export default function WalkInScreen() {
             />
           ) : (
             <>
-              <View style={styles.ticketBlock}>
-                <Text style={type.label}>{copy.checkIn.walkInTicket}</Text>
-                <View style={styles.tickets}>
-                  {tickets.map((ticket) => {
-                    const label =
-                      ticket.displayName || ticket.name || ticket.id;
-                    const on = ticket.id === ticketId;
-                    return (
-                      <Pressable
-                        key={ticket.id}
-                        onPress={() => setTicketId(ticket.id)}
-                        style={[styles.ticket, on && styles.ticketOn]}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected: on }}
-                      >
-                        <Text
-                          style={[type.caption, on && styles.ticketLabelOn]}
-                          numberOfLines={1}
-                        >
-                          {label}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
+              <Text style={type.label}>{copy.checkIn.walkInTicket}</Text>
+              <View style={styles.tickets}>
+                {tickets.map((ticket) => {
+                  const label = ticket.displayName || ticket.name || ticket.id;
+                  const on = ticket.id === ticketId;
+                  return (
+                    <Pressable
+                      key={ticket.id}
+                      onPress={() => setTicketId(ticket.id)}
+                      style={[styles.ticket, on && styles.ticketOn]}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: on }}
+                    >
+                      <Text style={type.label}>{label}</Text>
+                    </Pressable>
+                  );
+                })}
               </View>
               <FieldInput
                 label={copy.checkIn.walkInEmail}
@@ -279,23 +271,18 @@ const styles = StyleSheet.create({
     gap: space[3],
   },
   muted: { color: semantic.text.muted },
-  ticketBlock: { gap: space[1] },
-  tickets: { flexDirection: "row", flexWrap: "wrap", gap: space[1] },
+  tickets: { flexDirection: "row", flexWrap: "wrap", gap: space[2] },
   ticket: {
     borderWidth: 1,
     borderColor: semantic.border.decorative,
-    borderRadius: radius.sm,
-    paddingHorizontal: space[2],
-    paddingVertical: space[1],
+    borderRadius: radius.md,
+    paddingHorizontal: space[3],
+    paddingVertical: space[3],
     backgroundColor: semantic.bg.surface,
   },
   ticketOn: {
     borderColor: semantic.border.interactiveSelected,
-    backgroundColor: semantic.bg.brandSoftStrong,
-  },
-  ticketLabelOn: {
-    color: semantic.action.primary,
-    fontWeight: "600",
+    backgroundColor: semantic.bg.brandSoft,
   },
   consentRow: {
     flexDirection: "row",
