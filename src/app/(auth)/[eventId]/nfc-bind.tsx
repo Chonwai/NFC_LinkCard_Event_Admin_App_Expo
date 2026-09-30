@@ -20,6 +20,7 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 import { InlineBanner } from "@/components/ui/InlineBanner";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { copy } from "@/constants/copy.zh-TW";
+import { DEFAULT_BADGE_TYPE } from "@/constants/nfc";
 import {
   layout,
   radius,
@@ -142,7 +143,8 @@ export default function NfcBindScreen() {
   const insets = useSafeAreaInsets();
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
   const [code, setCode] = useState("");
-  const [badgeType, setBadgeType] = useState<BadgeType>("CARD");
+  /** X-27 裁定（2026-09-30）：維持 `CARD`，且預設值只存在於 `@/constants/nfc` 一處。 */
+  const [badgeType, setBadgeType] = useState<BadgeType>(DEFAULT_BADGE_TYPE);
   const [state, setState] = useState<FlowState>({ phase: "lookup" });
   const [lookupError, setLookupError] = useState<string | null>(null);
   /** 進行中的寫卡控制器；寫入中有「取消」可 abort 它（CRA-V1-009）。 */
