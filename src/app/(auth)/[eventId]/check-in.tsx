@@ -59,6 +59,24 @@ function formatDateTime(iso: string | null | undefined): string {
   return d.toLocaleString();
 }
 
+/**
+ * `11` `WP-18`：把後端回的絕對 `profileUrl` 收斂成要寫進卡的路徑（`/p/{slug}`）。
+ *
+ * 現場只需要認路徑；origin 由後端與寫卡頁各自持有，這個畫面不再組第二份。
+ * 解析不出來時退回原文——讓操作者看到後端真正回了什麼，而不是一片空白。
+ */
+function profilePathLabel(
+  profileUrl: string | null | undefined,
+): string | null {
+  if (!profileUrl || !profileUrl.trim()) return null;
+  const value = profileUrl.trim();
+  try {
+    return new URL(value).pathname;
+  } catch {
+    return value;
+  }
+}
+
 /** 資訊列：左標籤右數值，單行緊湊（現場一屏看完） */
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
@@ -618,7 +636,36 @@ export default function CheckInScreen() {
                       )}
                     />
                   ) : null}
+                  {/*
+                    `11` `WP-18`：這一列是「可不可以馬上寫卡」的唯一判別依據。
+                    沒有公開檔案時顯示的是**原因**，不是破折號。
+                  */}
+                  <InfoRow
+                    label={copy.checkIn.profileLabel}
+                    value={
+                      profilePathLabel(outcome.registration.profileUrl) ??
+                      copy.checkIn.noPublicProfile
+                    }
+                  />
                 </View>
+                {/*
+                  `11` `WP-18`：主 CTA——把這次報到接續到寫卡頁，並帶上報名碼。
+                  注意自動重置：成功態 3 秒後 `resetToIdle()`（既有行為，本輪未改），
+                  因此這顆按鈕必須在那之前按下（見交付報告 §8 的殘留風險）。
+                */}
+                <Button
+                  label={copy.checkIn.gotoWriteCard}
+                  testID="check-in-write-card"
+                  onPress={() => {
+                    const code =
+                      outcome.registration?.registrationCode ?? outcome.code;
+                    if (!code || !eventId) return;
+                    router.push({
+                      pathname: "/(auth)/[eventId]/nfc-bind",
+                      params: { eventId, code },
+                    });
+                  }}
+                />
                 <Button
                   label={copy.roster.viewDetail}
                   variant="secondary"

@@ -206,6 +206,22 @@ export const copy = {
     attendeeRegisteredAt: "報名時間",
     attendeeTokenBalance: "Token 餘額",
     attendeeStatus: "簽到狀態",
+    /**
+     * `11` `WP-18`：報到結果卡的公開檔案列。值是 `/p/{slug}`（去 origin 的路徑，
+     * 不是完整 URL——完整 URL 由後端與寫卡頁各自持有，這裡不再組一次 origin）。
+     */
+    profileLabel: "Profile",
+    /**
+     * `11` `WP-18`：`profileUrl === null`（孤兒報名）時的理由文案。
+     * 依本檔既有慣例（見 `counterUnavailableHint`）：空值一律帶著「為什麼」——
+     * 現場要知道這張卡為什麼沒東西可寫，才知道要改走人工補救。
+     */
+    noPublicProfile: "（無公開檔案，無法寫卡）",
+    /**
+     * `11` `WP-18`：報到成功卡的主 CTA。帶著報名碼接續到寫卡頁，
+     * 現場不必再看著 QR 重輸一次（每張卡省下的 30-60 秒）。
+     */
+    gotoWriteCard: "寫入 NFC 卡",
     resultTitle: "報到結果",
     checkedInAt: "報到時間",
     totalCheckedIn: "總簽到",

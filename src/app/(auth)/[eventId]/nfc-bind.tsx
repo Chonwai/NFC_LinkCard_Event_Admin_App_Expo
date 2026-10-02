@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -31,15 +31,12 @@ import {
 } from "@/constants/theme";
 import { nfcService } from "@/services/nfc.service";
 import { registrationService } from "@/services/registration.service";
+import type { Registration } from "@/types/api.types";
 import {
   classifyNfcBindError,
   type NfcBindFailureKind,
 } from "@/utils/nfc-bind-errors";
-import {
-  isNfcSupported,
-  startNfc,
-  writeUriToCard,
-} from "@/utils/nfc-utils";
+import { isNfcSupported, startNfc, writeUriToCard } from "@/utils/nfc-utils";
 import { getRegistrationDisplayName } from "@/utils/registration-display";
 
 type BadgeType = "WRISTBAND" | "CARD" | "QR_ONLY";
@@ -92,6 +89,48 @@ function writeBlockedMessage(): string | null {
   return null;
 }
 
+/**
+ * `by-code` 回應 → `confirm` 態所需的人員資訊。
+ * 缺 `id` 時回 null，由呼叫端沿用既有錯誤文案（不靜默吞掉）。
+ */
+function toAttendeeContext(
+  registration: Registration,
+  code: string,
+): (AttendeeContext & { phase: "confirm" }) | null {
+  if (!registration.id) return null;
+  return {
+    phase: "confirm",
+    registrationId: registration.id,
+    code,
+    displayName: getRegistrationDisplayName(registration),
+    profileUrl: registration.profileUrl ?? null,
+  };
+}
+
+/**
+ * 只負責「查詢 + 整形」，**不碰任何 state**：這樣按鈕與自動查詢都能用它，
+ * 而 effect 本體也不會出現同步 setState（`react-hooks/set-state-in-effect`）。
+ */
+async function resolveAttendee(
+  eventId: string,
+  rawCode: string,
+): Promise<
+  | { ok: true; ctx: AttendeeContext & { phase: "confirm" } }
+  | { ok: false; reason: string }
+> {
+  try {
+    const { registration } = await registrationService.getByCode(
+      eventId,
+      rawCode,
+    );
+    const ctx = toAttendeeContext(registration, rawCode);
+    if (!ctx) return { ok: false, reason: copy.nfc.bindFailed };
+    return { ok: true, ctx };
+  } catch {
+    return { ok: false, reason: copy.checkIn.registrationNotFound };
+  }
+}
+
 function BlockedCardActions() {
   return (
     <Card
@@ -141,11 +180,25 @@ function BlockedCardActions() {
 
 export default function NfcBindScreen() {
   const insets = useSafeAreaInsets();
-  const { eventId } = useLocalSearchParams<{ eventId: string }>();
-  const [code, setCode] = useState("");
+  const { eventId, code: codeParam } = useLocalSearchParams<{
+    eventId: string;
+    code?: string;
+  }>();
+  /**
+   * `11` `WP-18`：報到成功卡會帶著報名碼過來（`?code=`），現場不必再手輸一次。
+   * 它只當**初值**與一次性自動查詢；查詢過後欄位完全由操作者控制，**不自動送出**。
+   */
+  const prefilledCode = (codeParam ?? "").trim().toUpperCase();
+  const [code, setCode] = useState(prefilledCode);
   /** X-27 裁定（2026-09-30）：維持 `CARD`，且預設值只存在於 `@/constants/nfc` 一處。 */
   const [badgeType, setBadgeType] = useState<BadgeType>(DEFAULT_BADGE_TYPE);
-  const [state, setState] = useState<FlowState>({ phase: "lookup" });
+  /**
+   * 有帶碼就直接進「查詢中」——loading 態是**推導出來的初值**，不是 effect 裡的
+   * 同步 setState（後者會被 `react-hooks/set-state-in-effect` 擋下，且確實會多一輪 render）。
+   */
+  const [state, setState] = useState<FlowState>(() =>
+    prefilledCode ? { phase: "lookup-loading" } : { phase: "lookup" },
+  );
   const [lookupError, setLookupError] = useState<string | null>(null);
   /** 進行中的寫卡控制器；寫入中有「取消」可 abort 它（CRA-V1-009）。 */
   const writeAbortRef = useRef<AbortController | null>(null);
@@ -153,30 +206,49 @@ export default function NfcBindScreen() {
 
   const lookup = useCallback(async () => {
     if (!eventId || !code.trim()) return;
+    const rawCode = code.trim();
     setState({ phase: "lookup-loading" });
     setLookupError(null);
-    try {
-      const { registration } = await registrationService.getByCode(
-        eventId,
-        code.trim(),
-      );
-      if (!registration.id) {
-        setLookupError(copy.nfc.bindFailed);
-        setState({ phase: "lookup" });
+    const result = await resolveAttendee(eventId, rawCode);
+    if (result.ok) {
+      setState(result.ctx);
+      return;
+    }
+    setLookupError(result.reason);
+    setState({ phase: "lookup" });
+  }, [eventId, code]);
+
+  /**
+   * 來自報到卡的一次性自動查詢。
+   *
+   * 工作者就地宣告（同 `check-in.tsx` 的 `loadCounter`）：狀態更新全在 `await`
+   * 之後，effect 本體不會同步 setState。`prefilledLookupDone` 是「已經自動查過」
+   * 的名額——不能只靠 deps 控制，否則操作者每打一個字就會重查一次。
+   */
+  const prefilledLookupDone = useRef(false);
+  useEffect(() => {
+    if (prefilledLookupDone.current) return;
+    if (!eventId || !prefilledCode) return;
+    prefilledLookupDone.current = true;
+    let active = true;
+
+    async function loadPrefilledAttendee() {
+      const result = await resolveAttendee(eventId, prefilledCode);
+      if (!active) return;
+      if (result.ok) {
+        setState(result.ctx);
         return;
       }
-      setState({
-        phase: "confirm",
-        registrationId: registration.id,
-        code: code.trim(),
-        displayName: getRegistrationDisplayName(registration),
-        profileUrl: registration.profileUrl ?? null,
-      });
-    } catch {
-      setLookupError(copy.checkIn.registrationNotFound);
+      setLookupError(result.reason);
       setState({ phase: "lookup" });
     }
-  }, [eventId, code]);
+
+    void loadPrefilledAttendee();
+
+    return () => {
+      active = false;
+    };
+  }, [eventId, prefilledCode]);
 
   const fail = useCallback(
     (
