@@ -14,7 +14,11 @@
  * UID 正規化的**單一真相來源**，在這裡再寫一份等價函式會製造第二份規則
  * （CR-D4）。因此本模組的測試同樣只 mock `react-native`。
  */
-import { getApiErrorCode, getApiErrorStatus } from "@/utils/api-error";
+import {
+  getApiErrorCode,
+  getApiErrorStatus,
+  isNetworkError,
+} from "@/utils/api-error";
 import { NfcFlowError, normalizeTagUid } from "@/utils/nfc-utils";
 
 /**
@@ -58,26 +62,19 @@ const IDENTIFIER_MISSING_CODES = new Set([
   "RECEIVER_IDENTIFIER_MISSING",
 ]);
 
-/** Value 未經 `AxiosError` 包裝時的網路錯誤碼（`api-error.ts` 同族）。 */
-const NETWORK_ERROR_CODES = new Set([
-  "ECONNABORTED",
-  "ERR_NETWORK",
-  "ETIMEDOUT",
-  "ENETUNREACH",
-  "ECONNREFUSED",
-  "ERR_BAD_RESPONSE",
-]);
-
 /**
  * 把讀卡例外與後端交換錯誤，收斂成互斥的畫面分類。
  *
  * 判定順序刻意是「先具體後泛用」：
  * 1. `NfcFlowError`（讀卡層，無 HTTP）→ 直接映射；
- * 2. 有後端 `code` → 逐碼判定（`RECEIVER_BADGE_NOT_BOUND` 必須先於泛用的
+ * 2. 網路層 → 走 `api-error.ts` 的 `isNetworkError`（**不在此重寫一份碼表**：
+ *    axios 在斷網／逾時時沒有 `response`，只看 `getApiErrorCode` 會讀不到東西，
+ *    而把「連線中斷」誤報成「讀卡失敗」）；
+ * 3. 有後端 `code` → 逐碼判定（`RECEIVER_BADGE_NOT_BOUND` 必須先於泛用的
  *    `NOT_BOUND`／`404`，否則現場會拿到「你的卡沒綁」這種**指錯邊**的指示）；
- * 3. 只有狀態碼時退回 `404 → receiver-not-bound`／`400 → invalid-uid`／
+ * 4. 只有狀態碼時退回 `404 → receiver-not-bound`／`400 → invalid-uid`／
  *    `422 → rejected`／`401|403 → unauthorized`／`5xx → server`；
- * 4. 其餘 → `failed`（永遠不得當成成功）。
+ * 5. 其餘 → `failed`（永遠不得當成成功）。
  */
 export function classifyExchangeError(error: unknown): ExchangeFailureKind {
   if (error instanceof NfcFlowError) {
@@ -88,6 +85,9 @@ export function classifyExchangeError(error: unknown): ExchangeFailureKind {
     // 都代表「這次沒讀到卡」，一律收斂成讀取失敗（畫面文案相同）。
     return "invalid-uid";
   }
+
+  // 必須先於碼表判定：網路錯誤沒有 `response`，`getApiErrorCode` 一律回 `null`。
+  if (isNetworkError(error)) return "network";
 
   const code = (getApiErrorCode(error) ?? "").toUpperCase();
 
@@ -101,13 +101,9 @@ export function classifyExchangeError(error: unknown): ExchangeFailureKind {
   if (code === "VALIDATION_ERROR") return "rejected";
   // 讀卡階段的公開 lookup 用的就是這個碼（`lookupNfcBadge` 的 `NFC_BADGE_NOT_BOUND`）。
   if (NOT_BOUND_CODES.has(code)) return "card-not-bound";
-  if (NETWORK_ERROR_CODES.has(code)) return "network";
 
   const status = getApiErrorStatus(error);
-  if (status == null) {
-    // 有 code 但無 response ⇒ 多半是網路層；無 code 且非 NfcFlowError ⇒ 不明例外。
-    return code === "" ? "failed" : "network";
-  }
+  if (status == null) return "failed";
   if (status === 401 || status === 403) return "unauthorized";
   if (status === 404) return "receiver-not-bound";
   if (status === 422) return "rejected";
