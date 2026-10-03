@@ -1,7 +1,9 @@
 import type {
   ApiResponse,
   BadgeInfo,
+  ExchangeType,
   NfcLookupResult,
+  RecordNfcExchangeResult,
 } from "@/types/api.types";
 
 import { apiClient } from "./api";
@@ -64,6 +66,32 @@ export const nfcService = {
     const res = await apiClient.post<ApiResponse<{ badge: BadgeInfo }>>(
       `/api/v1/events/${encodeURIComponent(eventId)}/nfc/bind`,
       { registrationId, tagUid, ...opts },
+    );
+    return res.data.data;
+  },
+
+  /**
+   * POST /v1/events/:eventId/nfc/exchange — 記錄兩張卡之間的雙向交換（OPERATOR+）。
+   *
+   * 欄名是 BE 的 wire 契約（`BE:src/events/dtos/event-exchange.dto.ts:7`／`:11`）：
+   * `initiatorUid` / `receiverUid` —— **不是** `initiatorTagUid` / `receiverTagUid`。
+   * 該 controller 自 Loop AB · WP-19 起 `forbidNonWhitelisted`：舊欄名會被
+   * **422 `VALIDATION_ERROR`** 指名拒絕，不再被靜默丟棄成誤導性的 400（`R-DK-01`）。
+   *
+   * 冪等由後端負責（同 pair 第二次回 `alreadyExchanged: true`，不再寫 DB）；
+   * 呼叫端不應把它當失敗。
+   */
+  async recordExchange(
+    eventId: string,
+    body: {
+      initiatorUid: string;
+      receiverUid: string;
+      exchangeType?: ExchangeType;
+    },
+  ): Promise<RecordNfcExchangeResult> {
+    const res = await apiClient.post<ApiResponse<RecordNfcExchangeResult>>(
+      `/api/v1/events/${encodeURIComponent(eventId)}/nfc/exchange`,
+      body,
     );
     return res.data.data;
   },

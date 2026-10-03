@@ -138,3 +138,30 @@ export interface NfcLookupResult {
   registrantType: string;
   registrationId: string | null;
 }
+
+/**
+ * 交換類型。鏡射 `FE:lib/events/types.ts:93`（桌台只會用到 `PEER_TO_PEER`）。
+ *
+ * 註：BE enum（`BE:prisma/schema.prisma:986-991`）另有第 4 值 `QR_SCAN`，
+ * FE／ADM 皆未提供（已登記為 `R-DK-07`）；`POST /nfc/exchange` 的 DTO 以
+ * `@IsEnum(ExchangeType)` 驗證，送未知值會回 **422 `VALIDATION_ERROR`**。
+ */
+export type ExchangeType =
+  "PEER_TO_PEER" | "EXHIBITOR_LEAD_SCAN" | "ATTENDEE_BOOTH_TAP";
+
+/**
+ * `POST /api/v1/events/:eventId/nfc/exchange` 的回應（WP-20 落點 #1）。
+ *
+ * 與 `FE:lib/events/nfc.ts:41-52` 的 `RecordNfcExchangeResult` **逐字同構**
+ * （Loop AB · WP-19 契約）。BE `EventNfcExchangeService.recordExchange` 有兩個
+ * 成功分支、**皆回 201**：
+ *   - 首交換 → `{ alreadyExchanged: false, contactsExchanged: 2 }`（`:81`）
+ *   - 重複   → `{ alreadyExchanged: true, exchangeId }`（`:58`）
+ * 兩個分支都**不會**同時帶三個鍵 ⇒ 只有 `alreadyExchanged` 保證存在，
+ * 其餘兩者皆為 optional。
+ */
+export interface RecordNfcExchangeResult {
+  alreadyExchanged: boolean;
+  exchangeId?: string;
+  contactsExchanged?: number;
+}
