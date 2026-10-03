@@ -41,7 +41,13 @@ interface TokenStatItem {
 }
 
 type EventRoute =
-  "check-in" | "token" | "registrations" | "nfc-bind" | "nfc-read" | "badges";
+  | "check-in"
+  | "token"
+  | "registrations"
+  | "nfc-bind"
+  | "nfc-read"
+  | "nfc-exchange"
+  | "badges";
 
 interface QuickAction {
   key: string;
@@ -78,6 +84,12 @@ const QUICK_ACTIONS: QuickAction[] = [
     label: copy.nfc.readTitle,
     icon: "search",
     route: "nfc-read",
+  },
+  {
+    key: "nfc-exchange",
+    label: copy.exchange.title,
+    icon: "hand-raised",
+    route: "nfc-exchange",
   },
   {
     key: "badges",

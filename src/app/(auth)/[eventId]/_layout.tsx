@@ -18,6 +18,7 @@ export default function EventLayout() {
       <Stack.Screen name="registrant/[registrationId]" />
       <Stack.Screen name="nfc-bind" />
       <Stack.Screen name="nfc-read" />
+      <Stack.Screen name="nfc-exchange" />
       <Stack.Screen name="badges" />
     </Stack>
   );

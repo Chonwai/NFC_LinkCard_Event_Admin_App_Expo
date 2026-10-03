@@ -374,6 +374,49 @@ export const copy = {
     webReadNotSupported: "此瀏覽器不支援 NFC，請改用 Android 真機讀卡",
     iosReadHint: "請使用支援 NFC 的裝置靠近讀取",
   },
+  /**
+   * 交換名片（Loop AB · WP-20，`93-plan-desk-nfc-pack.md` §2.3）。
+   *
+   * 消費端：`app/(auth)/[eventId]/nfc-exchange.tsx` 與 `utils/nfc-exchange.ts` 的分類器。
+   * 每一則失敗文案都必須是**可執行的現場指示**（AC-20-6／AC-20-7：不得只顯示原始錯誤），
+   * 且不得把「已交換過」的冪等態講成失敗。
+   */
+  exchange: {
+    title: "交換名片",
+    subtitle: "兩張卡各感應一次，記錄雙方的聯絡交換",
+    stepReadInitiator: "① 感應第一張卡",
+    stepReadReceiver: "② 感應對方的卡",
+    introHint: "先感應第一張卡，畫面上出現姓名後，再感應對方的卡。",
+    waitingSecond: "請感應對方的卡片",
+    reading: "讀取中，請保持卡片靠近…",
+    submitting: "寫入交換紀錄中，請稍候…",
+    firstCardLabel: "第一張卡",
+    secondCardLabel: "第二張卡",
+    successTitle: "已交換",
+    alreadyTitle: "已交換過",
+    successHint: "雙方聯絡資訊已記錄，會出現在彼此的聯絡人。",
+    alreadyHint: "這兩張卡先前已交換過，未重複寫入。",
+    exchangeAgain: "再交換一次",
+    retry: "重試",
+    cancel: "取消",
+    /** 自換：前端先擋（AC-20-5），不消耗第一張卡的狀態 */
+    sameCard: "這是同一張卡，請感應另一張卡",
+    /** 讀卡階段的公開 lookup 回 404：這張卡還沒寫入任何人的資料 */
+    cardNotBound: "這張卡還沒寫入資料，請先完成報到寫卡",
+    initiatorNotBound: "第一張卡尚未綁定資料，請先完成寫卡",
+    receiverNotBound: "對方的卡尚未寫入資料，請先完成寫卡",
+    deactivated: "這張卡已停用，請改用其他卡片",
+    invalidUid: "讀到的卡片編號無效，請換一張卡或重新感應",
+    identifierMissing: "沒有讀到卡片編號，請重新感應",
+    rejected: "後端不接受這次交換（資料格式不符），請洽現場工程人員",
+    unauthorized: "沒有操作權限，請重新登入後再試",
+    network: "連線中斷，請確認網路後重試",
+    server: "伺服器暫時無法處理，請稍後重試",
+    readFailed: "讀取失敗，請靠近後重試",
+    webNotSupported: "此瀏覽器不支援 NFC，請改用 Android 真機感應",
+    /** AC-20-7：原生讀不到 UID 時不得顯示技術錯誤，只給可行動的替代路徑 */
+    iosReadUnavailable: "此裝置無法讀取卡片，請改用其他裝置",
+  },
   settings: {
     title: "設定",
     logout: "登出",
