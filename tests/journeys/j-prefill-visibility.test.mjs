@@ -48,6 +48,7 @@ function sourceOf(relativePath) {
 }
 
 const NFC_BIND_SOURCE = sourceOf("src/app/(auth)/[eventId]/nfc-bind.tsx");
+const DESK_HANDOFF_SOURCE = sourceOf("src/utils/desk-handoff.ts");
 const API_TYPES_SOURCE = sourceOf("src/types/api.types.ts");
 
 /**
@@ -108,14 +109,20 @@ describe("J-PREFILL-VISIBILITY 建帳後名片連結可見 [persona:staff-onsite
   });
 
   it("given nfc-bind 螢幕, when 讀原始碼, then 名片連結取自 by-code 回應的 profileUrl（X-23：不在 App 內重組 origin）", () => {
+    // X-23 的實作落點自 Loop AB · Batch A REPAIR R1 起移到 `@/utils/desk-handoff`
+    // （畫面檔只剩接線，見 `M-03`）；不變式本身不變，所以兩邊一起讀。
+    assert.match(DESK_HANDOFF_SOURCE, /registration\.profileUrl/);
     assert.match(
       NFC_BIND_SOURCE,
-      /profileUrl:\s*registration\.profileUrl \?\? null/,
+      /from "@\/utils\/desk-handoff"/,
+      "nfc-bind 沒有接上交棒純邏輯模組",
     );
     assert.equal(
-      /buildRegistrationProfileUrl\s*\(/.test(NFC_BIND_SOURCE),
+      /buildRegistrationProfileUrl\s*\(/.test(
+        NFC_BIND_SOURCE + DESK_HANDOFF_SOURCE,
+      ),
       false,
-      "nfc-bind.tsx 不得自行組裝名片 origin（X-23）",
+      "不得自行組裝名片 origin（X-23）",
     );
   });
 

@@ -31,23 +31,14 @@ import {
 } from "@/constants/theme";
 import { nfcService } from "@/services/nfc.service";
 import { registrationService } from "@/services/registration.service";
-import type { Registration } from "@/types/api.types";
+import { resolveAttendee, type AttendeeContext } from "@/utils/desk-handoff";
 import {
   classifyNfcBindError,
   type NfcBindFailureKind,
 } from "@/utils/nfc-bind-errors";
 import { isNfcSupported, startNfc, writeUriToCard } from "@/utils/nfc-utils";
-import { getRegistrationDisplayName } from "@/utils/registration-display";
 
 type BadgeType = "WRISTBAND" | "CARD" | "QR_ONLY";
-
-interface AttendeeContext {
-  registrationId: string;
-  code: string;
-  displayName: string;
-  /** X-23 預設：讀 BE by-code 回傳的完整 profileUrl，不在 App 內自組 origin */
-  profileUrl: string | null;
-}
 
 type FlowState =
   | { phase: "lookup" }
@@ -90,46 +81,10 @@ function writeBlockedMessage(): string | null {
 }
 
 /**
- * `by-code` 回應 → `confirm` 態所需的人員資訊。
- * 缺 `id` 時回 null，由呼叫端沿用既有錯誤文案（不靜默吞掉）。
+ * 查詢 + 整形（含錯誤文案）的純邏輯已抽到 `@/utils/desk-handoff`：AdminApp 沒有
+ * 元件層測試，留在畫面檔裡的邏輯只能被「掃原始碼字串」驗到（Loop AB · Batch A
+ * 驗收 `M-03`）。
  */
-function toAttendeeContext(
-  registration: Registration,
-  code: string,
-): (AttendeeContext & { phase: "confirm" }) | null {
-  if (!registration.id) return null;
-  return {
-    phase: "confirm",
-    registrationId: registration.id,
-    code,
-    displayName: getRegistrationDisplayName(registration),
-    profileUrl: registration.profileUrl ?? null,
-  };
-}
-
-/**
- * 只負責「查詢 + 整形」，**不碰任何 state**：這樣按鈕與自動查詢都能用它，
- * 而 effect 本體也不會出現同步 setState（`react-hooks/set-state-in-effect`）。
- */
-async function resolveAttendee(
-  eventId: string,
-  rawCode: string,
-): Promise<
-  | { ok: true; ctx: AttendeeContext & { phase: "confirm" } }
-  | { ok: false; reason: string }
-> {
-  try {
-    const { registration } = await registrationService.getByCode(
-      eventId,
-      rawCode,
-    );
-    const ctx = toAttendeeContext(registration, rawCode);
-    if (!ctx) return { ok: false, reason: copy.nfc.bindFailed };
-    return { ok: true, ctx };
-  } catch {
-    return { ok: false, reason: copy.checkIn.registrationNotFound };
-  }
-}
 
 function BlockedCardActions() {
   return (
@@ -209,7 +164,11 @@ export default function NfcBindScreen() {
     const rawCode = code.trim();
     setState({ phase: "lookup-loading" });
     setLookupError(null);
-    const result = await resolveAttendee(eventId, rawCode);
+    const result = await resolveAttendee(
+      eventId,
+      rawCode,
+      registrationService.getByCode,
+    );
     if (result.ok) {
       setState(result.ctx);
       return;
@@ -224,17 +183,29 @@ export default function NfcBindScreen() {
    * 工作者就地宣告（同 `check-in.tsx` 的 `loadCounter`）：狀態更新全在 `await`
    * 之後，effect 本體不會同步 setState。`prefilledLookupDone` 是「已經自動查過」
    * 的名額——不能只靠 deps 控制，否則操作者每打一個字就會重查一次。
+   *
+   * L-05（Loop AB · Batch A 驗收）：守衛存的是**已消費的那個 `code`**，不是單純的
+   * `true`。存 `true` 的話，同一個畫面實例若再收到新的 `?code=`（Expo Router
+   * 以同層 `replace` 重用實例的情形），自動查詢與欄位值都會停在舊的那一筆，
+   * 形成「畫面顯示的報名碼」與「實際查詢對象」不一致的視窗。
    */
-  const prefilledLookupDone = useRef(false);
+  const prefilledLookupDone = useRef<string | null>(null);
   useEffect(() => {
-    if (prefilledLookupDone.current) return;
     if (!eventId || !prefilledCode) return;
-    prefilledLookupDone.current = true;
+    if (prefilledLookupDone.current === prefilledCode) return;
+    prefilledLookupDone.current = prefilledCode;
     let active = true;
 
     async function loadPrefilledAttendee() {
-      const result = await resolveAttendee(eventId, prefilledCode);
+      const result = await resolveAttendee(
+        eventId,
+        prefilledCode,
+        registrationService.getByCode,
+      );
       if (!active) return;
+      // 欄位對齊「剛剛查的那一個 code」；在 `await` 之後才 setState，
+      // 所以 effect 本體依然沒有同步 setState。
+      setCode(prefilledCode);
       if (result.ok) {
         setState(result.ctx);
         return;

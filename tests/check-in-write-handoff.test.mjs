@@ -35,7 +35,7 @@ const COPY = read("src/constants/copy.zh-TW.ts");
 test("WP-18：報到結果卡顯示公開檔案路徑，沒有 profile 時說的是原因而不是破折號", () => {
   assert.match(
     CHECK_IN,
-    /function profilePathLabel\(/,
+    /import \{ profilePathLabel \} from "@\/utils\/desk-handoff";/,
     "缺 profilePathLabel：無法把絕對 profileUrl 收斂成 /p/{slug}",
   );
   assert.match(
@@ -100,12 +100,20 @@ test("WP-18：nfc-bind 以 ?code= 作欄位初值，且只自動查一次、不�
   );
   assert.match(
     NFC_BIND,
-    /prefilledLookupDone\.current = true;/,
+    /if \(prefilledLookupDone\.current === prefilledCode\) return;/,
     "自動查詢沒有一次性守衛：操作者每次打字都會重查一次",
+  );
+  // L-05：守衛存的是「已消費的那個 code」，不是 `true`。存 `true` 的話，同一個畫面
+  // 實例再收到新的 `?code=` 時永遠不會重查，欄位也停在舊值（動態行為見
+  // `tests/desk-handoff.test.mjs`；這裡只鎖住「形狀沒有退回 true」）。
+  assert.match(
+    NFC_BIND,
+    /const prefilledLookupDone = useRef<string \| null>\(null\);/,
+    "一次性守衛退回 boolean ⇒ 新 ?code= 不會被查、欄位停在舊值（L-05）",
   );
   // 一次性查詢不得順手寫卡／綁卡：進場語意是「查這個人是誰」，不是「開始寫」。
   const effectStart = NFC_BIND.indexOf(
-    "const prefilledLookupDone = useRef(false);",
+    "const prefilledLookupDone = useRef<string | null>(null);",
   );
   const effectEnd = NFC_BIND.indexOf("const fail = useCallback(");
   assert.ok(

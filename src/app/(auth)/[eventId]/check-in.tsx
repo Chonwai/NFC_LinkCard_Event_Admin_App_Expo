@@ -40,6 +40,7 @@ import {
 } from "@/utils/check-in-display";
 import { resolveCheckInErrorMessage } from "@/utils/check-in-errors";
 import { playCheckInFeedback } from "@/utils/check-in-feedback";
+import { profilePathLabel } from "@/utils/desk-handoff";
 import {
   getRegistrationCheckedInAt,
   getRegistrationCode,
@@ -57,24 +58,6 @@ function formatDateTime(iso: string | null | undefined): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleString();
-}
-
-/**
- * `11` `WP-18`：把後端回的絕對 `profileUrl` 收斂成要寫進卡的路徑（`/p/{slug}`）。
- *
- * 現場只需要認路徑；origin 由後端與寫卡頁各自持有，這個畫面不再組第二份。
- * 解析不出來時退回原文——讓操作者看到後端真正回了什麼，而不是一片空白。
- */
-function profilePathLabel(
-  profileUrl: string | null | undefined,
-): string | null {
-  if (!profileUrl || !profileUrl.trim()) return null;
-  const value = profileUrl.trim();
-  try {
-    return new URL(value).pathname;
-  } catch {
-    return value;
-  }
 }
 
 /** 資訊列：左標籤右數值，單行緊湊（現場一屏看完） */
