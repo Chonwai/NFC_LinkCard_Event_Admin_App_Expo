@@ -13,8 +13,9 @@
  * - 把 `nfc-bind.tsx` 的 `useState(prefilledCode)` 改回 `useState("")` ⇒ 第三條必紅。
  * - 讓自動查詢沒被 ref 守衛包住 ⇒ 「只查一次」那條必紅。
  *
- * 已知界線：本檔不證明「3 秒自動重置前按得到 CTA」——那是裝置上的時間行為，屬
- * 交付報告 §8 的殘留風險，不是靜態掃描能斷言的東西。
+ * 已知界線：本檔不證明「自動重置前按得到 CTA」——那是裝置上的時間行為，屬
+ * 交付報告 §8 的殘留風險，不是靜態掃描能斷言的東西。（`INC-2`／Loop AF：
+ * 等待已由 3 秒延長為 15 秒並加「繼續掃碼」出口，見 `check-in-valid-hold.test.mjs`。）
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -33,9 +34,11 @@ const NFC_BIND = read("src/app/(auth)/[eventId]/nfc-bind.tsx");
 const COPY = read("src/constants/copy.zh-TW.ts");
 
 test("WP-18：報到結果卡顯示公開檔案路徑，沒有 profile 時說的是原因而不是破折號", () => {
+  // `INC-2`：import 改為多行（同時引入 mergeCheckInProfileUrl），
+  // 以「符號＋來源」鎖定，不再要求單行形狀。
   assert.match(
     CHECK_IN,
-    /import \{ profilePathLabel \} from "@\/utils\/desk-handoff";/,
+    /profilePathLabel,?\s*\} from "@\/utils\/desk-handoff";/,
     "缺 profilePathLabel：無法把絕對 profileUrl 收斂成 /p/{slug}",
   );
   assert.match(
@@ -143,5 +146,7 @@ test("WP-18：三個新文案 key 存在且有值（不得硬編中文，見 cop
       `copy.checkIn.${key} 是空字串`,
     );
   }
-  assert.match(COPY, /profileLabel: "Profile"/);
+  // `INC-2`（Loop AF）：標籤由 "Profile" 改為「名片」（PM 心智模型；
+  // 同值同步於 `check-in-valid-hold.test.mjs`）。
+  assert.match(COPY, /profileLabel: "名片"/);
 });

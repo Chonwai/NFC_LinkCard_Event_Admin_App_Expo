@@ -75,6 +75,21 @@ export function profilePathLabel(
 }
 
 /**
+ * `INC-2`（Loop AF）：合併 `checkIn` 與 `by-code` 兩份回應的 `profileUrl`。
+ *
+ * staging 的 `checkIn` 回應尚未含 `profileUrl`（`f056748` 未部署）⇒ 對「有
+ * profile 的人」也顯示「名片尚未就緒」（誤導）。同一次掃描其實已先取得
+ * `by-code`（該版已含此欄位）：`checkIn` 是 `undefined`（舊版缺欄）時回退到
+ * `by-code`；有值時以 `checkIn`（較新、報到當下）為準。
+ */
+export function mergeCheckInProfileUrl(
+  checkInProfileUrl: string | null | undefined,
+  byCodeProfileUrl: string | null | undefined,
+): string | null {
+  return checkInProfileUrl ?? byCodeProfileUrl ?? null;
+}
+
+/**
  * 只負責「查詢 + 整形」，**不碰任何 state**：這樣按鈕與自動查詢都能用它，
  * 而 effect 本體也不會出現同步 setState（`react-hooks/set-state-in-effect`）。
  *

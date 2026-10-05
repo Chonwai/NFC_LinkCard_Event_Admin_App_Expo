@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { InlineBanner } from "@/components/ui/InlineBanner";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { CHECK_IN_AUTO_RESET_MS } from "@/constants/config";
 import { copy } from "@/constants/copy.zh-TW";
 import {
   layout,
@@ -40,7 +41,7 @@ import {
 } from "@/utils/check-in-display";
 import { resolveCheckInErrorMessage } from "@/utils/check-in-errors";
 import { playCheckInFeedback } from "@/utils/check-in-feedback";
-import { profilePathLabel } from "@/utils/desk-handoff";
+import { mergeCheckInProfileUrl, profilePathLabel } from "@/utils/desk-handoff";
 import {
   getRegistrationCheckedInAt,
   getRegistrationCode,
@@ -174,12 +175,14 @@ export default function CheckInScreen() {
     async (next: Extract<CheckInUiState, { phase: "outcome" }>) => {
       setState(next);
       await playCheckInFeedback(next.kind);
-      // 僅成功態自動重置；重複／無效需人工確認（覆核／補報）
+      // 僅成功態自動重置；重複／無效需人工確認（覆核／補報）。
+      // `INC-2`：等待由 `CHECK_IN_AUTO_RESET_MS`（15s）決定——3 秒讀不完六列
+      // 資訊也按不到 CTA；保留有限計時＝佇列自癒，另備「繼續掃碼」顯式出口。
       if (next.kind === "valid") {
         clearResetTimer();
         resetTimer.current = setTimeout(() => {
           resetToIdle();
-        }, 3000);
+        }, CHECK_IN_AUTO_RESET_MS);
       }
     },
     [resetToIdle],
@@ -234,7 +237,18 @@ export default function CheckInScreen() {
 
       try {
         const checked = await registrationService.checkIn(eventId, code);
-        const reg = checked.registration ?? registration;
+        // `INC-2`：staging 的 `checkIn` 尚未回 `profileUrl`（`f056748` 未部署），
+        // 對「有 profile 的人」也誤顯「名片尚未就緒」；同一次掃描已先取得的
+        // `by-code` 含此欄位，缺欄時據以補位（有值時以 `checkIn` 為準）。
+        const reg = checked.registration
+          ? {
+              ...checked.registration,
+              profileUrl: mergeCheckInProfileUrl(
+                checked.registration.profileUrl,
+                registration.profileUrl,
+              ),
+            }
+          : registration;
         await showOutcome({
           phase: "outcome",
           kind: "valid",
@@ -633,13 +647,15 @@ export default function CheckInScreen() {
                 </View>
                 {/*
                   `11` `WP-18`：主 CTA——把這次報到接續到寫卡頁，並帶上報名碼。
-                  注意自動重置：成功態 3 秒後 `resetToIdle()`（既有行為，本輪未改），
-                  因此這顆按鈕必須在那之前按下（見交付報告 §8 的殘留風險）。
+                  `INC-2`：成功態 15 秒後才自動 `resetToIdle()`
+                  （`CHECK_IN_AUTO_RESET_MS`），且下方另備「繼續掃碼」顯式出口；
+                  按下本鈕先清計時器，不再與計時器賽跑。
                 */}
                 <Button
                   label={copy.checkIn.gotoWriteCard}
                   testID="check-in-write-card"
                   onPress={() => {
+                    clearResetTimer();
                     const code =
                       outcome.registration?.registrationCode ?? outcome.code;
                     if (!code || !eventId) return;
@@ -712,7 +728,17 @@ export default function CheckInScreen() {
             ) : null}
 
             {outcome.kind === "valid" ? (
-              <Text style={styles.resetHint}>{copy.checkIn.autoResetIn}…</Text>
+              <View style={styles.actions}>
+                {/* `INC-2`：顯式出口——不必等計時器，也不會誤觸下一張碼 */}
+                <Button
+                  label={copy.checkIn.continueScan}
+                  variant="secondary"
+                  onPress={resetToIdle}
+                />
+                <Text style={styles.resetHint}>
+                  {copy.checkIn.autoResetHint(CHECK_IN_AUTO_RESET_MS / 1000)}
+                </Text>
+              </View>
             ) : null}
           </View>
         ) : null}

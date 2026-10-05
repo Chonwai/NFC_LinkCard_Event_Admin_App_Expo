@@ -43,6 +43,16 @@ export const API_TIMEOUT_MS = 15000;
 export const LOOKUP_TIMEOUT_MS = 3000;
 
 /**
+ * 報到成功態的自動返回等待（毫秒；`INC-2`／Loop AF，2026-10-05）。
+ *
+ * 現場回報：3 秒不足以讀完六列資訊（5–8 秒）再決定「寫卡／繼續掃碼」——
+ * 操作者與計時器賽跑，只能重掃同一張碼。15 秒是「從容讀完＋決策」的合理
+ * 上限；保留有限計時＝佇列自癒（忘了按也不會永遠卡在成功態），同時另備
+ * 顯式「繼續掃碼」按鈕，操作者隨時可主動返回。
+ */
+export const CHECK_IN_AUTO_RESET_MS = 15000;
+
+/**
  * 用戶端網頁 origin。NFC 寫入優先用 BE 回傳的完整 `profileUrl`（X-23）；
  * `buildRegistrationProfileUrl` 僅作 `/p/{slug}` 輔助組裝（同源 WEB_BASE_URL）。
  * 與 API origin 分開：staging API 與 staging Web 不是同一台。

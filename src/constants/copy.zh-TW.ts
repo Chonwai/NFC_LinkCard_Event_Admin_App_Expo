@@ -195,7 +195,13 @@ export const copy = {
     rateLimited: "查詢過於頻繁，請稍後再試",
     cameraUnavailable: "無法取得相機權限",
     enableCamera: "允許使用相機",
-    autoResetIn: "即將自動重置",
+    /**
+     * `INC-2`（Loop AF）：成功態計時提示。帶秒數（由畫面傳入
+     * `CHECK_IN_AUTO_RESET_MS / 1000`）而非只寫「即將自動重置」——
+     * 操作者要能預期「還有多久」，才會決定從容按按鈕或等它自己跳回。
+     */
+    autoResetHint: (seconds: number) =>
+      `約 ${seconds} 秒後自動返回；或按「繼續掃碼」`,
     switchToManual: "改用輸入模式",
     switchToScan: "改用掃描模式",
     attendeeName: "姓名",
@@ -209,14 +215,18 @@ export const copy = {
     /**
      * `11` `WP-18`：報到結果卡的公開檔案列。值是 `/p/{slug}`（去 origin 的路徑，
      * 不是完整 URL——完整 URL 由後端與寫卡頁各自持有，這裡不再組一次 origin）。
+     * `INC-2`（Loop AF）：標籤由 "Profile" 改為「名片」——PM 與現場的
+     * 心智模型是「名片」，不是系統欄位名。
      */
-    profileLabel: "Profile",
+    profileLabel: "名片",
     /**
-     * `11` `WP-18`：`profileUrl === null`（孤兒報名）時的理由文案。
-     * 依本檔既有慣例（見 `counterUnavailableHint`）：空值一律帶著「為什麼」——
-     * 現場要知道這張卡為什麼沒東西可寫，才知道要改走人工補救。
+     * `11` `WP-18`／`INC-2`（Loop AF）：名片未就緒時的理由文案。
+     * 依本檔既有慣例（見 `counterUnavailableHint`）：空值一律帶著「為什麼」。
+     * 舊句「無公開檔案，無法寫卡」有兩個錯：①staging 的 `checkIn` 缺欄時
+     * 對「有 profile 的人」也誤顯；②「無法寫卡」在寫卡改寫解析器 URL
+     * （`INC-3`，同一次 ADM build）後不再為真——名片未就緒仍可寫卡。
      */
-    noPublicProfile: "（無公開檔案，無法寫卡）",
+    noPublicProfile: "（名片尚未就緒；仍可寫卡）",
     /**
      * `11` `WP-18`：報到成功卡的主 CTA。帶著報名碼接續到寫卡頁，
      * 現場不必再看著 QR 重輸一次（每張卡省下的 30-60 秒）。
