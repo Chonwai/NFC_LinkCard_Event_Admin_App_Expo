@@ -90,6 +90,13 @@ export interface Registration {
   formData?: Record<string, unknown>;
   /** C-1: 完整 URL（含 origin）；null＝profile 尚未就緒（X-23 預設讀此欄，不自組 origin） */
   profileUrl?: string | null;
+  /**
+   * `WP-R2`（Loop AF R2）：報到台「LinkCard 帳號」三態。`null`＝無 user（未建檔）；
+   * `true`／`false`＝已激活／已建檔未激活。**選配**：舊 BE 未部署此欄 ⇒
+   * `undefined`，畫面自動降級（不渲染該列）。僅認證端點（checkin）會回傳；
+   * 公開端點（by-code）不會有此欄位。
+   */
+  isActivated?: boolean | null;
 }
 
 export interface TicketTypeItem {

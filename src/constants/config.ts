@@ -49,8 +49,26 @@ export const LOOKUP_TIMEOUT_MS = 3000;
  * 操作者與計時器賽跑，只能重掃同一張碼。15 秒是「從容讀完＋決策」的合理
  * 上限；保留有限計時＝佇列自癒（忘了按也不會永遠卡在成功態），同時另備
  * 顯式「繼續掃碼」按鈕，操作者隨時可主動返回。
+ *
+ * `WP-R2`（Loop AF R2）：`0`＝**不自動返回**——成功態就留在畫面上，僅由
+ * 操作者按按鈕離開（PM：有些現場節奏需要「畫面就一直留着」）。語意由
+ * `shouldAutoResetCheckIn()` 統一判讀；預設值維持 15 秒不變。
  */
 export const CHECK_IN_AUTO_RESET_MS = 15000;
+
+/**
+ * `WP-R2`：是否要排程「成功態自動返回」與渲染倒數提示。
+ *
+ * `ms <= 0`（現行語意：`0`＝永不自動返回）回 `false`——畫面據此不排程
+ * 計時器、也不渲染提示列。抽成函式而非在畫面內散寫 `> 0`：這是常數
+ * 契約的一部分，需要能在 Node 下被行為測試（`.tsx` 沒有 renderer，
+ * 測不到畫面分支）。
+ */
+export function shouldAutoResetCheckIn(
+  ms: number = CHECK_IN_AUTO_RESET_MS,
+): boolean {
+  return ms > 0;
+}
 
 /**
  * 用戶端網頁 origin。NFC 寫入優先用 BE 回傳的完整 `profileUrl`（X-23）；

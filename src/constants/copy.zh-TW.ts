@@ -228,6 +228,18 @@ export const copy = {
      */
     noPublicProfile: "（名片尚未就緒；仍可寫卡）",
     /**
+     * `WP-R2`（Loop AF R2）：報到結果卡的「LinkCard 帳號」列（PM 裁定 `OQ-2`：
+     * 現場要看得出「有沒有激活」）。三態由 `getCheckInAccountStatusLabel`
+     * 判讀（`undefined`＝BE 尚未部署 ⇒ 整列不渲染）。用語對齊平台既有文案
+     * （FE 會員「已激活」、BE 啟動信「激活帳戶並加入」）；「未激活」以全角
+     * 括號標示為「已建檔」的子狀態（同 `noPublicProfile` 的括號慣例），
+     * 避免被讀成兩個並列項。
+     */
+    accountLabel: "LinkCard 帳號",
+    accountNotRegistered: "未建檔",
+    accountRegisteredNotActivated: "已建檔（未激活）",
+    accountActivated: "已激活",
+    /**
      * `11` `WP-18`：報到成功卡的主 CTA。帶著報名碼接續到寫卡頁，
      * 現場不必再看著 QR 重輸一次（每張卡省下的 30-60 秒）。
      */

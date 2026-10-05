@@ -15,6 +15,9 @@
  * - 把 `CHECK_IN_AUTO_RESET_MS` 改回 3000 ⇒ 第 1 條必紅。
  * - 拿掉 valid 態的 `continueScan` 按鈕 ⇒ 第 2 條必紅。
  * - 把畫面改回 `checked.registration ?? registration`（不合併欄位）⇒ 第 3 條必紅。
+ * - `WP-R2`：把 `shouldAutoResetCheckIn(0)` 的行為改回 `true` ⇒ 第 4 條必紅
+ *   （`0`＝永不自動返回的契約）。
+ * - `WP-R2`：拿掉畫面任一處 `shouldAutoResetCheckIn()` guard ⇒ 第 4 條必紅。
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -22,7 +25,10 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { CHECK_IN_AUTO_RESET_MS } from "@/constants/config";
+import {
+  CHECK_IN_AUTO_RESET_MS,
+  shouldAutoResetCheckIn,
+} from "@/constants/config";
 import { copy } from "@/constants/copy.zh-TW";
 import { mergeCheckInProfileUrl } from "@/utils/desk-handoff";
 
@@ -32,6 +38,10 @@ const REPO_ROOT = path.resolve(
 );
 const CHECK_IN = readFileSync(
   path.join(REPO_ROOT, "src/app/(auth)/[eventId]/check-in.tsx"),
+  "utf8",
+);
+const CONFIG = readFileSync(
+  path.join(REPO_ROOT, "src/constants/config.ts"),
   "utf8",
 );
 
@@ -48,8 +58,8 @@ test("INC-2：自動返回等待＝15 秒常數，計時器不得寫死（3000 �
   );
   assert.match(
     CHECK_IN,
-    /import \{ CHECK_IN_AUTO_RESET_MS \} from "@\/constants\/config";/,
-    "畫面沒有 import 常數",
+    /import \{[^}]*CHECK_IN_AUTO_RESET_MS[^}]*\} from "@\/constants\/config";/,
+    "畫面沒有 import 常數（`WP-R2`：import 改為多行，同時引入 shouldAutoResetCheckIn）",
   );
   assert.match(
     CHECK_IN,
@@ -117,4 +127,36 @@ test("INC-2：checkIn/by-code 合併三態——undefined 補位、null 維持�
   assert.equal(mergeCheckInProfileUrl("/p/self", "/p/fallback"), "/p/self");
   // 畫面真的有用它（合併若被拔掉，本條的單元綠燈也不代表接線存在）。
   assert.match(CHECK_IN, /mergeCheckInProfileUrl\(/);
+});
+
+test("WP-R2：auto-reset `0` 語意——0＝不排程、不顯示倒數；畫面兩處皆過 guard", () => {
+  // 行為層：0（＝永不自動返回）不排程；負值同義；正值照舊排程。
+  assert.equal(shouldAutoResetCheckIn(0), false);
+  assert.equal(shouldAutoResetCheckIn(-1), false);
+  assert.equal(shouldAutoResetCheckIn(15000), true);
+  assert.equal(shouldAutoResetCheckIn(), true); // 現行常數＝15000 > 0
+
+  // 接線層 1：計時器包在 guard 內（`0` 時不得排程）。
+  assert.match(
+    CHECK_IN,
+    /if \(shouldAutoResetCheckIn\(\)\) \{\s*resetTimer\.current = setTimeout\(\(\) => \{\s*resetToIdle\(\);\s*\}, CHECK_IN_AUTO_RESET_MS\);\s*\}/,
+    "成功態計時器沒有 0-語意 guard（`0` 仍會被排程）",
+  );
+
+  // 接線層 2：倒數提示只在會自動返回時渲染（沒有倒數就不該寫「約 N 秒」）。
+  const hintAt = CHECK_IN.indexOf("copy.checkIn.autoResetHint(");
+  assert.ok(hintAt >= 0, "找不到 autoResetHint 呼叫");
+  const hintBlock = CHECK_IN.slice(Math.max(0, hintAt - 240), hintAt);
+  assert.match(
+    hintBlock,
+    /shouldAutoResetCheckIn\(\)/,
+    "提示列沒有 0-語意 guard（`0` 會顯示不存在的倒數）",
+  );
+
+  // 常數文件寫明 0 語意（下一位維護者的契約面）。
+  assert.match(
+    CONFIG,
+    /`0`＝\*\*不自動返回\*\*/,
+    "CHECK_IN_AUTO_RESET_MS 文件沒有寫明 0＝不自動返回",
+  );
 });

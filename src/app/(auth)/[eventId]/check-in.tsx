@@ -18,7 +18,10 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { InlineBanner } from "@/components/ui/InlineBanner";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import { CHECK_IN_AUTO_RESET_MS } from "@/constants/config";
+import {
+  CHECK_IN_AUTO_RESET_MS,
+  shouldAutoResetCheckIn,
+} from "@/constants/config";
 import { copy } from "@/constants/copy.zh-TW";
 import {
   layout,
@@ -34,6 +37,7 @@ import type { CheckInUiState } from "@/types/check-in.types";
 import type { Registration } from "@/types/api.types";
 import { getApiErrorCode } from "@/utils/api-error";
 import {
+  getCheckInAccountStatusLabel,
   getCheckInCounterHint,
   getCheckInCounterValue,
   getCheckInOutcomeDetail,
@@ -180,9 +184,12 @@ export default function CheckInScreen() {
       // 資訊也按不到 CTA；保留有限計時＝佇列自癒，另備「繼續掃碼」顯式出口。
       if (next.kind === "valid") {
         clearResetTimer();
-        resetTimer.current = setTimeout(() => {
-          resetToIdle();
-        }, CHECK_IN_AUTO_RESET_MS);
+        // `WP-R2`：`0`＝不自動返回（僅由操作者按鈕離開）——不排程計時器。
+        if (shouldAutoResetCheckIn()) {
+          resetTimer.current = setTimeout(() => {
+            resetToIdle();
+          }, CHECK_IN_AUTO_RESET_MS);
+        }
       }
     },
     [resetToIdle],
@@ -338,6 +345,10 @@ export default function CheckInScreen() {
     ? getCheckInOutcomeHeadline(outcome.kind)
     : null;
   const outcomeDetail = outcome ? getCheckInOutcomeDetail(outcome) : null;
+  // `WP-R2`：帳號列三態；`undefined`（舊 BE 未部署此欄）⇒ null＝不渲染（降級）。
+  const accountStatusLabel = outcome?.registration
+    ? getCheckInAccountStatusLabel(outcome.registration.isActivated)
+    : null;
   const outcomeColors =
     outcome?.kind === "valid"
       ? {
@@ -644,6 +655,17 @@ export default function CheckInScreen() {
                       copy.checkIn.noPublicProfile
                     }
                   />
+                  {/*
+                    `WP-R2`：LinkCard 帳號三態（未建檔／已建檔（未激活）／已激活）。
+                    只存在於 checkIn（認證端點）回應；舊 BE 缺欄時
+                    `accountStatusLabel` 為 null ⇒ 整列不渲染（降級、不誤導）。
+                  */}
+                  {accountStatusLabel != null ? (
+                    <InfoRow
+                      label={copy.checkIn.accountLabel}
+                      value={accountStatusLabel}
+                    />
+                  ) : null}
                 </View>
                 {/*
                   `11` `WP-18`：主 CTA——把這次報到接續到寫卡頁，並帶上報名碼。
@@ -735,9 +757,12 @@ export default function CheckInScreen() {
                   variant="secondary"
                   onPress={resetToIdle}
                 />
-                <Text style={styles.resetHint}>
-                  {copy.checkIn.autoResetHint(CHECK_IN_AUTO_RESET_MS / 1000)}
-                </Text>
+                {/* `WP-R2`：`0`＝不自動返回 ⇒ 不渲染倒數提示（沒有倒數可報） */}
+                {shouldAutoResetCheckIn() ? (
+                  <Text style={styles.resetHint}>
+                    {copy.checkIn.autoResetHint(CHECK_IN_AUTO_RESET_MS / 1000)}
+                  </Text>
+                ) : null}
               </View>
             ) : null}
           </View>

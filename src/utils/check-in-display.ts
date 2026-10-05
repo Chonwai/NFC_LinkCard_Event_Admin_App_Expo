@@ -90,3 +90,22 @@ export function getCheckInCounterHint(counterError: boolean): string {
     ? copy.checkIn.counterUnavailableHint
     : copy.checkIn.counterFallbackHint;
 }
+
+/**
+ * `WP-R2`（Loop AF R2）：結果卡的「LinkCard 帳號」列——三態＋缺欄降級。
+ *
+ * 回傳 `null` 代表**整列不渲染**：`undefined`＝後端尚未部署此欄位（舊 BE），
+ * 畫面降級回本輪之前的二態樣貌，不崩、也不把「未知」畫成任一種狀態
+ * （同 `count-display` 的「未知 ≠ 零」規則）。`null`（未建檔）與 `false`
+ * （已建檔未激活）是**不同**的現場處置，不得混同。
+ */
+export function getCheckInAccountStatusLabel(
+  isActivated: boolean | null | undefined,
+): string | null {
+  if (isActivated === undefined) return null;
+  if (isActivated === null) return copy.checkIn.accountNotRegistered;
+
+  return isActivated
+    ? copy.checkIn.accountActivated
+    : copy.checkIn.accountRegisteredNotActivated;
+}
