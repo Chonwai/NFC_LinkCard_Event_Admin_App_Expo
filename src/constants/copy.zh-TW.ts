@@ -365,6 +365,11 @@ export const copy = {
     /** 使用者主動取消時的狀態文案（正常路徑會直接回確認畫面） */
     writeCancelled: "已取消寫卡",
     payloadPreview: "將寫入",
+    /**
+     * `INC-3`（Loop AF）：解析器 URL 預覽的說明——`{tagUid}` 要感應當下才讀得到，
+     * 確認畫面只能顯示模板（舊版顯示 `profileUrl`，屬寫死 `/p/{slug}` 的模型）。
+     */
+    payloadTagUidHint: "卡片編號於感應寫入時決定（先讀 UID 再組解析器網址）",
     writtenUid: "卡片編號",
     replaceTitle: "換卡 / 補發 / 退卡",
     replaceBlocked: "等待後端 WP-N2。作廢舊卡的端點尚未就緒，這些操作暫不可用",

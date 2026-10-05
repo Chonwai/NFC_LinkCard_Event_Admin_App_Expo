@@ -108,14 +108,24 @@ describe("J-PREFILL-VISIBILITY 建帳後名片連結可見 [persona:staff-onsite
     assert.equal(body.email, "a@b.co");
   });
 
-  it("given nfc-bind 螢幕, when 讀原始碼, then 名片連結取自 by-code 回應的 profileUrl（X-23：不在 App 內重組 origin）", () => {
+  it("given nfc-bind 螢幕, when 讀原始碼, then 卡面 URL 只由 buildCardPayloadUrl 單一來源組裝（X-23 書面例外；INC-3）", () => {
     // X-23 的實作落點自 Loop AB · Batch A REPAIR R1 起移到 `@/utils/desk-handoff`
-    // （畫面檔只剩接線，見 `M-03`）；不變式本身不變，所以兩邊一起讀。
+    // （畫面檔只剩接線，見 `M-03`）。
     assert.match(DESK_HANDOFF_SOURCE, /registration\.profileUrl/);
     assert.match(
       NFC_BIND_SOURCE,
       /from "@\/utils\/desk-handoff"/,
       "nfc-bind 沒有接上交棒純邏輯模組",
+    );
+    // `INC-3`（Loop AF）書面例外：卡面 URL 改為解析器
+    // `${WEB_BASE_URL}/t/{eventId}/{tagUid}`——BE 沒有「已知 UID 就能回卡面 URL」
+    // 的服務端點，tagUid 必須感應當下讀取，因此由 `nfc-utils.buildCardPayloadUrl`
+    // 以 config 的 WEB_BASE_URL 單一來源組裝。X-23 的精神（不在畫面散落多份 origin）
+    // 不變：畫面只呼叫這一個 builder。
+    assert.match(
+      NFC_BIND_SOURCE,
+      /buildCardPayloadUrl\(eventId, uid\)/,
+      "nfc-bind 未使用 buildCardPayloadUrl 單一來源（INC-3）",
     );
     assert.equal(
       /buildRegistrationProfileUrl\s*\(/.test(

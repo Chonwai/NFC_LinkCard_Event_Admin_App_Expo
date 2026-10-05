@@ -19,6 +19,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { InlineBanner } from "@/components/ui/InlineBanner";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { WEB_BASE_URL } from "@/constants/config";
 import { copy } from "@/constants/copy.zh-TW";
 import { DEFAULT_BADGE_TYPE } from "@/constants/nfc";
 import {
@@ -36,7 +37,12 @@ import {
   classifyNfcBindError,
   type NfcBindFailureKind,
 } from "@/utils/nfc-bind-errors";
-import { isNfcSupported, startNfc, writeUriToCard } from "@/utils/nfc-utils";
+import {
+  buildCardPayloadUrl,
+  isNfcSupported,
+  startNfc,
+  writeUriToCard,
+} from "@/utils/nfc-utils";
 
 type BadgeType = "WRISTBAND" | "CARD" | "QR_ONLY";
 
@@ -270,17 +276,6 @@ export default function NfcBindScreen() {
       }
 
       setState({ phase: "writing", mode: "write", ...ctx });
-      // X-23: prefer BE full profileUrl; never assemble a second origin in the App.
-      const payloadUrl = ctx.profileUrl?.trim() ?? "";
-      if (!payloadUrl) {
-        setState({
-          phase: "error",
-          kind: "write-failed",
-          payloadUrl: "",
-          ...ctx,
-        });
-        return;
-      }
       const controller = new AbortController();
       writeAbortRef.current = controller;
       try {
@@ -289,23 +284,27 @@ export default function NfcBindScreen() {
           setState({
             phase: "error",
             kind: "unsupported",
-            payloadUrl,
+            payloadUrl: "",
             ...ctx,
           });
           return;
         }
         await startNfc();
-        const { tagUid } = await writeUriToCard(payloadUrl, {
-          signal: controller.signal,
-        });
-        await bindOnly(ctx, tagUid, payloadUrl);
+        // `INC-3`：卡面 URL 是解析器 `${WEB_BASE_URL}/t/{eventId}/{tagUid}`——
+        // 寫入前先讀 UID 再組 URL（builder），不再要求此人「當下有公開檔案」；
+        // 非 LinkCard 用戶也能寫卡，激活後同一張卡自動升級（FE `/t/` 動態解析）。
+        const { tagUid, writtenUri } = await writeUriToCard(
+          (uid) => buildCardPayloadUrl(eventId, uid),
+          { signal: controller.signal },
+        );
+        await bindOnly(ctx, tagUid, writtenUri);
       } catch (error) {
         if (classifyNfcBindError(error) === "cancelled") {
           // 使用者主動取消：回確認畫面即可，不該給一張看起來像失敗的卡。
           setState({ phase: "confirm", ...ctx });
           return;
         }
-        fail(ctx, error, payloadUrl);
+        fail(ctx, error, "");
       } finally {
         writeAbortRef.current = null;
       }
@@ -348,9 +347,6 @@ export default function NfcBindScreen() {
     );
   }
 
-  const attendee =
-    state.phase === "lookup" || state.phase === "lookup-loading" ? null : state;
-  const payloadPreview = attendee?.profileUrl ?? null;
   const errorMessage =
     state.phase === "error"
       ? state.kind === "bind-failed" && state.tagUid
@@ -421,7 +417,7 @@ export default function NfcBindScreen() {
           </>
         ) : null}
 
-        {state.phase === "confirm" && payloadPreview ? (
+        {state.phase === "confirm" ? (
           <>
             <View style={styles.formBlock}>
               <Text
@@ -442,8 +438,16 @@ export default function NfcBindScreen() {
               >
                 {copy.nfc.payloadPreview}
               </Text>
+              {/* `INC-3`：解析器 URL 的 tagUid 段要感應當下才讀得到，
+                  確認畫面只能顯示模板，不能先給完整網址。 */}
               <Text style={styles.url} selectable>
-                {payloadPreview}
+                {`${WEB_BASE_URL}/t/${eventId}/…`}
+              </Text>
+              <Text
+                style={styles.stepHint}
+                maxFontSizeMultiplier={layout.maxFontScaleBody}
+              >
+                {copy.nfc.payloadTagUidHint}
               </Text>
               <View style={styles.badgeTypeRow}>
                 {BADGE_TYPES.map((b) => (

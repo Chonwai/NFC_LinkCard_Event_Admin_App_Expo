@@ -56,6 +56,24 @@ export function buildRegistrationProfileUrl(slug: string): string {
   return `${WEB_BASE_URL}/p/${id}`;
 }
 
+/**
+ * `INC-3`（Loop AF）：卡面解析器 URL——`${WEB_BASE_URL}/t/{eventId}/{tagUid}`。
+ *
+ * 這是「寫進卡裡的 URL」的**唯一真實來源**（`nfc-bind` 以 `writeUriToCard` 的
+ * builder 形式使用它：感應讀到 UID 後才組）。寫進卡的是**公開 URL**，
+ * 不含 activation token 或任何憑證（任何人 tap 都能看到卡面內容）；
+ * `tagUid` 是實體卡晶片本體識別，解析端（FE `/t/` → BE `nfc/lookup`）
+ * 以它動態查詢目前狀態 ⇒ 先綁卡後建檔／激活會自動升級。
+ */
+export function buildCardPayloadUrl(eventId: string, tagUid: string): string {
+  const event = String(eventId ?? "").trim();
+  const uid = normalizeTagUid(String(tagUid ?? ""));
+  if (!event || !isValidTagUid(uid)) {
+    throw new NfcFlowError("write-failed", "missing eventId or tagUid");
+  }
+  return `${WEB_BASE_URL}/t/${encodeURIComponent(event)}/${encodeURIComponent(uid)}`;
+}
+
 function urlsMatch(expected: string, actual: string): boolean {
   const norm = (value: string) => value.trim().replace(/\/$/, "").toLowerCase();
   const left = norm(expected);
@@ -95,6 +113,9 @@ export const NFC_WRITE_TIMEOUT_MS = 20000;
 /**
  * 寫入 URI 後立刻讀回。讀回不符或沒有 UID 時拋錯，呼叫端不得接著 bind。
  *
+ * `url` 可為 builder（`(tagUid) => string`）：先讀 UID、再組最終 URL——
+ * 卡面為解析器 URL 時需要（`INC-3`）；讀回比對以**解析後**的 URL 為準。
+ *
  * **讀回驗證是刻意保留的設計**（稽核 §6.5 #7 明列為正向設計）：只寫不讀會讓
  * 「寫壞的卡」到閘口才被發現。逾時與取消只是外面多一層上限與出口，
  * 不改變驗證流程本身。
@@ -109,7 +130,7 @@ export const NFC_WRITE_TIMEOUT_MS = 20000;
  * 會 reject，那不是呼叫端該看到的事）。
  */
 export async function writeUriToCard(
-  url: string,
+  url: string | ((tagUid: string) => string),
   options?: { timeoutMs?: number; signal?: AbortSignal },
 ): Promise<{ tagUid: string; writtenUri: string }> {
   const { default: NfcManager, NfcTech, Ndef } = await loadNfcManager();
@@ -150,7 +171,9 @@ export async function writeUriToCard(
         throw new NfcFlowError("invalid-uid", tagUid || "missing");
       }
 
-      const bytes = await buildUriNdefMessage(url);
+      // `INC-3`：builder 在讀到 UID 之後才組最終 URL；字串路徑逐字不變。
+      const resolvedUrl = typeof url === "function" ? url(tagUid) : url;
+      const bytes = await buildUriNdefMessage(resolvedUrl);
       await NfcManager.ndefHandler.writeNdefMessage(bytes, {
         reconnectAfterWrite: true,
       });
@@ -161,7 +184,7 @@ export async function writeUriToCard(
         throw new NfcFlowError("write-failed", "empty read-back");
       }
       const writtenUri = Ndef.uri.decodePayload(Uint8Array.from(payload));
-      if (!urlsMatch(url, writtenUri)) {
+      if (!urlsMatch(resolvedUrl, writtenUri)) {
         throw new NfcFlowError("uri-mismatch", writtenUri);
       }
       return { tagUid, writtenUri };

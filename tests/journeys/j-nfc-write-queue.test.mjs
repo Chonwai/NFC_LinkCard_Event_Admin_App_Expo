@@ -144,14 +144,20 @@ describe("J-NFC-WRITE-QUEUE 寫卡流程狀態機 [persona:staff-onsite]", () =>
     assert.ok(start >= 0 && end > start, "找不到 writeAndBind 的函式邊界");
     const body = NFC_BIND_SCREEN.slice(start, end);
 
-    const write = body.indexOf("const { tagUid } = await writeUriToCard(");
+    const write = body.indexOf("await writeUriToCard(");
     const bind = body.indexOf("await bindOnly(");
 
     assert.ok(write >= 0, "寫入呼叫不在 writeAndBind 內");
     assert.ok(bind >= 0, "綁定呼叫不在 writeAndBind 內");
     assert.ok(write < bind, "綁定必須在寫入之後，否則寫失敗的卡仍會被綁定");
-    // 綁定用的是「寫入時讀回驗證過的」那張卡，不是另外再讀一次。
-    assert.match(body, /const \{ tagUid \} = await writeUriToCard\(/);
+    // 綁定用的是「寫入時讀回驗證過的」那張卡＋讀回網址，不是另外再讀一次。
+    // `INC-3`：URL 以 builder 傳入（先讀 UID 才能組解析器網址），綁定帶 writtenUri。
+    assert.match(
+      body,
+      /const \{ tagUid, writtenUri \} = await writeUriToCard\(/,
+    );
+    assert.match(body, /buildCardPayloadUrl\(eventId, uid\)/);
+    assert.match(body, /await bindOnly\(ctx, tagUid, writtenUri\)/);
 
     // 現場看到的字：寫卡失敗 → 自己的文案，不得是成功文案。
     // ① 接線（static）：錯誤映射表把 `write-failed` 指向 `copy.nfc.writeFailed`。
@@ -192,6 +198,37 @@ describe("J-NFC-WRITE-QUEUE 寫卡流程狀態機 [persona:staff-onsite]", () =>
 
     await assert.rejects(
       () => writeUriToCard(url, { timeoutMs: 1000 }),
+      (error) => error instanceof NfcFlowError && error.kind === "uri-mismatch",
+    );
+  });
+
+  it("T-ANQ-S3 given url 是 builder（解析器模型：先讀 UID 才能組 URL）, when 寫入, then 以當下讀到的 tagUid 呼叫 builder，且讀回以解析後 URL 比對", async () => {
+    resetNfc();
+    const seen = [];
+    const builder = (uid) => {
+      seen.push(uid);
+      return `https://linkcard.xyz/t/ev-1/${uid}`;
+    };
+    readBackUri = "https://linkcard.xyz/t/ev-1/04A1B2C3";
+
+    const result = await writeUriToCard(builder, { timeoutMs: 1000 });
+
+    assert.deepEqual(seen, ["04A1B2C3"], "builder 必須拿到正規化後的 tagUid");
+    assert.deepEqual(result, {
+      tagUid: "04A1B2C3",
+      writtenUri: "https://linkcard.xyz/t/ev-1/04A1B2C3",
+    });
+  });
+
+  it("T-ANQ-S4 given builder 組出的 URL 與讀回不符, when 寫入, then uri-mismatch（builder 不繞過讀回驗證）", async () => {
+    resetNfc();
+    readBackUri = "https://linkcard.xyz/t/ev-1/DEADBEEF";
+
+    await assert.rejects(
+      () =>
+        writeUriToCard((uid) => `https://linkcard.xyz/t/ev-1/${uid}`, {
+          timeoutMs: 1000,
+        }),
       (error) => error instanceof NfcFlowError && error.kind === "uri-mismatch",
     );
   });
