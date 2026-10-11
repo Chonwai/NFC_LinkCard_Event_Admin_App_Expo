@@ -24,6 +24,11 @@ export function mapWalkInError(error: unknown, fallback: string): string {
       return copy.checkIn.walkInConsentRequired;
     case "CONSENT_VERSION_MISMATCH":
       return copy.checkIn.walkInConsentVersionMismatch;
+    case "INVALID_FORM_DATA":
+      // L-3（2026-10-11 獨立審查）：walk-in payload 不含 formData，對「含 required
+      // 動態欄位」的票種後端必回此碼。App 不假裝能收動態欄位——把錯誤翻成可執行的
+      // 現場指令（改用網頁報名），不得落回泛用文案讓第一線猜原因。
+      return copy.checkIn.walkInTicketNeedsDynamicFields;
     default:
       return getApiErrorMessage(error, fallback);
   }

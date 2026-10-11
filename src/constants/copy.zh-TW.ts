@@ -288,6 +288,8 @@ export const copy = {
     walkInNeedConsent: "請先閱讀並同意條款",
     walkInConsentRequired: "請先閱讀並同意條款",
     walkInConsentVersionMismatch: "條款已更新，請重新閱讀並同意",
+    walkInTicketNeedsDynamicFields:
+      "此票種需填寫報名表單欄位，App 現場補報名暫不支援——請改用網頁報名連結。",
     walkInFailed: "補報名失敗，請稍後再試",
     walkInNotAccepting: "此活動目前不接受報名",
     walkInNoTickets: "沒有可選的票種",
