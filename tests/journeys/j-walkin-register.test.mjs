@@ -150,6 +150,19 @@ describe("J-WALKIN-REGISTER 現場代填送出 [persona:staff-onsite]", () => {
     );
   });
 
+  it("given 伺服器回 400 INVALID_FORM_DATA, when 映射錯誤, then 指引改用網頁報名（動態表單欄位不支援）", () => {
+    // L-3（2026-10-11 獨立審查）：walk-in payload 不含 formData，對「含 required
+    // 動態欄位」的票種後端必回 INVALID_FORM_DATA。App 端不假裝能收動態欄位，
+    // 而是把錯誤翻成可執行的現場指令（改用網頁報名），不得落回泛用文案。
+    const mapped = mapWalkInError(
+      apiError("INVALID_FORM_DATA"),
+      copy.checkIn.walkInFailed,
+    );
+
+    assert.equal(mapped, copy.checkIn.walkInTicketNeedsDynamicFields);
+    assert.notEqual(mapped, copy.checkIn.walkInFailed);
+  });
+
   it(
     "given API 逾時後重按送出, when 佇列重新進入, then 不得產生第二筆報名（corner，探索後固化）",
     { todo: true },
