@@ -2,7 +2,9 @@ import { create } from "axios";
 
 import {
   API_BASE_URL,
+  API_CONFIG,
   API_TIMEOUT_MS,
+  APP_CONFIG_INVALID_CODE,
   TOKEN_STORAGE_KEY,
 } from "@/constants/config";
 // Import via lazy getter to avoid circular dep at module init time
@@ -19,6 +21,11 @@ export const apiClient = create({
 
 // Attach JWT on every request
 apiClient.interceptors.request.use(async (config) => {
+  if (!API_CONFIG.ok) {
+    const error = new Error(`${APP_CONFIG_INVALID_CODE}: ${API_CONFIG.reason}`);
+    error.name = "AppConfigError";
+    throw error;
+  }
   const token = await tokenStorage.getItem(TOKEN_STORAGE_KEY);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;

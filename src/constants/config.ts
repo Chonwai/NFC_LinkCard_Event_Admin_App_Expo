@@ -26,9 +26,81 @@ export function normalizeApiOrigin(raw: string): string {
     .replace(/\/api$/, "");
 }
 
-export const API_BASE_URL = normalizeApiOrigin(
-  EXPO_PUBLIC_API_URL || "https://linkcard.xyz",
+/**
+ * 非開發建置缺少 `EXPO_PUBLIC_API_URL` 時的處理（`F-07`，2026-10-15）。
+ *
+ * 對齊 Promoter App 的 `W-24`：**不 throw**（module-load throw 會白屏、且沒有任何
+ * 錯誤畫面），改為回傳可判讀的 `missing-api-url` 狀態，由 `api.ts` 的 request
+ * interceptor 在送出任何請求前攔下。
+ *
+ * 為什麼要攔：舊行為是 `EXPO_PUBLIC_API_URL || "https://linkcard.xyz"`——
+ * 一個漏設變數的 preview／staging build 會**靜默打 production**。報到、walk-in、
+ * NFC 綁卡都是**寫入**操作，這條路徑會寫進 production 資料。
+ *
+ * `.env.example` 早就宣稱有此 guard，但程式碼裡從來沒有——本檔把宣稱變成事實。
+ */
+export type ApiConfig =
+  | { ok: true; apiBaseUrl: string; source: "env" | "dev-fallback" }
+  | { ok: false; reason: "missing-api-url" };
+
+/**
+ * 設定無效時 `api.ts` 拒絕請求所用的錯誤碼。
+ *
+ * 由 `config.ts` 擁有而非散在 service 內：這是常數契約的一部分，需要能在 Node
+ * 下被行為測試（`.tsx` 沒有 renderer，測不到畫面分支）。
+ */
+export const APP_CONFIG_INVALID_CODE = "APP_CONFIG_INVALID";
+
+/** 本機後端預設 origin（僅在「非確定 production」的建置允許） */
+const LOCAL_DEV_API_ORIGIN = "http://127.0.0.1:3020";
+
+/**
+ * 只有 `__DEV__` **明確為 `false`** 才算「確定非開發」。
+ *
+ * 未定義（Node 單元測試、部分 web build）時**不放行**攔截，避免把測試環境誤判成
+ * `missing-api-url`——條件刻意與 Promoter `W-24` 對齊。以 `globalThis` 讀取是為了
+ * 在沒有 RN 型別宣告的 Node 測試下也能編譯。
+ */
+export function isKnownNonDevRuntime(): boolean {
+  return (globalThis as { __DEV__?: boolean }).__DEV__ === false;
+}
+
+/** 純解析（可測）：不 throw、不讀取憑證、不把內部細節放進 `reason`。 */
+export function resolveApiConfig(
+  envUrl: string | undefined,
+  isKnownNonDev: boolean,
+): ApiConfig {
+  const raw = envUrl?.trim();
+  if (raw) {
+    return { ok: true, apiBaseUrl: normalizeApiOrigin(raw), source: "env" };
+  }
+  if (isKnownNonDev) {
+    return { ok: false, reason: "missing-api-url" };
+  }
+  return {
+    ok: true,
+    apiBaseUrl: normalizeApiOrigin(LOCAL_DEV_API_ORIGIN),
+    source: "dev-fallback",
+  };
+}
+
+/** 本次啟動解析出的 API 設定；`ok === false` 時**不得**發出任何請求。 */
+export const API_CONFIG: ApiConfig = resolveApiConfig(
+  EXPO_PUBLIC_API_URL,
+  isKnownNonDevRuntime(),
 );
+
+/**
+ * 設定無效時用來**取代** baseURL 的不可路由位址。
+ *
+ * 第二道防線：即使有請求繞過了 interceptor 的攔截，也只會得到「連線被拒」，
+ * 而不是打到 production。
+ */
+const UNROUTABLE_API_ORIGIN = "http://127.0.0.1:1";
+
+export const API_BASE_URL = API_CONFIG.ok
+  ? API_CONFIG.apiBaseUrl
+  : UNROUTABLE_API_ORIGIN;
 
 /** Axios 全域逾時（毫秒） */
 export const API_TIMEOUT_MS = 15000;
