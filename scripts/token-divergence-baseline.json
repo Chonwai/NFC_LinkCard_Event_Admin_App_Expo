@@ -1,0 +1,29 @@
+{
+  "_comment": "Known divergence between LinkCard_Promoter_App_Expo and LinkCard_Event_Admin_App_Expo design tokens. This is a SNAPSHOT OF DEBT, not a whitelist of acceptable divergence: every entry should be resolved, and pruning an entry tightens the guard. Entries are normalised line fingerprints (whitespace collapsed, trailing semicolon stripped); see scripts/compare-tokens.mjs. The 24 entries below group into: 4 tokens present only in Promoter (none / buttonHeightSm / iconBox / skeletonRows), 1 token whose VALUE differs (tabBarHeight 56 vs 52), and 19 lines that exist only because Promoter also exports a theme aggregate plus fontFamily and elevation. Run `node scripts/compare-tokens.mjs --verbose` to see them against the source.",
+  "theme": [
+    "buttonHeightSm: 48,",
+    "components,",
+    "const elevation = {",
+    "const fontFamily = {",
+    "elevation,",
+    "export const elevation = {",
+    "export const fontFamily = {",
+    "export const theme = {",
+    "export default theme",
+    "fontFamily,",
+    "hairline,",
+    "iconBox: 32,",
+    "layout,",
+    "none: primitive.numeric.radius.none,",
+    "primitive,",
+    "radius,",
+    "semantic,",
+    "skeletonRows: 3,",
+    "space,",
+    "spacing,",
+    "tabBarHeight: 52,",
+    "tabBarHeight: 56,",
+    "type,",
+    "} as const"
+  ]
+}
