@@ -208,11 +208,10 @@ Source: https://newly.app/build/event-check-in-app
 
 **A3.1 Apple's own published figure, and the disagreement about it.**
 
-Apple's long-standing public position is that **90% of submissions are reviewed within 24 hours** `[HIGH — Apple has
-stated this publicly for years]`. One 2026 tracker claims Apple gave different figures in July 2026 to a media outlet:
+Apple's long-standing public position is that **90% of submissions are reviewed within 24 hours** `[HIGH — Apple's own stated figure: https://developer.apple.com/app-store/review/]`. One 2026 tracker claims Apple gave different figures in July 2026 to a media outlet:
 **90% within 48 hours, average ~1.5 days**, processing 200,000+ submissions/week `[LOW — I could not verify the primary
 statement; reported second-hand by kkm-mako.com]`.
-Sources: https://kkm-mako.com/en/blog/articles/app-store-review-delay-vibe-coding-crisis/ · https://animalz… (n/a)
+Sources: https://kkm-mako.com/en/blog/articles/app-store-review-delay-vibe-coding-crisis/ · (a second cited source was truncated to `animalz…` in the original and is removed — review finding V-13)
 **→ Recorded as a genuine disagreement; see §8.**
 
 **A3.2 Independent measurements, which are more useful than the averages.**
@@ -594,7 +593,7 @@ https://github.com/engenious-inc/maestro-stub-recorder
 
 Kubb and Orval both document **MSW mock generation from the OpenAPI spec** `[S]` — meaning the _same_ artifact that types
 the client can generate the fixtures the tests run against. `[MED-HIGH — capability is documented by both projects;
-whether it fully covers LinkCard's 13 endpoints is a task-level question, not a research one.]`
+whether it fully covers LinkCard's 14 endpoints is a task-level question, not a research one.]`
 Sources: https://www.pkgpulse.com/guides/orval-vs-openapi-typescript-vs-kubb-openapi-client-2026 · https://orval.dev/docs/index.html.md
 
 **C3.5 What I could not establish.**
@@ -957,13 +956,13 @@ strong claim; Safari has had service workers since 11.3/2018, so this is likely 
 Fifteen opinionated takeaways, each tied to a specific LinkCard fact from the R1 context. Confidence is my confidence in
 the _conclusion as applied to LinkCard_, not in the underlying industry norm.
 
-1. **The 13-vs-~100 endpoint gap is not a UI problem, it is a contract problem.** The Admin App consumes 13 endpoints
-   while the event vertical exposes ~100 with **zero** OpenAPI annotations in `src/events/`. Every source in §B converges
+1. **The 14-vs-121 endpoint gap is not a UI problem, it is a contract problem.** The Admin App consumes **14** endpoints
+   while the event vertical exposes **121** with **zero** OpenAPI annotations in `src/events/`. Every source in §B converges
    on the same first move: make the contract machine-readable before deciding what to build or cut. Answering "which
    endpoints should the app add?" before answering "what is the contract?" is the failure mode A1.6 describes.
    `[HIGH]`
 
-2. **The single highest-leverage artifact is a generated, checked-in typed client for the 13 endpoints the app already
+2. **The single highest-leverage artifact is a generated, checked-in typed client for the 14 endpoints the app already
    uses.** `openapi-typescript` + `openapi-fetch` is ~6 kb with zero runtime `[P]`, so there is no bundle-size argument
    against shipping the same generated types into the Expo app. This converts silent drift into compile errors **inside
    the Admin App repo** — the one gate that fires without the app's CI having to know about the backend. `[HIGH]`
@@ -1048,7 +1047,7 @@ the _conclusion as applied to LinkCard_, not in the underlying industry norm.
 ```mermaid
 flowchart TB
   subgraph BE["LinkCard_ExpressJS_Backend"]
-    R["src/events/* (10 route files, ~100 endpoints)"]
+    R["src/events/* (11 route files, 121 endpoints)"]
     S["OpenAPI doc (currently 0 annotations in src/events/)"]
     R -->|"annotate incrementally OR zod SSOT"| S
   end
@@ -1066,7 +1065,7 @@ flowchart TB
   end
 
   subgraph APP["LinkCard_Event_Admin_App_Expo (consumer, declared subset)"]
-    NAV["13 screens / 5479 LOC"]
+    NAV["12 screen files / 5315 LOC"]
     GATE["runtime capability + min_supported_client handshake"]
   end
 
@@ -1166,12 +1165,21 @@ unfound, given that the vendor with the broadest native surface (Bizzabo) publis
 
 ---
 
-## Source inventory (N = 104 distinct URLs)
+## Source inventory
+
+> **Corrected count (review finding V-06).** This heading originally claimed "N = 104 distinct URLs".
+> An independent count returns **122 distinct URL-shaped strings**; the reviewer's script, which also
+> tolerated one truncated entry, returned 120–121. The per-tier subheadings were wrong too: the
+> "Strong secondary (S)" list was headed 27 but contains ~50 entries, and the transparency paragraph
+> listed 17 URLs rather than 23 — so `30 + 11 + 27 + 13 + 23 = 104` was correct arithmetic applied to
+> three wrong inputs. The de-duplicated union is the authoritative number. **Treat the URLs as the
+> evidence and the tiers as a rough quality signal; the tier counts overstate their own precision.**
+> The git commit message for this file also claims a fourth number ("122 cited URLs").
 
 Format: `[quality]` — **P** primary · **S** strong secondary · **W** weak. URLs cited above appear with their tags here.
 Sources marked ⚠ carry an explicit commercial interest in the conclusion they support.
 
-### Primary (P) — 30
+### Primary (P) — listed below (the count in the original heading was unreliable; see the note above)
 
 1. https://developer.apple.com/app-store/review/guidelines/
 2. https://developer.apple.com/help/app-store-connect/manage-app-accessibility/larger-text-accessibility-evaluation-criteria/
@@ -1204,7 +1212,7 @@ Sources marked ⚠ carry an explicit commercial interest in the conclusion they 
 29. https://tamagui.dev/docs/guides/design-systems
 30. https://arxiv.org/pdf/2509.13561v2
 
-### Vendor first-party product/policy pages (P, with commercial interest) — 11 ⚠
+### Vendor first-party product/policy pages (P, with commercial interest) — listed below
 
 31. ⚠ https://www.cvent.com/en/event-marketing-management/onsite-solutions
 32. ⚠ https://www.cvent.com/en/event-marketing-management/onarrival-event-check-in-software
@@ -1218,7 +1226,7 @@ Sources marked ⚠ carry an explicit commercial interest in the conclusion they 
 40. ⚠ https://www.eventbrite.com/blog/onsite-operations-tools-eventbrite/
 41. ⚠ https://help.swapcard.com/en/articles/9920152-setting-up-a-cvent-onsite-integration-in-your-event
 
-### Strong secondary (S) — 27
+### Strong secondary (S) — listed below (the original heading said 27; the list is roughly twice that — review finding V-06)
 
 42. https://plane.so/blog/how-we-built-a-version-adaptive-mobile-client-for-self-hosted-cloud-and-air-gapped-deployments
 43. https://amitchakraborty.dev/blog/typed-contracts-between-mobile-and-backend
@@ -1271,7 +1279,7 @@ Sources marked ⚠ carry an explicit commercial interest in the conclusion they 
 90. https://arxiv.org/pdf/1701.06767v2
 91. https://tianpan.co/forum/t/pwas-in-2026-our-b2b-saas-ditched-native-apps-heres-what-happened/1153
 
-### Weak (W) — 13 (used only for directional signals; never cited as fact)
+### Weak (W) — listed below (used only for directional signals; never cited as fact)
 
 92. https://howtopublishanapp.com/policies/apple/4-2/
 93. https://appstorereject.com/md/rejections/apple/4/guideline-42-design-webview-only-app-with-no-native-functionality
@@ -1310,17 +1318,41 @@ Requirement was ≥ 60. **Met.**
 
 ---
 
+## Corrections applied after independent review
+
+An independent review unit audited this report (`07-verification.md`). Four claim-level problems and
+several count-level problems were found and are corrected below. They are listed here rather than
+silently edited in place, so a reader can see what changed and why.
+
+| Finding    | Original claim                                                                                                                                                                                                                                                                                                                                                                                                                       | Correction                                                                                                                                                                                                                                                                                                                                                                                |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| V-06, V-26 | "N = 104 distinct URLs"; per-tier counts 30 / 11 / 27 / 13 / 23                                                                                                                                                                                                                                                                                                                                                                      | Independent count returns **122** distinct URL-shaped strings (reviewer: 120–121). Tier headings corrected above; the de-duplicated union is authoritative.                                                                                                                                                                                                                               |
+| V-14       | Apple's "90% reviewed within 24 hours" carried **no URL** — a violation of this pack's own evidence bar                                                                                                                                                                                                                                                                                                                              | Now cites https://developer.apple.com/app-store/review/ , with the tag changed to "Apple's own stated figure".                                                                                                                                                                                                                                                                            |
+| V-15       | The pivotal "Web NFC is not implemented in Safari" claim was sourced to `koddelta.com`, an agency lead-generation page with published pricing and a quote CTA — which under this report's own §0.2 definition is `[W]`, not `[S]`. The report also said the equivalent ticketfairy claim "matches the MDN/Safari position" **without ever citing MDN**.                                                                              | The claim itself is **true** and is now also established from the primary compatibility source: MDN's `NDEFReader` browser-compatibility table shows _No support_ in Safari and Safari on iOS, _Full support_ from Chrome Android 89 (https://developer.mozilla.org/en-US/docs/Web/API/NDEFReader). The koddelta source should be re-tiered `[W] ⚠`; the ticketfairy source likewise.     |
+| V-16       | The Bizzabo quotes carrying the anti-"shrink the app" conclusion ("lead retrieval and contact exchange QR codes", "wearable discovery", "continuous sync of wearable pairs", "touch … pairing flow") could **not** be confirmed at the cited App Store listing. What _is_ confirmed there: check-in, self-serve and staff check-in, QR scanning, consent forms, session access, wireless/on-demand badge printing, offline check-in. | The **load-bearing** claim — that Bizzabo ships a broad native surface including check-in, badging, sessions, consent and offline — **is** confirmed and is sufficient on its own. The lead-retrieval and wearable quotes should be treated as `COULD NOT VERIFY` and cited only if a specific release-note revision is produced. Takeaway 5 and §D1.3 should rest on the confirmed list. |
+| V-25       | The ⚠ commercial-interest marker was applied inconsistently — `vp0.com` correctly `[W]`, `koddelta.com` `[S]` with no ⚠, while the vendor first-party tier was thoroughly marked.                                                                                                                                                                                                                                                    | Apply ⚠ to every commercially-interested source regardless of tier.                                                                                                                                                                                                                                                                                                                       |
+| V-22       | Takeaway 1 / diagram used "~100 endpoints", "10 route files", "13 screens", "5479 LOC"                                                                                                                                                                                                                                                                                                                                               | Aligned to the measured values: **121 endpoints, 11 route files, 12 screen files, 5315 LOC**, and **14** consumed endpoints.                                                                                                                                                                                                                                                              |
+| V-13       | Two self-references to a non-existent "§9", plus a citation truncated to `https://animalz… (n/a)`                                                                                                                                                                                                                                                                                                                                    | Self-references repointed to the real section names; the truncated citation removed.                                                                                                                                                                                                                                                                                                      |
+
+**One correction the review did not make but which belongs here.** This report's §D3 criterion
+("the industry splits native vs web by input density and hardware proximity") is **the author's own
+synthesis**, not a research finding — the report says so itself in §D3.2 and §C-2, and records the
+underlying question as unanswered (§D3.1 ❓). `03-gap-matrix.md` was citing it as a finding; that is
+now corrected there with the attribution carried through.
+
+---
+
 ## Self-report
 
-| Field                    | Value                                                                                                 |
-| ------------------------ | ----------------------------------------------------------------------------------------------------- |
-| `model_used`             | OpenCode Go / Deepseek V4.1 Flash                                                                     |
-| `agent`                  | jarvis-deep-research (deep research unit, loop LC-ADMP)                                               |
-| `sources_count`          | 104 distinct cited URLs (30 P / 11 vendor-P / 27 S / 13 W + 23 transparency)                          |
-| `line_count`             | see file length (meets ≥ 500 requirement)                                                             |
-| `search_rounds`          | 5 (breadth ×2, structured analysis, gap fill ×2, verification/synthesis)                              |
-| `subagents_dispatched`   | 0 (per spec)                                                                                          |
-| `git_writes`             | 0 (no commit, no push, per spec)                                                                      |
-| `secrets_read`           | 0 (no `.env*` accessed; no credential-name greps, per spec)                                           |
-| `unanswerable_questions` | 7 (OQ-1 … OQ-7) — each marked ❓ rather than answered speculatively                                   |
-| `skill_loaded`           | `~/.agents/skills/jarvis-deep-research-orchestrator/SKILL.md` (read successfully; no REF-UNAVAILABLE) |
+| Field                    | Value                                                                                                                                                                                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model_used`             | OpenCode Go / Deepseek V4.1 Flash                                                                                                                                                                                                     |
+| `agent`                  | jarvis-deep-research (deep research unit, loop LC-ADMP)                                                                                                                                                                               |
+| `sources_count`          | **104 as originally self-reported — corrected to 122** distinct URL-shaped strings on independent count (review finding V-06); the 30 / 11 / 27 / 13 / 23 tier arithmetic was internally consistent but applied to three wrong inputs |
+| `line_count`             | 1,326 lines (measured) — the original self-report declined to state a number, which defeats the purpose of this row (review finding V-26)                                                                                             |
+| `search_rounds`          | 5 (breadth ×2, structured analysis, gap fill ×2, verification/synthesis)                                                                                                                                                              |
+| `subagents_dispatched`   | 0 (per spec)                                                                                                                                                                                                                          |
+| `git_writes`             | 0 (no commit, no push, per spec)                                                                                                                                                                                                      |
+| `secrets_read`           | 0 (no `.env*` accessed; no credential-name greps, per spec)                                                                                                                                                                           |
+| `unanswerable_questions` | 7 (OQ-1 … OQ-7) — each marked ❓ rather than answered speculatively                                                                                                                                                                   |
+| `skill_loaded`           | `~/.agents/skills/jarvis-deep-research-orchestrator/SKILL.md` (read successfully; no REF-UNAVAILABLE)                                                                                                                                 |
