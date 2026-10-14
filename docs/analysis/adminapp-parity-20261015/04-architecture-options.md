@@ -1,11 +1,16 @@
 # 04 — Architecture Options and Recommendation
 
+> **Repair note (post independent review).** Four statements here were found to be wrong or
+> overstated and are corrected inline: the size of the shared-code problem (V-01), the availability
+> of EAS Update today (V-03), a self-contradictory "offline-tolerant" claim (V-04), and an
+> attribution error that presented the author's own criterion as a research finding (V-05).
+> See `07-verification.md`.
+
 ## 0. Decision framing
 
 The question is not "how do we bring the App up to date". `01-drift-audit.md` shows that catching
-up is a _symptom_; the mechanism is that **the App commits at 1/10th–1/14th the rate of both
-upstream repos and there is no machine-readable contract to tell it when it has fallen behind**
-(D-2, D-4, D-10).
+up is a _symptom_; the mechanism is that **the App commits at ~1/9.5 of the Frontend's and ~1/14 of the backend's rate and
+there is no machine-readable contract to tell it when it has fallen behind** (D-2, D-4, D-10).
 
 So the question is: **what structure makes it cheap to be 2 weeks behind, and detectable when you
 are 6 months behind?** That reframing is what the research independently arrived at:
@@ -95,7 +100,7 @@ And that annotating everything first would be the wrong order:
 > _"...they do not care whether that document is hand-written, jsdoc-derived, or zod-generated."_
 > — research §B1.2
 
-**Concretely:** annotate the **13 endpoints the App already consumes**, plus the endpoints needed by
+**Concretely:** annotate the **14 endpoints the App already consumes**, plus the endpoints needed by
 the small door-first backlog (§5), generate `types.d.ts` into a checked-in artifact, and let the App
 compile against it. Expand coverage from there. Do **not** attempt a 121-endpoint annotation sprint.
 
@@ -109,8 +114,7 @@ That missing mechanism is pillar B3.
 
 #### B2. A pure-data shared package — tokens and enums only
 
-D-10: the two Expo apps share a _copy_ of `theme.ts`, and the copies have already diverged past the
-point where `diff` is meaningful. The research's prescription is unusually specific:
+D-10/D-14: the two Expo apps share **29 identically-named files** — a ten-component `components/ui/*` kit, seven `utils/*`, three `services/*`, the design tokens and `config.ts` — none byte-identical, and two of them semantically divergent (`config.ts` falls back to production instead of failing closed). The research's prescription is unusually specific:
 
 > _"make it a **pure data package** (tokens as platform-agnostic TS objects, no React, no native
 > module). A data-only package sidesteps every failure mode in §C1.3 (singleton React, autolinking,
@@ -128,6 +132,19 @@ introduces:
 enums, and the capability-name vocabulary — consumed by the Promoter App, the Admin App, and the
 Frontend. Referenced by a per-app dependency, **not** a root workspace (research §C1.2 option 1:
 the lowest-friction path that does not require converting to a full monorepo).
+
+> **Scope correction (review finding V-01).** The first version of this document described the shared
+> -code problem as "only a duplicated token file". That understated it by roughly 29×. The two Expo
+> apps carry **29 identically-named files** — including all ten `components/ui/*` components — of
+> which **zero** are byte-identical, and at least five are ≥ 0.92 similar. Two of them
+> (`theme.ts`, `config.ts`) have diverged **semantically**, and `config.ts` diverges in the dangerous
+> direction: Promoter fails closed on a missing API URL, the Admin App silently falls back to
+> production. See `01-drift-audit.md` §8.
+>
+> This does **not** change the recommendation — a pure-data package is still the correct first step,
+> and it is now the _smaller_ half of the problem. It does change what comes next: the duplicated
+> `components/ui/*` kit is the real candidate for a shared package, and that is a much larger
+> undertaking than a token file.
 
 #### B3. A runtime capability + version handshake
 
@@ -154,6 +171,14 @@ Companion mechanism for release latency:
 So: **admin-layer screens ship over EAS Update; only new native capability needs a store trip.** This
 is what makes "the web admin shipped on Tuesday" survivable.
 
+> **Correction (review finding V-03).** OTA is **not available today**. The app has no `expo-updates`
+> dependency, `app.json` has no `updates` block, and `eas.json` has no `runtimeVersion` or `channel`
+> (`grep -c expo-updates package.json` → 0). The repo also has a **committed** `ios/` Xcode project
+> (18 tracked files), so the `runtimeVersion` bump rule must cover native-project edits, not only
+> "native library or `app.json` change". Enabling OTA therefore requires adding a native module ⇒ a
+> rebuild and a store submission. It is a Phase 3 **prerequisite with its own cost**, not an existing
+> capability. See `01-drift-audit.md` D-15 and `05-remediation-plan.md` P3-5.
+
 #### B4. A written scope policy — with the escape hatch made legitimate
 
 D-9: `token.tsx` already implements the "this belongs on the web" pattern, but by accident and
@@ -168,7 +193,9 @@ individual screen from deep-linking out to the browser — which is exactly what
 via `Linking.openURL`, opening the system browser rather than embedding a WebView. The policy is
 therefore:
 
-- The app must be **door-first and genuinely native** (it is: camera, NFC, offline-tolerant flows).
+- The app must be **door-first and genuinely native** (it is: camera, NFC, and the check-in →
+  write-card → prefill handoff — **not** offline queueing, which is `✗` on both surfaces; see
+  `01-drift-audit.md` D-8 correction and `03-gap-matrix.md` A20).
 - A small, enumerated set of desk surfaces may be ➖ with an explicit "Open on desktop" action.
 - That set is **capped and reviewed**, not grown opportunistically.
 
@@ -181,13 +208,13 @@ Only capabilities passing the §D criterion in `03-gap-matrix.md` are candidates
 
 ### Option C — Merge into a real monorepo (pnpm workspace + Turborepo)
 
-| Criterion       | Reading                                                                                                                                                                                    |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Shared packages | Best-in-class — Expo's docs say monorepo support is built into `expo/metro-config` and is _less_ configuration, not more (research §C1.1)                                                  |
-| Migration cost  | 5 repos with independent remote history; Vercel (Frontend), Vercel/EAS (App), and backend CI all re-wire                                                                                   |
-| Blast radius    | Highest of any option — this workspace runs **multiple concurrent agent sessions** (1108 backend commits since 2026-09-25), so a repo-topology change lands on top of other in-flight work |
-| Reversibility   | Low                                                                                                                                                                                        |
-| Prerequisite    | At least two genuinely shared **code** packages. Today there are **zero** — only a duplicated token file.                                                                                  |
+| Criterion       | Reading                                                                                                                                                                                                                            |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shared packages | Best-in-class — Expo's docs say monorepo support is built into `expo/metro-config` and is _less_ configuration, not more (research §C1.1)                                                                                          |
+| Migration cost  | 5 repos with independent remote history; Vercel (Frontend), Vercel/EAS (App), and backend CI all re-wire                                                                                                                           |
+| Blast radius    | Highest of any option — this workspace runs **multiple concurrent agent sessions** (1108 backend commits since 2026-09-25), so a repo-topology change lands on top of other in-flight work                                         |
+| Reversibility   | Low                                                                                                                                                                                                                                |
+| Prerequisite    | At least two genuinely shared **code** packages. Today there are **zero** shared _packages_ — but there are 29 near-duplicate _files_, and the ten-component `components/ui/*` kit among them is the real candidate for packaging. |
 
 **Deferred, not rejected.** The evidence for deferring is that Option C's benefit is proportional to
 the number of shared packages, and that number is currently ~1 (a token file), which B2 solves

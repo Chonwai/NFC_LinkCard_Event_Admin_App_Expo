@@ -47,37 +47,39 @@ nobody has built it. These are net-new product questions, not parity work.
 
 ## B. Desk / large-screen capabilities (belongs on web)
 
-| #   | Capability                                                          | Web                                                           | App                                   | Backend                                                  |
-| --- | ------------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------- | -------------------------------------------------------- |
-| B1  | Event list / my events                                              | ✅ `manage/events`                                            | ✅ `home.tsx` (354 LOC)               | `events.routes.ts` `GET /my-managed`                     |
-| B2  | Event overview + live stats                                         | ✅ `manage/[eventId]/page.tsx`                                | ✅ `overview.tsx` (517 LOC)           | `GET /by-id/:eventId`                                    |
-| B3  | Event profile / basic info edit                                     | ✅ (380 LOC)                                                  | ✗                                     | `PATCH /:eventId`                                        |
-| B4  | Event settings                                                      | ✅ (451 LOC)                                                  | ✗                                     | —                                                        |
-| B5  | Ticket types CRUD                                                   | ✅ (1431 LOC)                                                 | ⚠️ read-only via `GET …/ticket-types` | `events.routes.ts` ticket-type routes                    |
-| B6  | **Ticket capability editor + per-event rollout switch**             | ✅ (`a6a4a5d`, `6e6bc7e`; `lib/events/ticketCapabilities.ts`) | ✗ **no representation at all**        | `20261013100000`, `20261013120000`                       |
-| B7  | Registration list, filters, bulk ops                                | ✅ (1470 LOC)                                                 | ⚠️ read-only subset                   | `registrations.routes.ts`                                |
-| B8  | Per-registration email status chip + filter                         | ✅ (`4d5afcb`, `a4f60b5b`)                                    | ✗                                     | `a4f60b5b` — BE attaches `emailStatus` to the admin list |
-| B9  | Resend confirmation / activation                                    | ✅ (`3dea442`, `de094d1`, `5e19476a`)                         | ✗                                     | `POST …/registrations/:id/activation-link`, re-queue     |
-| B10 | Batch claim resend, select-all / opt-in no-account rows             | ✅ (`a953b62`, `d108482`)                                     | ✗                                     | —                                                        |
-| B11 | Guest / VIP list CSV import (template / preview / confirm / notify) | ✅ `RegistrationImportPanel.tsx` (`34e636d`, `a2f7ff15`)      | ✗                                     | `registration-import.routes.ts` (4 endpoints)            |
-| B12 | Workshop sessions CRUD                                              | ✅ `manage/[eventId]/sessions` (422 LOC)                      | ✗                                     | `sessions-polls.routes.ts`                               |
-| B13 | Session registrations + derived 3-state attendance                  | ✅ (`31ffd32`)                                                | ✗                                     | —                                                        |
-| B14 | Session eligibility errors surfaced with specific copy              | ✅ (`491dbf3`)                                                | ✗                                     | `sessionEligibility.ts`                                  |
-| B15 | Polls create / activate / close / results                           | ✅ `manage/[eventId]/polls` (323 LOC)                         | ✗                                     | `sessions-polls.routes.ts`                               |
-| B16 | Event page content / page sections                                  | ✅ `manage/[eventId]/content` (376 LOC)                       | ✗                                     | `events.routes.ts` `page-sections`                       |
-| B17 | Exhibitors CRUD + status                                            | ✅ `manage/[eventId]/exhibitors` (243 LOC)                    | ✗ (stat count only)                   | `exhibitors.routes.ts` (18 endpoints)                    |
-| B18 | Exhibitor CSV import                                                | ✅ `manage/[eventId]/exhibitors/import`                       | ✗                                     | `exhibitor-import.routes.ts`                             |
-| B19 | Exhibitor invites                                                   | ✅ `accept-exhibitor-invite`                                  | ✗                                     | `exhibitor-invites.routes.ts`                            |
-| B20 | Exhibitor company page + publish                                    | ✅ `exhibitor/[id]/manage/company`                            | ✗                                     | `exhibitors.routes.ts` `company-page`                    |
-| B21 | Org roles / staff invites                                           | ✅ `manage/[eventId]/org-roles` (295 LOC)                     | ✗                                     | `engagement.routes.ts` `org-roles`                       |
-| B22 | Bank transfers                                                      | ✅ `manage/[eventId]/bank-transfers` (251 LOC)                | ✗                                     | `event-ops.routes.ts`                                    |
-| B23 | Business matching admin                                             | ✅ `events/[eventId]/matching`                                | ✗                                     | `premium.routes.ts` `matching/*`                         |
-| B24 | Exhibitor networking inbox (accept / decline / withdraw)            | ✅ `exhibitor/[id]/manage/network*`                           | ✗                                     | `connection-requests.routes.ts` (7 endpoints)            |
-| B25 | Attendee / exhibitor CSV export                                     | ✅                                                            | ✗                                     | `GET …/export/attendees`, `…/export/exhibitors`          |
-| B26 | Association vertical                                                | ✅ `(association)/**`                                         | ➖                                    | `associationRoutes`                                      |
+| #   | Capability                                                          | Web                                                                             | App                                   | Backend                                                  |
+| --- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------- | -------------------------------------------------------- |
+| B1  | Event list / my events                                              | ✅ `manage/events`                                                              | ✅ `home.tsx` (354 LOC)               | `events.routes.ts` `GET /my-managed`                     |
+| B2  | Event overview + live stats                                         | ✅ `manage/[eventId]/page.tsx`                                                  | ✅ `overview.tsx` (517 LOC)           | `GET /by-id/:eventId`                                    |
+| B3  | Event profile / basic info edit                                     | ✅ (380 LOC)                                                                    | ✗                                     | `PATCH /:eventId`                                        |
+| B4  | Event settings                                                      | ✅ (451 LOC)                                                                    | ✗                                     | —                                                        |
+| B5  | Ticket types CRUD                                                   | ✅ (1431 LOC)                                                                   | ⚠️ read-only via `GET …/ticket-types` | `events.routes.ts` ticket-type routes                    |
+| B6  | **Ticket capability editor + per-event rollout switch**             | ✅ (`a6a4a5d`, `6e6bc7e`; `lib/events/ticketCapabilities.ts`)                   | ✗ **no representation at all**        | `20261013100000`, `20261013120000`                       |
+| B7  | Registration list, filters, bulk ops                                | ✅ (1470 LOC)                                                                   | ⚠️ read-only subset                   | `registrations.routes.ts`                                |
+| B8  | Per-registration email status chip + filter                         | ✅ (`4d5afcb`, `a4f60b5b`)                                                      | ✗                                     | `a4f60b5b` — BE attaches `emailStatus` to the admin list |
+| B9  | Resend confirmation / activation                                    | ✅ (`3dea442`, `de094d1`, `5e19476a`)                                           | ✗                                     | `POST …/registrations/:id/activation-link`, re-queue     |
+| B10 | Batch claim resend, select-all / opt-in no-account rows             | ✅ (`a953b62`, `d108482`)                                                       | ✗                                     | —                                                        |
+| B11 | Guest / VIP list CSV import (template / preview / confirm / notify) | ✅ `components/event/admin/RegistrationImportPanel.tsx` (`34e636d`, `a2f7ff15`) | ✗                                     | `registration-import.routes.ts` (4 endpoints)            |
+| B12 | Workshop sessions CRUD                                              | ✅ `manage/[eventId]/sessions` (422 LOC)                                        | ✗                                     | `sessions-polls.routes.ts`                               |
+| B13 | Session registrations + derived 3-state attendance                  | ✅ (`31ffd32`)                                                                  | ✗                                     | —                                                        |
+| B14 | Session eligibility errors surfaced with specific copy              | ✅ (`491dbf3`)                                                                  | ✗                                     | `src/events/constants/sessionEligibility.ts`             |
+| B15 | Polls create / activate / close / results                           | ✅ `manage/[eventId]/polls` (323 LOC)                                           | ✗                                     | `sessions-polls.routes.ts`                               |
+| B16 | Event page content / page sections                                  | ✅ `manage/[eventId]/content` (376 LOC)                                         | ✗                                     | `events.routes.ts` `page-sections`                       |
+| B17 | Exhibitors CRUD + status                                            | ✅ `manage/[eventId]/exhibitors` (243 LOC)                                      | ✗ (stat count only)                   | `exhibitors.routes.ts` (18 endpoints)                    |
+| B18 | Exhibitor CSV import                                                | ✅ `manage/[eventId]/exhibitors/import`                                         | ✗                                     | `exhibitor-import.routes.ts`                             |
+| B19 | Exhibitor invites                                                   | ✅ `accept-exhibitor-invite`                                                    | ✗                                     | `exhibitor-invites.routes.ts`                            |
+| B20 | Exhibitor company page + publish                                    | ✅ `exhibitor/[id]/manage/company`                                              | ✗                                     | `exhibitors.routes.ts` `company-page`                    |
+| B21 | Org roles / staff invites                                           | ✅ `manage/[eventId]/org-roles` (295 LOC)                                       | ✗                                     | `engagement.routes.ts` `org-roles`                       |
+| B22 | Bank transfers                                                      | ✅ `manage/[eventId]/bank-transfers` (251 LOC)                                  | ✗                                     | `event-ops.routes.ts`                                    |
+| B23 | Business matching admin                                             | ✅ `events/[eventId]/matching`                                                  | ✗                                     | `premium.routes.ts` `matching/*`                         |
+| B24 | Exhibitor networking inbox (accept / decline / withdraw)            | ✅ `exhibitor/[id]/manage/network*`                                             | ✗                                     | `connection-requests.routes.ts` (7 endpoints)            |
+| B25 | Attendee / exhibitor CSV export                                     | ✅                                                                              | ✗                                     | `GET …/export/attendees`, `…/export/exhibitors`          |
+| B26 | Association vertical                                                | ✅ `(association)/**`                                                           | ➖                                    | `associationRoutes`                                      |
 
-**Count: B3–B25 = 23 backend-backed capabilities with a web surface and no App surface.** Most are ➖ by the
-criterion in §D below. The ones that are _not_ ➖ are B6, B8, B9, B12/B13, A16.
+**Count: B3–B25 = 23 backend-backed capabilities with a web surface and no _mutable_ App surface**
+(B5 ticket-types and B7 registration list are ⚠ read-only — the App _does_ have a surface for them,
+just not a writable one). Most are ➖ by the criterion in §D below. The ones that are _not_ ➖ are
+B6, B8, B9, B12/B13, A16.
 
 ---
 
@@ -103,13 +105,29 @@ console already does with 10× the screen and a keyboard.
 
 ## D. Scope criterion (stated, so it can be argued with)
 
-The research (`02-industry-research.md` §D1.5, §D3.1) found the industry splits native vs web by
-**input density and hardware proximity**, not by screen count:
+> **Attribution, stated plainly (review finding V-05).** The criterion below is **the author's
+> synthesis**, derived from two source families — hardware access (`02` §A2.1) and vendor feature
+> splits (`02` §D1). **No source states this criterion.** The research report flags it as synthesis in
+> its own text (`02` §D3.2: "_this is my synthesis of two source families; flagged as synthesis, not
+> a quoted finding_") and records the underlying question as unanswered (`02` §D3.1: "_I found no
+> public evidence establishing a normal screen count_" ❓). It is carried here as a `[MED]`
+> engineering judgement, **not** as a research finding, and it is the weakest link in the chain from
+> evidence to recommendation in `04-architecture-options.md`.
+
+The research found the industry splits native vs web by **input density and hardware proximity**
+rather than by screen count — as the author's reading of two source families, with one important
+counterexample recorded below:
 
 > Bizzabo ships check-in, badging, session access control, consent capture, lead retrieval **and**
-> wearable pairing in one native app. Cvent's own documentation admits unclosed Android parity.
+> wearable pairing in one native app (`02` §D1.3, `[P]` for the App Store listing; the lead-retrieval
+> and wearable quotes are `COULD NOT VERIFY` at the cited source — see `07-verification.md` V-16).
+> Cvent's own documentation admits unclosed Android parity.
 
-Applied to LinkCard, the criterion is:
+**So this criterion is not "the industry says so".** It is a proposal, and its most serious
+counter-argument is that Bizzabo's broad native surface contradicts it. The honest reconciliation is:
+Bizzabo's surface is broad _and_ tactile (badging, session access, lead retrieval, wearable pairing —
+all door-side), whereas LinkCard's missing 23 are largely _desk_ work. That distinction is the
+criterion, and it is an argument — not a citation.
 
 | Test                                                       | Native candidate | Web candidate |
 | ---------------------------------------------------------- | ---------------- | ------------- |
@@ -127,12 +145,12 @@ is **narrow and tactile**, and the correct response to §B is not "build 23 scre
 
 ## E. Gap ledger (what must change, by class)
 
-| Class                              | Items                                                                                                     | Nature                                     |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| **E-1 Door-side gaps that matter** | A14 (badge export — arguably ➖), A16 (session door check-in), A19 (wallet at desk), A6 (undo a check-in) | Product decisions, small surface           |
-| **E-2 Contract gaps**              | B6 (capabilities invisible to the App), B8/B9 (email status + resend), plus silent semantic drift D-5     | **Correctness risk**, not feature gap      |
-| **E-3 Structural gaps**            | D-4 (no event OpenAPI), D-10 (no shared package/tokens), D-11 (stale context doc), D-2 (1/12 commit rate) | These _cause_ E-1 and E-2 to recur         |
-| **E-4 Explicitly out of scope**    | §B desk capabilities, A20 (offline), A21 (printing)                                                       | Declare ➖ or defer with a decision record |
+| Class                              | Items                                                                                                                                                                      | Nature                                     |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| **E-1 Door-side gaps that matter** | A14 (badge export — arguably ➖), A16 (session door check-in), A19 (wallet at desk), A6 (undo a check-in)                                                                  | Product decisions, small surface           |
+| **E-2 Contract gaps**              | B6 (capabilities invisible to the App), B8/B9 (email status + resend), plus silent semantic drift D-5                                                                      | **Correctness risk**, not feature gap      |
+| **E-3 Structural gaps**            | D-4 (no event OpenAPI), D-10/D-14 (no shared package; 29 near-duplicate files), D-11 (stale context doc), D-15 (`ios/` committed, no OTA), D-2 (~1/9.5 of FE, ~1/14 of BE) | These _cause_ E-1 and E-2 to recur         |
+| **E-4 Explicitly out of scope**    | §B desk capabilities, A20 (offline), A21 (printing)                                                                                                                        | Declare ➖ or defer with a decision record |
 
 **The recommendation in `04` and `05` is ordered E-3 → E-2 → E-1, not E-1 → E-2 → E-3.** Fixing
 features on top of a contract that cannot describe itself is what produced this audit.
