@@ -11,6 +11,18 @@ export const copy = {
     tagline: "活動現場營運工具",
   },
   /**
+   * `F-07`：非開發建置缺少 `EXPO_PUBLIC_API_URL` 時的啟動錯誤畫面。
+   *
+   * 與 Promoter App `W-24` 同設計：module-load throw 會白屏、沒有任何畫面可讀，
+   * 因此改用可渲染的錯誤狀態。沒有這畫面，設定錯誤會偽裝成「登入一直失敗」。
+   */
+  appConfig: {
+    title: "應用程式設定不完整",
+    message:
+      "此建置沒有帶入後端 API 位址。為避免誤寫 production 資料，已停止所有網路連線。請通知維運以正確的環境變數重新建置。",
+    reasonLabel: "原因代碼",
+  },
+  /**
    * 跨畫面共用的通用文案。
    *
    * `src/components/ui/*` 是被多個畫面重用的葉節點元件，它們的讀屏標籤不屬於

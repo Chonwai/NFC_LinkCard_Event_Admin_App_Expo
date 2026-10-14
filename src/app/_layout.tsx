@@ -6,6 +6,8 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 
 import { semantic } from "@/constants/theme";
+import { API_CONFIG } from "@/constants/config";
+import { AppConfigErrorScreen } from "@/components/AppConfigErrorScreen";
 import { useAuthStore } from "@/stores/auth.store";
 
 const WEB_VIEWPORT_STYLE_ID = "lc-admin-viewport-lock";
@@ -23,6 +25,9 @@ export default function RootLayout() {
   const segments = useSegments();
 
   useEffect(() => {
+    // `F-07`：設定無效時不 hydrate、不導頁——畫面停在啟動錯誤頁，
+    // 否則使用者會看到閃跳的登入流程然後每次請求都被拒。
+    if (!API_CONFIG.ok) return;
     void hydrate();
   }, [hydrate]);
 
@@ -46,6 +51,7 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
+    if (!API_CONFIG.ok) return;
     if (!isHydrated) return;
 
     const inAuthGroup = segments[0] === "(auth)";
@@ -55,6 +61,15 @@ export default function RootLayout() {
       router.replace("/(auth)/home");
     }
   }, [isAuthenticated, isHydrated, segments, router]);
+
+  if (!API_CONFIG.ok) {
+    return (
+      <SafeAreaProvider>
+        <StatusBar style="dark" />
+        <AppConfigErrorScreen reason={API_CONFIG.reason} />
+      </SafeAreaProvider>
+    );
+  }
 
   return (
     <SafeAreaProvider>
