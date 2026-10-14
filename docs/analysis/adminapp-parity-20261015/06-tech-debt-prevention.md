@@ -82,8 +82,16 @@ package introduces:
 `react`, `react-native`, or native-module import to it is rejected by the CI guard, not by reviewer
 discipline.
 
-**Explicitly not yet:** a shared RN component library. Two apps, no monorepo tooling, and a
+**Explicitly not yet:** a shared RN **component** library. Two apps, no monorepo tooling, and a
 component library requires wiring two build systems (research §C2.1).
+
+> **But be precise about what exists (review finding V-01, `01-drift-audit.md` §8).** The App does not
+> merely lack a component library — it has **two copies** of one. The two Expo apps share **29
+> identically-named files**, including all ten `components/ui/*` components, none byte-identical and
+> at least five ≥ 0.92 similar. So the rule is "do not _package_ these yet", not "there is nothing to
+> package". The duplicated UI kit is the real candidate, and it is a larger piece of work than the
+> token package this rule covers. Scope it after Phase 2, as an open decision in
+> `05-remediation-plan.md` §7.
 
 ---
 
@@ -141,10 +149,18 @@ contributor will "simplify" the escape hatch into a WebView and lose the app.
 
 - Admin-layer screens (a new screen over an existing endpoint, copy changes, new flows) ship via
   **EAS Update**.
-- Only new native capability requires a store submission. Bump `runtimeVersion` when adding/removing a
-  native library or modifying `app.json`.
+- Only new native capability requires a store submission. Bump `runtimeVersion` when adding or
+  removing a **native library**, when editing the **native project** (`ios/**`), or when modifying
+  `app.json`. The first version of this rule omitted `ios/**` — and this repo **does** commit an
+  `ios/` Xcode project (18 tracked files), so the omission mattered.
 - Budget for the first submission of a release being **rejected** — the research's data point is
   roughly a 2-day cost per rejection (research §A3.2, `[MED-HIGH]`).
+
+> **Do not assume OTA works today (review finding V-03).** There is **no `expo-updates` dependency**
+> (`grep -c expo-updates package.json` → 0), no `updates` block in `app.json`, and no
+> `runtimeVersion`/`channel` in `eas.json`. Enabling EAS Update adds a **native module**, so it needs
+> a rebuild and a store submission. Treat it as a prerequisite with its own cost
+> (`05-remediation-plan.md` P3-5, which prices it at 3.5 days rather than 1.5).
 
 ---
 
@@ -172,11 +188,18 @@ be written down:
 **Prevents:** the situation returning unnoticed for weeks.
 **Mechanism:** re-run the measurement in `01-drift-audit.md` §2 and §3.
 
-| Metric                  | Command                                                                                  | Threshold                                                     |
-| ----------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| Commit-rate ratio       | `rev-list --count --since=<90d>` on all three repos                                      | App code commits < 1/10 of the smaller upstream ⇒ investigate |
-| Contract coverage       | `grep -c '@openapi' src/events` vs `grep -cE 'router\.(get\|post…)' src/events/routes/*` | coverage < 50 % of consumed endpoints ⇒ investigate           |
-| Consumed-endpoint drift | diff the App's endpoint list against the generated contract                              | any removal or signature change ⇒ **act**                     |
+| Metric                  | Command                                                                                                                                                                                          | Threshold                                                    |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| Commit-rate ratio       | `rev-list --count --since=<90d>` on all three repos, **code paths only**                                                                                                                         | App code commits < 1/9 of the smaller upstream ⇒ investigate |
+| Endpoint inventory      | `grep -rhoE 'router\.(get\|post\|put\|patch\|delete)\(' src/events/routes/*.routes.ts \| wc -l` (→ 121) and `grep -rhoE "[\"'\`]/api/[^\"'\`]_" <App>/src \| sed 's/^[^/]_//' \| sort -u` (→ 14) | recorded for comparison, not a gate                          |
+| Contract coverage       | annotated endpoints ÷ **consumed** endpoints                                                                                                                                                     | coverage < 50 % of consumed endpoints ⇒ investigate          |
+| Consumed-endpoint drift | diff the App's endpoint list against the generated contract                                                                                                                                      | any removal or signature change ⇒ **act**                    |
+
+> **The first version of this table was not runnable** (review finding V-17): it contained a literal
+> `…` inside a regex, and it compared an annotation count under `src/events` against route counts
+> under `src/events/routes/*` — two different file sets — so the ratio was not computable. Both
+> inventory commands above reproduce (121 and 14). The metric that matters is **annotated endpoints vs
+> consumed endpoints**, because the floor only has to cover what a client actually calls.
 
 This is the tripwire that turns `01-drift-audit.md` from a one-off report into an instrument.
 
