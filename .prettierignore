@@ -20,5 +20,12 @@ ios/
 # `docs/handbook/manifest.json` 產生，**中英兩份都是產物**。手改會被下次
 # 產生覆蓋，所以它們不該被 prettier 重新排版（排版會讓產物與來源不一致）。
 # 要改內容請改 manifest，然後重跑產生器。
+# 手冊的區域狀態（憑證、seeder 輸出、除錯截圖）。這些目錄由
+# `docs/handbook/.gitignore` 忽略，但 prettier 只讀「根目錄」的 ignore 檔，
+# 看不到嵌套的 .gitignore，所以必須在此再列一次，否則 `format:check` 會因為
+# 一個不該被檢查的 JSON 而變紅（且只在某些機器上）。
+docs/handbook/.capture/
+docs/handbook/.probe/
+
 docs/handbook/journeys-zh.md
 docs/handbook/journeys-en.md
