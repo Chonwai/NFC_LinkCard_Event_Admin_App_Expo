@@ -97,6 +97,14 @@ A browser is not a phone, and the handbook says so where it matters:
 - **The token desk** is intentionally a doorway to the web console, not a
   feature. The handbook says so rather than hiding it.
 
+### A rebuild is not byte-identical
+
+The screenshots photograph live demo data, and the seeder writes fresh
+timestamps each run, so a rebuild produces images that differ in those details.
+The checks therefore assert that every step was photographed, that the callouts
+are inside the frame and that both languages cover the same steps — they do not
+assert byte-equality, because that would be asserting something untrue.
+
 ## The checks
 
 `verify.mjs` runs eleven checks over the manifest, the screenshots and the
