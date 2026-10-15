@@ -325,7 +325,9 @@ function buildHtml(lang) {
   .step img {
     width: 62mm; border: 1px solid #d1d5db; border-radius: 3mm; display: inline-block;
   }
-  .callouts { width: 100%; border-collapse: collapse; }
+  /* Match the callout legend to the picture width so the numbers sit beside the
+     image they refer to, instead of stranded at the page margin. */
+  .callouts { width: 62mm; margin: 0 auto; border-collapse: collapse; }
   .callouts th {
     width: 9mm; text-align: left; color: #d81b60; font-weight: 700;
     padding: 1mm 2mm 1mm 0; vertical-align: top;
