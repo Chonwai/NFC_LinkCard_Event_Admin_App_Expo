@@ -15,3 +15,10 @@ dist/
 web-build/
 .eas/dist/
 ios/
+
+# 手冊旅程文件：由 `docs/handbook/tools/render-journeys.mjs` 從
+# `docs/handbook/manifest.json` 產生，**中英兩份都是產物**。手改會被下次
+# 產生覆蓋，所以它們不該被 prettier 重新排版（排版會讓產物與來源不一致）。
+# 要改內容請改 manifest，然後重跑產生器。
+docs/handbook/journeys-zh.md
+docs/handbook/journeys-en.md

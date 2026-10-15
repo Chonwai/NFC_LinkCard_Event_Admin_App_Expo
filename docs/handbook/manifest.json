@@ -1,0 +1,1451 @@
+{
+  "meta": {
+    "app": "LinkCard Event Admin",
+    "slug": "linkcard-event-admin",
+    "platformZh": "iOS 與 Android 手機應用程式（Expo）",
+    "platformEn": "iOS and Android mobile app (Expo)",
+    "audienceZh": "活動主辦人與現場閘口工作人員",
+    "audienceEn": "Event organisers and door staff",
+    "captureZh": "畫面以手機尺寸的瀏覽器視窗擷取（390 × 844，2 倍解析度）。相機與 NFC 屬於手機硬體，瀏覽器沒有，因此這兩個功能的相關畫面會顯示 App 自己的提示文字。",
+    "captureEn": "Screens were captured in a phone-sized browser window (390 x 844 at 2x). Camera and NFC are phone hardware, so the app's own notices appear on those screens instead of a live view.",
+    "viewport": { "width": 390, "height": 844, "scale": 2 }
+  },
+  "personas": {
+    "organizer": {
+      "zh": "主辦人",
+      "en": "Organiser",
+      "accountEnv": "HANDBOOK_LOGIN_EMAIL",
+      "descZh": "活動的擁有者，可看名單、設定與所有現場工具。",
+      "descEn": "Owns the event. Can read the roster, settings and every door tool."
+    },
+    "staff": {
+      "zh": "閘口工作人員",
+      "en": "Door staff",
+      "accountEnv": "HANDBOOK_STAFF_EMAIL",
+      "descZh": "只被授權在現場報到與操作 NFC，讀不到完整名單。",
+      "descEn": "Trusted to check people in and work the NFC desk, but cannot read the full roster."
+    }
+  },
+  "journeys": [
+    {
+      "id": "A1",
+      "titleZh": "登入 App",
+      "titleEn": "Sign in to the app",
+      "persona": "organizer",
+      "whenZh": "第一次拿到手機，或換了裝置之後。",
+      "whenEn": "The first time you open the app, or after switching devices.",
+      "goalZh": "用自己的帳號登入，看到自己負責的活動。",
+      "goalEn": "Get into your own account and see the events you run.",
+      "beforeZh": "已收到主辦方提供的帳號電郵與密碼。",
+      "beforeEn": "You have the email and password your event owner gave you.",
+      "afterZh": "停在「我的活動」畫面，可以開始選活動。",
+      "afterEn": "You land on My events and can pick an event.",
+      "steps": [
+        {
+          "id": "A1-1",
+          "screen": "login",
+          "route": "/",
+          "doZh": "打開 App。",
+          "doEn": "Open the app.",
+          "seeZh": "出現登入畫面：上方是 App 名稱，中間要你填電郵與密碼。",
+          "seeEn": "The sign-in screen appears, asking for your email and password.",
+          "action": { "type": "goto", "route": "/" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=電子郵件",
+              "whatZh": "電郵欄位",
+              "whatEn": "Email field"
+            },
+            {
+              "label": "2",
+              "target": "text=密碼",
+              "whatZh": "密碼欄位",
+              "whatEn": "Password field"
+            }
+          ]
+        },
+        {
+          "id": "A1-2",
+          "screen": "login",
+          "route": "/",
+          "doZh": "點一下電郵欄位，輸入你的電郵地址。",
+          "doEn": "Tap the email field and type your email address.",
+          "seeZh": "欄位出現你輸入的文字。",
+          "seeEn": "The text you type shows in the field.",
+          "action": {
+            "type": "fill",
+            "target": "input >> nth=0",
+            "value": "env:ORGANIZER_EMAIL"
+          },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "input >> nth=0",
+              "whatZh": "已輸入的電郵",
+              "whatEn": "Your email"
+            }
+          ]
+        },
+        {
+          "id": "A1-3",
+          "screen": "login",
+          "route": "/",
+          "doZh": "點密碼欄位輸入密碼，然後按「登入」。",
+          "doEn": "Tap the password field, type your password, then press Sign in.",
+          "seeZh": "密碼會顯示成圓點。右邊的眼睛圖示可以切換顯示，確認自己有沒有打錯。",
+          "seeEn": "The password shows as dots. The eye icon on the right reveals it, in case you mistyped.",
+          "action": {
+            "type": "fill",
+            "target": "input >> nth=1",
+            "value": "env:ORGANIZER_PASSWORD"
+          },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "input >> nth=1",
+              "whatZh": "密碼欄位（顯示為圓點）",
+              "whatEn": "Password field (shown as dots)"
+            },
+            {
+              "label": "2",
+              "target": "button:has-text('登入')",
+              "whatZh": "按這裡登入",
+              "whatEn": "Press to sign in"
+            }
+          ]
+        },
+        {
+          "id": "A1-4",
+          "screen": "home",
+          "route": "/home",
+          "doZh": "按「登入」。",
+          "doEn": "Press Sign in.",
+          "seeZh": "登入成功後直接進入「我的活動」，畫面上列出你負責的活動。",
+          "seeEn": "You go straight to My events, listing the events you are responsible for.",
+          "action": { "type": "click", "target": "button:has-text('登入')" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=我的活動",
+              "whatZh": "已經登入，這是你的活動列表",
+              "whatEn": "You are signed in; this is your event list"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "A2",
+      "titleZh": "選擇要處理的活動",
+      "titleEn": "Pick the event you are working on",
+      "persona": "organizer",
+      "whenZh": "每次打開 App 之後。",
+      "whenEn": "Every time you open the app.",
+      "goalZh": "進入正確活動的現場工具。",
+      "goalEn": "Get into the tools for the right event.",
+      "beforeZh": "已經登入。",
+      "beforeEn": "You are signed in.",
+      "afterZh": "停在該活動的「活動概覽」。",
+      "afterEn": "You are on that event's Overview.",
+      "steps": [
+        {
+          "id": "A2-1",
+          "screen": "home",
+          "route": "/home",
+          "doZh": "在「我的活動」找你要辦的活動。",
+          "doEn": "Find the event you are working on in My events.",
+          "seeZh": "每張活動卡顯示活動名稱、狀態、你的身分、報名人數與參展商數目。",
+          "seeEn": "Each card shows the event name, status, your role, and the number of registrations and exhibitors.",
+          "action": { "type": "goto", "route": "/home" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=Macau Tech Expo 2026",
+              "whatZh": "活動名稱",
+              "whatEn": "Event name"
+            },
+            {
+              "label": "2",
+              "target": "text=已發布",
+              "whatZh": "活動狀態",
+              "whatEn": "Event status"
+            }
+          ]
+        },
+        {
+          "id": "A2-2",
+          "screen": "home",
+          "route": "/home",
+          "doZh": "看一下卡片上的數字，確認是同一場活動。",
+          "doEn": "Check the numbers on the card to be sure it is the right event.",
+          "seeZh": "報名人數與參展商數目就在名稱下方，不用點進去。",
+          "seeEn": "The registration and exhibitor counts sit under the name, no need to open it.",
+          "action": { "type": "none" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=報名人數",
+              "whatZh": "報名人數與參展商數目",
+              "whatEn": "Registration and exhibitor counts"
+            }
+          ]
+        },
+        {
+          "id": "A2-3",
+          "screen": "overview",
+          "route": "/{eventId}/overview",
+          "doZh": "點一下活動卡。",
+          "doEn": "Tap the event card.",
+          "seeZh": "進入「活動概覽」，最上方是這場活動的即時數字。",
+          "seeEn": "You arrive at Overview, with this event's live numbers at the top.",
+          "action": {
+            "type": "click",
+            "target": "button:has-text('Macau Tech Expo 2026')"
+          },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=活動概覽",
+              "whatZh": "已進入這場活動",
+              "whatEn": "You are inside this event"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "A3",
+      "titleZh": "檢查手機狀態與登出",
+      "titleEn": "Check the phone status and sign out",
+      "persona": "organizer",
+      "whenZh": "開場前確認裝置沒問題，或交還手機給別人之前。",
+      "whenEn": "Before doors open to confirm the device is fine, or before handing the phone to someone else.",
+      "goalZh": "確認 App 版本與 NFC 是否可用，需要時安全登出。",
+      "goalEn": "Confirm the app version and whether NFC works, and sign out safely when needed.",
+      "beforeZh": "已經登入。",
+      "beforeEn": "You are signed in.",
+      "afterZh": "知道這支手機能不能寫卡；登出後回到登入畫面。",
+      "afterEn": "You know whether this phone can write badges; after signing out you are back at the sign-in screen.",
+      "steps": [
+        {
+          "id": "A3-1",
+          "screen": "settings",
+          "route": "/settings",
+          "doZh": "點畫面最下方的「設定」。",
+          "doEn": "Tap Settings in the bottom bar.",
+          "seeZh": "看到「帳號」與「裝置」兩段資料。",
+          "seeEn": "You see two sections: Account and Device.",
+          "action": { "type": "click", "target": "button:has-text('設定')" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=帳號",
+              "whatZh": "帳號：你是用哪個身分登入",
+              "whatEn": "Account: who you are signed in as"
+            },
+            {
+              "label": "2",
+              "target": "text=裝置",
+              "whatZh": "裝置：這支手機的狀況",
+              "whatEn": "Device: this phone's status"
+            }
+          ]
+        },
+        {
+          "id": "A3-2",
+          "screen": "settings",
+          "route": "/settings",
+          "doZh": "看「NFC 狀態」那一行。",
+          "doEn": "Look at the NFC status row.",
+          "seeZh": "顯示「支援」代表這支手機可以寫卡與讀卡；顯示「不支援」就要換另一支手機做 NFC 工作。",
+          "seeEn": "Supported means this phone can write and read badges. Not supported means you need another phone for NFC work.",
+          "action": { "type": "none" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "[data-testid=settings-nfc-status]",
+              "whatZh": "NFC 狀態決定這支手機能不能寫卡",
+              "whatEn": "NFC status decides whether this phone can write badges"
+            },
+            {
+              "label": "2",
+              "target": "text=App 版本",
+              "whatZh": "回報問題時要說出這個版本號",
+              "whatEn": "Quote this version when reporting a problem"
+            }
+          ]
+        },
+        {
+          "id": "A3-3",
+          "screen": "settings",
+          "route": "/settings",
+          "doZh": "要交還手機時，捲到最下面按「登出」。",
+          "doEn": "When handing the phone over, scroll down and press Sign out.",
+          "seeZh": "回到登入畫面，別人就看不到你的活動資料。",
+          "seeEn": "You return to the sign-in screen, so the next person cannot see your event data.",
+          "action": { "type": "none" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "button:has-text('登出')",
+              "whatZh": "交還手機前按這裡",
+              "whatEn": "Press this before handing the phone over"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "B1",
+      "titleZh": "掌握活動現況",
+      "titleEn": "See where the event stands",
+      "persona": "organizer",
+      "whenZh": "開場前，以及現場期間每隔一段時間。",
+      "whenEn": "Before doors open, and every so often during the day.",
+      "goalZh": "一眼看出報名人數、已報到人數與到場率。",
+      "goalEn": "Read registrations, check-ins and attendance rate at a glance.",
+      "beforeZh": "已經進入這場活動。",
+      "beforeEn": "You are inside the event.",
+      "afterZh": "知道現場節奏，並可直接跳到常用工具。",
+      "afterEn": "You know how the door is going and can jump straight to a tool.",
+      "steps": [
+        {
+          "id": "B1-1",
+          "screen": "overview",
+          "route": "/{eventId}/overview",
+          "doZh": "打開這場活動的「活動概覽」。",
+          "doEn": "Open this event's Overview.",
+          "seeZh": "四格數字：報名人數、已報到、參展商、到場率。",
+          "seeEn": "Four figures: registrations, checked in, exhibitors, attendance rate.",
+          "action": { "type": "goto", "route": "/{eventId}/overview" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "[data-testid=overview-stat-registrations]",
+              "whatZh": "報名人數",
+              "whatEn": "Registrations"
+            },
+            {
+              "label": "2",
+              "target": "[data-testid=overview-stat-checkedIn]",
+              "whatZh": "已報到",
+              "whatEn": "Checked in"
+            },
+            {
+              "label": "3",
+              "target": "[data-testid=overview-stat-attendance]",
+              "whatZh": "到場率",
+              "whatEn": "Attendance rate"
+            }
+          ]
+        },
+        {
+          "id": "B1-2",
+          "screen": "overview",
+          "route": "/{eventId}/overview",
+          "doZh": "如果某格顯示「—」而不是數字，看它下面那行說明。",
+          "doEn": "If a figure shows a dash instead of a number, read the note under it.",
+          "seeZh": "破折號代表「這個數字沒拿到」，不是「零」。畫面上會寫明原因。",
+          "seeEn": "A dash means the figure could not be read, not that it is zero. The note explains why.",
+          "action": { "type": "none" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=（破折號",
+              "whatZh": "破折號的解釋",
+              "whatEn": "What the dash means"
+            }
+          ]
+        },
+        {
+          "id": "B1-3",
+          "screen": "overview",
+          "route": "/{eventId}/overview",
+          "doZh": "往下看「快速操作」，這裡是現場最常用的入口。",
+          "doEn": "Scroll to Quick actions, the shortcuts you will use most on the door.",
+          "seeZh": "七個按鈕：掃碼簽到、Token、名單、NFC 寫卡、讀取 tagUid、交換名片、Badge。",
+          "seeEn": "Seven buttons: scan check-in, Token, roster, write NFC badge, read tagUid, exchange contacts, badges.",
+          "action": { "type": "none" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "[data-testid=overview-action-check-in]",
+              "whatZh": "掃碼簽到：最常用",
+              "whatEn": "Scan check-in: the one you use most"
+            },
+            {
+              "label": "2",
+              "target": "[data-testid=overview-action-registrations]",
+              "whatZh": "名單：查人用",
+              "whatEn": "Roster: to look someone up"
+            },
+            {
+              "label": "3",
+              "target": "[data-testid=overview-action-nfc]",
+              "whatZh": "NFC 寫卡：發手環用",
+              "whatEn": "Write NFC badge: to issue a wristband"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "B2",
+      "titleZh": "點清 Badge 庫存",
+      "titleEn": "Check the badge inventory",
+      "persona": "organizer",
+      "whenZh": "開場之前，和發到手環用完的時候。",
+      "whenEn": "Before doors open, and whenever you run out of wristbands.",
+      "goalZh": "知道還有幾張空白卡、已經發出去幾張。",
+      "goalEn": "Know how many blank badges are left and how many are already issued.",
+      "beforeZh": "已經進入這場活動。",
+      "beforeEn": "You are inside the event.",
+      "afterZh": "心裡有數，知道要不要再拆一批新卡。",
+      "afterEn": "You know whether you need to open a fresh batch.",
+      "steps": [
+        {
+          "id": "B2-1",
+          "screen": "badges",
+          "route": "/{eventId}/badges",
+          "doZh": "從「快速操作」按「Badge」。",
+          "doEn": "Press Badges in Quick actions.",
+          "seeZh": "上方是查詢框，下方是這場活動所有的 Badge。",
+          "seeEn": "A lookup box on top, and every badge for this event below.",
+          "action": { "type": "goto", "route": "/{eventId}/badges" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=查詢 Badge（輸入 tagUid）",
+              "whatZh": "知道卡片編號時用這裡查",
+              "whatEn": "Use this when you know the card number"
+            },
+            {
+              "label": "2",
+              "target": "text=Badge 列表",
+              "whatZh": "全部卡片清單",
+              "whatEn": "The full list"
+            }
+          ]
+        },
+        {
+          "id": "B2-2",
+          "screen": "badges",
+          "route": "/{eventId}/badges",
+          "doZh": "看每張卡的狀態標籤。",
+          "doEn": "Read the status label on each card.",
+          "seeZh": "「未綁定」是還沒發出去的空白卡；「啟用」是已經發給人、正在使用。",
+          "seeEn": "Unassigned means a blank badge not yet issued. Active means it is on someone and in use.",
+          "action": { "type": "none" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=啟用",
+              "whatZh": "已發給人、正在使用",
+              "whatEn": "Issued and in use"
+            }
+          ]
+        },
+        {
+          "id": "B2-3",
+          "screen": "badges",
+          "route": "/{eventId}/badges",
+          "doZh": "看每張卡的批次名稱。",
+          "doEn": "Read the batch name on each card.",
+          "seeZh": "批次名稱告訴你這張卡是從哪一疊拿出來的，方便對帳。",
+          "seeEn": "The batch name tells you which stack the badge came from, which makes reconciling easier.",
+          "action": { "type": "none" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=預先登記批次 B",
+              "whatZh": "批次名稱",
+              "whatEn": "Batch name"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "B3",
+      "titleZh": "先認識名單",
+      "titleEn": "Get to know the roster",
+      "persona": "organizer",
+      "whenZh": "開場之前，先了解會來哪些人。",
+      "whenEn": "Before doors open, to see who is coming.",
+      "goalZh": "看得懂名單上每一列在講什麼。",
+      "goalEn": "Understand what each row on the roster is telling you.",
+      "beforeZh": "已經進入這場活動，而且你的帳號讀得到名單。",
+      "beforeEn": "You are inside the event, and your account is allowed to read the roster.",
+      "afterZh": "知道怎麼看一列報名，也知道怎麼複製報名編號。",
+      "afterEn": "You know how to read a registration row and how to copy a registration code.",
+      "steps": [
+        {
+          "id": "B3-1",
+          "screen": "registrations",
+          "route": "/{eventId}/registrations",
+          "doZh": "從「快速操作」按「名單」。",
+          "doEn": "Press Roster in Quick actions.",
+          "seeZh": "看到這場活動的報名清單。",
+          "seeEn": "You see this event's list of registrations.",
+          "action": { "type": "goto", "route": "/{eventId}/registrations" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=名單",
+              "whatZh": "報名清單",
+              "whatEn": "The roster"
+            }
+          ]
+        },
+        {
+          "id": "B3-2",
+          "screen": "registrations",
+          "route": "/{eventId}/registrations",
+          "doZh": "讀一列報名。",
+          "doEn": "Read one registration row.",
+          "seeZh": "由左至右是姓名、電郵（中間會打星號保護）、狀態標籤、報名編號、公司、報名時間。",
+          "seeEn": "Left to right: name, email (partly starred for privacy), status label, registration code, company, and when they registered.",
+          "action": { "type": "none" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "button[aria-label*='報名 '] >> nth=0",
+              "whatZh": "這一列就是一位報名者",
+              "whatEn": "One row is one registration"
+            },
+            {
+              "label": "2",
+              "target": "text=已確認",
+              "whatZh": "狀態：已確認＝可以進場",
+              "whatEn": "Status: confirmed means they may enter"
+            }
+          ]
+        },
+        {
+          "id": "B3-3",
+          "screen": "registrations",
+          "route": "/{eventId}/registrations",
+          "doZh": "點一下報名編號。",
+          "doEn": "Tap the registration code.",
+          "seeZh": "編號會被複製起來，方便你貼到別的系統或傳給同事。",
+          "seeEn": "The code is copied so you can paste it elsewhere or send it to a colleague.",
+          "action": { "type": "none" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "button[aria-label^='複製報名編號'] >> nth=0",
+              "whatZh": "點這裡複製編號",
+              "whatEn": "Tap to copy the code"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C1",
+      "titleZh": "用相機掃碼報到",
+      "titleEn": "Check someone in by scanning",
+      "persona": "staff",
+      "whenZh": "參加者遞上手機或紙本上的 QR code 時。這是最快的方法。",
+      "whenEn": "When an attendee holds up a QR code on their phone or on paper. This is the fastest way.",
+      "goalZh": "把 QR code 換成一次報到紀錄。",
+      "goalEn": "Turn a QR code into a check-in record.",
+      "beforeZh": "已在活動的掃碼簽到畫面，並且相機可用。",
+      "beforeEn": "You are on the scan screen for this event and the camera works.",
+      "afterZh": "畫面顯示報到結果，約 15 秒後自動回到掃碼狀態，應付下一個人。",
+      "afterEn": "The result appears, then the screen returns to scanning after about 15 seconds, ready for the next person.",
+      "steps": [
+        {
+          "id": "C1-1",
+          "screen": "check-in",
+          "route": "/{eventId}/check-in",
+          "doZh": "從「快速操作」按「掃碼簽到」。",
+          "doEn": "Press Scan check-in in Quick actions.",
+          "seeZh": "看到上方「總簽到」，下方是掃描框。",
+          "seeEn": "The running check-in total sits on top, with the scanning frame below.",
+          "action": { "type": "goto", "route": "/{eventId}/check-in" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=總簽到",
+              "whatZh": "累計已報到人次",
+              "whatEn": "Running check-in total"
+            },
+            {
+              "label": "2",
+              "target": "text=掃描報名 QR code",
+              "whatZh": "把 QR code 對準這個框",
+              "whatEn": "Aim the QR code at this frame"
+            }
+          ]
+        },
+        {
+          "id": "C1-2",
+          "screen": "check-in",
+          "route": "/{eventId}/check-in",
+          "doZh": "把手機對準參加者的 QR code，保持約 15 公分。",
+          "doEn": "Point the phone at the attendee's QR code, about 15 cm away.",
+          "seeZh": "畫面顯示「確認中…」，不用按任何按鈕，它會自己讀。",
+          "seeEn": "The screen shows Checking, you do not press anything, it reads by itself.",
+          "action": { "type": "none" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=掃描報名 QR code",
+              "whatZh": "對準這裡就好",
+              "whatEn": "Just aim here"
+            }
+          ]
+        },
+        {
+          "id": "C1-3",
+          "screen": "check-in",
+          "route": "/{eventId}/check-in",
+          "doZh": "讀到之後，看結果卡。",
+          "doEn": "When it reads, look at the result card.",
+          "seeZh": "綠色的「報到成功」代表可以放行，卡片上會顯示姓名、票種與報到時間。",
+          "seeEn": "A green Checked in means you can let them through. The card shows their name, ticket type and check-in time.",
+          "action": { "type": "none" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=報到成功",
+              "whatZh": "可以放行",
+              "whatEn": "Let them through"
+            },
+            {
+              "label": "2",
+              "target": "text=姓名",
+              "whatZh": "核對姓名與本人是否相同",
+              "whatEn": "Check the name matches the person"
+            }
+          ]
+        },
+        {
+          "id": "C1-4",
+          "screen": "check-in",
+          "route": "/{eventId}/check-in",
+          "doZh": "如果這位參加者要拿手環，直接按「寫入 NFC 卡」，不用重新輸入編號。",
+          "doEn": "If this attendee needs a wristband, press Write NFC badge. You do not have to retype the code.",
+          "seeZh": "自動帶著剛才那位參加者的資料跳到寫卡畫面，每人可省下 30 到 60 秒。",
+          "seeEn": "It carries the attendee's details over to the badge screen, saving 30 to 60 seconds per person.",
+          "action": { "type": "none" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=寫入 NFC 卡",
+              "whatZh": "按這裡接續寫卡",
+              "whatEn": "Press to continue to badge writing"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C2",
+      "titleZh": "相機不能用時，改用手動輸入",
+      "titleEn": "When the camera will not work, type the code",
+      "persona": "staff",
+      "whenZh": "QR code 破了、手機反光、或相機被其他程式佔用時。",
+      "whenEn": "When the QR code is damaged, the screen reflects, or another app is holding the camera.",
+      "goalZh": "一樣完成報到，不用叫參加者重排。",
+      "goalEn": "Still check the person in, without sending them back to the queue.",
+      "beforeZh": "已在活動的掃碼簽到畫面。",
+      "beforeEn": "You are on the scan screen for this event.",
+      "afterZh": "跟掃碼一樣得到報到結果。",
+      "afterEn": "You get the same result as scanning.",
+      "steps": [
+        {
+          "id": "C2-1",
+          "screen": "check-in",
+          "route": "/{eventId}/check-in",
+          "doZh": "如果畫面顯示「無法取得相機權限」，先按「允許使用相機」再試一次。",
+          "doEn": "If the screen says the camera is unavailable, press Allow camera and try again.",
+          "seeZh": "多數情況按一次就會好。",
+          "seeEn": "Usually one press is enough.",
+          "action": { "type": "goto", "route": "/{eventId}/check-in" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=允許使用相機",
+              "whatZh": "先試著開啟相機",
+              "whatEn": "Try enabling the camera first"
+            }
+          ]
+        },
+        {
+          "id": "C2-2",
+          "screen": "check-in",
+          "route": "/{eventId}/check-in",
+          "doZh": "還是不行，就按「改用輸入模式」。",
+          "doEn": "If it still will not work, press Switch to typing.",
+          "seeZh": "掃描框變成一個輸入框。",
+          "seeEn": "The scanning frame becomes a text box.",
+          "action": { "type": "none" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=改用輸入模式",
+              "whatZh": "切換到手動輸入",
+              "whatEn": "Switch to typing"
+            }
+          ]
+        },
+        {
+          "id": "C2-3",
+          "screen": "check-in",
+          "route": "/{eventId}/check-in",
+          "doZh": "把參加者提供的報名編號打進去，例如 LKC-202611-A1B2C3。",
+          "doEn": "Type the registration code the attendee gives you, for example LKC-202611-A1B2C3.",
+          "seeZh": "大小寫不拘，前後多打了空格也沒關係，系統會自己校正。",
+          "seeEn": "Case does not matter, and stray spaces are fine, the system corrects them.",
+          "action": {
+            "type": "fill",
+            "target": "input >> nth=0",
+            "value": "env:CODE_CONFIRMED"
+          },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "input >> nth=0",
+              "whatZh": "輸入報名編號",
+              "whatEn": "Type the registration code"
+            }
+          ]
+        },
+        {
+          "id": "C2-4",
+          "screen": "check-in",
+          "route": "/{eventId}/check-in",
+          "doZh": "按「查詢並報到」。",
+          "doEn": "Press Look up and check in.",
+          "seeZh": "出現跟掃碼一樣的結果卡。",
+          "seeEn": "The same result card appears as with scanning.",
+          "action": {
+            "type": "click",
+            "target": "button:has-text('查詢並報到')"
+          },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "button:has-text('查詢並報到')",
+              "whatZh": "按這裡送出",
+              "whatEn": "Press to submit"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C3",
+      "titleZh": "看懂四種報到結果",
+      "titleEn": "Read the four check-in outcomes",
+      "persona": "staff",
+      "whenZh": "每次報到之後。",
+      "whenEn": "After every check-in.",
+      "goalZh": "知道哪一種可以放行、哪一種要叫主管。",
+      "goalEn": "Know which outcome lets someone through and which needs a supervisor.",
+      "beforeZh": "已經完成至少一次查詢。",
+      "beforeEn": "You have completed at least one lookup.",
+      "afterZh": "遇到任何結果都知道下一步做什麼。",
+      "afterEn": "You know what to do next for every outcome.",
+      "steps": [
+        {
+          "id": "C3-1",
+          "screen": "check-in",
+          "route": "/{eventId}/check-in",
+          "doZh": "這是第一種：報到成功。",
+          "doEn": "Outcome one: checked in.",
+          "seeZh": "綠色標題「報到成功」，代表這張票有效而且剛剛完成報到。直接放行。",
+          "seeEn": "A green Checked in headline means the ticket was valid and is now checked in. Let them through.",
+          "action": { "type": "none" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=報到成功",
+              "whatZh": "放行",
+              "whatEn": "Let them through"
+            }
+          ]
+        },
+        {
+          "id": "C3-2",
+          "screen": "check-in",
+          "route": "/{eventId}/check-in",
+          "doZh": "這是第二種：重複簽到。",
+          "doEn": "Outcome two: already checked in.",
+          "seeZh": "標題是「重複簽到」，代表這個人剛剛已經報到過。不要重複放行，先問他是不是已經進場了。",
+          "seeEn": "The headline says Already checked in, meaning this person was checked in earlier. Do not wave them through again, ask whether they already entered.",
+          "action": {
+            "type": "fill",
+            "target": "input >> nth=0",
+            "value": "env:CODE_CHECKED_IN"
+          },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=重複簽到",
+              "whatZh": "不是新人，先確認",
+              "whatEn": "Not a new arrival, confirm first"
+            }
+          ]
+        },
+        {
+          "id": "C3-3",
+          "screen": "check-in",
+          "route": "/{eventId}/check-in",
+          "doZh": "這是第三種：無效報名。",
+          "doEn": "Outcome three: invalid registration.",
+          "seeZh": "標題是「無效報名」，代表查不到這張票。先確認編號有沒有打錯，再請參加者出示原本的確認信。",
+          "seeEn": "The headline says Invalid registration, meaning this ticket was not found. Check for a typo first, then ask for their original confirmation email.",
+          "action": {
+            "type": "fill",
+            "target": "input >> nth=0",
+            "value": "env:CODE_CANCELLED"
+          },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=無效報名",
+              "whatZh": "不要放行",
+              "whatEn": "Do not let them through"
+            }
+          ]
+        },
+        {
+          "id": "C3-4",
+          "screen": "check-in",
+          "route": "/{eventId}/check-in",
+          "doZh": "如果是連線問題，畫面會顯示「網路連線異常」。",
+          "doEn": "If the network is the problem, the screen says the connection failed.",
+          "seeZh": "這句話跟「無效報名」完全不同：票可能是好的。改用人工核對或換個網路再試，不要當成假票。",
+          "seeEn": "That is not the same as an invalid ticket. The ticket may be fine. Verify by hand or switch networks, but do not treat it as fake.",
+          "action": { "type": "none" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=網路連線異常",
+              "whatZh": "是網路問題，不是票的問題",
+              "whatEn": "A network problem, not a ticket problem"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C4",
+      "titleZh": "現場補報名",
+      "titleEn": "Register someone on the spot",
+      "persona": "staff",
+      "whenZh": "有人臨時到場，沒有事先報名。",
+      "whenEn": "Someone turns up without having registered.",
+      "goalZh": "替他建立一筆報名，然後照常報到。",
+      "goalEn": "Create a registration for them, then check them in as usual.",
+      "beforeZh": "已知道要給他哪一種票。",
+      "beforeEn": "You know which ticket type to give them.",
+      "afterZh": "名單多一筆紀錄，可以直接接去簽到或寫卡。",
+      "afterEn": "The roster gains a record, and you can carry straight on to check-in or badge writing.",
+      "steps": [
+        {
+          "id": "C4-1",
+          "screen": "walk-in",
+          "route": "/{eventId}/walk-in",
+          "doZh": "從概覽的「快速操作」按「名單」，或直接打開現場補報名。",
+          "doEn": "Open walk-in registration from the door tools.",
+          "seeZh": "看到一張表單：票種、電子郵件、名、姓、電話、公司。",
+          "seeEn": "A form appears: ticket type, email, first name, last name, phone, company.",
+          "action": { "type": "goto", "route": "/{eventId}/walk-in" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=票種",
+              "whatZh": "先選票種",
+              "whatEn": "Choose the ticket type first"
+            },
+            {
+              "label": "2",
+              "target": "text=電子郵件",
+              "whatZh": "電郵是必填",
+              "whatEn": "Email is required"
+            }
+          ]
+        },
+        {
+          "id": "C4-2",
+          "screen": "walk-in",
+          "route": "/{eventId}/walk-in",
+          "doZh": "填寫參加者的資料，把星號欄位填滿。",
+          "doEn": "Fill in the attendee's details, completing the starred fields.",
+          "seeZh": "名與姓分開兩格，電話與公司可留空。",
+          "seeEn": "First and last name are separate fields; phone and company are optional.",
+          "action": { "type": "none" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=我已閱讀並同意服務條款與隱私政策",
+              "whatZh": "一定要勾同意條款",
+              "whatEn": "You must tick the consent box"
+            }
+          ]
+        },
+        {
+          "id": "C4-3",
+          "screen": "walk-in",
+          "route": "/{eventId}/walk-in",
+          "doZh": "跟參加者讀一次條款，然後勾選同意，按「建立報名」。",
+          "doEn": "Read the terms to the attendee, tick consent, then press Create registration.",
+          "seeZh": "顯示「已建立報名」。",
+          "seeEn": "The screen confirms the registration was created.",
+          "action": { "type": "none" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "button:has-text('建立報名')",
+              "whatZh": "按這裡建立",
+              "whatEn": "Press to create"
+            }
+          ]
+        },
+        {
+          "id": "C4-4",
+          "screen": "walk-in",
+          "route": "/{eventId}/walk-in",
+          "doZh": "接著按「前往簽到」或「前往寫卡」。",
+          "doEn": "Then press Go to check-in or Go to badge.",
+          "seeZh": "提醒：需要付款的票種，報名建立了但還未付款，不能當成已入場。",
+          "seeEn": "Note: for paid tickets the registration exists but is unpaid, so it does not count as entry.",
+          "action": { "type": "none" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=前往簽到",
+              "whatZh": "直接接去簽到",
+              "whatEn": "Carry straight on to check-in"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "D1",
+      "titleZh": "從名單找人",
+      "titleEn": "Find someone on the roster",
+      "persona": "organizer",
+      "whenZh": "有人來問自己的報名、或你要確認某個人到了沒有。",
+      "whenEn": "Someone asks about their registration, or you need to confirm whether a person has arrived.",
+      "goalZh": "在幾秒內找到那個人。",
+      "goalEn": "Find that person in seconds.",
+      "beforeZh": "已經進入名單畫面。",
+      "beforeEn": "You are on the roster screen.",
+      "afterZh": "找到人，可以接去看詳情。",
+      "afterEn": "You found them and can open their detail.",
+      "steps": [
+        {
+          "id": "D1-1",
+          "screen": "registrations",
+          "route": "/{eventId}/registrations",
+          "doZh": "要只看某一種狀態，就按上面的篩選標籤。",
+          "doEn": "To see one status only, press a filter chip at the top.",
+          "seeZh": "可以選全部、已確認、已報到、待付款、已取消。",
+          "seeEn": "You can choose all, confirmed, checked in, awaiting payment, or cancelled.",
+          "action": { "type": "goto", "route": "/{eventId}/registrations" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "button:has-text('已報到')",
+              "whatZh": "只看已報到的人",
+              "whatEn": "Show only people who have checked in"
+            },
+            {
+              "label": "2",
+              "target": "button:has-text('待付款')",
+              "whatZh": "只看還沒付款的人",
+              "whatEn": "Show only unpaid registrations"
+            }
+          ]
+        },
+        {
+          "id": "D1-2",
+          "screen": "registrations",
+          "route": "/{eventId}/registrations",
+          "doZh": "要換排序，按「報名時間」或「姓名」。",
+          "doEn": "To re-sort, press Registered or Name.",
+          "seeZh": "清單立即重新排列。",
+          "seeEn": "The list re-sorts straight away.",
+          "action": { "type": "none" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "button:has-text('報名時間')",
+              "whatZh": "按報名時間排序",
+              "whatEn": "Sort by registration time"
+            },
+            {
+              "label": "2",
+              "target": "button:has-text('姓名')",
+              "whatZh": "按姓名排序",
+              "whatEn": "Sort by name"
+            }
+          ]
+        },
+        {
+          "id": "D1-3",
+          "screen": "registrations",
+          "route": "/{eventId}/registrations",
+          "doZh": "找不到就清除篩選，再往下捲。",
+          "doEn": "If you cannot find them, clear the filters and scroll down.",
+          "seeZh": "如果完全沒有符合的報名，畫面會說「沒有符合的報名」並提示清除篩選。",
+          "seeEn": "If nothing matches, the screen says there are no matching registrations and suggests clearing the filters.",
+          "action": { "type": "click", "target": "button:has-text('全部')" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "button:has-text('全部')",
+              "whatZh": "按這裡顯示全部",
+              "whatEn": "Press to show everything"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "D2",
+      "titleZh": "看一個人的完整資料",
+      "titleEn": "Open one person's full record",
+      "persona": "organizer",
+      "whenZh": "要確認簽到時間、Token 餘額或票種的時候。",
+      "whenEn": "When you need to confirm a check-in time, a token balance, or a ticket type.",
+      "goalZh": "把一個人的所有紀錄看在一頁上。",
+      "goalEn": "See everything about one person on a single page.",
+      "beforeZh": "已經在名單畫面。",
+      "beforeEn": "You are on the roster screen.",
+      "afterZh": "看完按「返回」回到名單。",
+      "afterEn": "Press Back to return to the roster.",
+      "steps": [
+        {
+          "id": "D2-1",
+          "screen": "registrations",
+          "route": "/{eventId}/registrations",
+          "doZh": "點一下那個人的姓名那一列。",
+          "doEn": "Tap the row with that person's name.",
+          "seeZh": "進入「查看詳情」。注意：點報名編號只會複製編號，不會進入詳情。",
+          "seeEn": "You enter the detail view. Note: tapping the registration code only copies it, it does not open the detail.",
+          "action": { "type": "goto", "route": "/{eventId}/registrations" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "button[aria-label*='報名 '] >> nth=0",
+              "whatZh": "點姓名這一列進詳情",
+              "whatEn": "Tap the name row to open the detail"
+            }
+          ]
+        },
+        {
+          "id": "D2-2",
+          "screen": "registrant",
+          "route": "/{eventId}/registrant/{registrationId}",
+          "doZh": "看「基本資料」與「報名」兩段。",
+          "doEn": "Read the Profile and Registration sections.",
+          "seeZh": "姓名、電郵、電話、公司、票種、報名時間都在這裡。",
+          "seeEn": "Name, email, phone, company, ticket type and registration time are all here.",
+          "action": {
+            "type": "click",
+            "target": "button[aria-label*='報名 '] >> nth=0"
+          },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=基本資料",
+              "whatZh": "個人的基本資料",
+              "whatEn": "Their details"
+            },
+            {
+              "label": "2",
+              "target": "text=報名",
+              "whatZh": "這張票的內容",
+              "whatEn": "This ticket's details"
+            }
+          ]
+        },
+        {
+          "id": "D2-3",
+          "screen": "registrant",
+          "route": "/{eventId}/registrant/{registrationId}",
+          "doZh": "往下看「簽到」、「Token 流水」、「綁定 NFC」三段。",
+          "doEn": "Scroll to the Check-in, Token history and NFC sections.",
+          "seeZh": "如果某一段顯示「—」或「查不到綁定卡」，那代表後端還沒有這筆資料，不是系統壞了。",
+          "seeEn": "If a section shows a dash or says no bound badge was found, the backend simply has no record yet. It does not mean something is broken.",
+          "action": { "type": "none" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=簽到",
+              "whatZh": "簽到時間",
+              "whatEn": "Check-in time"
+            },
+            {
+              "label": "2",
+              "target": "text=Token 流水",
+              "whatZh": "Token 使用紀錄",
+              "whatEn": "Token history"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "D3",
+      "titleZh": "閘口帳號看不到名單",
+      "titleEn": "Why door staff cannot open the roster",
+      "persona": "staff",
+      "whenZh": "用閘口帳號登入之後，發現名單打不開。",
+      "whenEn": "You signed in with the door account and the roster will not open.",
+      "goalZh": "知道這是權限設計，不是手機壞了。",
+      "goalEn": "Understand this is a permission boundary, not a broken phone.",
+      "beforeZh": "以閘口工作人員帳號登入。",
+      "beforeEn": "Signed in with the door-staff account.",
+      "afterZh": "知道要看名單要換主辦或協調員帳號。",
+      "afterEn": "You know to switch to an owner or coordinator account to read the roster.",
+      "steps": [
+        {
+          "id": "D3-1",
+          "screen": "home",
+          "route": "/home",
+          "doZh": "以閘口工作人員的帳號登入。",
+          "doEn": "Sign in with the door-staff account.",
+          "seeZh": "活動卡上顯示的身分是 OPERATOR，不是 OWNER。",
+          "seeEn": "The event card shows your role as OPERATOR rather than OWNER.",
+          "action": { "type": "goto", "route": "/home" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=OPERATOR",
+              "whatZh": "你的身分是閘口工作人員",
+              "whatEn": "You are signed in as door staff"
+            }
+          ]
+        },
+        {
+          "id": "D3-2",
+          "screen": "registrations",
+          "route": "/{eventId}/registrations",
+          "doZh": "照樣打開名單。",
+          "doEn": "Open the roster anyway.",
+          "seeZh": "畫面顯示「閘口帳號暫時讀不了名單」，並說明後端目前仍要求主辦或協調員權限。報到與寫卡不受影響。",
+          "seeEn": "The screen explains that the roster needs an owner or coordinator account on the backend. Check-in and badge writing are unaffected.",
+          "action": { "type": "goto", "route": "/{eventId}/registrations" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=閘口帳號",
+              "whatZh": "這是權限限制，不是故障",
+              "whatEn": "A permission limit, not a fault"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "E1",
+      "titleZh": "把手環寫給參加者",
+      "titleEn": "Write a wristband for an attendee",
+      "persona": "staff",
+      "whenZh": "參加者完成報到，要拿手環進場的時候。",
+      "whenEn": "An attendee has checked in and needs a wristband to enter.",
+      "goalZh": "把一張空白手環綁定到某一位參加者身上。",
+      "goalEn": "Bind one blank wristband to one attendee.",
+      "beforeZh": "手邊有空白手環，而且手機支援 NFC。",
+      "beforeEn": "You have blank wristbands and the phone supports NFC.",
+      "afterZh": "手環綁定完成，可以交給參加者。",
+      "afterEn": "The wristband is bound and ready to hand over.",
+      "steps": [
+        {
+          "id": "E1-1",
+          "screen": "nfc-bind",
+          "route": "/{eventId}/nfc-bind",
+          "doZh": "從「快速操作」按「NFC 寫卡」。",
+          "doEn": "Press Write NFC badge in Quick actions.",
+          "seeZh": "看到第一步「輸入報名編號以查詢參加者」。",
+          "seeEn": "Step one appears: enter a registration code to look up the attendee.",
+          "action": { "type": "goto", "route": "/{eventId}/nfc-bind" },
+          "captureNoteZh": "這張截圖在瀏覽器上擷取，瀏覽器沒有 NFC，所以畫面出現 App 自己的提示。手機上不會有這行提示，其餘畫面相同。",
+          "captureNoteEn": "Captured in a browser, which has no NFC, so the app's own notice appears. On a phone that notice is absent; everything else is the same.",
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=① 輸入報名編號以查詢參加者",
+              "whatZh": "第一步：先查人",
+              "whatEn": "Step one: find the person"
+            },
+            {
+              "label": "2",
+              "target": "text=換卡",
+              "whatZh": "換卡／補發／退卡目前還不能用",
+              "whatEn": "Replace, reissue and return are not available yet"
+            }
+          ]
+        },
+        {
+          "id": "E1-2",
+          "screen": "nfc-bind",
+          "route": "/{eventId}/nfc-bind",
+          "doZh": "輸入參加者的報名編號，或用報到結果卡跳過來。",
+          "doEn": "Enter the attendee's registration code, or arrive here from the check-in result card.",
+          "seeZh": "找到人之後，畫面會顯示姓名與票種讓你確認。",
+          "seeEn": "Once found, the screen shows their name and ticket type so you can confirm.",
+          "action": {
+            "type": "fill",
+            "target": "input >> nth=0",
+            "value": "env:CODE_CONFIRMED"
+          },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "input >> nth=0",
+              "whatZh": "輸入報名編號",
+              "whatEn": "Enter the registration code"
+            }
+          ]
+        },
+        {
+          "id": "E1-3",
+          "screen": "nfc-bind",
+          "route": "/{eventId}/nfc-bind",
+          "doZh": "按「查詢並報到」，確認螢幕上的人是對的。",
+          "doEn": "Press Look up and check in, and confirm the person on screen is right.",
+          "seeZh": "第二步出現：「選擇 Badge 類型，然後將空白 NFC 卡靠近手機背面」。",
+          "seeEn": "Step two appears: choose a badge type, then hold a blank NFC card to the back of the phone.",
+          "action": {
+            "type": "click",
+            "target": "button:has-text('查詢並報到')"
+          },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=② 選擇 Badge 類型",
+              "whatZh": "第二步：選類型再感應",
+              "whatEn": "Step two: choose a type, then tap the card"
+            }
+          ]
+        },
+        {
+          "id": "E1-4",
+          "screen": "nfc-bind",
+          "route": "/{eventId}/nfc-bind",
+          "doZh": "選「手環」，然後按「開始寫入 NFC 卡」。",
+          "doEn": "Choose Wristband, then press Start writing the NFC badge.",
+          "seeZh": "畫面顯示「寫入中，請保持卡片靠近…」，這時不要移動手環。",
+          "seeEn": "The screen says writing, keep the card close. Do not move the wristband now.",
+          "action": { "type": "none" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=開始寫入 NFC 卡",
+              "whatZh": "按住不要動，等它寫完",
+              "whatEn": "Hold still until it finishes"
+            }
+          ]
+        },
+        {
+          "id": "E1-5",
+          "screen": "nfc-bind",
+          "route": "/{eventId}/nfc-bind",
+          "doZh": "看到「NFC 綁定成功」才把手環交給參加者。",
+          "doEn": "Hand the wristband over only once the screen confirms the binding succeeded.",
+          "seeZh": "如果顯示「寫卡失敗」或「寫卡逾時」，這張卡不算完成，請重新感應再試一次。畫面上會直接寫明「勿當成成功」。",
+          "seeEn": "If it reports a failure or a timeout, the badge is not done. Tap again and retry; the screen says explicitly not to treat it as success.",
+          "action": { "type": "none" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=NFC 綁定成功",
+              "whatZh": "看到這句才算完成",
+              "whatEn": "Only done when you see this"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "E2",
+      "titleZh": "讀卡片編號與交換名片",
+      "titleEn": "Read a card number and exchange contacts",
+      "persona": "staff",
+      "whenZh": "要查一張手環是誰的，或讓兩位參加者互相留下聯絡方式。",
+      "whenEn": "You need to identify whose wristband this is, or two attendees want to swap details.",
+      "goalZh": "讀出卡片編號，或用兩次感應記錄一組交換。",
+      "goalEn": "Read a card number, or record one exchange with two taps.",
+      "beforeZh": "手機支援 NFC。",
+      "beforeEn": "The phone supports NFC.",
+      "afterZh": "拿到卡片編號，或完成一筆交換紀錄。",
+      "afterEn": "You have the card number, or one exchange is recorded.",
+      "steps": [
+        {
+          "id": "E2-1",
+          "screen": "nfc-read",
+          "route": "/{eventId}/nfc-read",
+          "doZh": "從「快速操作」按「讀取 tagUid」。",
+          "doEn": "Press Read tagUid in Quick actions.",
+          "seeZh": "畫面提示「將 NFC 卡靠近手機背面，讀取卡片硬體編號」。",
+          "seeEn": "The screen asks you to hold the NFC card to the back of the phone to read its hardware number.",
+          "action": { "type": "goto", "route": "/{eventId}/nfc-read" },
+          "captureNoteZh": "同樣在瀏覽器擷取，因此出現不支援 NFC 的提示。",
+          "captureNoteEn": "Also captured in a browser, so the no-NFC notice appears.",
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=開始讀取",
+              "whatZh": "按下去再感應卡片",
+              "whatEn": "Press, then tap the card"
+            }
+          ]
+        },
+        {
+          "id": "E2-2",
+          "screen": "nfc-read",
+          "route": "/{eventId}/nfc-read",
+          "doZh": "讀到之後可以按「複製 tagUid」。",
+          "doEn": "Once read, press Copy tagUid.",
+          "seeZh": "卡片編號已複製，可以貼給同事或拿去 Badge 頁查詢。",
+          "seeEn": "The card number is copied, ready to paste to a colleague or look up on the badge page.",
+          "action": { "type": "none" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=複製 tagUid",
+              "whatZh": "複製卡片編號",
+              "whatEn": "Copy the card number"
+            }
+          ]
+        },
+        {
+          "id": "E2-3",
+          "screen": "nfc-exchange",
+          "route": "/{eventId}/nfc-exchange",
+          "doZh": "要讓兩人交換名片，按「交換名片」。",
+          "doEn": "To let two people swap details, open Exchange contacts.",
+          "seeZh": "畫面說明流程：「先感應第一張卡，畫面上出現姓名後，再感應對方的卡。」",
+          "seeEn": "The screen states the order: tap the first card, wait for the name to appear, then tap the other person's card.",
+          "action": { "type": "goto", "route": "/{eventId}/nfc-exchange" },
+          "captureNoteZh": "交換名片需要感應兩張實體卡，瀏覽器無法示範，只能顯示 App 的說明畫面。",
+          "captureNoteEn": "Exchanging contacts needs two physical taps, which a browser cannot demonstrate, so only the app's instructions are shown.",
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=① 感應第一張卡",
+              "whatZh": "先感應第一張",
+              "whatEn": "Tap the first card"
+            }
+          ]
+        },
+        {
+          "id": "E2-4",
+          "screen": "nfc-exchange",
+          "route": "/{eventId}/nfc-exchange",
+          "doZh": "照著畫面感應第二張卡，等「已交換」出現。",
+          "doEn": "Tap the second card as prompted, and wait for the confirmation.",
+          "seeZh": "如果顯示「已交換過」，代表這兩張卡先前已經交換過，系統不會重複寫入，這是正常的。",
+          "seeEn": "If it says already exchanged, these two cards met before and nothing was written twice. That is normal.",
+          "action": { "type": "none" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=② 感應對方的卡",
+              "whatZh": "再感應第二張",
+              "whatEn": "Then tap the second card"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "F1",
+      "titleZh": "Token 櫃台與連線異常",
+      "titleEn": "The token desk, and what to do when the network drops",
+      "persona": "organizer",
+      "whenZh": "參加者要加值 Token，或者現場網路不穩。",
+      "whenEn": "An attendee wants tokens, or the venue network is patchy.",
+      "goalZh": "知道 Token 櫃台在網頁上，以及遇到連線問題時怎麼處理。",
+      "goalEn": "Know that the token desk lives on the web, and how to handle a connection problem.",
+      "beforeZh": "已經進入這場活動。",
+      "beforeEn": "You are inside the event.",
+      "afterZh": "不會在 App 裡白找 Token 功能，也不會把連線問題當成假票。",
+      "afterEn": "You will not hunt for token features in the app, and will not mistake a network problem for a fake ticket.",
+      "steps": [
+        {
+          "id": "F1-1",
+          "screen": "token",
+          "route": "/{eventId}/token",
+          "doZh": "按「快速操作」裡的「Token」。",
+          "doEn": "Press Token in Quick actions.",
+          "seeZh": "App 告訴你 Token 櫃台以網頁為主，這裡只保留入口。",
+          "seeEn": "The app explains that the token desk is web-first and this is only a doorway.",
+          "action": { "type": "goto", "route": "/{eventId}/token" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=功能建置中",
+              "whatZh": "App 不提供完整櫃台",
+              "whatEn": "The app does not host the full desk"
+            }
+          ]
+        },
+        {
+          "id": "F1-2",
+          "screen": "token",
+          "route": "/{eventId}/token",
+          "doZh": "按「在網頁打開櫃台」。",
+          "doEn": "Press Open the desk on the web.",
+          "seeZh": "會用手機的瀏覽器打開網頁版，用同一個帳號就能操作。",
+          "seeEn": "It opens the web console in your phone's browser, where the same account works.",
+          "action": { "type": "none" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=在網頁打開櫃台",
+              "whatZh": "加值與扣款都在網頁做",
+              "whatEn": "Top-ups and deductions happen on the web"
+            }
+          ]
+        },
+        {
+          "id": "F1-3",
+          "screen": "check-in",
+          "route": "/{eventId}/check-in",
+          "doZh": "如果報到時看到「網路連線異常」或「伺服器暫時異常」。",
+          "doEn": "If check-in reports a network or server problem.",
+          "seeZh": "這跟「找不到此報名」是兩件不同的事。票可能是好的，請改用人工核對或換個網路重試，不要當成假票處理。",
+          "seeEn": "This is not the same as a registration not being found. The ticket may be fine: verify by hand or switch networks, but do not treat it as fake.",
+          "action": { "type": "goto", "route": "/{eventId}/check-in" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=手動輸入",
+              "whatZh": "連線不穩時改用手動輸入再試",
+              "whatEn": "When the network is patchy, switch to typing and retry"
+            }
+          ]
+        },
+        {
+          "id": "F1-4",
+          "screen": "check-in",
+          "route": "/{eventId}/check-in",
+          "doZh": "遇到重複報到、要放行例外狀況時，按「申請主管覆核」。",
+          "doEn": "For a duplicate or an exception you want to allow, press Request supervisor override.",
+          "seeZh": "這個功能還沒開放。畫面會直接說明後端尚未就緒，現場請人工放行並留下紀錄，不要自己改資料。",
+          "seeEn": "This feature is not open yet. The screen states the backend is not ready, so let the person through by hand and keep a written record rather than changing data yourself.",
+          "action": { "type": "none" },
+          "annotate": [
+            {
+              "label": "1",
+              "target": "text=申請主管覆核",
+              "whatZh": "目前還不能用，請人工處理",
+              "whatEn": "Not available yet, handle it by hand"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
