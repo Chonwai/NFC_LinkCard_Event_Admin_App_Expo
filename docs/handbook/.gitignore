@@ -1,0 +1,7 @@
+# Handbook build artefacts — not source
+.probe/
+.capture/
+dist/
+
+# Capture credentials (local demo account only; see .capture.env.example)
+.capture.env
