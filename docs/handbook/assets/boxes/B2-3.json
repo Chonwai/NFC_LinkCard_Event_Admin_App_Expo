@@ -1,0 +1,16 @@
+{
+  "stepId": "B2-3",
+  "screen": "badges",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "批次名稱",
+      "whatEn": "Batch name",
+      "target": "text=預先登記批次 B",
+      "x": 33,
+      "y": 326,
+      "width": 161,
+      "height": 20
+    }
+  ]
+}

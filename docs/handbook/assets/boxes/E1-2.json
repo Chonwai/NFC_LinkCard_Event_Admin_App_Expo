@@ -1,0 +1,16 @@
+{
+  "stepId": "E1-2",
+  "screen": "nfc-bind",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "輸入報名編號",
+      "whatEn": "Enter the registration code",
+      "target": "input >> nth=0",
+      "x": 20,
+      "y": 159,
+      "width": 350,
+      "height": 48
+    }
+  ]
+}

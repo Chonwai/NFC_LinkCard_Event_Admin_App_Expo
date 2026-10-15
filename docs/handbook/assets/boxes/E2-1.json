@@ -1,0 +1,16 @@
+{
+  "stepId": "E2-1",
+  "screen": "nfc-read",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "按下去再感應卡片",
+      "whatEn": "Press, then tap the card",
+      "target": "text=開始讀取",
+      "x": 164,
+      "y": 178,
+      "width": 61,
+      "height": 26
+    }
+  ]
+}

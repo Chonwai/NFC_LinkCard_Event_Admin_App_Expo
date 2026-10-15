@@ -1,0 +1,26 @@
+{
+  "stepId": "D2-2",
+  "screen": "registrant",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "個人的基本資料",
+      "whatEn": "Their details",
+      "target": "text=\"基本資料\"",
+      "x": 37,
+      "y": 94,
+      "width": 316,
+      "height": 24
+    },
+    {
+      "label": "2",
+      "whatZh": "這張票的內容",
+      "whatEn": "This ticket's details",
+      "target": "text=\"報名\"",
+      "x": 37,
+      "y": 400,
+      "width": 316,
+      "height": 24
+    }
+  ]
+}

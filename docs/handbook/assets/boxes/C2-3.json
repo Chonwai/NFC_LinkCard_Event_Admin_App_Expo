@@ -1,0 +1,16 @@
+{
+  "stepId": "C2-3",
+  "screen": "check-in",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "剛打進去的編號",
+      "whatEn": "The code you just typed",
+      "target": "input >> nth=0",
+      "x": 37,
+      "y": 147,
+      "width": 316,
+      "height": 48
+    }
+  ]
+}

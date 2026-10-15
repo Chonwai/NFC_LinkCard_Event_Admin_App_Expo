@@ -1,0 +1,26 @@
+{
+  "stepId": "A1-3",
+  "screen": "login",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "密碼欄位（顯示為圓點）",
+      "whatEn": "Password field (shown as dots)",
+      "target": "input >> nth=1",
+      "x": 41,
+      "y": 371,
+      "width": 308,
+      "height": 56
+    },
+    {
+      "label": "2",
+      "whatZh": "按這裡登入",
+      "whatEn": "Press to sign in",
+      "target": "button:has-text('登入')",
+      "x": 41,
+      "y": 439,
+      "width": 308,
+      "height": 56
+    }
+  ]
+}

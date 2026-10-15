@@ -1,0 +1,16 @@
+{
+  "stepId": "A1-4",
+  "screen": "home",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "已經登入，這是你的活動列表",
+      "whatEn": "You are signed in; this is your event list",
+      "target": "text=我的活動",
+      "x": 20,
+      "y": 77,
+      "width": 350,
+      "height": 28
+    }
+  ]
+}

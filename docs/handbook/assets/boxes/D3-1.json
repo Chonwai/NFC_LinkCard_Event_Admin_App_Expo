@@ -1,0 +1,16 @@
+{
+  "stepId": "D3-1",
+  "screen": "home",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "你的身分是閘口工作人員",
+      "whatEn": "You are signed in as door staff",
+      "target": "text=OPERATOR",
+      "x": 57,
+      "y": 198,
+      "width": 68,
+      "height": 20
+    }
+  ]
+}

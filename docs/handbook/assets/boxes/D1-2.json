@@ -1,0 +1,26 @@
+{
+  "stepId": "D1-2",
+  "screen": "registrations",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "按報名時間排序",
+      "whatEn": "Sort by registration time",
+      "target": "button:has-text('報名時間')",
+      "x": 57,
+      "y": 181,
+      "width": 68,
+      "height": 38
+    },
+    {
+      "label": "2",
+      "whatZh": "按姓名排序",
+      "whatEn": "Sort by name",
+      "target": "button:has-text('姓名')",
+      "x": 129,
+      "y": 181,
+      "width": 42,
+      "height": 38
+    }
+  ]
+}

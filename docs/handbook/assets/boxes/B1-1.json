@@ -1,0 +1,36 @@
+{
+  "stepId": "B1-1",
+  "screen": "overview",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "報名人數",
+      "whatEn": "Registrations",
+      "target": "[data-testid=overview-stat-registrations]",
+      "x": 20,
+      "y": 73,
+      "width": 171,
+      "height": 148
+    },
+    {
+      "label": "2",
+      "whatZh": "已報到",
+      "whatEn": "Checked in",
+      "target": "[data-testid=overview-stat-checkedIn]",
+      "x": 20,
+      "y": 229,
+      "width": 171,
+      "height": 100
+    },
+    {
+      "label": "3",
+      "whatZh": "到場率",
+      "whatEn": "Attendance rate",
+      "target": "[data-testid=overview-stat-attendance]",
+      "x": 199,
+      "y": 229,
+      "width": 171,
+      "height": 100
+    }
+  ]
+}

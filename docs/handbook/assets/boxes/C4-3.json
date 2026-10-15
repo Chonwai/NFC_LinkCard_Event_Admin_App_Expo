@@ -1,0 +1,16 @@
+{
+  "stepId": "C4-3",
+  "screen": "walk-in",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "送出後的結果",
+      "whatEn": "The result after submitting",
+      "target": "text=已建立報名",
+      "x": 20,
+      "y": 69,
+      "width": 350,
+      "height": 28
+    }
+  ]
+}

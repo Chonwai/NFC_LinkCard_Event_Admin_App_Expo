@@ -1,0 +1,16 @@
+{
+  "stepId": "B1-2",
+  "screen": "overview",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "破折號的解釋",
+      "whatEn": "What the dash means",
+      "target": "text=（破折號",
+      "x": 212,
+      "y": 168,
+      "width": 145,
+      "height": 40
+    }
+  ]
+}

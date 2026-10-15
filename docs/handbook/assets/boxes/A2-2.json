@@ -1,0 +1,16 @@
+{
+  "stepId": "A2-2",
+  "screen": "home",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "報名人數與參展商數目",
+      "whatEn": "Registration and exhibitor counts",
+      "target": "text=報名人數",
+      "x": 141,
+      "y": 198,
+      "width": 69,
+      "height": 20
+    }
+  ]
+}

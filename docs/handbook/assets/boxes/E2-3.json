@@ -1,0 +1,16 @@
+{
+  "stepId": "E2-3",
+  "screen": "nfc-exchange",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "先感應第一張",
+      "whatEn": "Tap the first card first",
+      "target": "text=① 感應第一張卡",
+      "x": 140,
+      "y": 169,
+      "width": 111,
+      "height": 26
+    }
+  ]
+}

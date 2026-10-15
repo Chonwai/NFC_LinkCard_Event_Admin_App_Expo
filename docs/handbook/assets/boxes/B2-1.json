@@ -1,0 +1,26 @@
+{
+  "stepId": "B2-1",
+  "screen": "badges",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "知道卡片編號時用這裡查",
+      "whatEn": "Use this when you know the card number",
+      "target": "text=查詢 Badge（輸入 tagUid）",
+      "x": 20,
+      "y": 73,
+      "width": 350,
+      "height": 24
+    },
+    {
+      "label": "2",
+      "whatZh": "全部卡片清單",
+      "whatEn": "The full list",
+      "target": "text=Badge 列表",
+      "x": 20,
+      "y": 246,
+      "width": 350,
+      "height": 24
+    }
+  ]
+}

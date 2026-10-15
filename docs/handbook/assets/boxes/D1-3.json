@@ -1,0 +1,16 @@
+{
+  "stepId": "D1-3",
+  "screen": "registrations",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "按這裡顯示全部",
+      "whatEn": "Press to show everything",
+      "target": "button:has-text('全部')",
+      "x": 57,
+      "y": 142,
+      "width": 60,
+      "height": 38
+    }
+  ]
+}

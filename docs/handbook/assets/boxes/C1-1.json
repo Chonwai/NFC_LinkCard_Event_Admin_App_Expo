@@ -1,0 +1,26 @@
+{
+  "stepId": "C1-1",
+  "screen": "check-in",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "累計已報到人次",
+      "whatEn": "Running check-in total",
+      "target": "text=總簽到",
+      "x": 20,
+      "y": 63,
+      "width": 195,
+      "height": 22
+    },
+    {
+      "label": "2",
+      "whatZh": "把 QR code 對準這個框",
+      "whatEn": "Aim the QR code at this frame",
+      "target": "text=掃描報名 QR code",
+      "x": 20,
+      "y": 804,
+      "width": 350,
+      "height": 20
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "stepId": "A3-3",
+  "screen": "settings",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "交還手機前按這裡",
+      "whatEn": "Press this before handing the phone over",
+      "target": "button:has-text('登出')",
+      "x": 20,
+      "y": 418,
+      "width": 350,
+      "height": 48
+    }
+  ]
+}

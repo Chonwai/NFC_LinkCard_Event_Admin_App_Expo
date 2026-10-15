@@ -1,0 +1,16 @@
+{
+  "stepId": "C3-2",
+  "screen": "check-in",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "不是新人，先確認",
+      "whatEn": "Not a new arrival, confirm first",
+      "target": "text=\"重複簽到\"",
+      "x": 169,
+      "y": 112,
+      "width": 84,
+      "height": 28
+    }
+  ]
+}

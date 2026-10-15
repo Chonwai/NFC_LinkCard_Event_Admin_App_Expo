@@ -1,0 +1,36 @@
+{
+  "stepId": "B1-3",
+  "screen": "overview",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "掃碼簽到：最常用",
+      "whatEn": "Scan check-in: the one you use most",
+      "target": "[data-testid=overview-action-check-in]",
+      "x": 20,
+      "y": 561,
+      "width": 168,
+      "height": 84
+    },
+    {
+      "label": "2",
+      "whatZh": "名單：查人用",
+      "whatEn": "Roster: to look someone up",
+      "target": "[data-testid=overview-action-registrations]",
+      "x": 20,
+      "y": 653,
+      "width": 168,
+      "height": 84
+    },
+    {
+      "label": "3",
+      "whatZh": "NFC 寫卡：發手環用",
+      "whatEn": "Write NFC badge: to issue a wristband",
+      "target": "[data-testid=overview-action-nfc]",
+      "x": 196,
+      "y": 653,
+      "width": 168,
+      "height": 84
+    }
+  ]
+}

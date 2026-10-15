@@ -1,0 +1,16 @@
+{
+  "stepId": "F1-1",
+  "screen": "token",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "App 不提供完整櫃台",
+      "whatEn": "The app does not host the full desk",
+      "target": "text=功能建置中",
+      "x": 154,
+      "y": 391,
+      "width": 81,
+      "height": 24
+    }
+  ]
+}

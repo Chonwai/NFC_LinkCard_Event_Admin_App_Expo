@@ -1,0 +1,26 @@
+{
+  "stepId": "C1-2",
+  "screen": "check-in",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "現在是用相機",
+      "whatEn": "Currently using the camera",
+      "target": "text=掃描模式",
+      "x": 57,
+      "y": 107,
+      "width": 54,
+      "height": 22
+    },
+    {
+      "label": "2",
+      "whatZh": "相機不行時改按這裡",
+      "whatEn": "Press here when the camera will not work",
+      "target": "text=手動輸入",
+      "x": 173,
+      "y": 107,
+      "width": 54,
+      "height": 22
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "stepId": "C3-4",
+  "screen": "check-in",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "是網路問題，不是票的問題",
+      "whatEn": "A network problem, not a ticket problem",
+      "target": "text=網路連線異常",
+      "x": 34,
+      "y": 148,
+      "width": 322,
+      "height": 24
+    }
+  ]
+}

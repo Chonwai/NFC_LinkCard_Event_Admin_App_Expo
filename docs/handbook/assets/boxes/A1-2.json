@@ -1,0 +1,16 @@
+{
+  "stepId": "A1-2",
+  "screen": "login",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "已輸入的電郵",
+      "whatEn": "Your email",
+      "target": "input >> nth=0",
+      "x": 41,
+      "y": 273,
+      "width": 308,
+      "height": 56
+    }
+  ]
+}

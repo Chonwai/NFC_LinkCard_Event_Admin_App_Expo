@@ -1,0 +1,26 @@
+{
+  "stepId": "A1-1",
+  "screen": "login",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "電郵欄位",
+      "whatEn": "Email field",
+      "target": "text=電子郵件",
+      "x": 41,
+      "y": 243,
+      "width": 308,
+      "height": 22
+    },
+    {
+      "label": "2",
+      "whatZh": "密碼欄位",
+      "whatEn": "Password field",
+      "target": "text=密碼",
+      "x": 41,
+      "y": 341,
+      "width": 308,
+      "height": 22
+    }
+  ]
+}

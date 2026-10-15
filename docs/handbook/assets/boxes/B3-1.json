@@ -1,0 +1,16 @@
+{
+  "stepId": "B3-1",
+  "screen": "registrations",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "報名清單",
+      "whatEn": "The roster",
+      "target": "text=名單",
+      "x": 80,
+      "y": 11,
+      "width": 278,
+      "height": 34
+    }
+  ]
+}

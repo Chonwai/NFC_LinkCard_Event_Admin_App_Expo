@@ -1,7 +1,7 @@
-# Handbook build artefacts — not source
-.probe/
+# Local capture state. Not source, and .capture.env holds a demo password.
 .capture/
-dist/
-
-# Capture credentials (local demo account only; see .capture.env.example)
 .capture.env
+.probe/
+
+# Everything else IS committed on purpose: the screenshots are the handbook,
+# and dist/ holds the finished PDFs. The sibling website handbook does the same.

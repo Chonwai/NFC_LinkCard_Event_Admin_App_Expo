@@ -1,0 +1,16 @@
+{
+  "stepId": "C2-2",
+  "screen": "check-in",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "在這裡打報名編號",
+      "whatEn": "Type the registration code here",
+      "target": "input >> nth=0",
+      "x": 37,
+      "y": 147,
+      "width": 316,
+      "height": 48
+    }
+  ]
+}

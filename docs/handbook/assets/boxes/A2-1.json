@@ -1,0 +1,26 @@
+{
+  "stepId": "A2-1",
+  "screen": "home",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "活動名稱",
+      "whatEn": "Event name",
+      "target": "text=Macau Tech Expo 2026",
+      "x": 37,
+      "y": 162,
+      "width": 248,
+      "height": 24
+    },
+    {
+      "label": "2",
+      "whatZh": "活動狀態",
+      "whatEn": "Event status",
+      "target": "text=已發布",
+      "x": 309,
+      "y": 166,
+      "width": 32,
+      "height": 15
+    }
+  ]
+}

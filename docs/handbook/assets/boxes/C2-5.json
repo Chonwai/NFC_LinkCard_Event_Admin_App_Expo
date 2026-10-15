@@ -1,0 +1,26 @@
+{
+  "stepId": "C2-5",
+  "screen": "check-in",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "成功，可以放行",
+      "whatEn": "Success, let them through",
+      "target": "text=\"報到成功\"",
+      "x": 169,
+      "y": 112,
+      "width": 84,
+      "height": 28
+    },
+    {
+      "label": "2",
+      "whatZh": "核對票種對不對",
+      "whatEn": "Check the ticket type is right",
+      "target": "text=\"票種\"",
+      "x": 47,
+      "y": 289,
+      "width": 64,
+      "height": 20
+    }
+  ]
+}

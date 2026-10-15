@@ -1,0 +1,26 @@
+{
+  "stepId": "B3-2",
+  "screen": "registrations",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "這一列就是一位報名者",
+      "whatEn": "One row is one registration",
+      "target": "button[aria-label*='報名 '] >> nth=0",
+      "x": 37,
+      "y": 261,
+      "width": 316,
+      "height": 24
+    },
+    {
+      "label": "2",
+      "whatZh": "狀態：已確認＝可以進場",
+      "whatEn": "Status: confirmed means they may enter",
+      "target": "text=已確認",
+      "x": 128,
+      "y": 150,
+      "width": 39,
+      "height": 20
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "stepId": "B3-3",
+  "screen": "registrations",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "點這裡複製編號",
+      "whatEn": "Tap to copy the code",
+      "target": "button[aria-label^='複製報名編號'] >> nth=0",
+      "x": 37,
+      "y": 293,
+      "width": 169,
+      "height": 28
+    }
+  ]
+}

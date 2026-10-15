@@ -1,0 +1,16 @@
+{
+  "stepId": "B2-2",
+  "screen": "badges",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "已發給人、正在使用",
+      "whatEn": "Issued and in use",
+      "target": "text=啟用",
+      "x": 324,
+      "y": 299,
+      "width": 21,
+      "height": 15
+    }
+  ]
+}

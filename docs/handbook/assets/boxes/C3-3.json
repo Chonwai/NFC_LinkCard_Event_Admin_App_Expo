@@ -1,0 +1,16 @@
+{
+  "stepId": "C3-3",
+  "screen": "check-in",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "不要放行",
+      "whatEn": "Do not let them through",
+      "target": "text=\"無效報名\"",
+      "x": 169,
+      "y": 112,
+      "width": 84,
+      "height": 28
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "stepId": "C4-2",
+  "screen": "walk-in",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "電郵：必填",
+      "whatEn": "Email: required",
+      "target": "input >> nth=0",
+      "x": 20,
+      "y": 249,
+      "width": 350,
+      "height": 56
+    }
+  ]
+}

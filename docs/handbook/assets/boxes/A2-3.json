@@ -1,0 +1,16 @@
+{
+  "stepId": "A2-3",
+  "screen": "overview",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "已進入這場活動的概覽",
+      "whatEn": "You are now inside this event's overview",
+      "target": "[data-testid=\"overview-stats\"]",
+      "x": 20,
+      "y": 73,
+      "width": 350,
+      "height": 208
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "stepId": "C2-4",
+  "screen": "check-in",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "送出後要看的就是這個",
+      "whatEn": "This is what you check after submitting",
+      "target": "text=報到成功",
+      "x": 169,
+      "y": 112,
+      "width": 84,
+      "height": 28
+    }
+  ]
+}

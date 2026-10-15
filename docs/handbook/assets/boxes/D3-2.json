@@ -1,0 +1,16 @@
+{
+  "stepId": "D3-2",
+  "screen": "registrations",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "這是權限限制，不是故障",
+      "whatEn": "A permission limit, not a fault",
+      "target": "text=閘口帳號",
+      "x": 61,
+      "y": 90,
+      "width": 292,
+      "height": 48
+    }
+  ]
+}

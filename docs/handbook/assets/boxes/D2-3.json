@@ -1,0 +1,26 @@
+{
+  "stepId": "D2-3",
+  "screen": "registrant",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "Token 使用紀錄",
+      "whatEn": "Token history",
+      "target": "text=\"Token 流水\"",
+      "x": 37,
+      "y": 438,
+      "width": 316,
+      "height": 24
+    },
+    {
+      "label": "2",
+      "whatZh": "這位參加者綁定的手環",
+      "whatEn": "The wristband bound to this person",
+      "target": "text=\"綁定 NFC\"",
+      "x": 37,
+      "y": 686,
+      "width": 316,
+      "height": 24
+    }
+  ]
+}

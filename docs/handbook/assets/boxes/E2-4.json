@@ -1,0 +1,16 @@
+{
+  "stepId": "E2-4",
+  "screen": "nfc-exchange",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "中途放棄按這裡",
+      "whatEn": "Press here to abandon mid-flow",
+      "target": "text=取消",
+      "x": 180,
+      "y": 229,
+      "width": 31,
+      "height": 26
+    }
+  ]
+}

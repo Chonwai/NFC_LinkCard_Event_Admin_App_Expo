@@ -1,0 +1,16 @@
+{
+  "stepId": "F1-2",
+  "screen": "token",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "加值與扣款都在網頁做",
+      "whatEn": "Top-ups and deductions happen on the web",
+      "target": "text=在網頁打開櫃台",
+      "x": 141,
+      "y": 554,
+      "width": 107,
+      "height": 26
+    }
+  ]
+}

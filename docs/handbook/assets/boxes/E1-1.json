@@ -1,0 +1,26 @@
+{
+  "stepId": "E1-1",
+  "screen": "nfc-bind",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "第一步：先查人",
+      "whatEn": "Step one: find the person",
+      "target": "text=① 輸入報名編號以查詢參加者",
+      "x": 20,
+      "y": 127,
+      "width": 350,
+      "height": 20
+    },
+    {
+      "label": "2",
+      "whatZh": "換卡／補發／退卡目前還不能用",
+      "whatEn": "Replace, reissue and return are not available yet",
+      "target": "text=換卡",
+      "x": 33,
+      "y": 296,
+      "width": 324,
+      "height": 24
+    }
+  ]
+}

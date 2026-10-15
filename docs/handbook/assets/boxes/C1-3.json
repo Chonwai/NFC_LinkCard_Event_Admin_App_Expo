@@ -1,0 +1,26 @@
+{
+  "stepId": "C1-3",
+  "screen": "check-in",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "先試著重新開啟相機",
+      "whatEn": "Try reopening the camera first",
+      "target": "text=允許使用相機",
+      "x": 149,
+      "y": 466,
+      "width": 92,
+      "height": 26
+    },
+    {
+      "label": "2",
+      "whatZh": "相機真的不行就按這裡",
+      "whatEn": "Press here if the camera genuinely will not work",
+      "target": "text=改用輸入模式",
+      "x": 149,
+      "y": 526,
+      "width": 92,
+      "height": 26
+    }
+  ]
+}

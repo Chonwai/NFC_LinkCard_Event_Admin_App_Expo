@@ -1,0 +1,26 @@
+{
+  "stepId": "A3-2",
+  "screen": "settings",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "NFC 狀態決定這支手機能不能寫卡",
+      "whatEn": "NFC status decides whether this phone can write badges",
+      "target": "[data-testid=settings-nfc-status]",
+      "x": 279,
+      "y": 352,
+      "width": 74,
+      "height": 25
+    },
+    {
+      "label": "2",
+      "whatZh": "回報問題時要說出這個版本號",
+      "whatEn": "Quote this version when reporting a problem",
+      "target": "text=App 版本",
+      "x": 37,
+      "y": 318,
+      "width": 54,
+      "height": 20
+    }
+  ]
+}

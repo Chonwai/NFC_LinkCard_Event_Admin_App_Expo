@@ -1,0 +1,26 @@
+{
+  "stepId": "D1-1",
+  "screen": "registrations",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "只看已報到的人",
+      "whatEn": "Show only people who have checked in",
+      "target": "button:has-text('已報到')",
+      "x": 177,
+      "y": 142,
+      "width": 60,
+      "height": 38
+    },
+    {
+      "label": "2",
+      "whatZh": "只看還沒付款的人",
+      "whatEn": "Show only unpaid registrations",
+      "target": "button:has-text('待付款')",
+      "x": 237,
+      "y": 142,
+      "width": 60,
+      "height": 38
+    }
+  ]
+}

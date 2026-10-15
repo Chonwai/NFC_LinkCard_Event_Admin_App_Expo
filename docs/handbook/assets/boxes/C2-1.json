@@ -1,0 +1,16 @@
+{
+  "stepId": "C2-1",
+  "screen": "check-in",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "先試這個",
+      "whatEn": "Try this first",
+      "target": "text=允許使用相機",
+      "x": 149,
+      "y": 466,
+      "width": 92,
+      "height": 26
+    }
+  ]
+}

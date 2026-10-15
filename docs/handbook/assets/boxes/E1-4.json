@@ -1,0 +1,16 @@
+{
+  "stepId": "E1-4",
+  "screen": "nfc-bind",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "按下去才開始感應",
+      "whatEn": "The tap starts only after you press",
+      "target": "text=開始寫入 NFC 卡",
+      "x": 137,
+      "y": 386,
+      "width": 117,
+      "height": 26
+    }
+  ]
+}

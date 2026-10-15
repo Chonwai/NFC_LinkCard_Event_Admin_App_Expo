@@ -1,0 +1,26 @@
+{
+  "stepId": "E2-2",
+  "screen": "nfc-read",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "貼上卡片編號查詢",
+      "whatEn": "Paste the card number to look it up",
+      "target": "input >> nth=0",
+      "x": 20,
+      "y": 167,
+      "width": 350,
+      "height": 48
+    },
+    {
+      "label": "2",
+      "whatZh": "也可以直接掃清單找人",
+      "whatEn": "Or scan the list instead",
+      "target": "text=Badge 列表",
+      "x": 20,
+      "y": 304,
+      "width": 350,
+      "height": 24
+    }
+  ]
+}

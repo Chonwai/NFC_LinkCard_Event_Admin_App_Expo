@@ -1,0 +1,16 @@
+{
+  "stepId": "F1-3",
+  "screen": "check-in",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "連線不穩時改用手動輸入再試",
+      "whatEn": "When the network is patchy, switch to typing and retry",
+      "target": "text=手動輸入",
+      "x": 173,
+      "y": 107,
+      "width": 54,
+      "height": 22
+    }
+  ]
+}

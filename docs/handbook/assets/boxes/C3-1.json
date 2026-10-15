@@ -1,0 +1,16 @@
+{
+  "stepId": "C3-1",
+  "screen": "check-in",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "放行",
+      "whatEn": "Let them through",
+      "target": "text=\"報到成功\"",
+      "x": 169,
+      "y": 112,
+      "width": 84,
+      "height": 28
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "stepId": "A3-1",
+  "screen": "settings",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "你現在在設定頁",
+      "whatEn": "You are on the settings tab",
+      "target": "text=\"設定\"",
+      "x": 20,
+      "y": 11,
+      "width": 338,
+      "height": 34
+    },
+    {
+      "label": "2",
+      "whatZh": "帳號區",
+      "whatEn": "The account section",
+      "target": "text=\"帳號\"",
+      "x": 37,
+      "y": 94,
+      "width": 316,
+      "height": 22
+    }
+  ]
+}

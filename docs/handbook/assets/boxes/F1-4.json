@@ -1,0 +1,16 @@
+{
+  "stepId": "F1-4",
+  "screen": "check-in",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "目前還不能用，請人工處理",
+      "whatEn": "Not available yet, handle it by hand",
+      "target": "text=申請主管覆核",
+      "x": 149,
+      "y": 652,
+      "width": 92,
+      "height": 26
+    }
+  ]
+}

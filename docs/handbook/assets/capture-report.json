@@ -1,0 +1,289 @@
+{
+  "capturedAt": "2026-10-15T20:28:46.389Z",
+  "steps": [
+    {
+      "id": "A1-1",
+      "ok": true,
+      "callouts": 2
+    },
+    {
+      "id": "A1-2",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "A1-3",
+      "ok": true,
+      "callouts": 2
+    },
+    {
+      "id": "A1-4",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "A2-1",
+      "ok": true,
+      "callouts": 2
+    },
+    {
+      "id": "A2-2",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "A2-3",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "A3-1",
+      "ok": true,
+      "callouts": 2
+    },
+    {
+      "id": "A3-2",
+      "ok": true,
+      "callouts": 2
+    },
+    {
+      "id": "A3-3",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "B1-1",
+      "ok": true,
+      "callouts": 3
+    },
+    {
+      "id": "B1-2",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "B1-3",
+      "ok": true,
+      "callouts": 3
+    },
+    {
+      "id": "B2-1",
+      "ok": true,
+      "callouts": 2
+    },
+    {
+      "id": "B2-2",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "B2-3",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "B3-1",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "B3-2",
+      "ok": true,
+      "callouts": 2
+    },
+    {
+      "id": "B3-3",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "C1-1",
+      "ok": true,
+      "callouts": 2
+    },
+    {
+      "id": "C1-2",
+      "ok": true,
+      "callouts": 2
+    },
+    {
+      "id": "C1-3",
+      "ok": true,
+      "callouts": 2
+    },
+    {
+      "id": "C2-1",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "C2-2",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "C2-3",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "C2-4",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "C2-5",
+      "ok": true,
+      "callouts": 2
+    },
+    {
+      "id": "C3-1",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "C3-2",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "C3-3",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "C3-4",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "C4-1",
+      "ok": true,
+      "callouts": 2
+    },
+    {
+      "id": "C4-2",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "C4-3",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "C4-4",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "D1-1",
+      "ok": true,
+      "callouts": 2
+    },
+    {
+      "id": "D1-2",
+      "ok": true,
+      "callouts": 2
+    },
+    {
+      "id": "D1-3",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "D2-1",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "D2-2",
+      "ok": true,
+      "callouts": 2
+    },
+    {
+      "id": "D2-3",
+      "ok": true,
+      "callouts": 2
+    },
+    {
+      "id": "D3-1",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "D3-2",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "E1-1",
+      "ok": true,
+      "callouts": 2
+    },
+    {
+      "id": "E1-2",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "E1-3",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "E1-4",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "E2-1",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "E2-2",
+      "ok": true,
+      "callouts": 2
+    },
+    {
+      "id": "E2-3",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "E2-4",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "F1-1",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "F1-2",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "F1-3",
+      "ok": true,
+      "callouts": 1
+    },
+    {
+      "id": "F1-4",
+      "ok": true,
+      "callouts": 1
+    }
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)",
+    "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+  ]
+}

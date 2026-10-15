@@ -1,0 +1,16 @@
+{
+  "stepId": "D2-1",
+  "screen": "registrations",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "點姓名這一列進詳情",
+      "whatEn": "Tap the name row to open the detail",
+      "target": "button[aria-label*='報名 '] >> nth=0",
+      "x": 37,
+      "y": 261,
+      "width": 316,
+      "height": 24
+    }
+  ]
+}

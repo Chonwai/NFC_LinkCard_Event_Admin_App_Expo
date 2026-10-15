@@ -1,0 +1,16 @@
+{
+  "stepId": "C4-4",
+  "screen": "walk-in",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "直接接去簽到",
+      "whatEn": "Carry straight on to check-in",
+      "target": "text=前往簽到",
+      "x": 164,
+      "y": 156,
+      "width": 61,
+      "height": 26
+    }
+  ]
+}

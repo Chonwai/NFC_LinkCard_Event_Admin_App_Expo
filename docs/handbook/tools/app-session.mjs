@@ -75,13 +75,25 @@ function urlPath(url) {
   }
 }
 
-/** Freeze animation so a screenshot taken twice in a row looks the same. */
-async function freezeMotion(page) {
+/**
+ * Freeze animation so a screenshot taken twice in a row looks the same.
+ * Idempotent — safe to call before every shot.
+ */
+export async function freezeFrame(page) {
+  if (
+    await page
+      .evaluate(() => Boolean(window.__handbookFrozen))
+      .catch(() => true)
+  )
+    return;
   await page.addStyleTag({
     content: `*, *::before, *::after {
             transition: none !important;
             animation: none !important;
         }`,
+  });
+  await page.evaluate(() => {
+    window.__handbookFrozen = true;
   });
 }
 
@@ -154,7 +166,7 @@ export async function goToRoute(page, route) {
     timeout: 60_000,
   });
   await settle(page);
-  await freezeMotion(page);
+  await freezeFrame(page);
 }
 
 /** Visible text of the app, newline-separated. Handy in error messages. */
@@ -171,7 +183,7 @@ export async function login(page, { email, password } = {}) {
   const pass = password ?? env("HANDBOOK_LOGIN_PASSWORD");
 
   await settle(page);
-  await freezeMotion(page);
+  await freezeFrame(page);
 
   const inputs = page.locator("input");
   const count = await inputs.count();

@@ -1,0 +1,26 @@
+{
+  "stepId": "C4-1",
+  "screen": "walk-in",
+  "boxes": [
+    {
+      "label": "1",
+      "whatZh": "先選票種",
+      "whatEn": "Choose the ticket type first",
+      "target": "text=票種",
+      "x": 20,
+      "y": 69,
+      "width": 350,
+      "height": 22
+    },
+    {
+      "label": "2",
+      "whatZh": "電郵是必填",
+      "whatEn": "Email is required",
+      "target": "text=電子郵件",
+      "x": 20,
+      "y": 219,
+      "width": 350,
+      "height": 22
+    }
+  ]
+}
