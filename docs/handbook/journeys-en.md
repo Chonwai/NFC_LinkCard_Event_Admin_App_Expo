@@ -24,8 +24,8 @@
 | B2 | Check the badge inventory | Organiser | 3 |
 | B3 | Get to know the roster | Organiser | 3 |
 | | **Part 3: Checking people in** | | |
-| C1 | Check someone in by scanning | Door staff | 4 |
-| C2 | When the camera will not work, type the code | Door staff | 4 |
+| C1 | Check someone in by scanning | Door staff | 3 |
+| C2 | When the camera will not work, type the code | Door staff | 5 |
 | C3 | Read the four check-in outcomes | Door staff | 4 |
 | C4 | Register someone on the spot | Door staff | 4 |
 | | **Part 4: The roster and looking people up** | | |
@@ -33,7 +33,7 @@
 | D2 | Open one person's full record | Organiser | 3 |
 | D3 | Why door staff cannot open the roster | Door staff | 2 |
 | | **Part 5: NFC wristbands** | | |
-| E1 | Write a wristband for an attendee | Door staff | 5 |
+| E1 | Write a wristband for an attendee | Door staff | 4 |
 | E2 | Read a card number and exchange contacts | Door staff | 4 |
 | | **Part 6: When things are not normal** | | |
 | F1 | The token desk, and what to do when the network drops | Organiser | 4 |
@@ -159,7 +159,7 @@ You arrive at Overview, with this event's live numbers at the top.
 
 | Callout | What it points at |
 | --- | --- |
-| 1 | You are inside this event |
+| 1 | You are now inside this event's overview |
 
 ### A3．Check the phone status and sign out
 
@@ -183,8 +183,8 @@ You see two sections: Account and Device.
 
 | Callout | What it points at |
 | --- | --- |
-| 1 | Account: who you are signed in as |
-| 2 | Device: this phone's status |
+| 1 | You are on the settings tab |
+| 2 | The account section |
 
 **A3-2　What you do**
 
@@ -408,46 +408,35 @@ The running check-in total sits on top, with the scanning frame below.
 
 **C1-2　What you do**
 
-Point the phone at the attendee's QR code, about 15 cm away.
+Check that you are in scan mode.
 
 **What you see**
 
-The screen shows Checking, you do not press anything, it reads by itself.
+Two tabs sit at the top: scan mode uses the camera, typing uses the keyboard.
 
 ![C1-2](assets/annotated/C1-2.png)
 
 | Callout | What it points at |
 | --- | --- |
-| 1 | Just aim here |
+| 1 | Currently using the camera |
+| 2 | Press here when the camera will not work |
 
 **C1-3　What you do**
 
-When it reads, look at the result card.
+Point the phone at the QR code. If the screen says the camera is unavailable, read the two options it offers.
 
 **What you see**
 
-A green Checked in means you can let them through. The card shows their name, ticket type and check-in time.
+Allow camera asks for permission again; switch to typing turns this into manual entry straight away. Neither sends the attendee back to the queue.
 
 ![C1-3](assets/annotated/C1-3.png)
 
 | Callout | What it points at |
 | --- | --- |
-| 1 | Let them through |
-| 2 | Check the name matches the person |
+| 1 | Try reopening the camera first |
+| 2 | Press here if the camera genuinely will not work |
 
-**C1-4　What you do**
-
-If this attendee needs a wristband, press Write NFC badge. You do not have to retype the code.
-
-**What you see**
-
-It carries the attendee's details over to the badge screen, saving 30 to 60 seconds per person.
-
-![C1-4](assets/annotated/C1-4.png)
-
-| Callout | What it points at |
-| --- | --- |
-| 1 | Press to continue to badge writing |
+> **About this image**：Captured in a browser, which has no NFC, so the app's own notice appears. On a phone that notice is absent; everything else is the same. The physical tap itself cannot be demonstrated in a browser.
 
 ### C2．When the camera will not work, type the code
 
@@ -461,17 +450,17 @@ It carries the attendee's details over to the badge screen, saving 30 to 60 seco
 
 **C2-1　What you do**
 
-If the screen says the camera is unavailable, press Allow camera and try again.
+When the camera will not work, try Allow camera first.
 
 **What you see**
 
-Usually one press is enough.
+Usually one press is enough, without leaving this screen.
 
 ![C2-1](assets/annotated/C2-1.png)
 
 | Callout | What it points at |
 | --- | --- |
-| 1 | Try enabling the camera first |
+| 1 | Try this first |
 
 **C2-2　What you do**
 
@@ -479,27 +468,27 @@ If it still will not work, press Switch to typing.
 
 **What you see**
 
-The scanning frame becomes a text box.
+The scanning frame becomes a text box you can type a registration code into.
 
 ![C2-2](assets/annotated/C2-2.png)
 
 | Callout | What it points at |
 | --- | --- |
-| 1 | Switch to typing |
+| 1 | Type the registration code here |
 
 **C2-3　What you do**
 
-Type the registration code the attendee gives you, for example LKC-202611-A1B2C3.
+Type the registration code the attendee gives you.
 
 **What you see**
 
-Case does not matter, and stray spaces are fine, the system corrects them.
+Case does not matter, and stray spaces are fine; the system corrects them.
 
 ![C2-3](assets/annotated/C2-3.png)
 
 | Callout | What it points at |
 | --- | --- |
-| 1 | Type the registration code |
+| 1 | The code you just typed |
 
 **C2-4　What you do**
 
@@ -507,13 +496,28 @@ Press Look up and check in.
 
 **What you see**
 
-The same result card appears as with scanning.
+The screen shows Checking, then the result card appears.
 
 ![C2-4](assets/annotated/C2-4.png)
 
 | Callout | What it points at |
 | --- | --- |
-| 1 | Press to submit |
+| 1 | This is what you check after submitting |
+
+**C2-5　What you do**
+
+Read the result card.
+
+**What you see**
+
+A green Checked in, with the name, ticket type and check-in time on the card. Let them through.
+
+![C2-5](assets/annotated/C2-5.png)
+
+| Callout | What it points at |
+| --- | --- |
+| 1 | Success, let them through |
+| 2 | Check the ticket type is right |
 
 ### C3．Read the four check-in outcomes
 
@@ -527,11 +531,11 @@ The same result card appears as with scanning.
 
 **C3-1　What you do**
 
-Outcome one: checked in.
+Outcome one: the ticket is valid and is now checked in.
 
 **What you see**
 
-A green Checked in headline means the ticket was valid and is now checked in. Let them through.
+A green Checked in headline. Let them through.
 
 ![C3-1](assets/annotated/C3-1.png)
 
@@ -541,11 +545,11 @@ A green Checked in headline means the ticket was valid and is now checked in. Le
 
 **C3-2　What you do**
 
-Outcome two: already checked in.
+Outcome two: this person was already checked in.
 
 **What you see**
 
-The headline says Already checked in, meaning this person was checked in earlier. Do not wave them through again, ask whether they already entered.
+The headline says Already checked in. Do not wave them through again; ask whether they already entered.
 
 ![C3-2](assets/annotated/C3-2.png)
 
@@ -555,11 +559,11 @@ The headline says Already checked in, meaning this person was checked in earlier
 
 **C3-3　What you do**
 
-Outcome three: invalid registration.
+Outcome three: the ticket cannot be found.
 
 **What you see**
 
-The headline says Invalid registration, meaning this ticket was not found. Check for a typo first, then ask for their original confirmation email.
+The headline says Invalid registration. Check for a typo first, then ask for their original confirmation email.
 
 ![C3-3](assets/annotated/C3-3.png)
 
@@ -569,11 +573,11 @@ The headline says Invalid registration, meaning this ticket was not found. Check
 
 **C3-4　What you do**
 
-If the network is the problem, the screen says the connection failed.
+Outcome four: the connection is the problem.
 
 **What you see**
 
-That is not the same as an invalid ticket. The ticket may be fine. Verify by hand or switch networks, but do not treat it as fake.
+The screen reports a network failure. That is not the same as an invalid ticket: the ticket may be fine. Verify by hand or switch networks, but do not treat it as fake.
 
 ![C3-4](assets/annotated/C3-4.png)
 
@@ -593,11 +597,11 @@ That is not the same as an invalid ticket. The ticket may be fine. Verify by han
 
 **C4-1　What you do**
 
-Open walk-in registration from the door tools.
+Open walk-in registration.
 
 **What you see**
 
-A form appears: ticket type, email, first name, last name, phone, company.
+Ticket types and fields appear. Email is required, and first and last name are separate.
 
 ![C4-1](assets/annotated/C4-1.png)
 
@@ -608,17 +612,17 @@ A form appears: ticket type, email, first name, last name, phone, company.
 
 **C4-2　What you do**
 
-Fill in the attendee's details, completing the starred fields.
+Fill in the attendee's details.
 
 **What you see**
 
-First and last name are separate fields; phone and company are optional.
+Complete the starred fields. Phone and company are optional.
 
 ![C4-2](assets/annotated/C4-2.png)
 
 | Callout | What it points at |
 | --- | --- |
-| 1 | You must tick the consent box |
+| 1 | Email: required |
 
 **C4-3　What you do**
 
@@ -626,21 +630,21 @@ Read the terms to the attendee, tick consent, then press Create registration.
 
 **What you see**
 
-The screen confirms the registration was created.
+Consent must be ticked or the button will not go through.
 
 ![C4-3](assets/annotated/C4-3.png)
 
 | Callout | What it points at |
 | --- | --- |
-| 1 | Press to create |
+| 1 | The result after submitting |
 
 **C4-4　What you do**
 
-Then press Go to check-in or Go to badge.
+Read the confirmation, then carry on to check-in or badge writing.
 
 **What you see**
 
-Note: for paid tickets the registration exists but is unpaid, so it does not count as entry.
+Note: for a paid ticket the registration exists but is unpaid, so it does not count as entry.
 
 ![C4-4](assets/annotated/C4-4.png)
 
@@ -755,8 +759,8 @@ If a section shows a dash or says no bound badge was found, the backend simply h
 
 | Callout | What it points at |
 | --- | --- |
-| 1 | Check-in time |
-| 2 | Token history |
+| 1 | Token history |
+| 2 | The wristband bound to this person |
 
 ### D3．Why door staff cannot open the roster
 
@@ -823,11 +827,11 @@ Step one appears: enter a registration code to look up the attendee.
 | 1 | Step one: find the person |
 | 2 | Replace, reissue and return are not available yet |
 
-> **About this image**：Captured in a browser, which has no NFC, so the app's own notice appears. On a phone that notice is absent; everything else is the same.
+> **About this image**：Captured in a browser, which has no NFC, so the app's own notice appears. On a phone that notice is absent; everything else is the same. The physical tap itself cannot be demonstrated in a browser.
 
 **E1-2　What you do**
 
-Enter the attendee's registration code, or arrive here from the check-in result card.
+Enter the attendee's registration code, or arrive from the check-in result card.
 
 **What you see**
 
@@ -841,45 +845,33 @@ Once found, the screen shows their name and ticket type so you can confirm.
 
 **E1-3　What you do**
 
-Press Look up and check in, and confirm the person on screen is right.
+Press Look up and check in.
 
 **What you see**
 
-Step two appears: choose a badge type, then hold a blank NFC card to the back of the phone.
+Step two appears: choose a badge type, then hold a blank card to the back of the phone.
 
 ![E1-3](assets/annotated/E1-3.png)
 
 | Callout | What it points at |
 | --- | --- |
-| 1 | Step two: choose a type, then tap the card |
+| 1 | Choose a type, then press this |
 
 **E1-4　What you do**
 
-Choose Wristband, then press Start writing the NFC badge.
+Read the line under the button: the card number is only known at the moment of the tap.
 
 **What you see**
 
-The screen says writing, keep the card close. Do not move the wristband now.
+So the confirmation screen shows a template URL, not the final one written to the card. That is expected.
 
 ![E1-4](assets/annotated/E1-4.png)
 
 | Callout | What it points at |
 | --- | --- |
-| 1 | Hold still until it finishes |
+| 1 | The tap starts only after you press |
 
-**E1-5　What you do**
-
-Hand the wristband over only once the screen confirms the binding succeeded.
-
-**What you see**
-
-If it reports a failure or a timeout, the badge is not done. Tap again and retry; the screen says explicitly not to treat it as success.
-
-![E1-5](assets/annotated/E1-5.png)
-
-| Callout | What it points at |
-| --- | --- |
-| 1 | Only done when you see this |
+> **About this image**：Captured in a browser, which has no NFC, so the app's own notice appears. On a phone that notice is absent; everything else is the same. The physical tap itself cannot be demonstrated in a browser.
 
 ### E2．Read a card number and exchange contacts
 
@@ -897,7 +889,7 @@ Press Read tagUid in Quick actions.
 
 **What you see**
 
-The screen asks you to hold the NFC card to the back of the phone to read its hardware number.
+The screen asks you to hold the card to the back of the phone to read its hardware number.
 
 ![E2-1](assets/annotated/E2-1.png)
 
@@ -905,21 +897,22 @@ The screen asks you to hold the NFC card to the back of the phone to read its ha
 | --- | --- |
 | 1 | Press, then tap the card |
 
-> **About this image**：Also captured in a browser, so the no-NFC notice appears.
+> **About this image**：Captured in a browser, which has no NFC, so the app's own notice appears. On a phone that notice is absent; everything else is the same. The physical tap itself cannot be demonstrated in a browser.
 
 **E2-2　What you do**
 
-Once read, press Copy tagUid.
+Once read, copy the card number and look it up on the badge page.
 
 **What you see**
 
-The card number is copied, ready to paste to a colleague or look up on the badge page.
+The lookup box on the badge page takes exactly this number.
 
 ![E2-2](assets/annotated/E2-2.png)
 
 | Callout | What it points at |
 | --- | --- |
-| 1 | Copy the card number |
+| 1 | Paste the card number to look it up |
+| 2 | Or scan the list instead |
 
 **E2-3　What you do**
 
@@ -927,19 +920,19 @@ To let two people swap details, open Exchange contacts.
 
 **What you see**
 
-The screen states the order: tap the first card, wait for the name to appear, then tap the other person's card.
+The screen states the order: tap the first card, wait for the name, then tap the other person's card. The order matters.
 
 ![E2-3](assets/annotated/E2-3.png)
 
 | Callout | What it points at |
 | --- | --- |
-| 1 | Tap the first card |
+| 1 | Tap the first card first |
 
-> **About this image**：Exchanging contacts needs two physical taps, which a browser cannot demonstrate, so only the app's instructions are shown.
+> **About this image**：Captured in a browser, which has no NFC, so the app's own notice appears. On a phone that notice is absent; everything else is the same. The physical tap itself cannot be demonstrated in a browser.
 
 **E2-4　What you do**
 
-Tap the second card as prompted, and wait for the confirmation.
+If you need to stop, press Cancel. The first card's state is released and no half-record is left behind.
 
 **What you see**
 
@@ -949,7 +942,9 @@ If it says already exchanged, these two cards met before and nothing was written
 
 | Callout | What it points at |
 | --- | --- |
-| 1 | Then tap the second card |
+| 1 | Press here to abandon mid-flow |
+
+> **About this image**：Captured in a browser, which has no NFC, so the app's own notice appears. On a phone that notice is absent; everything else is the same. The physical tap itself cannot be demonstrated in a browser.
 
 ## Part 6: When things are not normal
 

@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>LinkCard Event Admin — On-site handbook</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm 18mm; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "PingFang TC", "PingFang HK", "Noto Sans CJK TC",
+                 "Helvetica Neue", Arial, sans-serif;
+    font-size: 10.5pt; line-height: 1.62; color: #1c1c1e;
+  }
+  h1, h2, h3 { line-height: 1.3; }
+  .cover { height: 250mm; display: flex; align-items: center; page-break-after: always; }
+  .cover-inner { width: 100%; border-left: 6px solid #6d28d9; padding-left: 12mm; }
+  .kicker { color: #6b7280; font-size: 10pt; margin: 0 0 4mm; }
+  .cover h1 { font-size: 30pt; margin: 0 0 3mm; }
+  .cover .sub { font-size: 15pt; color: #6d28d9; margin: 0 0 8mm; }
+  .cover-meta { color: #4b5563; font-size: 10.5pt; }
+
+  .front, .toc { page-break-after: always; }
+  .front h2, .toc h2 { font-size: 14pt; margin: 8mm 0 3mm; border-bottom: 1px solid #e5e7eb; padding-bottom: 2mm; }
+  .front h2:first-child { margin-top: 0; }
+  .front ul { margin: 0 0 2mm; padding-left: 5mm; }
+  .front li { margin-bottom: 1.5mm; }
+
+  .toc-table { width: 100%; border-collapse: collapse; }
+  .toc-table td { padding: 1.6mm 2mm; border-bottom: 1px solid #f0f0f2; vertical-align: top; }
+  .toc-table .part td { border: 0; padding-top: 5mm; font-weight: 700; color: #6d28d9; }
+  .toc-table .tid { width: 14mm; font-weight: 700; }
+  .toc-table .tsteps { width: 22mm; text-align: right; color: #6b7280; }
+
+  .part-heading {
+    font-size: 15pt; color: #6d28d9; margin: 0 0 6mm;
+    border-bottom: 2px solid #ede9fe; padding-bottom: 3mm;
+  }
+  .journey { page-break-before: always; }
+  .journey h2 { font-size: 16pt; margin: 0 0 4mm; }
+  .journey .jid { color: #6d28d9; }
+  .facts { width: 100%; border-collapse: collapse; margin-bottom: 7mm; }
+  .facts th {
+    text-align: left; width: 30mm; font-weight: 600; color: #4b5563;
+    vertical-align: top; padding: 1.4mm 3mm 1.4mm 0;
+  }
+  .facts td { padding: 1.4mm 0; vertical-align: top; }
+  .facts tr { border-bottom: 1px solid #f0f0f2; }
+
+  .step { page-break-inside: avoid; margin-bottom: 9mm; }
+  .step:last-child { margin-bottom: 0; }
+  .step h3 { font-size: 11.5pt; margin: 0 0 2mm; }
+  .step .sid {
+    display: inline-block; min-width: 13mm; color: #6d28d9; font-weight: 700;
+  }
+  .step .see { margin: 0 0 3mm; color: #374151; }
+  .step figure { margin: 0 0 3mm; text-align: center; }
+  .step img {
+    width: 62mm; border: 1px solid #d1d5db; border-radius: 3mm; display: inline-block;
+  }
+  .callouts { width: 100%; border-collapse: collapse; }
+  .callouts th {
+    width: 9mm; text-align: left; color: #d81b60; font-weight: 700;
+    padding: 1mm 2mm 1mm 0; vertical-align: top;
+  }
+  .callouts td { padding: 1mm 0; vertical-align: top; }
+  .note {
+    background: #faf5ff; border-left: 3px solid #6d28d9;
+    padding: 2.5mm 3mm; margin: 3mm 0 0; font-size: 9.5pt; color: #4b5563;
+  }
+
+  .checkpage { page-break-before: always; }
+  .checkpage h2 { font-size: 15pt; color: #6d28d9; margin: 0 0 4mm; }
+  .checknum { font-weight: 700; margin: 4mm 0; }
+  .checktable { width: 100%; border-collapse: collapse; margin-top: 3mm; }
+  .checktable td { padding: 1.8mm 2mm; border-bottom: 1px solid #f0f0f2; vertical-align: top; }
+  .checktable .cid { width: 12mm; font-weight: 700; color: #6d28d9; }
+  .checktable .cpass { width: 16mm; text-align: right; font-weight: 700; }
+  .checktable .cpass.ok { color: #047857; }
+  .checktable .cpass.bad { color: #b91c1c; }
+  .checktable .cfail td { color: #b91c1c; font-size: 9.5pt; border-bottom: 0; padding-top: 0; }
+</style></head>
+<body>
+<section class="cover">
+<div class="cover-inner">
+<p class="kicker">iOS and Android mobile app (Expo)</p>
+<h1>LinkCard Event Admin</h1>
+<p class="sub">On-site handbook</p>
+<p class="cover-meta">Event organisers and door staff</p>
+</div></section>
+<section class="front">
+<h2>Who this handbook is for</h2>
+<ul>
+<li><b>Organiser</b>：Owns the event. Can read the roster, settings and every door tool.</li>
+<li><b>Door staff</b>：Trusted to check people in and work the NFC desk, but cannot read the full roster.</li>
+</ul>
+<h2>How to use this handbook</h2><ul>
+<li>Each section is one job. Follow the numbers and you have done that job.</li>
+<li>The circled numbers on a picture match the table underneath it.</li>
+<li>If your screen looks different, read that step's note first. The difference usually has a reason.</li>
+<li>Anything marked as not yet available means a person has to handle it by hand for now.</li>
+</ul>
+<h2>How these screens were captured</h2>
+<p class="note">Screens were captured in a phone-sized browser window (390 x 844 at 2x). Camera and NFC are phone hardware, so the app's own notices appear on those screens instead of a live view.</p>
+</section>
+<section class="toc">
+<h2>Contents</h2>
+<table class="toc-table"><tbody>
+<tr class="part"><td colspan="3">Part 1: Getting started</td></tr>
+<tr><td class="tid">A1</td><td>Sign in to the app</td><td class="tsteps">4 steps</td></tr>
+<tr><td class="tid">A2</td><td>Pick the event you are working on</td><td class="tsteps">3 steps</td></tr>
+<tr><td class="tid">A3</td><td>Check the phone status and sign out</td><td class="tsteps">3 steps</td></tr>
+<tr class="part"><td colspan="3">Part 2: Before the doors open</td></tr>
+<tr><td class="tid">B1</td><td>See where the event stands</td><td class="tsteps">3 steps</td></tr>
+<tr><td class="tid">B2</td><td>Check the badge inventory</td><td class="tsteps">3 steps</td></tr>
+<tr><td class="tid">B3</td><td>Get to know the roster</td><td class="tsteps">3 steps</td></tr>
+<tr class="part"><td colspan="3">Part 3: Checking people in</td></tr>
+<tr><td class="tid">C1</td><td>Check someone in by scanning</td><td class="tsteps">3 steps</td></tr>
+<tr><td class="tid">C2</td><td>When the camera will not work, type the code</td><td class="tsteps">5 steps</td></tr>
+<tr><td class="tid">C3</td><td>Read the four check-in outcomes</td><td class="tsteps">4 steps</td></tr>
+<tr><td class="tid">C4</td><td>Register someone on the spot</td><td class="tsteps">4 steps</td></tr>
+<tr class="part"><td colspan="3">Part 4: The roster and looking people up</td></tr>
+<tr><td class="tid">D1</td><td>Find someone on the roster</td><td class="tsteps">3 steps</td></tr>
+<tr><td class="tid">D2</td><td>Open one person's full record</td><td class="tsteps">3 steps</td></tr>
+<tr><td class="tid">D3</td><td>Why door staff cannot open the roster</td><td class="tsteps">2 steps</td></tr>
+<tr class="part"><td colspan="3">Part 5: NFC wristbands</td></tr>
+<tr><td class="tid">E1</td><td>Write a wristband for an attendee</td><td class="tsteps">4 steps</td></tr>
+<tr><td class="tid">E2</td><td>Read a card number and exchange contacts</td><td class="tsteps">4 steps</td></tr>
+<tr class="part"><td colspan="3">Part 6: When things are not normal</td></tr>
+<tr><td class="tid">F1</td><td>The token desk, and what to do when the network drops</td><td class="tsteps">4 steps</td></tr>
+</tbody></table></section>
+<h2 class="part-heading">Part 1: Getting started</h2>
+<article class="journey">
+<h2><span class="jid">A1</span> Sign in to the app</h2>
+<table class="facts"><tbody>
+<tr><th>Who</th><td>Organiser</td></tr>
+<tr><th>When</th><td>The first time you open the app, or after switching devices.</td></tr>
+<tr><th>What you want</th><td>Get into your own account and see the events you run.</td></tr>
+<tr><th>Before you start</th><td>You have the email and password your event owner gave you.</td></tr>
+<tr><th>When you are done</th><td>You land on My events and can pick an event.</td></tr>
+</tbody></table>
+<section class="step">
+<h3><span class="sid">A1-1</span> Open the app.</h3>
+<p class="see"><b>What you see：</b>The sign-in screen appears, asking for your email and password.</p>
+<figure><img src="../assets/annotated/A1-1.png" alt="A1-1"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Email field</td></tr>
+<tr><th>2</th><td>Password field</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">A1-2</span> Tap the email field and type your email address.</h3>
+<p class="see"><b>What you see：</b>The text you type shows in the field.</p>
+<figure><img src="../assets/annotated/A1-2.png" alt="A1-2"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Your email</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">A1-3</span> Tap the password field, type your password, then press Sign in.</h3>
+<p class="see"><b>What you see：</b>The password shows as dots. The eye icon on the right reveals it, in case you mistyped.</p>
+<figure><img src="../assets/annotated/A1-3.png" alt="A1-3"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Password field (shown as dots)</td></tr>
+<tr><th>2</th><td>Press to sign in</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">A1-4</span> Press Sign in.</h3>
+<p class="see"><b>What you see：</b>You go straight to My events, listing the events you are responsible for.</p>
+<figure><img src="../assets/annotated/A1-4.png" alt="A1-4"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>You are signed in; this is your event list</td></tr>
+</tbody></table>
+</section>
+</article>
+<article class="journey">
+<h2><span class="jid">A2</span> Pick the event you are working on</h2>
+<table class="facts"><tbody>
+<tr><th>Who</th><td>Organiser</td></tr>
+<tr><th>When</th><td>Every time you open the app.</td></tr>
+<tr><th>What you want</th><td>Get into the tools for the right event.</td></tr>
+<tr><th>Before you start</th><td>You are signed in.</td></tr>
+<tr><th>When you are done</th><td>You are on that event's Overview.</td></tr>
+</tbody></table>
+<section class="step">
+<h3><span class="sid">A2-1</span> Find the event you are working on in My events.</h3>
+<p class="see"><b>What you see：</b>Each card shows the event name, status, your role, and the number of registrations and exhibitors.</p>
+<figure><img src="../assets/annotated/A2-1.png" alt="A2-1"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Event name</td></tr>
+<tr><th>2</th><td>Event status</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">A2-2</span> Check the numbers on the card to be sure it is the right event.</h3>
+<p class="see"><b>What you see：</b>The registration and exhibitor counts sit under the name, no need to open it.</p>
+<figure><img src="../assets/annotated/A2-2.png" alt="A2-2"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Registration and exhibitor counts</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">A2-3</span> Tap the event card.</h3>
+<p class="see"><b>What you see：</b>You arrive at Overview, with this event's live numbers at the top.</p>
+<figure><img src="../assets/annotated/A2-3.png" alt="A2-3"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>You are now inside this event's overview</td></tr>
+</tbody></table>
+</section>
+</article>
+<article class="journey">
+<h2><span class="jid">A3</span> Check the phone status and sign out</h2>
+<table class="facts"><tbody>
+<tr><th>Who</th><td>Organiser</td></tr>
+<tr><th>When</th><td>Before doors open to confirm the device is fine, or before handing the phone to someone else.</td></tr>
+<tr><th>What you want</th><td>Confirm the app version and whether NFC works, and sign out safely when needed.</td></tr>
+<tr><th>Before you start</th><td>You are signed in.</td></tr>
+<tr><th>When you are done</th><td>You know whether this phone can write badges; after signing out you are back at the sign-in screen.</td></tr>
+</tbody></table>
+<section class="step">
+<h3><span class="sid">A3-1</span> Tap Settings in the bottom bar.</h3>
+<p class="see"><b>What you see：</b>You see two sections: Account and Device.</p>
+<figure><img src="../assets/annotated/A3-1.png" alt="A3-1"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>You are on the settings tab</td></tr>
+<tr><th>2</th><td>The account section</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">A3-2</span> Look at the NFC status row.</h3>
+<p class="see"><b>What you see：</b>Supported means this phone can write and read badges. Not supported means you need another phone for NFC work.</p>
+<figure><img src="../assets/annotated/A3-2.png" alt="A3-2"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>NFC status decides whether this phone can write badges</td></tr>
+<tr><th>2</th><td>Quote this version when reporting a problem</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">A3-3</span> When handing the phone over, scroll down and press Sign out.</h3>
+<p class="see"><b>What you see：</b>You return to the sign-in screen, so the next person cannot see your event data.</p>
+<figure><img src="../assets/annotated/A3-3.png" alt="A3-3"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Press this before handing the phone over</td></tr>
+</tbody></table>
+</section>
+</article>
+<h2 class="part-heading">Part 2: Before the doors open</h2>
+<article class="journey">
+<h2><span class="jid">B1</span> See where the event stands</h2>
+<table class="facts"><tbody>
+<tr><th>Who</th><td>Organiser</td></tr>
+<tr><th>When</th><td>Before doors open, and every so often during the day.</td></tr>
+<tr><th>What you want</th><td>Read registrations, check-ins and attendance rate at a glance.</td></tr>
+<tr><th>Before you start</th><td>You are inside the event.</td></tr>
+<tr><th>When you are done</th><td>You know how the door is going and can jump straight to a tool.</td></tr>
+</tbody></table>
+<section class="step">
+<h3><span class="sid">B1-1</span> Open this event's Overview.</h3>
+<p class="see"><b>What you see：</b>Four figures: registrations, checked in, exhibitors, attendance rate.</p>
+<figure><img src="../assets/annotated/B1-1.png" alt="B1-1"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Registrations</td></tr>
+<tr><th>2</th><td>Checked in</td></tr>
+<tr><th>3</th><td>Attendance rate</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">B1-2</span> If a figure shows a dash instead of a number, read the note under it.</h3>
+<p class="see"><b>What you see：</b>A dash means the figure could not be read, not that it is zero. The note explains why.</p>
+<figure><img src="../assets/annotated/B1-2.png" alt="B1-2"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>What the dash means</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">B1-3</span> Scroll to Quick actions, the shortcuts you will use most on the door.</h3>
+<p class="see"><b>What you see：</b>Seven buttons: scan check-in, Token, roster, write NFC badge, read tagUid, exchange contacts, badges.</p>
+<figure><img src="../assets/annotated/B1-3.png" alt="B1-3"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Scan check-in: the one you use most</td></tr>
+<tr><th>2</th><td>Roster: to look someone up</td></tr>
+<tr><th>3</th><td>Write NFC badge: to issue a wristband</td></tr>
+</tbody></table>
+</section>
+</article>
+<article class="journey">
+<h2><span class="jid">B2</span> Check the badge inventory</h2>
+<table class="facts"><tbody>
+<tr><th>Who</th><td>Organiser</td></tr>
+<tr><th>When</th><td>Before doors open, and whenever you run out of wristbands.</td></tr>
+<tr><th>What you want</th><td>Know how many blank badges are left and how many are already issued.</td></tr>
+<tr><th>Before you start</th><td>You are inside the event.</td></tr>
+<tr><th>When you are done</th><td>You know whether you need to open a fresh batch.</td></tr>
+</tbody></table>
+<section class="step">
+<h3><span class="sid">B2-1</span> Press Badges in Quick actions.</h3>
+<p class="see"><b>What you see：</b>A lookup box on top, and every badge for this event below.</p>
+<figure><img src="../assets/annotated/B2-1.png" alt="B2-1"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Use this when you know the card number</td></tr>
+<tr><th>2</th><td>The full list</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">B2-2</span> Read the status label on each card.</h3>
+<p class="see"><b>What you see：</b>Unassigned means a blank badge not yet issued. Active means it is on someone and in use.</p>
+<figure><img src="../assets/annotated/B2-2.png" alt="B2-2"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Issued and in use</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">B2-3</span> Read the batch name on each card.</h3>
+<p class="see"><b>What you see：</b>The batch name tells you which stack the badge came from, which makes reconciling easier.</p>
+<figure><img src="../assets/annotated/B2-3.png" alt="B2-3"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Batch name</td></tr>
+</tbody></table>
+</section>
+</article>
+<article class="journey">
+<h2><span class="jid">B3</span> Get to know the roster</h2>
+<table class="facts"><tbody>
+<tr><th>Who</th><td>Organiser</td></tr>
+<tr><th>When</th><td>Before doors open, to see who is coming.</td></tr>
+<tr><th>What you want</th><td>Understand what each row on the roster is telling you.</td></tr>
+<tr><th>Before you start</th><td>You are inside the event, and your account is allowed to read the roster.</td></tr>
+<tr><th>When you are done</th><td>You know how to read a registration row and how to copy a registration code.</td></tr>
+</tbody></table>
+<section class="step">
+<h3><span class="sid">B3-1</span> Press Roster in Quick actions.</h3>
+<p class="see"><b>What you see：</b>You see this event's list of registrations.</p>
+<figure><img src="../assets/annotated/B3-1.png" alt="B3-1"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>The roster</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">B3-2</span> Read one registration row.</h3>
+<p class="see"><b>What you see：</b>Left to right: name, email (partly starred for privacy), status label, registration code, company, and when they registered.</p>
+<figure><img src="../assets/annotated/B3-2.png" alt="B3-2"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>One row is one registration</td></tr>
+<tr><th>2</th><td>Status: confirmed means they may enter</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">B3-3</span> Tap the registration code.</h3>
+<p class="see"><b>What you see：</b>The code is copied so you can paste it elsewhere or send it to a colleague.</p>
+<figure><img src="../assets/annotated/B3-3.png" alt="B3-3"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Tap to copy the code</td></tr>
+</tbody></table>
+</section>
+</article>
+<h2 class="part-heading">Part 3: Checking people in</h2>
+<article class="journey">
+<h2><span class="jid">C1</span> Check someone in by scanning</h2>
+<table class="facts"><tbody>
+<tr><th>Who</th><td>Door staff</td></tr>
+<tr><th>When</th><td>When an attendee holds up a QR code on their phone or on paper. This is the fastest way.</td></tr>
+<tr><th>What you want</th><td>Turn a QR code into a check-in record.</td></tr>
+<tr><th>Before you start</th><td>You are on the scan screen for this event and the camera works.</td></tr>
+<tr><th>When you are done</th><td>The result appears, then the screen returns to scanning after about 15 seconds, ready for the next person.</td></tr>
+</tbody></table>
+<section class="step">
+<h3><span class="sid">C1-1</span> Press Scan check-in in Quick actions.</h3>
+<p class="see"><b>What you see：</b>The running check-in total sits on top, with the scanning frame below.</p>
+<figure><img src="../assets/annotated/C1-1.png" alt="C1-1"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Running check-in total</td></tr>
+<tr><th>2</th><td>Aim the QR code at this frame</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">C1-2</span> Check that you are in scan mode.</h3>
+<p class="see"><b>What you see：</b>Two tabs sit at the top: scan mode uses the camera, typing uses the keyboard.</p>
+<figure><img src="../assets/annotated/C1-2.png" alt="C1-2"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Currently using the camera</td></tr>
+<tr><th>2</th><td>Press here when the camera will not work</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">C1-3</span> Point the phone at the QR code. If the screen says the camera is unavailable, read the two options it offers.</h3>
+<p class="see"><b>What you see：</b>Allow camera asks for permission again; switch to typing turns this into manual entry straight away. Neither sends the attendee back to the queue.</p>
+<figure><img src="../assets/annotated/C1-3.png" alt="C1-3"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Try reopening the camera first</td></tr>
+<tr><th>2</th><td>Press here if the camera genuinely will not work</td></tr>
+</tbody></table>
+<p class="note"><b>About this image：</b>Captured in a browser, which has no NFC, so the app's own notice appears. On a phone that notice is absent; everything else is the same. The physical tap itself cannot be demonstrated in a browser.</p>
+</section>
+</article>
+<article class="journey">
+<h2><span class="jid">C2</span> When the camera will not work, type the code</h2>
+<table class="facts"><tbody>
+<tr><th>Who</th><td>Door staff</td></tr>
+<tr><th>When</th><td>When the QR code is damaged, the screen reflects, or another app is holding the camera.</td></tr>
+<tr><th>What you want</th><td>Still check the person in, without sending them back to the queue.</td></tr>
+<tr><th>Before you start</th><td>You are on the scan screen for this event.</td></tr>
+<tr><th>When you are done</th><td>You get the same result as scanning.</td></tr>
+</tbody></table>
+<section class="step">
+<h3><span class="sid">C2-1</span> When the camera will not work, try Allow camera first.</h3>
+<p class="see"><b>What you see：</b>Usually one press is enough, without leaving this screen.</p>
+<figure><img src="../assets/annotated/C2-1.png" alt="C2-1"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Try this first</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">C2-2</span> If it still will not work, press Switch to typing.</h3>
+<p class="see"><b>What you see：</b>The scanning frame becomes a text box you can type a registration code into.</p>
+<figure><img src="../assets/annotated/C2-2.png" alt="C2-2"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Type the registration code here</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">C2-3</span> Type the registration code the attendee gives you.</h3>
+<p class="see"><b>What you see：</b>Case does not matter, and stray spaces are fine; the system corrects them.</p>
+<figure><img src="../assets/annotated/C2-3.png" alt="C2-3"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>The code you just typed</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">C2-4</span> Press Look up and check in.</h3>
+<p class="see"><b>What you see：</b>The screen shows Checking, then the result card appears.</p>
+<figure><img src="../assets/annotated/C2-4.png" alt="C2-4"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>This is what you check after submitting</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">C2-5</span> Read the result card.</h3>
+<p class="see"><b>What you see：</b>A green Checked in, with the name, ticket type and check-in time on the card. Let them through.</p>
+<figure><img src="../assets/annotated/C2-5.png" alt="C2-5"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Success, let them through</td></tr>
+<tr><th>2</th><td>Check the ticket type is right</td></tr>
+</tbody></table>
+</section>
+</article>
+<article class="journey">
+<h2><span class="jid">C3</span> Read the four check-in outcomes</h2>
+<table class="facts"><tbody>
+<tr><th>Who</th><td>Door staff</td></tr>
+<tr><th>When</th><td>After every check-in.</td></tr>
+<tr><th>What you want</th><td>Know which outcome lets someone through and which needs a supervisor.</td></tr>
+<tr><th>Before you start</th><td>You have completed at least one lookup.</td></tr>
+<tr><th>When you are done</th><td>You know what to do next for every outcome.</td></tr>
+</tbody></table>
+<section class="step">
+<h3><span class="sid">C3-1</span> Outcome one: the ticket is valid and is now checked in.</h3>
+<p class="see"><b>What you see：</b>A green Checked in headline. Let them through.</p>
+<figure><img src="../assets/annotated/C3-1.png" alt="C3-1"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Let them through</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">C3-2</span> Outcome two: this person was already checked in.</h3>
+<p class="see"><b>What you see：</b>The headline says Already checked in. Do not wave them through again; ask whether they already entered.</p>
+<figure><img src="../assets/annotated/C3-2.png" alt="C3-2"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Not a new arrival, confirm first</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">C3-3</span> Outcome three: the ticket cannot be found.</h3>
+<p class="see"><b>What you see：</b>The headline says Invalid registration. Check for a typo first, then ask for their original confirmation email.</p>
+<figure><img src="../assets/annotated/C3-3.png" alt="C3-3"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Do not let them through</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">C3-4</span> Outcome four: the connection is the problem.</h3>
+<p class="see"><b>What you see：</b>The screen reports a network failure. That is not the same as an invalid ticket: the ticket may be fine. Verify by hand or switch networks, but do not treat it as fake.</p>
+<figure><img src="../assets/annotated/C3-4.png" alt="C3-4"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>A network problem, not a ticket problem</td></tr>
+</tbody></table>
+</section>
+</article>
+<article class="journey">
+<h2><span class="jid">C4</span> Register someone on the spot</h2>
+<table class="facts"><tbody>
+<tr><th>Who</th><td>Door staff</td></tr>
+<tr><th>When</th><td>Someone turns up without having registered.</td></tr>
+<tr><th>What you want</th><td>Create a registration for them, then check them in as usual.</td></tr>
+<tr><th>Before you start</th><td>You know which ticket type to give them.</td></tr>
+<tr><th>When you are done</th><td>The roster gains a record, and you can carry straight on to check-in or badge writing.</td></tr>
+</tbody></table>
+<section class="step">
+<h3><span class="sid">C4-1</span> Open walk-in registration.</h3>
+<p class="see"><b>What you see：</b>Ticket types and fields appear. Email is required, and first and last name are separate.</p>
+<figure><img src="../assets/annotated/C4-1.png" alt="C4-1"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Choose the ticket type first</td></tr>
+<tr><th>2</th><td>Email is required</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">C4-2</span> Fill in the attendee's details.</h3>
+<p class="see"><b>What you see：</b>Complete the starred fields. Phone and company are optional.</p>
+<figure><img src="../assets/annotated/C4-2.png" alt="C4-2"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Email: required</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">C4-3</span> Read the terms to the attendee, tick consent, then press Create registration.</h3>
+<p class="see"><b>What you see：</b>Consent must be ticked or the button will not go through.</p>
+<figure><img src="../assets/annotated/C4-3.png" alt="C4-3"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>The result after submitting</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">C4-4</span> Read the confirmation, then carry on to check-in or badge writing.</h3>
+<p class="see"><b>What you see：</b>Note: for a paid ticket the registration exists but is unpaid, so it does not count as entry.</p>
+<figure><img src="../assets/annotated/C4-4.png" alt="C4-4"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Carry straight on to check-in</td></tr>
+</tbody></table>
+</section>
+</article>
+<h2 class="part-heading">Part 4: The roster and looking people up</h2>
+<article class="journey">
+<h2><span class="jid">D1</span> Find someone on the roster</h2>
+<table class="facts"><tbody>
+<tr><th>Who</th><td>Organiser</td></tr>
+<tr><th>When</th><td>Someone asks about their registration, or you need to confirm whether a person has arrived.</td></tr>
+<tr><th>What you want</th><td>Find that person in seconds.</td></tr>
+<tr><th>Before you start</th><td>You are on the roster screen.</td></tr>
+<tr><th>When you are done</th><td>You found them and can open their detail.</td></tr>
+</tbody></table>
+<section class="step">
+<h3><span class="sid">D1-1</span> To see one status only, press a filter chip at the top.</h3>
+<p class="see"><b>What you see：</b>You can choose all, confirmed, checked in, awaiting payment, or cancelled.</p>
+<figure><img src="../assets/annotated/D1-1.png" alt="D1-1"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Show only people who have checked in</td></tr>
+<tr><th>2</th><td>Show only unpaid registrations</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">D1-2</span> To re-sort, press Registered or Name.</h3>
+<p class="see"><b>What you see：</b>The list re-sorts straight away.</p>
+<figure><img src="../assets/annotated/D1-2.png" alt="D1-2"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Sort by registration time</td></tr>
+<tr><th>2</th><td>Sort by name</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">D1-3</span> If you cannot find them, clear the filters and scroll down.</h3>
+<p class="see"><b>What you see：</b>If nothing matches, the screen says there are no matching registrations and suggests clearing the filters.</p>
+<figure><img src="../assets/annotated/D1-3.png" alt="D1-3"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Press to show everything</td></tr>
+</tbody></table>
+</section>
+</article>
+<article class="journey">
+<h2><span class="jid">D2</span> Open one person's full record</h2>
+<table class="facts"><tbody>
+<tr><th>Who</th><td>Organiser</td></tr>
+<tr><th>When</th><td>When you need to confirm a check-in time, a token balance, or a ticket type.</td></tr>
+<tr><th>What you want</th><td>See everything about one person on a single page.</td></tr>
+<tr><th>Before you start</th><td>You are on the roster screen.</td></tr>
+<tr><th>When you are done</th><td>Press Back to return to the roster.</td></tr>
+</tbody></table>
+<section class="step">
+<h3><span class="sid">D2-1</span> Tap the row with that person's name.</h3>
+<p class="see"><b>What you see：</b>You enter the detail view. Note: tapping the registration code only copies it, it does not open the detail.</p>
+<figure><img src="../assets/annotated/D2-1.png" alt="D2-1"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Tap the name row to open the detail</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">D2-2</span> Read the Profile and Registration sections.</h3>
+<p class="see"><b>What you see：</b>Name, email, phone, company, ticket type and registration time are all here.</p>
+<figure><img src="../assets/annotated/D2-2.png" alt="D2-2"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Their details</td></tr>
+<tr><th>2</th><td>This ticket's details</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">D2-3</span> Scroll to the Check-in, Token history and NFC sections.</h3>
+<p class="see"><b>What you see：</b>If a section shows a dash or says no bound badge was found, the backend simply has no record yet. It does not mean something is broken.</p>
+<figure><img src="../assets/annotated/D2-3.png" alt="D2-3"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Token history</td></tr>
+<tr><th>2</th><td>The wristband bound to this person</td></tr>
+</tbody></table>
+</section>
+</article>
+<article class="journey">
+<h2><span class="jid">D3</span> Why door staff cannot open the roster</h2>
+<table class="facts"><tbody>
+<tr><th>Who</th><td>Door staff</td></tr>
+<tr><th>When</th><td>You signed in with the door account and the roster will not open.</td></tr>
+<tr><th>What you want</th><td>Understand this is a permission boundary, not a broken phone.</td></tr>
+<tr><th>Before you start</th><td>Signed in with the door-staff account.</td></tr>
+<tr><th>When you are done</th><td>You know to switch to an owner or coordinator account to read the roster.</td></tr>
+</tbody></table>
+<section class="step">
+<h3><span class="sid">D3-1</span> Sign in with the door-staff account.</h3>
+<p class="see"><b>What you see：</b>The event card shows your role as OPERATOR rather than OWNER.</p>
+<figure><img src="../assets/annotated/D3-1.png" alt="D3-1"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>You are signed in as door staff</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">D3-2</span> Open the roster anyway.</h3>
+<p class="see"><b>What you see：</b>The screen explains that the roster needs an owner or coordinator account on the backend. Check-in and badge writing are unaffected.</p>
+<figure><img src="../assets/annotated/D3-2.png" alt="D3-2"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>A permission limit, not a fault</td></tr>
+</tbody></table>
+</section>
+</article>
+<h2 class="part-heading">Part 5: NFC wristbands</h2>
+<article class="journey">
+<h2><span class="jid">E1</span> Write a wristband for an attendee</h2>
+<table class="facts"><tbody>
+<tr><th>Who</th><td>Door staff</td></tr>
+<tr><th>When</th><td>An attendee has checked in and needs a wristband to enter.</td></tr>
+<tr><th>What you want</th><td>Bind one blank wristband to one attendee.</td></tr>
+<tr><th>Before you start</th><td>You have blank wristbands and the phone supports NFC.</td></tr>
+<tr><th>When you are done</th><td>The wristband is bound and ready to hand over.</td></tr>
+</tbody></table>
+<section class="step">
+<h3><span class="sid">E1-1</span> Press Write NFC badge in Quick actions.</h3>
+<p class="see"><b>What you see：</b>Step one appears: enter a registration code to look up the attendee.</p>
+<figure><img src="../assets/annotated/E1-1.png" alt="E1-1"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Step one: find the person</td></tr>
+<tr><th>2</th><td>Replace, reissue and return are not available yet</td></tr>
+</tbody></table>
+<p class="note"><b>About this image：</b>Captured in a browser, which has no NFC, so the app's own notice appears. On a phone that notice is absent; everything else is the same. The physical tap itself cannot be demonstrated in a browser.</p>
+</section>
+<section class="step">
+<h3><span class="sid">E1-2</span> Enter the attendee's registration code, or arrive from the check-in result card.</h3>
+<p class="see"><b>What you see：</b>Once found, the screen shows their name and ticket type so you can confirm.</p>
+<figure><img src="../assets/annotated/E1-2.png" alt="E1-2"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Enter the registration code</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">E1-3</span> Press Look up and check in.</h3>
+<p class="see"><b>What you see：</b>Step two appears: choose a badge type, then hold a blank card to the back of the phone.</p>
+<figure><img src="../assets/annotated/E1-3.png" alt="E1-3"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Choose a type, then press this</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">E1-4</span> Read the line under the button: the card number is only known at the moment of the tap.</h3>
+<p class="see"><b>What you see：</b>So the confirmation screen shows a template URL, not the final one written to the card. That is expected.</p>
+<figure><img src="../assets/annotated/E1-4.png" alt="E1-4"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>The tap starts only after you press</td></tr>
+</tbody></table>
+<p class="note"><b>About this image：</b>Captured in a browser, which has no NFC, so the app's own notice appears. On a phone that notice is absent; everything else is the same. The physical tap itself cannot be demonstrated in a browser.</p>
+</section>
+</article>
+<article class="journey">
+<h2><span class="jid">E2</span> Read a card number and exchange contacts</h2>
+<table class="facts"><tbody>
+<tr><th>Who</th><td>Door staff</td></tr>
+<tr><th>When</th><td>You need to identify whose wristband this is, or two attendees want to swap details.</td></tr>
+<tr><th>What you want</th><td>Read a card number, or record one exchange with two taps.</td></tr>
+<tr><th>Before you start</th><td>The phone supports NFC.</td></tr>
+<tr><th>When you are done</th><td>You have the card number, or one exchange is recorded.</td></tr>
+</tbody></table>
+<section class="step">
+<h3><span class="sid">E2-1</span> Press Read tagUid in Quick actions.</h3>
+<p class="see"><b>What you see：</b>The screen asks you to hold the card to the back of the phone to read its hardware number.</p>
+<figure><img src="../assets/annotated/E2-1.png" alt="E2-1"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Press, then tap the card</td></tr>
+</tbody></table>
+<p class="note"><b>About this image：</b>Captured in a browser, which has no NFC, so the app's own notice appears. On a phone that notice is absent; everything else is the same. The physical tap itself cannot be demonstrated in a browser.</p>
+</section>
+<section class="step">
+<h3><span class="sid">E2-2</span> Once read, copy the card number and look it up on the badge page.</h3>
+<p class="see"><b>What you see：</b>The lookup box on the badge page takes exactly this number.</p>
+<figure><img src="../assets/annotated/E2-2.png" alt="E2-2"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Paste the card number to look it up</td></tr>
+<tr><th>2</th><td>Or scan the list instead</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">E2-3</span> To let two people swap details, open Exchange contacts.</h3>
+<p class="see"><b>What you see：</b>The screen states the order: tap the first card, wait for the name, then tap the other person's card. The order matters.</p>
+<figure><img src="../assets/annotated/E2-3.png" alt="E2-3"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Tap the first card first</td></tr>
+</tbody></table>
+<p class="note"><b>About this image：</b>Captured in a browser, which has no NFC, so the app's own notice appears. On a phone that notice is absent; everything else is the same. The physical tap itself cannot be demonstrated in a browser.</p>
+</section>
+<section class="step">
+<h3><span class="sid">E2-4</span> If you need to stop, press Cancel. The first card's state is released and no half-record is left behind.</h3>
+<p class="see"><b>What you see：</b>If it says already exchanged, these two cards met before and nothing was written twice. That is normal.</p>
+<figure><img src="../assets/annotated/E2-4.png" alt="E2-4"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Press here to abandon mid-flow</td></tr>
+</tbody></table>
+<p class="note"><b>About this image：</b>Captured in a browser, which has no NFC, so the app's own notice appears. On a phone that notice is absent; everything else is the same. The physical tap itself cannot be demonstrated in a browser.</p>
+</section>
+</article>
+<h2 class="part-heading">Part 6: When things are not normal</h2>
+<article class="journey">
+<h2><span class="jid">F1</span> The token desk, and what to do when the network drops</h2>
+<table class="facts"><tbody>
+<tr><th>Who</th><td>Organiser</td></tr>
+<tr><th>When</th><td>An attendee wants tokens, or the venue network is patchy.</td></tr>
+<tr><th>What you want</th><td>Know that the token desk lives on the web, and how to handle a connection problem.</td></tr>
+<tr><th>Before you start</th><td>You are inside the event.</td></tr>
+<tr><th>When you are done</th><td>You will not hunt for token features in the app, and will not mistake a network problem for a fake ticket.</td></tr>
+</tbody></table>
+<section class="step">
+<h3><span class="sid">F1-1</span> Press Token in Quick actions.</h3>
+<p class="see"><b>What you see：</b>The app explains that the token desk is web-first and this is only a doorway.</p>
+<figure><img src="../assets/annotated/F1-1.png" alt="F1-1"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>The app does not host the full desk</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">F1-2</span> Press Open the desk on the web.</h3>
+<p class="see"><b>What you see：</b>It opens the web console in your phone's browser, where the same account works.</p>
+<figure><img src="../assets/annotated/F1-2.png" alt="F1-2"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Top-ups and deductions happen on the web</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">F1-3</span> If check-in reports a network or server problem.</h3>
+<p class="see"><b>What you see：</b>This is not the same as a registration not being found. The ticket may be fine: verify by hand or switch networks, but do not treat it as fake.</p>
+<figure><img src="../assets/annotated/F1-3.png" alt="F1-3"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>When the network is patchy, switch to typing and retry</td></tr>
+</tbody></table>
+</section>
+<section class="step">
+<h3><span class="sid">F1-4</span> For a duplicate or an exception you want to allow, press Request supervisor override.</h3>
+<p class="see"><b>What you see：</b>This feature is not open yet. The screen states the backend is not ready, so let the person through by hand and keep a written record rather than changing data yourself.</p>
+<figure><img src="../assets/annotated/F1-4.png" alt="F1-4"></figure>
+<table class="callouts"><tbody>
+<tr><th>1</th><td>Not available yet, handle it by hand</td></tr>
+</tbody></table>
+</section>
+</article>
+<section class="checkpage">
+<h2>Automatic checks</h2>
+<p class="note">These ran against the manifest, the screenshots and this document as it was built. They are recorded so you can see what was verified, and what was not.</p>
+<p class="checknum">11 / 11 pass · undefined Journey · [object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object] steps</p>
+<table class="checktable"><tbody>
+<tr><td class="cid">C1</td><td>Every step has a screenshot, raw and annotated</td><td class="cpass ok">PASS</td></tr>
+<tr><td class="cid">C2</td><td>Annotated images are 780 x 1688</td><td class="cpass ok">PASS</td></tr>
+<tr><td class="cid">C3</td><td>Annotated images are not blank</td><td class="cpass ok">PASS</td></tr>
+<tr><td class="cid">C4</td><td>Every step has at least one callout</td><td class="cpass ok">PASS</td></tr>
+<tr><td class="cid">C5</td><td>Callout numbers are unique within a step</td><td class="cpass ok">PASS</td></tr>
+<tr><td class="cid">C6</td><td>Every callout box sits inside the phone frame</td><td class="cpass ok">PASS</td></tr>
+<tr><td class="cid">C7</td><td>Every step appears in the Chinese document</td><td class="cpass ok">PASS</td></tr>
+<tr><td class="cid">C8</td><td>Every step appears in the English document</td><td class="cpass ok">PASS</td></tr>
+<tr><td class="cid">C9</td><td>Every step has both languages</td><td class="cpass ok">PASS</td></tr>
+<tr><td class="cid">C10</td><td>Documents contain no unresolved placeholders</td><td class="cpass ok">PASS</td></tr>
+<tr><td class="cid">C11</td><td>Every image referenced by the documents exists</td><td class="cpass ok">PASS</td></tr>
+</tbody></table>
+<p class="note">Not covered: whether the wording reads clearly to a person, and whether the screens still look like this after the app changes. Re-run the builder after any app change.</p>
+</section>
+</body></html>

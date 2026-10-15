@@ -27,5 +27,10 @@ ios/
 docs/handbook/.capture/
 docs/handbook/.probe/
 
+# 手冊產物：PDF、列印用 HTML、以及檢查報告，全部由
+# `docs/handbook/tools/build-handbook.mjs` 產生。跟上面的旅程文件同理——
+# 重新排版產物只會讓它與來源不一致。
+docs/handbook/output/
+
 docs/handbook/journeys-zh.md
 docs/handbook/journeys-en.md

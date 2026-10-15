@@ -22,9 +22,9 @@ const report = {
   results: checks.results,
 };
 
-fs.mkdirSync(path.join(HANDBOOK_ROOT, "dist"), { recursive: true });
+fs.mkdirSync(path.join(HANDBOOK_ROOT, "output"), { recursive: true });
 fs.writeFileSync(
-  path.join(HANDBOOK_ROOT, "dist", "checks.json"),
+  path.join(HANDBOOK_ROOT, "output", "checks.json"),
   `${JSON.stringify(report, null, 2)}\n`,
 );
 

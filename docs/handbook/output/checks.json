@@ -1,0 +1,98 @@
+{
+  "checkedAt": "2026-10-15T20:39:53.048Z",
+  "journeys": 16,
+  "steps": 55,
+  "passed": 11,
+  "total": 11,
+  "allPass": true,
+  "results": [
+    {
+      "id": "C1",
+      "titleZh": "每一步都有截圖（原圖與標註圖）",
+      "titleEn": "Every step has a screenshot, raw and annotated",
+      "pass": true,
+      "failures": [],
+      "detail": "55 steps"
+    },
+    {
+      "id": "C2",
+      "titleZh": "標註圖尺寸正確（780 × 1688）",
+      "titleEn": "Annotated images are 780 x 1688",
+      "pass": true,
+      "failures": [],
+      "detail": "55 images"
+    },
+    {
+      "id": "C3",
+      "titleZh": "標註圖不是空白",
+      "titleEn": "Annotated images are not blank",
+      "pass": true,
+      "failures": [],
+      "detail": "size floor 20 KB"
+    },
+    {
+      "id": "C4",
+      "titleZh": "每一步至少有一個標註",
+      "titleEn": "Every step has at least one callout",
+      "pass": true,
+      "failures": [],
+      "detail": "77 callouts total"
+    },
+    {
+      "id": "C5",
+      "titleZh": "同一步的標註編號不重複",
+      "titleEn": "Callout numbers are unique within a step",
+      "pass": true,
+      "failures": [],
+      "detail": ""
+    },
+    {
+      "id": "C6",
+      "titleZh": "標註框都落在畫面內",
+      "titleEn": "Every callout box sits inside the phone frame",
+      "pass": true,
+      "failures": [],
+      "detail": "measured from the live DOM"
+    },
+    {
+      "id": "C7",
+      "titleZh": "每一步都出現在中文文件",
+      "titleEn": "Every step appears in the Chinese document",
+      "pass": true,
+      "failures": [],
+      "detail": "55 steps"
+    },
+    {
+      "id": "C8",
+      "titleZh": "每一步都出現在英文文件",
+      "titleEn": "Every step appears in the English document",
+      "pass": true,
+      "failures": [],
+      "detail": "55 steps"
+    },
+    {
+      "id": "C9",
+      "titleZh": "每一步中英文說明都完整",
+      "titleEn": "Every step has both languages",
+      "pass": true,
+      "failures": [],
+      "detail": ""
+    },
+    {
+      "id": "C10",
+      "titleZh": "文件沒有未解析的佔位符",
+      "titleEn": "Documents contain no unresolved placeholders",
+      "pass": true,
+      "failures": [],
+      "detail": ""
+    },
+    {
+      "id": "C11",
+      "titleZh": "文件引用的圖片都存在",
+      "titleEn": "Every image referenced by the documents exists",
+      "pass": true,
+      "failures": [],
+      "detail": ""
+    }
+  ]
+}

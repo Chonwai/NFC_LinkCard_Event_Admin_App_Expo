@@ -4,4 +4,5 @@
 .probe/
 
 # Everything else IS committed on purpose: the screenshots are the handbook,
-# and dist/ holds the finished PDFs. The sibling website handbook does the same.
+# and output/ holds the finished PDFs. It is not called dist/ because the repo
+# root already ignores dist/ for web build output. The sibling website handbook does the same.
