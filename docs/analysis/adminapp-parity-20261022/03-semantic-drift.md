@@ -43,7 +43,7 @@
 | S-6  | **P1** | 完全不呼叫 `/my-access`，角色只是裝飾                 | base `src/` 全庫 0 命中 → fixed `event.service.ts:85`                                    |
 | S-7  | **P1** | overview 用受限端點借數字，OPERATOR 必 403            | base `overview.tsx:133-142` → fixed `:187,201`                                           |
 | S-8  | **P1** | Token placeholder 深連結到不存在的 Web 路由           | base `token.tsx:48-51` → fixed `:50`（改指名單）                                         |
-| S-9  | P2     | badges 缺 `boundOnly`                                 | base `nfc.service.ts:37-70` → fixed `:44`（已補參數）                                    |
+| S-9  | P2     | badges 缺 `boundOnly`                                 | base `nfc.service.ts:37-70` → fixed `:45`（參數宣告）、`:54`（實際送出）（已補）         |
 | S-10 | P2     | 名單硬寫 `visibility: "active"`，無法看隱藏/封存      | `registrations.tsx:136,169,194`（未修，位置不變）                                        |
 | S-11 | P3     | 錯誤處理不讀 `normalizedCode` / `compatibleCodes`     | `utils/api-error.ts:30-31`                                                               |
 | S-12 | P3     | 詳情頁路由參數叫 `registrationId`，但實際靠 `code` 查 | `registrant/[registrationId].tsx:54,70,78`（未修；base 為 45-50,72）                     |
@@ -101,10 +101,10 @@ POST /api/v1/events/:eventId/registrations/checkin/override
 }
 ```
 
-App 的型別（`registration.service.ts:98-126`）宣告 `approvedBy?`，並且 UI：
+App 的型別（base `registration.service.ts:98-126`；fixed `:104`）宣告 `approvedBy?`，並且 UI：
 
 ```tsx
-// registrant/[registrationId].tsx:186
+// registrant/[registrationId].tsx（base 7d0fcf5）:186 → fixed :207
 label={`${tx.type} · ${tx.approvedBy ?? copy.checkIn.dash}`}
 ```
 
@@ -140,7 +140,8 @@ checkedInBy, archivedAt
 
 後端 `EventRegistrationController.ts:130-152` 支援 `depositRefunded=refunded|not_refunded`。
 前端 `registrations/page.tsx:126` 有送。
-App 的 `getRegistrations`（`event.service.ts:62-90`）只有 `page/limit/status/ticketTypeId/visibility`。
+App 的 `getRegistrations`（base `event.service.ts:62-90` → fixed `:93`）只有 `page/limit/status/ticketTypeId/visibility`；
+本輪已補 `depositRefunded`（fixed `:106`）。
 
 > 注意：`registrantType` 是**前端**的死參數（後端 controller 0 命中），不要跟著抄。
 
@@ -205,9 +206,11 @@ App 有 `userRole`（`home.tsx:115-123` 還把它渲染成徽章），卻沒有�
 
 見 `02-screen-parity.md` §2.3。摘要：
 
-- `overview.tsx:133-142` 打兩次 `GET /registrations?limit=1` 讀 `pagination.total`
+- base `overview.tsx:133-142` 打兩次 `GET /registrations?limit=1` 讀 `pagination.total`
+  → **本輪已改**：先問 `my-access`（fixed `:201`），沒有 `canManage` 就用本地
+  `localTotal`（fixed `:187`）
 - 這條端點對 OPERATOR 是 403
-- 而 `_meta.registrationCount` 已經在 `event` 物件裡（`event.service.ts:40-46` 已 unwrap）
+- 而 `_meta.registrationCount` 已經在 `event` 物件裡（base `event.service.ts:40-46`；fixed `:45` 已 unwrap）
 
 額外成本：每次進 overview 都是 **2 個多餘請求**，而且與名單畫面共享同一條受限端點。
 
