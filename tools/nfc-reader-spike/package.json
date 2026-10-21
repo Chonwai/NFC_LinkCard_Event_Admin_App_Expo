@@ -1,0 +1,20 @@
+{
+  "name": "linkcard-nfc-reader-spike",
+  "version": "0.1.0",
+  "private": true,
+  "description": "NFC Gate 1 hardware spike: identify a PC/SC reader, read a tag, write and verify an NDEF URI.",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "doctor": "node bin/spike.js doctor",
+    "readers": "node bin/spike.js readers",
+    "read": "node bin/spike.js read",
+    "write": "node bin/spike.js write",
+    "test": "node --test tests/*.test.js"
+  },
+  "optionalDependencies": {
+    "nfc-pcsc": "^0.8.1"
+  }
+}
