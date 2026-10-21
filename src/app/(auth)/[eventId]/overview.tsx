@@ -105,6 +105,65 @@ function formatAttendanceRate(checkedIn: number, total: number): string {
   return `${Math.round((checkedIn / total) * 100)}%`;
 }
 
+/**
+ * 統計卡的唯一組裝點。
+ *
+ * `null` 一律顯示破折號 + 原因說明（`countUnavailableHint`），不顯示 0——
+ * 「讀不到」與「真的是 0」在現場是完全不同的兩件事。
+ */
+function buildStats(args: {
+  total: number | null;
+  checkedIn: number | null;
+}): StatItem[] {
+  const { total, checkedIn } = args;
+  const unknownHint = copy.event.countUnavailableHint;
+  const attendanceKnown = total != null && checkedIn != null;
+
+  return [
+    {
+      key: "registrations",
+      label: copy.event.registrations,
+      value: total == null ? copy.event.dash : String(total),
+      icon: "users",
+      hint: total == null ? unknownHint : null,
+    },
+    {
+      key: "checkedIn",
+      label: copy.event.checkedIn,
+      value: checkedIn == null ? copy.event.dash : String(checkedIn),
+      icon: "check-circle",
+      hint: checkedIn == null ? unknownHint : null,
+    },
+    {
+      key: "attendance",
+      label: copy.event.attendanceRate,
+      value: attendanceKnown
+        ? formatAttendanceRate(checkedIn, total)
+        : copy.event.dash,
+      icon: "check",
+      hint: attendanceKnown ? null : unknownHint,
+    },
+  ];
+}
+
+/** Token 統計目前沒有資料來源（後端沒有活動層級彙總），卡片固定顯示破折號。 */
+function buildTokenStats(): TokenStatItem[] {
+  return [
+    {
+      key: "tokenIssued",
+      label: copy.event.tokenIssued,
+      icon: "plus",
+      tone: "issued",
+    },
+    {
+      key: "tokenConsumed",
+      label: copy.event.tokenConsumed,
+      icon: "x-circle",
+      tone: "consumed",
+    },
+  ];
+}
+
 export default function EventOverviewScreen() {
   const insets = useSafeAreaInsets();
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
@@ -118,6 +177,14 @@ export default function EventOverviewScreen() {
   const [tokenStats, setTokenStats] = useState<TokenStatItem[]>([]);
 
   const event = events.find((e) => e.id === eventId);
+  /**
+   * `my-managed` 的 `_meta.registrationCount`（已由 `event.service` unwrap）。
+   *
+   * 這是「不用請求就拿得到的報名總數」。原本的 overview 卻改打
+   * `GET /registrations?limit=1` 去讀 `pagination.total`——那條端點對 OPERATOR
+   * 是 403（parity §S-7）。
+   */
+  const localTotal = event?.registrationCount ?? null;
   const statusLabel = getEventStatusLabel(event?.status);
   const statusTone =
     semantic.status[EVENT_STATUS_TONE[event?.status ?? ""] ?? "neutral"];
@@ -130,6 +197,18 @@ export default function EventOverviewScreen() {
       setLoading(true);
       setBanner(null);
       try {
+        // 先問「我能做什麼」，再決定要打哪些端點。
+        const access = await eventService.getMyAccess(eventId);
+        if (!active) return;
+
+        if (!access.canManage) {
+          // 沒有名單權限（典型：OPERATOR）。用本地已有的總數，
+          // 已報到數與到場率誠實顯示為「未取得」，而不是去換一個 403。
+          setStats(buildStats({ total: localTotal, checkedIn: null }));
+          setTokenStats(buildTokenStats());
+          return;
+        }
+
         const [totalRes, checkedInRes] = await Promise.all([
           eventService.getRegistrations(eventId, { limit: 1 }),
           eventService.getRegistrations(eventId, {
@@ -138,44 +217,16 @@ export default function EventOverviewScreen() {
           }),
         ]);
         if (!active) return;
-        const total = totalRes.pagination?.total ?? 0;
-        const checkedIn = checkedInRes.pagination?.total ?? 0;
-        setStats([
-          {
-            key: "registrations",
-            label: copy.event.registrations,
-            value: String(total),
-            icon: "users",
-          },
-          {
-            key: "checkedIn",
-            label: copy.event.checkedIn,
-            value: String(checkedIn),
-            icon: "check-circle",
-          },
-          {
-            key: "attendance",
-            label: copy.event.attendanceRate,
-            value: formatAttendanceRate(checkedIn, total),
-            icon: "check",
-          },
-        ]);
-        setTokenStats([
-          {
-            key: "tokenIssued",
-            label: copy.event.tokenIssued,
-            icon: "plus",
-            tone: "issued",
-          },
-          {
-            key: "tokenConsumed",
-            label: copy.event.tokenConsumed,
-            icon: "x-circle",
-            tone: "consumed",
-          },
-        ]);
+        setStats(
+          buildStats({
+            total: totalRes.pagination?.total ?? localTotal,
+            checkedIn: checkedInRes.pagination?.total ?? null,
+          }),
+        );
+        setTokenStats(buildTokenStats());
       } catch {
         if (!active) return;
+        // 連權限都問不到才是真的故障；名單 403 已在上面被分流掉。
         setBanner({ tone: "danger", message: copy.home.loadFailed });
       } finally {
         if (active) setLoading(false);
@@ -187,7 +238,7 @@ export default function EventOverviewScreen() {
     return () => {
       active = false;
     };
-  }, [eventId]);
+  }, [eventId, localTotal]);
 
   if (!eventId) {
     return (
