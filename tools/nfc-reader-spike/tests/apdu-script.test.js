@@ -9,7 +9,11 @@ const {
   passThrough,
   toHex,
 } = require("../src/apdu-script");
-const { encodeUriTlv } = require("../src/ndef");
+const {
+  encodeUriTlv,
+  extractNdefFromTlv,
+  decodeUriMessage,
+} = require("../src/ndef");
 
 test("passThrough wraps a native command in the documented envelope", () => {
   // Reference Manual v2.02 §5.5.4.1 gives this exact example.
@@ -120,4 +124,22 @@ test("the self-test and verify steps are optional", () => {
     verify: false,
   });
   assert.ok(script.steps.every((step) => step.kind === "write"));
+});
+
+test("the script payload decodes back to the original URL", () => {
+  const url = "https://linkcard.example/b/7F3A";
+  const script = buildScript(url, { selfTest: false, verify: false });
+
+  // Strip the 5-byte pass-through header and the 2-byte WRITE prefix from each
+  // step, then stitch the page bodies back into one buffer.
+  const written = Buffer.concat(
+    script.steps.map((step) => step.apdu.subarray(7, 11)),
+  );
+  const { tlv } = encodeUriTlv(url);
+  const trimmed = written.subarray(0, tlv.length);
+
+  // extractNdefFromTlv returns the NDEF message bytes themselves.
+  const ndef = extractNdefFromTlv(trimmed);
+  assert.ok(Buffer.isBuffer(ndef));
+  assert.equal(decodeUriMessage(ndef).uri, url);
 });

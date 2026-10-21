@@ -22,6 +22,7 @@ const path = require("node:path");
 
 const { classifyReaders } = require("../src/reader-model");
 const { allDriverAnswers, driverAnswer } = require("../src/driver-matrix");
+const { buildScript, renderScript } = require("../src/apdu-script");
 const { encodeUriTlv } = require("../src/ndef");
 const { planPageWrites } = require("../src/ntag");
 const { TagSession } = require("../src/tag-session");
@@ -326,6 +327,8 @@ function usage() {
   node bin/spike.js doctor  [--json]      check this machine's PC/SC toolchain
   node bin/spike.js drivers [--json]      which OS actually needs a driver
   node bin/spike.js drivers --os macos    one line for a single platform
+  node bin/spike.js script --url <url>    emit the APDU script the vendor app replays
+              [--variant NTAG215] [--out <file>] [--plain]
   node bin/spike.js read    [--json]      tap a tag, print UID + variant + URI
   node bin/spike.js write --url <url>     show the page plan for this tag (dry run)
   node bin/spike.js write --url <url> --yes    write it, then read it back
@@ -565,6 +568,77 @@ async function commandWrite(argv) {
   return 0;
 }
 
+const SCRIPT_VARIANTS = ["NTAG213", "NTAG215", "NTAG216"];
+
+/**
+ * Emits the APDU script for the vendor app's APDU tool.
+ *
+ * This is the tablet path that needs no new code: the app already sends
+ * arbitrary APDU, so the laptop's job is to work out which ones.
+ */
+function commandScript(argv) {
+  const url = readOption(argv, "--url");
+  if (!url) {
+    console.error(paint(RED, "script needs --url <url>"));
+    return 2;
+  }
+
+  const variant = (readOption(argv, "--variant") || "NTAG215").toUpperCase();
+  if (!SCRIPT_VARIANTS.includes(variant)) {
+    console.error(
+      paint(
+        RED,
+        `unknown --variant ${variant}; expected one of ${SCRIPT_VARIANTS.join(", ")}`,
+      ),
+    );
+    return 2;
+  }
+
+  let script;
+  try {
+    script = buildScript(url, { variant });
+  } catch (error) {
+    console.error(paint(RED, `cannot build script: ${error && error.message}`));
+    return 1;
+  }
+
+  const text = renderScript(script, { comments: !argv.includes("--plain") });
+  const out = readOption(argv, "--out");
+
+  if (!script.fitted) {
+    console.error(
+      paint(
+        RED,
+        `URL needs ${script.bytes} bytes but ${script.variant} only holds ${script.capacityBytes}. ` +
+          "Use a bigger chip or a shorter link.",
+      ),
+    );
+    return 1;
+  }
+
+  if (out) {
+    fs.writeFileSync(out, text);
+    console.log(
+      `${paint(GREEN, "WROTE")} ${path.relative(process.cwd(), out) || out}`,
+    );
+  } else {
+    process.stdout.write(text);
+  }
+
+  console.log(
+    dim(
+      `\n${script.pages} page writes for ${script.bytes} bytes. ` +
+        "Replay in the vendor app: APDU -> choose the script file -> pick the card slot -> send.",
+    ),
+  );
+  console.log(
+    dim(
+      "The script-file format itself is unverified; if the picker rejects it, paste the lines one by one.",
+    ),
+  );
+  return 0;
+}
+
 const DRIVER_TAG = {
   inbox: "no driver needed",
   vendor: "vendor package required",
@@ -637,6 +711,8 @@ async function main(argv) {
       return commandDoctor(rest);
     case "drivers":
       return commandDrivers(rest);
+    case "script":
+      return commandScript(rest);
     case "read":
       return commandRead(rest);
     case "write":
