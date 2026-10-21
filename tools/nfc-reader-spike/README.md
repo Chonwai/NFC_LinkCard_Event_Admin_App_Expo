@@ -10,9 +10,26 @@ and because "the reader works" is a claim that needs bytes behind it.
 ## Why not just use the app?
 
 The Event Admin App writes badges with `react-native-nfc-manager`, i.e. the
-**tablet's built-in NFC**. It has no code path for an external USB reader, and
-cannot get one: the library talks to Android's `NfcAdapter` and iOS CoreNFC
-sessions only. A USB reader is a desktop tool.
+**tablet's built-in NFC**. It has no code path for an external reader: the
+library talks to Android's `NfcAdapter` and iOS CoreNFC sessions only.
+
+That matters because the company tablets (Redmi / Honor) have **no NFC at all**.
+
+The purchased reader is an **ACS ACR1555U**, which has three separate
+transports — and they are not interchangeable:
+
+| Transport             | Where it works                        | Can it write a badge? | App work needed                     |
+| --------------------- | ------------------------------------- | --------------------- | ----------------------------------- |
+| **USB CCID** (Type-C) | laptop, via PC/SC                     | ✅                    | none — this CLI                     |
+| **BLE APDU**          | Android/iOS via APDU-over-BLE         | ✅                    | a native BLE module (~3.5–4.5 days) |
+| **BLE HID keyboard**  | any tablet/phone, pairs as a keyboard | ❌ types the UID only | none                                |
+
+So the laptop path below is the one that works today; BLE APDU is the only way
+to let the tablets write badges themselves; HID is a zero-code way to get a UID
+into the app's `讀取 tagUid` field.
+
+> HID and APDU are **device modes**, not simultaneous: switching the reader to
+> HID stops the APDU service until it is switched back.
 
 ## Run it (3 minutes)
 
