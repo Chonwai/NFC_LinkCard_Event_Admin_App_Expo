@@ -129,6 +129,15 @@ function printReader(entry, index) {
   lines.push(
     `    contactless ${entry.isContactlessInterface ? "yes (PICC interface)" : "not reported in the name"}`,
   );
+  const transports = entry.transports || {};
+  const modes = [
+    transports.usbCcId === "yes" ? "USB CCID" : null,
+    transports.bleApdu === "yes" ? "BLE APDU" : null,
+    transports.bleHid === "yes" ? "BLE HID keyboard" : null,
+  ].filter(Boolean);
+  if (modes.length) {
+    lines.push(`    transports  ${modes.join(" | ")}`);
+  }
   if (entry.standards.length) {
     lines.push(`    standards   ${entry.standards.join("\n                ")}`);
   }
@@ -140,8 +149,9 @@ function printReader(entry, index) {
   const verdict = entry.verdict;
   lines.push(
     `    verdict     laptop batch-write: ${verdict.laptopBatchWrite} | ` +
-      `android tablet: ${verdict.androidTablet} | ipad: ${verdict.ipadTablet} | ` +
-      `this app: ${verdict.expoAppDirect}`,
+      `android tablet: ${verdict.androidTablet} | ` +
+      `hid keyboard: ${verdict.androidHidKeyboard} | ` +
+      `ipad: ${verdict.ipadTablet} | this app: ${verdict.expoAppDirect}`,
   );
   if (entry.notes.length) {
     lines.push(`    notes       ${entry.notes.join("\n                ")}`);

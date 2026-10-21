@@ -90,6 +90,7 @@ const FAMILIES = [
       "ISO/IEC 15693 (vicinity)",
       "PC/SC over USB (it is Bluetooth/BLE)",
     ],
+    transports: { usbCcId: "no", bleApdu: "likely", bleHid: "unknown" },
     platforms: {
       macosPcsc: "no",
       windowsPcsc: "no",
@@ -127,6 +128,46 @@ const FAMILIES = [
     notes: [
       "This is what 'supports many protocols' usually means in practice: 15693 on top of 14443.",
       "LinkCard badges are NTAG215 (14443-A), so the extra protocols buy nothing for this project.",
+    ],
+  },
+  {
+    id: "acs-acr1555u",
+    match: /\bACR\s*1555/i,
+    label: "ACS ACR1555U Secure Bluetooth NFC Reader",
+    vendor: "Advanced Card Systems (ACS)",
+    confidence: "high",
+    standards: [
+      "ISO/IEC 14443 Type A & B (Parts 1–4)",
+      "ISO/IEC 15693 (vicinity)",
+      "ISO/IEC 18092 (NFC)",
+      "MIFARE Classic / Ultralight / Plus / DESFire",
+      "FeliCa",
+      "NFC Forum tag types 1–4 (type 5 is not listed)",
+      "Bluetooth 5.2 LE (AES-128, 2 Mbps high-speed mode)",
+      "USB CCID over USB-C (USB 2.0 full speed, USB 3.0 compatible)",
+      "ISO 7816 Class A/B/C SAM slot",
+    ],
+    notSupported: [
+      "NFC Forum tag type 5 (ISO 15693 tag-types are read via 15693, not T5 NDEF)",
+      "Apple Lightning — Apple support is USB-C or Bluetooth only",
+    ],
+    // Three separate transports. HID and APDU are device modes, not simultaneous.
+    transports: { usbCcId: "yes", bleApdu: "yes", bleHid: "yes" },
+    platforms: {
+      macosPcsc: "yes",
+      windowsPcsc: "yes",
+      linuxPcsc: "yes",
+      androidUsbVendorSdk: "yes",
+      ipadExternalReader: "no",
+      expoAppDirect: "no",
+    },
+    notes: [
+      "This is the device actually purchased (listing: 'ACR1555U, replacement for ACR1255U', ¥399).",
+      "USB side is real CCID, so the laptop batch path needs no vendor SDK at all.",
+      "Bluetooth side exposes APDU-over-BLE: a third-party Flutter SDK documents 'CCID commands + generic PC/SC APDU transceiving', so a tablet app can send the same READ/WRITE APDUs.",
+      "Bluetooth HID keyboard mode types the UID as keystrokes: enough for 'read tagUid', never enough to write a badge.",
+      "Mode is a device setting: switching to HID stops APDU service until switched back.",
+      "Rechargeable 3.7 V 450 mAh battery; ~31.5 g without the card holder.",
     ],
   },
   {
@@ -315,6 +356,7 @@ function classifyReaderName(name) {
     confidence: family.confidence,
     standards: family.standards,
     notSupported: family.notSupported,
+    transports: family.transports || {},
     platforms: family.platforms,
     notes: family.notes,
     isContactlessInterface: /PICC|Contactless|NFC/i.test(readerName),
@@ -329,17 +371,30 @@ function classifyReaderName(name) {
  */
 function verdictFor(family) {
   const p = family.platforms || {};
+  const t = family.transports || {};
   const laptop = [p.macosPcsc, p.windowsPcsc, p.linuxPcsc];
   const laptopOk = laptop.some((v) => v === "yes" || v === "likely");
+  const usbWorks = t.usbCcId === "no" ? false : laptopOk;
+
+  const androidTablet =
+    t.bleApdu === "yes" || t.bleApdu === "likely"
+      ? "ble-apdu"
+      : p.androidUsbVendorSdk === "yes"
+        ? "vendor-sdk"
+        : "no";
 
   return {
-    laptopBatchWrite: laptopOk ? "yes" : "no",
-    androidTablet: p.androidUsbVendorSdk === "yes" ? "vendor-sdk" : "no",
+    laptopBatchWrite: usbWorks ? "yes" : "no",
+    androidTablet,
+    androidHidKeyboard: t.bleHid === "yes" ? "yes" : "no",
     ipadTablet: "no",
     expoAppDirect: "no",
-    summary: laptopOk
-      ? "Usable as a desktop batch-writing reader; not usable as a tablet accessory for this app."
-      : "Not a PC/SC device, so the desktop path does not apply either.",
+    summary: usbWorks
+      ? "Usable as a desktop batch-writing reader; " +
+        (androidTablet === "ble-apdu"
+          ? "a tablet app can also write over BLE APDU, but that is new native work."
+          : "not usable as a tablet accessory for this app.")
+      : "No USB CCID transport, so the desktop batch path does not apply.",
   };
 }
 
