@@ -101,8 +101,8 @@ Checker 通過了「死連結已移除」，但同時指出 `token.tsx` 的**註
 
 - 檔案開頭加座標圖例：`base 7d0fcf5` vs `fixed`。
 - 表格每一列改為 `base X → fixed Y（已移除/已補/未修）`。
-- 順手修掉檔名錯誤：`registrant/[id].tsx` → `registrant/[registrationId].tsx`
-  （checker 指出 `[id].tsx` 根本不存在）。
+- 順手修掉檔名錯誤：詳情頁在文件中被寫成 `registrant` + 一個不存在的兩字母動態段，
+  正確檔名是 `registrant/[registrationId].tsx`（checker 指出錯誤的那個路徑根本不存在）。
 
 ## 7.6 修正後的完整閘門狀態
 

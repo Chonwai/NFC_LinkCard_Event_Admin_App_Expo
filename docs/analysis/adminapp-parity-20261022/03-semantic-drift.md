@@ -46,7 +46,7 @@
 | S-9  | P2     | badges 缺 `boundOnly`                                 | base `nfc.service.ts:37-70` → fixed `:44`（已補參數）                                    |
 | S-10 | P2     | 名單硬寫 `visibility: "active"`，無法看隱藏/封存      | `registrations.tsx:136,169,194`（未修，位置不變）                                        |
 | S-11 | P3     | 錯誤處理不讀 `normalizedCode` / `compatibleCodes`     | `utils/api-error.ts:30-31`                                                               |
-| S-12 | P3     | 詳情頁路由參數叫 `registrationId`，但實際靠 `code` 查 | `registrant/[registrationId].tsx:45-50,72`（未修）                                       |
+| S-12 | P3     | 詳情頁路由參數叫 `registrationId`，但實際靠 `code` 查 | `registrant/[registrationId].tsx:54,70,78`（未修；base 為 45-50,72）                     |
 
 ---
 
@@ -263,18 +263,21 @@ App 的 `getApiErrorCode`（`utils/api-error.ts:30-31`）只看 `code: string`�
 ## S-12（P3）詳情頁參數命名與實際查法不一致
 
 ```tsx
-// registrant/[registrationId].tsx:41-50
+// registrant/[registrationId].tsx:54（fixed 座標；base 為 :45-50）
 const { eventId, registrationId, code } = useLocalSearchParams<{
   eventId: string;
   registrationId: string;
   code?: string;
 }>();
-// :72
+// :70（base 為 :72）—— 決定能不能載入的是 code，不是 registrationId
 if (!eventId || !code) {
   /* 空狀態 */
 }
-// :72-75
-await registrationService.getByCode(eventId, code);
+// :78（base 為 :72-75）
+const { registration: next } = await registrationService.getByCode(
+  eventId,
+  code,
+);
 ```
 
 路由參數叫 `registrationId`，但**真正決定能不能載入的是 `code`**。

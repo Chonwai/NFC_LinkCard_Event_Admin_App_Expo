@@ -10,21 +10,21 @@
 
 Web 導覽的真實來源是 `app/(event)/manage/[eventId]/layout.tsx:168-190`。
 
-| #   | Web 模組       | 路徑                                       | App 對應                                | 判定                                           |
-| --- | -------------- | ------------------------------------------ | --------------------------------------- | ---------------------------------------------- |
-| 1   | Overview       | `/manage/:eventId`                         | `overview.tsx`                          | **App 更強**（見 2.3）                         |
-| 2   | Profile        | `/manage/:eventId/profile`                 | —                                       | 刻意差異（活動設定不在現場做）                 |
-| 3   | Content        | `/manage/:eventId/content`                 | —                                       | 刻意差異                                       |
-| 4   | Ticket Types   | `/manage/:eventId/ticket-types`            | —                                       | 刻意差異（但現場報名要**讀**票種，App 讀到了） |
-| 5   | Badges         | `/manage/:eventId/badges`                  | `badges.tsx`                            | **能力缺 4 項**（見 2.4）                      |
-| 6   | Registrations  | `/manage/:eventId/registrations`           | `registrations.tsx` + `registrant/[id]` | **能力缺 9 項**（見 2.5）                      |
-| 7   | Check-in       | `/check-in/:eventId`                       | `check-in.tsx`                          | 基本一致；App 多一顆死按鈕                     |
-| 8   | Exhibitors     | `/manage/:eventId/exhibitors` (+`/import`) | —                                       | 刻意差異                                       |
-| 9   | Sessions       | `/manage/:eventId/sessions` (+2 子頁)      | —                                       | 刻意差異                                       |
-| 10  | Polls          | `/manage/:eventId/polls`                   | —                                       | 刻意差異                                       |
-| 11  | Bank Transfers | `/manage/:eventId/bank-transfers`          | —                                       | 刻意差異（財務覆核不在門口做）                 |
-| 12  | Org Roles      | `/manage/:eventId/org-roles`               | —                                       | 刻意差異                                       |
-| 13  | Settings       | `/manage/:eventId/settings`                | —                                       | 刻意差異                                       |
+| #   | Web 模組       | 路徑                                       | App 對應                                            | 判定                                           |
+| --- | -------------- | ------------------------------------------ | --------------------------------------------------- | ---------------------------------------------- |
+| 1   | Overview       | `/manage/:eventId`                         | `overview.tsx`                                      | **App 更強**（見 2.3）                         |
+| 2   | Profile        | `/manage/:eventId/profile`                 | —                                                   | 刻意差異（活動設定不在現場做）                 |
+| 3   | Content        | `/manage/:eventId/content`                 | —                                                   | 刻意差異                                       |
+| 4   | Ticket Types   | `/manage/:eventId/ticket-types`            | —                                                   | 刻意差異（但現場報名要**讀**票種，App 讀到了） |
+| 5   | Badges         | `/manage/:eventId/badges`                  | `badges.tsx`                                        | **能力缺 4 項**（見 2.4）                      |
+| 6   | Registrations  | `/manage/:eventId/registrations`           | `registrations.tsx` + `registrant/[registrationId]` | **能力缺 9 項**（見 2.5）                      |
+| 7   | Check-in       | `/check-in/:eventId`                       | `check-in.tsx`                                      | 基本一致；App 多一顆死按鈕                     |
+| 8   | Exhibitors     | `/manage/:eventId/exhibitors` (+`/import`) | —                                                   | 刻意差異                                       |
+| 9   | Sessions       | `/manage/:eventId/sessions` (+2 子頁)      | —                                                   | 刻意差異                                       |
+| 10  | Polls          | `/manage/:eventId/polls`                   | —                                                   | 刻意差異                                       |
+| 11  | Bank Transfers | `/manage/:eventId/bank-transfers`          | —                                                   | 刻意差異（財務覆核不在門口做）                 |
+| 12  | Org Roles      | `/manage/:eventId/org-roles`               | —                                                   | 刻意差異                                       |
+| 13  | Settings       | `/manage/:eventId/settings`                | —                                                   | 刻意差異                                       |
 
 **App 獨有（Web 完全沒有）**：
 
