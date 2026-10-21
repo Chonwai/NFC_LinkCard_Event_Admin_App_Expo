@@ -21,6 +21,9 @@ const os = require("node:os");
 const path = require("node:path");
 
 const { classifyReaders } = require("../src/reader-model");
+const { encodeUriTlv } = require("../src/ndef");
+const { planPageWrites } = require("../src/ntag");
+const { TagSession } = require("../src/tag-session");
 
 const DIM = "\u001b[2m";
 const BOLD = "\u001b[1m";
@@ -256,9 +259,243 @@ function usage() {
 
   node bin/spike.js readers [--json]      list PC/SC readers and classify them
   node bin/spike.js doctor  [--json]      check this machine's PC/SC toolchain
+  node bin/spike.js read    [--json]      tap a tag, print UID + variant + URI
+  node bin/spike.js write --url <url>     show the page plan for this tag (dry run)
+  node bin/spike.js write --url <url> --yes    write it, then read it back
 
+Common options: --timeout <seconds> (tag wait, default 30)
+                --reader-timeout <seconds> (default 15)
 Exit codes: 0 = the checked question is a yes, 1 = no (or an error was reported).
 `);
+}
+
+function readOption(argv, flag) {
+  const index = argv.indexOf(flag);
+  if (index === -1) return undefined;
+  return argv[index + 1];
+}
+
+function timeoutMsFrom(argv, fallbackSeconds = 30) {
+  const raw = readOption(argv, "--timeout");
+  const seconds = raw === undefined ? fallbackSeconds : Number(raw);
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    throw new Error(
+      `--timeout must be a positive number of seconds, got "${raw}"`,
+    );
+  }
+  return seconds * 1000;
+}
+
+function readerTimeoutMsFrom(argv, fallbackSeconds = 15) {
+  const raw = readOption(argv, "--reader-timeout");
+  const seconds = raw === undefined ? fallbackSeconds : Number(raw);
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    throw new Error(
+      `--reader-timeout must be a positive number of seconds, got "${raw}"`,
+    );
+  }
+  return seconds * 1000;
+}
+
+/**
+ * Opens the first available reader and runs `handler` against it, then releases
+ * PC/SC. A reader appearing is an event, so "is one there?" can only be answered
+ * by waiting a bounded amount of time.
+ */
+function withReader(timeoutMs, handler) {
+  const { module, error } = loadNfcPcsc();
+  if (error) return Promise.reject(new Error(error));
+
+  return new Promise((resolve, reject) => {
+    const nfc = new module.NFC();
+    let settled = false;
+
+    const release = () => {
+      try {
+        if (typeof nfc.close === "function") nfc.close();
+      } catch {
+        // Releasing a reader that never fully opened is allowed to fail.
+      }
+    };
+
+    const fail = (failure) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      release();
+      reject(failure instanceof Error ? failure : new Error(String(failure)));
+    };
+
+    const timer = setTimeout(
+      () =>
+        fail(
+          new Error(
+            `no PC/SC reader appeared within ${timeoutMs}ms — plug the reader in, then run \`node bin/spike.js readers\``,
+          ),
+        ),
+      timeoutMs,
+    );
+
+    nfc.on("error", fail);
+
+    nfc.on("reader", (reader) => {
+      reader.once("error", fail);
+      Promise.resolve(handler(reader))
+        .then((value) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          release();
+          resolve(value);
+        })
+        .catch(fail);
+    });
+  });
+}
+
+/** Waits for a tag to be presented to `reader`. */
+function waitForCard(reader, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const cleanup = () => {
+      clearTimeout(timer);
+      if (typeof reader.removeListener === "function") {
+        reader.removeListener("card", onCard);
+        reader.removeListener("error", onError);
+      }
+    };
+    const onCard = (card) => {
+      cleanup();
+      resolve(card);
+    };
+    const onError = (failure) => {
+      cleanup();
+      reject(failure instanceof Error ? failure : new Error(String(failure)));
+    };
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error(`no tag tapped within ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    reader.once("card", onCard);
+    reader.once("error", onError);
+  });
+}
+
+function describeIdentity(identity) {
+  const cc = identity.capabilityContainer
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join(" ");
+  const version = identity.version
+    ? `, GET_VERSION says ${identity.version.variant}`
+    : "";
+  return `${identity.variant} (CC ${cc}, data area ${identity.dataAreaBytes} bytes${version})`;
+}
+
+async function commandRead(argv) {
+  const asJson = argv.includes("--json");
+  const tagTimeout = timeoutMsFrom(argv);
+  const readerTimeout = readerTimeoutMsFrom(argv);
+
+  const result = await withReader(readerTimeout, async (reader) => {
+    const card = await waitForCard(reader, tagTimeout);
+    const session = new TagSession({ reader, card });
+    const identity = await session.identify();
+    const uri = await session.readUri();
+    return {
+      reader: reader.name,
+      cardType: card.type,
+      atr: card.atr ? card.atr.toString("hex") : null,
+      identity,
+      uri,
+    };
+  });
+
+  if (asJson) {
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    return 0;
+  }
+
+  console.log(bold("NFC Gate 1 — read"));
+  console.log(`reader     ${result.reader}`);
+  console.log(
+    `uid        ${result.identity.uid || "(reader did not report a UID)"}`,
+  );
+  console.log(`variant    ${describeIdentity(result.identity)}`);
+  console.log(
+    `ndef       ${result.uri === null ? dim("(empty — no NDEF TLV on this tag)") : result.uri}`,
+  );
+  return 0;
+}
+
+async function commandWrite(argv) {
+  const url = readOption(argv, "--url");
+  if (!url) {
+    throw new Error("write needs --url <https://...>");
+  }
+  const apply = argv.includes("--yes");
+  const asJson = argv.includes("--json");
+  const tagTimeout = timeoutMsFrom(argv);
+  const readerTimeout = readerTimeoutMsFrom(argv);
+  const expected = encodeUriTlv(url);
+
+  const result = await withReader(readerTimeout, async (reader) => {
+    const card = await waitForCard(reader, tagTimeout);
+    const session = new TagSession({ reader, card });
+    const identity = await session.identify();
+    const plan = planPageWrites(expected.tlv, {
+      userBytes: identity.dataAreaBytes,
+    });
+
+    if (!apply) {
+      return { dryRun: true, reader: reader.name, identity, url, plan };
+    }
+    const written = await session.writeUri(url);
+    return { dryRun: false, reader: reader.name, identity, url, plan, written };
+  });
+
+  if (asJson) {
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    return result.plan.fits ? 0 : 1;
+  }
+
+  console.log(
+    bold(result.dryRun ? "NFC Gate 1 — write (dry run)" : "NFC Gate 1 — write"),
+  );
+  console.log(`reader     ${result.reader}`);
+  console.log(`variant    ${describeIdentity(result.identity)}`);
+  console.log(`url        ${result.url}`);
+  console.log(
+    `plan       ${result.plan.requiredPages} pages / ${result.plan.bytes} bytes ` +
+      dim(`(tag holds ${result.plan.capacityPages} pages)`),
+  );
+  const first = result.plan.pages[0];
+  console.log(
+    `page ${String(first.page).padEnd(6)} ${first.data.toString("hex").match(/../g).join(" ")}   ${dim("<- TLV starts here")}`,
+  );
+
+  if (!result.plan.fits) {
+    console.log(
+      paint(
+        RED,
+        `\nREFUSED    payload does not fit this tag; nothing was written.`,
+      ),
+    );
+    return 1;
+  }
+  if (result.dryRun) {
+    console.log(
+      dim("\nNothing written. Re-run with --yes to write and read back."),
+    );
+    return 0;
+  }
+
+  console.log(
+    paint(
+      GREEN,
+      `\nVERIFIED   read back ${result.written.bytes} bytes over ${result.written.pages} pages; URI matches.`,
+    ),
+  );
+  return 0;
 }
 
 async function main(argv) {
@@ -268,6 +505,10 @@ async function main(argv) {
       return commandReaders(rest);
     case "doctor":
       return commandDoctor(rest);
+    case "read":
+      return commandRead(rest);
+    case "write":
+      return commandWrite(rest);
     case undefined:
     case "-h":
     case "--help":
