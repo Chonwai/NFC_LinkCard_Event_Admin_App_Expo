@@ -346,6 +346,10 @@ export const copy = {
     orgEmptyHint: "沒有依使用者查社團的接口，這裡顯示 —。",
     tokenEmptyTitle: "沒有流水",
     tokenEmptyHint: "此報名還沒有 Token 交易，或目前帳號讀不到。",
+    /** 交易列的餘額標籤。後端一定有 `balanceAfter`，只是 App 先前沒讀（S-2）。 */
+    tokenBalanceLabel: "餘額",
+    /** 流水被分頁截斷時的說明；`N` 與 `M` 由呼叫端代入。 */
+    tokenPagingHint: "只顯示最近一頁。",
     phone: "電話",
     statusLabels: {
       PENDING_PAYMENT: "待付款",

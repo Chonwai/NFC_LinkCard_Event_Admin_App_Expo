@@ -112,9 +112,40 @@ export interface WalletTransactionItem {
   id: string;
   type: string;
   amount: number;
+  /**
+   * 交易後餘額。後端 `EventWalletService.getTransactionHistory` 的 `select`
+   * 一定有這個欄位，App 先前漏接——於是畫面只能顯示異動量，看不到「剩下多少」。
+   */
+  balanceAfter: number;
   description?: string | null;
+  /**
+   * 交易來源別（`MANUAL` / `STRIPE` / …）。後端有 select，App 先前漏接。
+   *
+   * ⚠️ 這裡**沒有** `approvedBy`：後端的 select 從來沒有這個欄位。
+   * 舊版型別宣告了它、UI 也照著渲染，於是每一行都顯示「—」——
+   * 看起來像「沒有人員記錄」，實際上是「這個欄位不存在」。見
+   * `docs/analysis/adminapp-parity-20261022/03-semantic-drift.md` §S-2。
+   */
+  sourceType?: string | null;
   createdAt: string;
-  approvedBy?: string | null;
+}
+
+export interface WalletTransactionPagination {
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
+/**
+ * `GET /:eventId/wallet/:registrationId/transactions` 的完整回應。
+ *
+ * 後端預設 `page=1&limit=20`；不讀 `pagination` 的呼叫端會靜默只看得到
+ * 前 20 筆（S-2）。
+ */
+export interface WalletTransactionList {
+  transactions: WalletTransactionItem[];
+  pagination?: WalletTransactionPagination;
 }
 export interface CheckInResult {
   registration: Registration;
