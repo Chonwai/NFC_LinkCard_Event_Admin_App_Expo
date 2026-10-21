@@ -1,5 +1,12 @@
 # LinkCard Event — 已購 NFC 讀寫器：可用性裁決與 Gate 1 執行紀錄
 
+> ⚠️ **2026-10-22 同日修訂：本文件 §0／§3／§5 的平台裁決已被 `18-acr1555u-verdict-and-nfc-less-tablets.md` 取代。**
+>
+> 原因：當時型號未知，文中以「藍牙讀寫器 = 沒有 USB」的品類假設推算；實際機型是 **ACR1555U**，同時具備 **USB CCID**、**BLE APDU**、**BLE HID** 三種傳輸，且使用單位的平板（Redmi／Honor）**本身沒有 NFC**。
+>
+> **仍然有效**：§2 環境量測、§7 對 doc 14 的 CC／容量更正、§8 方法論、§12 資產。
+> **已被取代**：「平板不可能寫卡」的結論。
+
 > 產出日期：2026-10-22 ｜ Loop: NFC Gate 1（WP-N1 前置）
 > 品質合約：strict（threshold 93）／Depth L3 Deep Dive
 > 報告類型：硬體可行性裁決 × 平台架構限制 × 可重跑量測工具
