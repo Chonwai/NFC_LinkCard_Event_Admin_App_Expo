@@ -327,6 +327,7 @@ function usage() {
   node bin/spike.js doctor  [--json]      check this machine's PC/SC toolchain
   node bin/spike.js drivers [--json]      which OS actually needs a driver
   node bin/spike.js drivers --os macos    one line for a single platform
+  node bin/spike.js drivers --os windows --transport bluetooth
   node bin/spike.js script --url <url>    emit the APDU script the vendor app replays
               [--variant NTAG215] [--out <file>] [--plain]
   node bin/spike.js read    [--json]      tap a tag, print UID + variant + URI
@@ -672,15 +673,69 @@ function commandDrivers(argv) {
 
   if (only) {
     const answers = allDriverAnswers();
-    const wanted = String(only).toLowerCase();
+    const wanted = String(only).trim().toLowerCase();
     const match = answers.find((entry) => entry.os === wanted);
-    if (json) {
-      console.log(JSON.stringify(match || driverAnswer(only), null, 2));
-    } else {
-      console.log(match ? printDriverOs(match) : driverAnswer(only).summary);
+    const answer = match || driverAnswer(only);
+    const transport = readOption(argv, "--transport");
+
+    if (transport) {
+      const wantedTransport = String(transport).trim().toLowerCase();
+      const byTransport = answer.installsNeededByTransport || {};
+      if (!(wantedTransport in byTransport)) {
+        if (json) {
+          console.log(
+            JSON.stringify(
+              {
+                ...answer,
+                question: "transport-unknown",
+                transport: wantedTransport,
+              },
+              null,
+              2,
+            ),
+          );
+        } else {
+          console.log(
+            `${answer.os} has no ${wantedTransport} row. Supported: ${
+              Object.keys(byTransport).join(", ") || "none"
+            }`,
+          );
+        }
+        return 1;
+      }
+      const needsInstall = byTransport[wantedTransport];
+      const verdict =
+        needsInstall === null
+          ? "not a supported route here"
+          : needsInstall
+            ? "install required"
+            : "nothing to install";
+      if (json) {
+        console.log(
+          JSON.stringify(
+            {
+              ...answer,
+              question: `${wantedTransport}-needs-install`,
+              answer: needsInstall,
+            },
+            null,
+            2,
+          ),
+        );
+      } else {
+        console.log(`${answer.os} over ${wantedTransport}: ${verdict}`);
+      }
+      // null (no such route) must not exit 0 either.
+      return needsInstall === false ? 0 : 1;
     }
-    if (!match) return 1;
-    return match.installsNeeded ? 1 : 0;
+
+    if (json) {
+      console.log(JSON.stringify(answer, null, 2));
+    } else {
+      console.log(match ? printDriverOs(match) : answer.summary);
+    }
+    if (!answer.known) return 1;
+    return answer.installsNeeded ? 1 : 0;
   }
 
   const answers = allDriverAnswers();

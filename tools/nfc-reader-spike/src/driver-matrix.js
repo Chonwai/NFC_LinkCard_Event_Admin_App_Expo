@@ -28,7 +28,9 @@
  * @property {"usb"|"bluetooth"} transport
  * @property {"inbox"|"vendor"|"app"|"unsupported"} requirement
  * @property {string} mechanism   what actually makes it work
- * @property {string|null} subsystem  who consumes the device
+ * @property {string|null} subsystem  who consumes the device; an
+ *   `unsupported` row MAY name one, to explain part of the platform that
+ *   exists but does not apply (e.g. CryptoTokenKit for PIV only)
  * @property {string|null} installer   vendor package, when one matters
  * @property {string} evidence
  */
@@ -128,7 +130,7 @@ const DRIVER_MATRIX = [
   {
     id: "android-usb",
     os: "android",
-    osLabel: "Android 4.3+ (USB host)",
+    osLabel: "Android 4.3+ (USB host mode)",
     transport: "usb",
     requirement: "app",
     mechanism:
@@ -144,7 +146,7 @@ const DRIVER_MATRIX = [
   {
     id: "android-bluetooth",
     os: "android",
-    osLabel: "Android 4.3+",
+    osLabel: "Android 4.4+ (BLE APDU)",
     transport: "bluetooth",
     requirement: "app",
     mechanism:
@@ -207,11 +209,17 @@ function listOperatingSystems() {
  * @param {"usb"|"bluetooth"} [transport]
  * @returns {DriverRow[]}
  */
+function normalise(value) {
+  return String(value == null ? "" : value)
+    .trim()
+    .toLowerCase();
+}
+
 function driverRows(os, transport) {
-  const key = String(os == null ? "" : os).toLowerCase();
+  const key = normalise(os);
+  const wanted = transport == null ? null : normalise(transport);
   return DRIVER_MATRIX.filter(
-    (row) =>
-      row.os === key && (transport == null || row.transport === transport),
+    (row) => row.os === key && (wanted == null || row.transport === wanted),
   );
 }
 
@@ -226,7 +234,10 @@ function driverAnswer(os) {
   if (rows.length === 0) {
     return {
       os: String(os),
-      installsNeeded: false,
+      known: false,
+      installsNeeded: null,
+      installsNeededByTransport: null,
+      usableTransports: [],
       vendorInstaller: null,
       summary: "Unknown operating system — no driver facts recorded.",
     };
@@ -237,23 +248,33 @@ function driverAnswer(os) {
   const unsupportedRows = rows.filter(
     (row) => row.requirement === "unsupported",
   );
-  const usableRows = rows.filter((row) => row.requirement !== "unsupported");
 
-  const installsNeeded = vendorRows.length > 0;
+  /**
+   * Per-transport answer. `null` means "this route does not exist here", which
+   * is a different statement from "no install needed" — collapsing the two is
+   * how a dead route starts looking healthy.
+   */
+  const installsNeededByTransport = {};
+  for (const row of rows) {
+    installsNeededByTransport[row.transport] =
+      row.requirement === "unsupported" ? null : row.requirement === "vendor";
+  }
+  const usableRows = rows.filter((row) => row.requirement !== "unsupported");
+  const usableTransports = usableRows.map((row) => row.transport);
+
+  // "installsNeeded" answers the question a person actually asks — must I
+  // install something to use this device here? — so it is true only when every
+  // usable transport demands a vendor package. Windows USB is inbox, so Windows
+  // as a whole is not "install required"; its Bluetooth half still is.
+  const installsNeeded =
+    usableRows.length > 0 &&
+    usableRows.every((row) => row.requirement === "vendor");
   const vendorInstaller = vendorRows.length ? vendorRows[0].installer : null;
 
-  if (usableRows.length === 0) {
-    return {
-      os: rows[0].os,
-      installsNeeded: false,
-      vendorInstaller: null,
-      summary: "no supported route on this platform",
-    };
-  }
-
   const parts = [];
-  if (installsNeeded) {
-    parts.push(`install ${vendorInstaller}`);
+  if (vendorRows.length) {
+    const only = vendorRows.map((row) => row.transport).join(" / ");
+    parts.push(`install ${vendorInstaller} (${only} only)`);
   }
   if (appRows.length) {
     const transports = appRows.map((row) => row.transport).join(" / ");
@@ -261,7 +282,11 @@ function driverAnswer(os) {
       `no driver exists — an app must speak the protocol (${transports})`,
     );
   }
-  if (parts.length === 0) {
+  if (
+    usableRows.length > 0 &&
+    vendorRows.length === 0 &&
+    appRows.length === 0
+  ) {
     parts.push("nothing to install");
   }
   if (unsupportedRows.length) {
@@ -271,7 +296,10 @@ function driverAnswer(os) {
 
   return {
     os: rows[0].os,
+    known: true,
     installsNeeded,
+    installsNeededByTransport,
+    usableTransports,
     vendorInstaller,
     summary: parts.join("; "),
   };

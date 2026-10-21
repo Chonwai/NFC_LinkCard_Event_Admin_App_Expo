@@ -83,20 +83,45 @@ test("drivers prints every platform and exits 0", async () => {
   assert.match(output, /no driver exists/);
 });
 
-test("drivers --os follows the yes/no exit-code rule", async () => {
+test("drivers --os exits 1 only when the asked-about route needs an install", async () => {
   const capture = captureConsole();
   try {
-    // Android has no driver to install, so the question "must I install
-    // something?" is answered no.
+    // Android has no driver to install, so "must I install something?" is no.
     assert.equal(await main(["drivers", "--os", "android"]), 0);
-    // Windows Bluetooth does need the vendor bridge.
-    assert.equal(await main(["drivers", "--os", "windows"]), 1);
+    // Windows as a whole has the USB route, which is inbox.
+    assert.equal(await main(["drivers", "--os", "windows"]), 0);
+    // ...but Bluetooth on Windows genuinely needs the vendor bridge.
+    assert.equal(
+      await main(["drivers", "--os", "windows", "--transport", "bluetooth"]),
+      1,
+    );
+    assert.equal(
+      await main(["drivers", "--os", "windows", "--transport", "usb"]),
+      0,
+    );
+    // A transport the platform does not have is not a "no".
+    assert.equal(
+      await main(["drivers", "--os", "macos", "--transport", "bluetooth"]),
+      1,
+    );
     // An unknown platform must not silently look fine.
     assert.equal(await main(["drivers", "--os", "beos"]), 1);
   } finally {
     capture.restore();
   }
   assert.match(capture.text(), /Unknown operating system/);
+});
+
+test("an unknown platform reports null, never a quiet false", async () => {
+  const capture = captureConsole();
+  try {
+    assert.equal(await main(["drivers", "--os", "beos", "--json"]), 1);
+  } finally {
+    capture.restore();
+  }
+  const parsed = JSON.parse(capture.text());
+  assert.equal(parsed.known, false);
+  assert.equal(parsed.installsNeeded, null);
 });
 
 test("drivers --json is machine readable", async () => {

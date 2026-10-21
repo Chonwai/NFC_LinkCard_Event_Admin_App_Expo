@@ -87,10 +87,16 @@ test("iOS USB is not a route for NDEF (PIV only)", () => {
   assert.equal(ble.requirement, "app");
 });
 
-test("driverAnswer names the installer on Windows and says nothing to install on macOS", () => {
+test("driverAnswer scopes an installer to the transport that needs it", () => {
   const windows = driverAnswer("windows");
-  assert.equal(windows.installsNeeded, true);
   assert.match(windows.vendorInstaller, /BLE PC\/SC Driver/);
+  // USB is inbox, so "Windows needs a driver" would be the wrong headline.
+  assert.equal(windows.installsNeeded, false);
+  assert.deepEqual(windows.installsNeededByTransport, {
+    usb: false,
+    bluetooth: true,
+  });
+  assert.match(windows.summary, /\(bluetooth only\)/);
 
   const macos = driverAnswer("macos");
   assert.equal(macos.installsNeeded, false);
@@ -101,6 +107,25 @@ test("driverAnswer names the installer on Windows and says nothing to install on
   assert.match(macos.summary, /bluetooth is not a supported route/);
 });
 
+test("installsNeeded is only true when every usable transport demands it", () => {
+  for (const os of ["windows", "macos", "android", "ios"]) {
+    assert.equal(
+      driverAnswer(os).installsNeeded,
+      false,
+      `${os} always has at least one route that needs no driver install`,
+    );
+  }
+});
+
+test("an unknown platform is a third state, not a quiet 'no'", () => {
+  const unknown = driverAnswer("beos");
+  // JSON consumers must not read false and conclude "you are fine".
+  assert.equal(unknown.known, false);
+  assert.equal(unknown.installsNeeded, null);
+  assert.equal(unknown.installsNeededByTransport, null);
+  assert.deepEqual(unknown.usableTransports, []);
+});
+
 test("driverAnswer explains the app requirement on Android", () => {
   const android = driverAnswer("android");
   assert.equal(android.installsNeeded, false);
@@ -108,10 +133,12 @@ test("driverAnswer explains the app requirement on Android", () => {
   assert.match(android.summary, /usb \/ bluetooth/);
 });
 
-test("driverAnswer is case-insensitive and survives nonsense input", () => {
-  assert.equal(driverAnswer("WINDOWS").installsNeeded, true);
+test("driverAnswer tolerates case and surrounding whitespace", () => {
+  assert.equal(driverAnswer("WINDOWS").known, true);
+  assert.equal(driverAnswer("  windows  ").known, true);
+  assert.equal(driverRows("windows", "USB").length, 1);
   const unknown = driverAnswer("beos");
-  assert.equal(unknown.installsNeeded, false);
+  assert.equal(unknown.known, false);
   assert.match(unknown.summary, /Unknown operating system/);
 });
 
@@ -124,5 +151,21 @@ test("allDriverAnswers covers every OS exactly once", () => {
   for (const entry of answers) {
     assert.ok(entry.rows.length > 0, `${entry.os} should have rows`);
     assert.ok(entry.summary.length > 0);
+  }
+});
+
+test("an unsupported row may explain a subsystem without breaking the shape", () => {
+  // iOS USB names CryptoTokenKit because that support exists but is PIV-only.
+  const [row] = driverRows("ios", "usb");
+  assert.equal(row.requirement, "unsupported");
+  assert.match(row.subsystem, /PIV/);
+  // Every other unsupported row leaves it empty; either way it is a string|null.
+  for (const entry of DRIVER_MATRIX.filter(
+    (r) => r.requirement === "unsupported",
+  )) {
+    assert.ok(
+      entry.subsystem === null || typeof entry.subsystem === "string",
+      `${entry.id} subsystem must be null or a string`,
+    );
   }
 });
