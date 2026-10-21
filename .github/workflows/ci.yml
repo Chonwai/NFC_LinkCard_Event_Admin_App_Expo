@@ -39,5 +39,12 @@ jobs:
       - name: Format check
         run: npm run format:check
 
+      # 2026-10-22 對等審計的結論：`tsc` + lint + 210 個測試全綠，
+      # 卻有一條呼叫了數個月的路由根本不存在。這個 step 專門守那類漂移。
+      # 快照是後端某個 commit 的複本；後端改路由時要重跑
+      #   node scripts/check-backend-contract.mjs --refresh --backend <後端路徑>
+      - name: Backend contract
+        run: npm run check:contract
+
       - name: Test
         run: npm test

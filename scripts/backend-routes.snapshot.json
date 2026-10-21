@@ -1,0 +1,593 @@
+{
+  "_comment": "由 scripts/check-backend-contract.mjs --refresh 產生。不要手改；改後端就重跑。",
+  "generatedFrom": {
+    "repo": "LinkCard_ExpressJS_Backend",
+    "commit": "64be09e",
+    "generatedAt": "2026-10-21T17:31:14.454Z"
+  },
+  "eventRoutes": [
+    {
+      "method": "GET",
+      "path": "/",
+      "file": "events.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/",
+      "file": "events.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:eventId",
+      "file": "events.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/bank-transfers",
+      "file": "event-ops.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:eventId/bank-transfers/:approvalId/review",
+      "file": "event-ops.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/bank-transfers/submit",
+      "file": "event-ops.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/connection-requests",
+      "file": "connection-requests.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/connection-requests",
+      "file": "connection-requests.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/connection-requests/:requestId",
+      "file": "connection-requests.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:eventId/connection-requests/:requestId/accept",
+      "file": "connection-requests.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:eventId/connection-requests/:requestId/cancel",
+      "file": "connection-requests.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:eventId/connection-requests/:requestId/decline",
+      "file": "connection-requests.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:eventId/connection-requests/:requestId/withdraw",
+      "file": "connection-requests.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/exhibitors",
+      "file": "exhibitors.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/exhibitors",
+      "file": "exhibitors.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:eventId/exhibitors/:exhibitorId",
+      "file": "exhibitors.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/exhibitors/:exhibitorId/company-page",
+      "file": "exhibitors.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/exhibitors/:exhibitorId/company-page/link",
+      "file": "exhibitors.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/exhibitors/:exhibitorId/members",
+      "file": "engagement.routes.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/:eventId/exhibitors/:exhibitorId/members/:memberId",
+      "file": "engagement.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/exhibitors/:exhibitorId/members/:memberId/resend",
+      "file": "engagement.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:eventId/exhibitors/:exhibitorId/members/:memberId/role",
+      "file": "engagement.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/exhibitors/:exhibitorId/members/invite",
+      "file": "engagement.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/exhibitors/:exhibitorId/my-access",
+      "file": "exhibitors.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/exhibitors/:exhibitorId/page-sections",
+      "file": "exhibitors.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/exhibitors/:exhibitorId/page-sections",
+      "file": "exhibitors.routes.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/:eventId/exhibitors/:exhibitorId/page-sections/:sectionId",
+      "file": "exhibitors.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:eventId/exhibitors/:exhibitorId/page-sections/:sectionId",
+      "file": "exhibitors.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/exhibitors/:exhibitorId/page-sections/:sectionId/cards",
+      "file": "exhibitors.routes.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/:eventId/exhibitors/:exhibitorId/page-sections/:sectionId/cards/:cardId",
+      "file": "exhibitors.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:eventId/exhibitors/:exhibitorId/page-sections/:sectionId/cards/:cardId",
+      "file": "exhibitors.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/exhibitors/:exhibitorId/page-sections/:sectionId/cards/:cardId/image",
+      "file": "exhibitors.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:eventId/exhibitors/:exhibitorId/page-sections/:sectionId/cards/reorder",
+      "file": "exhibitors.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:eventId/exhibitors/:exhibitorId/page-sections/reorder",
+      "file": "exhibitors.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:eventId/exhibitors/:exhibitorId/status",
+      "file": "exhibitors.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/exhibitors/:exhibitorSlug",
+      "file": "exhibitors.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/exhibitors/members/accept",
+      "file": "engagement.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/export/attendees",
+      "file": "event-ops.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/export/exhibitors",
+      "file": "event-ops.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/matching/sessions",
+      "file": "premium.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:eventId/matching/sessions/:sessionId/complete",
+      "file": "premium.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:eventId/matching/sessions/:sessionId/confirm",
+      "file": "premium.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:eventId/matching/sessions/:sessionId/decline",
+      "file": "premium.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:eventId/matching/sessions/:sessionId/extend",
+      "file": "premium.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/matching/sessions/:sessionId/mou/generate",
+      "file": "premium.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/matching/sessions/request",
+      "file": "premium.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/my-access",
+      "file": "events.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/my/exchanges",
+      "file": "event-ops.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/nfc/badges",
+      "file": "event-ops.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/nfc/badges/export",
+      "file": "event-ops.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/nfc/batch",
+      "file": "event-ops.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/nfc/batch/:batchId/complete",
+      "file": "event-ops.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/nfc/batch/claim",
+      "file": "event-ops.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/nfc/bind",
+      "file": "event-ops.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/nfc/exchange",
+      "file": "event-ops.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/nfc/lookup",
+      "file": "event-ops.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/org-roles",
+      "file": "engagement.routes.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/:eventId/org-roles/:orgRoleId",
+      "file": "engagement.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/org-roles/accept",
+      "file": "engagement.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/org-roles/invite",
+      "file": "engagement.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/page-sections",
+      "file": "events.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/page-sections",
+      "file": "events.routes.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/:eventId/page-sections/:sectionId",
+      "file": "events.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:eventId/page-sections/:sectionId",
+      "file": "events.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/page-sections/:sectionId/cards",
+      "file": "events.routes.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/:eventId/page-sections/:sectionId/cards/:cardId",
+      "file": "events.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:eventId/page-sections/:sectionId/cards/:cardId",
+      "file": "events.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:eventId/page-sections/:sectionId/cards/reorder",
+      "file": "events.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:eventId/page-sections/reorder",
+      "file": "events.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/polls",
+      "file": "sessions-polls.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/polls",
+      "file": "sessions-polls.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:eventId/polls/:pollId/activate",
+      "file": "sessions-polls.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:eventId/polls/:pollId/close",
+      "file": "sessions-polls.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/polls/:pollId/results",
+      "file": "sessions-polls.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/polls/:pollId/vote",
+      "file": "sessions-polls.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/registrations",
+      "file": "registrations.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/registrations",
+      "file": "registrations.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/registrations/:registrationId/activation-link",
+      "file": "registrations.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/registrations/:registrationId/activation-link",
+      "file": "registrations.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/registrations/:registrationId/archive",
+      "file": "registrations.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/registrations/:registrationId/deposit-refund",
+      "file": "registrations.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/registrations/:registrationId/hide",
+      "file": "registrations.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/registrations/:registrationId/resend-confirmation",
+      "file": "registrations.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/registrations/:registrationId/status",
+      "file": "registrations.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/registrations/:registrationId/unarchive",
+      "file": "registrations.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/registrations/:registrationId/unhide",
+      "file": "registrations.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/registrations/by-code/:code",
+      "file": "registrations.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/registrations/checkin",
+      "file": "registrations.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/registrations/files/image",
+      "file": "registrations.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/sessions",
+      "file": "sessions-polls.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/sessions",
+      "file": "sessions-polls.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/sessions/:sessionId",
+      "file": "sessions-polls.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:eventId/sessions/:sessionId",
+      "file": "sessions-polls.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/sessions/:sessionId/checkin",
+      "file": "sessions-polls.routes.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/:eventId/sessions/:sessionId/register",
+      "file": "sessions-polls.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/sessions/:sessionId/register",
+      "file": "sessions-polls.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/sessions/:sessionId/registrations",
+      "file": "sessions-polls.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/ticket-types",
+      "file": "events.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/ticket-types",
+      "file": "events.routes.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/:eventId/ticket-types/:ticketTypeId",
+      "file": "events.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:eventId/ticket-types/:ticketTypeId",
+      "file": "events.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/wallet/:registrationId/balance",
+      "file": "premium.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/wallet/:registrationId/deduct",
+      "file": "premium.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/wallet/:registrationId/top-up",
+      "file": "premium.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/wallet/:registrationId/transactions",
+      "file": "premium.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventSlug",
+      "file": "events.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/activation/claim",
+      "file": "index.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/by-id/:eventId",
+      "file": "events.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/my-exhibitors",
+      "file": "events.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/my-managed",
+      "file": "events.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/my-participation",
+      "file": "events.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/my-tickets",
+      "file": "events.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/webhooks/stripe",
+      "file": "index.ts"
+    }
+  ],
+  "nonEventRoutes": [
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "evidence": {
+        "file": "src/routes/auth.ts",
+        "needle": "router.post('/login'"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/me",
+      "evidence": {
+        "file": "src/routes/users.ts",
+        "needle": "router.get('/me'"
+      }
+    }
+  ]
+}
