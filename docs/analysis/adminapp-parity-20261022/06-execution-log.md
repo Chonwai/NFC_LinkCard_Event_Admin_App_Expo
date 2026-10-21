@@ -109,3 +109,21 @@ git worktree add /tmp/lc-parity-wt -b audit/parity-20261022 origin/main
 | 報名資料編輯        | 後端沒有 `PATCH /registrations/:id`，需先做後端 |
 | 產生 OpenAPI spec   | R3 建議的第二步；本輪先裝第一步（route guard）  |
 | push / merge        | 使用者未授權；且分支需先 review                 |
+
+## 6.5 補充：commit 17–24（驗證後追加）
+
+前 16 個 commit 之後跑了三輪獨立驗證，追加了 8 個：
+
+| #   | Commit    | 類型 | 觸發原因                                                 |
+| --- | --------- | ---- | -------------------------------------------------------- |
+| 17  | `eea037f` | docs | 執行紀錄（16 commit 版本）                               |
+| 18  | `bc27abc` | docs | checker 指出註解仍留著死連結字串                         |
+| 19  | `421ab7c` | fix  | **checker 抓到閘門漏 8 條巢狀路由** + 全面更正數字與引用 |
+| 20  | `8339a55` | docs | 獨立驗證報告（含 2 個 FAIL）                             |
+| 21  | `a7bf111` | docs | README 裁決摘要                                          |
+| 22  | `8f1340e` | docs | 第二輪：S-12 座標與 `[id]` 殘留                          |
+| 23  | `0b921c0` | docs | 第三輪：S-9 off-by-one + S-2/S-4/S-7 內文座標            |
+| 24  | `67ea6d2` | docs | 收斂敘述與原始報告歸檔                                   |
+
+**8 / 24 = 三分之一的 commit 是在修「我自己的報告」。** 這個比例本身就是結論：
+第一版報告不可能一次就對，能修得快才是重點。
