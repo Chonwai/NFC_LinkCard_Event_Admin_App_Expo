@@ -40,25 +40,18 @@ export const registrationService = {
   },
 
   /**
-   * WP-A7 / CHK-03：重複簽到覆核。
-   * B-2 未就緒時後端可能 404；呼叫端應顯示 BLOCKED 骨架，勿當成功。
+   * ⛔ 已移除：`POST …/registrations/checkin/override`
+   *
+   * 這條路由**不存在**。`src/events/routes/registrations.routes.ts` 只有
+   * `/checkin` 與 `/:registrationId/status`；打下去必定 404。
+   *
+   * 近似的 `/status` 不能頂替：它對已 `CHECKED_IN` 的紀錄回
+   * `409 REGISTRATION_STATUS_UNCHANGED`，而且需要 `registrationId` 與
+   * COORDINATOR 以上權限（見 parity 報告 §S-1）。
+   *
+   * 後端補上這個能力之前，UI 不再提供入口——不要加回來，除非
+   * `check-backend-contract` 這道閘門能證明路由存在。
    */
-  async checkInOverride(
-    eventId: string,
-    code: string,
-    reason?: string,
-  ): Promise<{ registration: Registration }> {
-    const res = await apiClient.post<
-      ApiResponse<{ registration: Registration }>
-    >(
-      `/api/v1/events/${encodeURIComponent(eventId)}/registrations/checkin/override`,
-      {
-        registrationCode: code,
-        reason: reason ?? "SUPERVISOR_OVERRIDE",
-      },
-    );
-    return res.data.data;
-  },
 
   /**
    * POST /v1/events/:eventId/registrations — 與線上報名同一端點。

@@ -273,10 +273,12 @@ export const copy = {
     duplicateHeadline: "重複簽到",
     invalidHeadline: "無效報名",
     continueScan: "繼續掃碼",
-    requestOverride: "申請主管覆核",
+    /**
+     * 重複報到只剩「說明」，沒有可執行的動作：後端沒有覆核端點（§S-1）。
+     * 文案刻意寫「尚無」，不寫「載入中」——不要讓操作者以為再試一次會成功。
+     */
     overrideBlockedBanner:
-      "覆核 API 尚未開放（BLOCKED／待後端 B-2）。現場請人工放行並記錄。",
-    overrideBlockedToast: "後端覆核端點尚未就緒，無法自動放行",
+      "重複報到無法在 App 內放行：後端目前沒有覆核端點。現場請人工放行並記錄。",
     walkInEntry: "現場補報名",
     walkInTitle: "現場補報名",
     walkInPlaceholderTitle: "補報名功能建置中",

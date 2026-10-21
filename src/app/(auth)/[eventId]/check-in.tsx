@@ -88,8 +88,6 @@ export default function CheckInScreen() {
   const [cameraError, setCameraError] = useState(false);
   const [checkedInTotal, setCheckedInTotal] = useState<number | null>(null);
   const [counterError, setCounterError] = useState(false);
-  const [overrideBusy, setOverrideBusy] = useState(false);
-  const [overrideBanner, setOverrideBanner] = useState<string | null>(null);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /**
    * 掃描的同步門閂（CRA-V1-008）。
@@ -156,7 +154,6 @@ export default function CheckInScreen() {
 
   const resetToIdle = useCallback(() => {
     clearResetTimer();
-    setOverrideBanner(null);
     setState({ phase: "idle" });
     setScanning(true);
   }, []);
@@ -201,7 +198,6 @@ export default function CheckInScreen() {
       const code = rawCode.trim();
       setState({ phase: "loading" });
       setScanning(false);
-      setOverrideBanner(null);
       clearResetTimer();
 
       let registration: Registration | undefined;
@@ -307,30 +303,32 @@ export default function CheckInScreen() {
     [state.phase, doLookupThenCheckIn],
   );
 
-  const onRequestOverride = async () => {
+  /**
+   * 重複報到的出口。
+   *
+   * 先前這裡會 POST `registrations/checkin/override`——但後端**沒有這條路由**
+   * （`registrations.routes.ts` 只有 `/checkin` 與 `/:registrationId/status`），
+   * 所以每次現場人員按一下就是一條必定 404 的請求。
+   *
+   * 不能用 `/status` 頂替：它對「已經是 CHECKED_IN」的紀錄回
+   * `409 REGISTRATION_STATUS_UNCHANGED`（`EventRegistrationService.ts:1490`），
+   * 而且權限是 COORDINATOR+，不是閘口的 OPERATOR。
+   *
+   * 也就是說「重複報到放行」在後端**不存在**。與其假裝有，不如把人帶到
+   * 真的看得到資訊的地方：這筆報名的詳情頁（含報到時間）。
+   */
+  const onViewDuplicateRegistration = () => {
     if (!eventId || state.phase !== "outcome" || state.kind !== "duplicate") {
       return;
     }
-    setOverrideBusy(true);
-    setOverrideBanner(copy.checkIn.overrideBlockedBanner);
-    try {
-      await registrationService.checkInOverride(eventId, state.code);
-      // 若後端已就緒：視為成功
-      await showOutcome({
-        phase: "outcome",
-        kind: "valid",
-        code: state.code,
-        message: copy.checkIn.checkedIn,
-        registration: state.registration,
-        checkedInAt: new Date().toISOString(),
-      });
-      void refreshCounter();
-    } catch {
-      // B-2 未就緒：保持重複態 + BLOCKED banner（階段完成裁決）
-      setOverrideBanner(copy.checkIn.overrideBlockedBanner);
-    } finally {
-      setOverrideBusy(false);
-    }
+    router.push({
+      pathname: "/(auth)/[eventId]/registrant/[registrationId]" as never,
+      params: {
+        eventId,
+        registrationId: state.registration?.id ?? "",
+        code: state.registration?.registrationCode ?? state.code,
+      },
+    });
   };
 
   const outcome = state.phase === "outcome" ? state : null;
@@ -431,7 +429,6 @@ export default function CheckInScreen() {
             onPress={() => {
               setMode("manual");
               clearResetTimer();
-              setOverrideBanner(null);
               setState({ phase: "idle" });
               setScanning(false);
             }}
@@ -715,12 +712,11 @@ export default function CheckInScreen() {
               <View style={styles.actions}>
                 <InlineBanner
                   tone="warning"
-                  message={overrideBanner ?? copy.checkIn.overrideBlockedBanner}
+                  message={copy.checkIn.overrideBlockedBanner}
                 />
                 <Button
-                  label={copy.checkIn.requestOverride}
-                  loading={overrideBusy}
-                  onPress={() => void onRequestOverride()}
+                  label={copy.roster.viewDetail}
+                  onPress={onViewDuplicateRegistration}
                 />
                 <Button
                   label={copy.checkIn.continueScan}
