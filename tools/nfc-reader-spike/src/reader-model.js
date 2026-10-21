@@ -153,6 +153,15 @@ const FAMILIES = [
     ],
     // Three separate transports. HID and APDU are device modes, not simultaneous.
     transports: { usbCcId: "yes", bleApdu: "yes", bleHid: "yes" },
+    // A shipped vendor app already does NDEF URL writes over Bluetooth, which
+    // is the difference between "possible" and "usable on site today".
+    vendorApp: {
+      android: "com.acs.mobile_card_reader_utility",
+      ios: "id6478258371",
+      ndefUrlWrite: "yes",
+      apduTools: "yes",
+      note: "Mobile Card Reader Utility: NDEF Write Data Tools (Text, URL, Map, SMS, Email, Phone)",
+    },
     platforms: {
       macosPcsc: "yes",
       windowsPcsc: "yes",
@@ -164,10 +173,11 @@ const FAMILIES = [
     notes: [
       "This is the device actually purchased (listing: 'ACR1555U, replacement for ACR1255U', ¥399).",
       "USB side is real CCID, so the laptop batch path needs no vendor SDK at all.",
-      "Bluetooth side exposes APDU-over-BLE: a third-party Flutter SDK documents 'CCID commands + generic PC/SC APDU transceiving', so a tablet app can send the same READ/WRITE APDUs.",
-      "Bluetooth HID keyboard mode types the UID as keystrokes: enough for 'read tagUid', never enough to write a badge.",
-      "Mode is a device setting: switching to HID stops APDU service until switched back.",
-      "Rechargeable 3.7 V 450 mAh battery; ~31.5 g without the card holder.",
+      "Bluetooth side exposes APDU-over-BLE: the ACS Android BLE EVK (SmartCardIO, Android 4.4+) does generic PC/SC APDU transceiving, and a third-party Flutter SDK documents the same.",
+      "ACS ships 'Mobile Card Reader Utility' with NDEF Write Data Tools (Text/URL/vCard/SmartPoster) over Bluetooth, so a phone or tablet can write a URL badge without any custom app.",
+      "Switching to HID keyboard mode needs the ACS ACR15XX Keyboard Configuration Tool on a PC; the MODE button restarts the reader into the configured mode.",
+      "Included cable is USB-A to USB-C, so a USB-C tablet needs a C-to-C cable or an OTG adapter.",
+      "Rechargeable 3.7 V 450 mAh battery; ~31 g without the card holder.",
     ],
   },
   {
@@ -357,6 +367,7 @@ function classifyReaderName(name) {
     standards: family.standards,
     notSupported: family.notSupported,
     transports: family.transports || {},
+    vendorApp: family.vendorApp || null,
     platforms: family.platforms,
     notes: family.notes,
     isContactlessInterface: /PICC|Contactless|NFC/i.test(readerName),
@@ -391,9 +402,11 @@ function verdictFor(family) {
     expoAppDirect: "no",
     summary: usbWorks
       ? "Usable as a desktop batch-writing reader; " +
-        (androidTablet === "ble-apdu"
-          ? "a tablet app can also write over BLE APDU, but that is new native work."
-          : "not usable as a tablet accessory for this app.")
+        (family.vendorApp && family.vendorApp.ndefUrlWrite === "yes"
+          ? "a tablet can also write URL badges today with the vendor app over BLE; only in-app integration is remaining work."
+          : androidTablet === "ble-apdu"
+            ? "a tablet app can also write over BLE APDU, but that is new native work."
+            : "not usable as a tablet accessory for this app.")
       : "No USB CCID transport, so the desktop batch path does not apply.",
   };
 }

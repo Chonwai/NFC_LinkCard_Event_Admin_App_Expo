@@ -27,3 +27,22 @@ test("unknown commands exit with 2 rather than 1", async () => {
     console.error = originalError;
   }
 });
+
+test("readers --assume answers from the name alone, with no hardware", async () => {
+  const originalLog = console.log;
+  const lines = [];
+  console.log = (line) => lines.push(String(line));
+  try {
+    const code = await main([
+      "readers",
+      "--assume",
+      "ACS ACR1555U-A1 PICC Reader",
+    ]);
+    assert.equal(code, 0);
+  } finally {
+    console.log = originalLog;
+  }
+  const output = lines.join("\n");
+  assert.match(output, /acs-acr1555u/);
+  assert.match(output, /vendor app\s+NDEF URL write available/);
+});

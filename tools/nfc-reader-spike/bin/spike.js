@@ -138,6 +138,11 @@ function printReader(entry, index) {
   if (modes.length) {
     lines.push(`    transports  ${modes.join(" | ")}`);
   }
+  if (entry.vendorApp && entry.vendorApp.ndefUrlWrite === "yes") {
+    lines.push(
+      `    vendor app  NDEF URL write available — Android ${entry.vendorApp.android}, iOS ${entry.vendorApp.ios}`,
+    );
+  }
   if (entry.standards.length) {
     lines.push(`    standards   ${entry.standards.join("\n                ")}`);
   }
@@ -159,8 +164,48 @@ function printReader(entry, index) {
   return lines.join("\n");
 }
 
+function readAssumedNames(argv) {
+  const names = [];
+  argv.forEach((arg, index) => {
+    if (arg === "--assume") {
+      const value = argv[index + 1];
+      if (value && !value.startsWith("--")) names.push(value);
+    } else if (arg.startsWith("--assume=")) {
+      names.push(arg.slice("--assume=".length));
+    }
+  });
+  return names.filter(Boolean);
+}
+
 async function commandReaders(argv) {
   const asJson = argv.includes("--json");
+  const assumed = readAssumedNames(argv);
+
+  // --assume answers "what would this reader name mean?" without hardware.
+  if (assumed.length) {
+    const host = describeHost();
+    if (asJson) {
+      process.stdout.write(
+        `${JSON.stringify(
+          { host, assumed: true, readers: classifyReaders(assumed) },
+          null,
+          2,
+        )}\n`,
+      );
+      return 0;
+    }
+    console.log(
+      bold("NFC Gate 1 — reader report (assumed name; no hardware queried)"),
+    );
+    console.log(dim(`host       ${host.os} ${host.arch}, node ${host.node}`));
+    console.log(`readers    ${assumed.length} assumed`);
+    classifyReaders(assumed).forEach((entry, index) => {
+      console.log("");
+      console.log(printReader(entry, index));
+    });
+    return 0;
+  }
+
   const { names, error } = await collectReaderNames();
 
   if (asJson) {
@@ -268,6 +313,8 @@ function usage() {
   console.log(`${bold("nfc spike")} — LinkCard NFC Gate 1 checks
 
   node bin/spike.js readers [--json]      list PC/SC readers and classify them
+  node bin/spike.js readers --assume <name>
+                                          classify a reader name without hardware
   node bin/spike.js doctor  [--json]      check this machine's PC/SC toolchain
   node bin/spike.js read    [--json]      tap a tag, print UID + variant + URI
   node bin/spike.js write --url <url>     show the page plan for this tag (dry run)

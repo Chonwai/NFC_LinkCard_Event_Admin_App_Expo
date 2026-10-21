@@ -131,3 +131,23 @@ test("a Bluetooth reader with USB CCID is still a laptop reader", () => {
   assert.equal(dual.androidHidKeyboard, "yes");
   assert.equal(dual.expoAppDirect, "no");
 });
+
+test("records that the vendor app can write NDEF URLs over Bluetooth", () => {
+  const entry = classifyReaderName("ACS ACR1555U-A1 PICC Reader");
+  assert.equal(entry.vendorApp.android, "com.acs.mobile_card_reader_utility");
+  assert.equal(entry.vendorApp.ndefUrlWrite, "yes");
+});
+
+test("does not invent a vendor app for readers that have none recorded", () => {
+  assert.equal(
+    classifyReaderName("ACS ACR122U PICC Interface").vendorApp,
+    null,
+  );
+  assert.equal(classifyReaderName("Generic USB Reader").vendorApp, null);
+});
+
+test("a reader with a vendor NDEF app is not described as new native work", () => {
+  const verdict = verdictFor(classifyReaderName("ACS ACR1555U PICC Reader"));
+  assert.match(verdict.summary, /vendor app/);
+  assert.doesNotMatch(verdict.summary, /new native work/);
+});
