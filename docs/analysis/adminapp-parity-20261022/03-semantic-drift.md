@@ -165,6 +165,17 @@ GET /:eventId/my-access
 
 App 有 `userRole`（`home.tsx:115-123` 還把它渲染成徽章），卻沒有拿它做任何事。
 
+**必須說準的部分**：名單畫面**已經**處理了 403——
+`registrations.tsx:148`（及 176／200）用 `getApiErrorStatus(err) === 403` 分流到
+`copy.roster.operatorForbidden`（文案是「閘口帳號暫時讀不了名單…請改用那類帳號」）。
+所以不是「一片潰敗」，而是「**每個入口都要先進去撞牆才知道**」。
+
+真正還錯的是：
+
+1. `overview.tsx:179` 的 catch 只有一種文案（`copy.home.loadFailed`），同一個 403 在這裡看起來像系統故障。
+2. 沒有任何入口依角色預先隱藏或標示。
+3. `token.tsx` / `badges.tsx` 同樣沒有依 `canManage` 分流。
+
 ---
 
 ## S-7（P1）overview 用「會被 403 的端點」借數字

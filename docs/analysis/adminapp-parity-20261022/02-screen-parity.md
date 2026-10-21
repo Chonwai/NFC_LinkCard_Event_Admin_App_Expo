@@ -153,7 +153,7 @@ App 只有 `getRegistrations`（瀏覽）＋ `getByCode`（詳情）。
 
 ## 2.7 「入口」本身的一致性問題
 
-App 的 `home.tsx` 會把 `userRole` 顯示成徽章（`home.tsx:115-123`），但**從來沒有拿它做任何判斷**。
+App 的 `home.tsx` 會把 `userRole` 顯示成徽章（`home.tsx:115-123`），但**沒有拿它做任何預先判斷**。
 
 ```
 $ grep -rn "userRole" src/
@@ -162,9 +162,17 @@ src/app/(auth)/home.tsx:115,123  顯示
 src/services/event.service.ts:44 unwrap
 ```
 
-⇒ 角色只是裝飾。於是 OPERATOR 看到所有入口，點進去 403。
+⇒ 角色只影響「顯示」，不影響「能不能進去」。
+
+公平地說，名單畫面**已經**對 403 有專門處理：
+`registrations.tsx:148`（及 176／200）用 `getApiErrorStatus(err) === 403` 分流到
+`copy.roster.operatorForbidden`。所以 OPERATOR 看得到一句人話，不是白屏。
+
+但 **overview 沒有**：它的 catch 只有 `copy.home.loadFailed`（`overview.tsx:179`），
+同一個 403 在概覽頁看起來就像系統壞了。
+
 對照 Web：`manage/[eventId]/layout.tsx:125` 用 `getMyEventAccess()` 的 `canManage` 做真正的閘門。
 
 **後端早就提供 `GET /:eventId/my-access` → `{ canManage, canOperate, canInviteAdmins, role }`
 （`EventController.ts:133-158`），App 一次都沒呼叫。**
-這是整個對等問題裡**最便宜的一個修法**：接一支端點，換掉四處 403。
+這是整個對等問題裡**最便宜的一個修法**：接一支端點，就能把「進去才撞牆」變成「一開始就不顯示」。
