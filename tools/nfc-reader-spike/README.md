@@ -49,6 +49,13 @@ node bin/spike.js write --url https://linkcard.xyz/t/EVT1/04A1B2C3D4E5F6
 node bin/spike.js write --url https://linkcard.xyz/t/EVT1/04A1B2C3D4E5F6 --yes
 ```
 
+No hardware at all? Two commands still answer real questions:
+
+```bash
+node bin/spike.js drivers                  # which OS actually needs a driver
+node bin/spike.js script --url <url>       # APDU script the vendor app can replay
+```
+
 `write` is a **dry run unless `--yes` is passed**: it prints the exact page plan
 first. When it does write, it reads the bytes back and refuses to report success
 unless the URI on the tag matches what was asked for.
@@ -58,9 +65,23 @@ unless the URI on the tag matches what was asked for.
 | Command   | Question it answers                                     | Non-zero exit means                      |
 | --------- | ------------------------------------------------------- | ---------------------------------------- |
 | `doctor`  | Is Node, PC/SC and the native binding usable here?      | something in the toolchain is missing    |
+| `drivers` | Does this platform need anything installed first?       | a platform asked for with `--os` does    |
 | `readers` | Is the purchased reader enumerated, and what is it?     | no PC/SC reader was seen                 |
 | `read`    | Does the reader see the tag, and what is already on it? | no tag, or tag not NDEF formatted        |
+| `script`  | Which APDUs write this URL, for the vendor app to send? | payload too large for the chosen chip    |
 | `write`   | Would this payload fit, and does it verify?             | payload too large, or read-back mismatch |
+
+`drivers` exists because "do I need a driver?" has a different answer per OS
+and, on Windows, per transport — USB is an inbox CCID class driver, Bluetooth
+needs the vendor PC/SC bridge, macOS Bluetooth is not a supported route at all,
+and on Android/iOS the app _is_ the driver. Each row carries the document it
+came from.
+
+`script` exists because the tablet has no NFC radio and the vendor app's NDEF
+tab only emulates a tag. What that app can do is send APDU, and Reference
+Manual v2.02 §5.5.4.1 defines the pass-through `FF 00 00 00 <Lc> <command>`
+that reaches a tag in the field. So the page writes are computed here and
+replayed there.
 
 All commands accept `--json` for evidence capture, and `--timeout <seconds>`
 (tag wait) / `--reader-timeout <seconds>`.
