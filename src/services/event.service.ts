@@ -67,6 +67,12 @@ export const eventService = {
       status?: string;
       ticketTypeId?: string;
       visibility?: string;
+      /**
+       * 保證金退款篩選。後端值域是 `all | refunded | not_refunded`
+       * （`EventRegistrationController.ts:130-146`）；其他值會回
+       * `400 INVALID_DEPOSIT_REFUND_FILTER`，所以型別收緊到同一個集合。
+       */
+      depositRefunded?: "all" | "refunded" | "not_refunded";
     },
   ): Promise<{ registrations: Registration[]; pagination?: ListPagination }> {
     const res = await apiClient.get<

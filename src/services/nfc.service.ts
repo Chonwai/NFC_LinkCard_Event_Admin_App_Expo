@@ -41,6 +41,8 @@ export const nfcService = {
       pageSize?: number;
       status?: string;
       batchId?: string;
+      /** 只回已綁定的卡片。後端 `EventNfcBatchController.ts:88` 讀此參數。 */
+      boundOnly?: boolean;
       all?: boolean;
     },
   ): Promise<BadgeListResponse> {
@@ -49,6 +51,7 @@ export const nfcService = {
     if (params?.pageSize) query.set("pageSize", String(params.pageSize));
     if (params?.status) query.set("status", params.status);
     if (params?.batchId) query.set("batchId", params.batchId);
+    if (params?.boundOnly) query.set("boundOnly", "true");
     if (params?.all) query.set("all", "true");
     const res = await apiClient.get<ApiResponse<BadgeListResponse>>(
       `/api/v1/events/${encodeURIComponent(eventId)}/nfc/badges?${query.toString()}`,
