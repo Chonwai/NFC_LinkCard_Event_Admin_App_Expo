@@ -1,17 +1,24 @@
-import { Linking, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { router, useLocalSearchParams } from "expo-router";
 
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import { WEB_BASE_URL } from "@/constants/config";
 import { copy } from "@/constants/copy.zh-TW";
 import { semantic, spacing } from "@/constants/theme";
 
 /**
- * WP-A8：Token 入口 placeholder（完整櫃台在 Web，WP-A4）。
- * 從概覽點入不白屏。
+ * WP-A8：Token 入口 placeholder。
+ *
+ * ⚠️ 2026-10-22 修正（parity §S-8）：原本的次要動作是
+ * `Linking.openURL(`${WEB_BASE_URL}/manage/${eventId}/wallet`)`，
+ * 但 `LinkCard_Frontend/app/(event)/(manage)/[eventId]/wallet` **不存在**，
+ * 按下去就是 404。Web 的錢包頁是 `/my-tickets/[registrationId]/wallet`，
+ * 那是**參加者**視角，不是主辦方櫃台。
+ *
+ * 真正存在的資料在 App 自己身上：每位參加者的詳情頁已經有 Token 流水。
+ * 所以出口改成「去名單找人」，而不是指向一個不存在的網頁。
  */
 export default function TokenPlaceholderScreen() {
   const insets = useSafeAreaInsets();
@@ -41,13 +48,14 @@ export default function TokenPlaceholderScreen() {
               router.replace("/(auth)/home");
             }
           }}
-          secondaryLabel={eventId ? copy.event.tokenOpenWeb : undefined}
+          secondaryLabel={eventId ? copy.event.tokenOpenRoster : undefined}
           onSecondary={
             eventId
               ? () => {
-                  void Linking.openURL(
-                    `${WEB_BASE_URL}/manage/${eventId}/wallet`,
-                  );
+                  router.replace({
+                    pathname: "/(auth)/[eventId]/registrations" as never,
+                    params: { eventId },
+                  });
                 }
               : undefined
           }

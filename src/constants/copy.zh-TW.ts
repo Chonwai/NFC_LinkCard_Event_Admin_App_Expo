@@ -109,11 +109,14 @@ export const copy = {
     badgesTitle: "Badge",
     backToOverview: "返回概覽",
     modulePlaceholderTitle: "功能建置中",
+    /**
+     * Token 沒有「活動層級櫃台」這個東西——後端只有 per-registration 的
+     * balance / transactions。Web 的錢包頁也是參加者視角。
+     * 這段文案之前說「完整櫃台在 Web」，但那個頁面不存在（§S-8）。
+     */
     tokenPlaceholderHint:
-      "Token 櫃台以 Web 為主（WP-A4）。App 只保留入口，不做完整櫃台。",
-    tokenOpenWeb: "在網頁打開櫃台",
-    registrationsPlaceholderHint:
-      "名單、搜尋與詳情將於 WP-A5 交付。目前僅保留入口。",
+      "Token 帳本以每位參加者為單位。請從名單進入任一報名，即可看到該人的交易流水。",
+    tokenOpenRoster: "從名單查看",
     /**
      * W-12：`eventId` 路由參數缺失（空字串 / `undefined`）時的空態文案。
      * 消費端：`overview.tsx` / `check-in.tsx` / `nfc-bind.tsx`。
