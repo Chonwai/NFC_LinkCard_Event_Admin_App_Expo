@@ -124,8 +124,9 @@ Swapcard）的公開文件顯示，設定層／內容層／財務層的能力一
 
 ## 分支狀態
 
-`audit/parity-20261022`，起點 `origin/main` = `7d0fcf5`，共 **25** 個 commit，
-31 個檔案（+5,342 / −133）。
+`audit/parity-20261022`，起點 `origin/main` = `7d0fcf5`。
+commit 數請用 `git rev-list --count 7d0fcf5..HEAD` 查——**不要在這裡寫死**，
+因為寫下這個數字的那個 commit 本身也會讓它 +1（本檔已为此改過兩次）。
 **未 push、未 merge。** 其他兩個 repo 全程零改動。
 
 建議 review 順序：`5bcdb53`（P0）→ `7c19f0a`（閘門）→ `075f775`/`9e3c7a2`（P1）
