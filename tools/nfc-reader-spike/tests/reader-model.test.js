@@ -99,3 +99,35 @@ test("classifyReaders tolerates a non-list input", () => {
   assert.deepEqual(classifyReaders(null), []);
   assert.deepEqual(classifyReaders("ACS ACR1252U PICC Reader"), []);
 });
+
+test("recognises the purchased ACR1555U and all three of its transports", () => {
+  for (const name of [
+    "ACS ACR1555U-A1 PICC Reader",
+    "ACS ACR1555U PICC Reader",
+  ]) {
+    const result = classifyReaderName(name);
+    assert.equal(result.familyId, "acs-acr1555u", name);
+    assert.deepEqual(result.transports, {
+      usbCcId: "yes",
+      bleApdu: "yes",
+      bleHid: "yes",
+    });
+  }
+});
+
+test("keeps ACR1552 distinct from the ACR1555U", () => {
+  assert.equal(classifyReaderName("ACS ACR1552U PICC").familyId, "acs-acr155x");
+});
+
+test("a Bluetooth reader with USB CCID is still a laptop reader", () => {
+  // ACR1255U is Bluetooth-only, so it must stay out of the laptop path...
+  const bluetoothOnly = verdictFor(classifyReaderName("ACS ACR1255U-J1"));
+  assert.equal(bluetoothOnly.laptopBatchWrite, "no");
+
+  // ...but the ACR1555U adds USB CCID, which changes that answer.
+  const dual = verdictFor(classifyReaderName("ACS ACR1555U PICC Reader"));
+  assert.equal(dual.laptopBatchWrite, "yes");
+  assert.equal(dual.androidTablet, "ble-apdu");
+  assert.equal(dual.androidHidKeyboard, "yes");
+  assert.equal(dual.expoAppDirect, "no");
+});
