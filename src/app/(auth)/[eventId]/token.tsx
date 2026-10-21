@@ -11,11 +11,10 @@ import { semantic, spacing } from "@/constants/theme";
 /**
  * WP-A8：Token 入口 placeholder。
  *
- * ⚠️ 2026-10-22 修正（parity §S-8）：原本的次要動作是
- * `Linking.openURL(`${WEB_BASE_URL}/manage/${eventId}/wallet`)`，
- * 但 `LinkCard_Frontend/app/(event)/(manage)/[eventId]/wallet` **不存在**，
- * 按下去就是 404。Web 的錢包頁是 `/my-tickets/[registrationId]/wallet`，
- * 那是**參加者**視角，不是主辦方櫃台。
+ * ⚠️ 2026-10-22 修正（parity §S-8）：原本的次要動作會開啟
+ * `LinkCard_Frontend` 的「主辦方錢包」頁——但那個路由**不存在**
+ * （已用 `test -d` 驗證，且 `next.config.js` / `middleware.ts` 沒有對應 rewrite），
+ * 按下去就是 404。Web 唯一的錢包頁是**參加者**視角，不是主辦方櫃台。
  *
  * 真正存在的資料在 App 自己身上：每位參加者的詳情頁已經有 Token 流水。
  * 所以出口改成「去名單找人」，而不是指向一個不存在的網頁。
