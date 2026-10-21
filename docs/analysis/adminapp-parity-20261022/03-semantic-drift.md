@@ -1,5 +1,27 @@
 # 03 — 語意漂移登記簿（Semantic Drift Register）
 
+> **引用座標說明（重要）**
+>
+> 本檔的 file:line 有兩種，混用會誤導讀者：
+>
+> - `base` — **審計當時**（commit `7d0fcf5`）的位置，用來說明「原本錯在哪」。
+> - `fixed` — **本輪修完後**的位置，用來讓讀者驗證修正確實落地。
+>
+> 2026-10-22 的獨立驗證指出：第一版全部標成單一座標，讀者分不出哪些是修復前的
+> 快照，於是 6 個抽驗點有 5 個對不上現行 HEAD。已修正為雙座標。詳見
+> `07-verification.md` F16。
+
+> **引用座標說明（重要）**
+>
+> 本檔的 file:line 有兩種：
+>
+> - `base 7d0fcf5` — **審計當時**的位置。用來描述「原本錯在哪」。
+> - `fixed` — **本輪修完後**的位置。用來讓讀者驗證修正確實落地。
+>
+> 2026-10-22 的獨立驗證指出：第一版全部標成單一座標，讀者分不出哪些是修復前的
+> 快照，於是 6 個抽驗點有 5 個對不上現行 HEAD。這個問題已修正——每條都標明是哪
+> 一種。詳見 `07-verification.md`。
+
 「路徑對」不等於「接法對」。這一節記錄**同一條端點、兩邊用法不同**的地方。
 
 嚴重度：
@@ -11,20 +33,20 @@
 
 ## 總表
 
-| ID   | 嚴重度 | 一句話                                                | 證據位置                                                    |
-| ---- | ------ | ----------------------------------------------------- | ----------------------------------------------------------- |
-| S-1  | **P0** | 呼叫一條不存在的路由                                  | `registration.service.ts:50`                                |
-| S-2  | **P1** | 錢包流水只看到前 20 筆，且讀一個不存在的欄位          | `registrant/[id].tsx:186`、`registration.service.ts:98-126` |
-| S-3  | **P1** | `Registration` 型別缺退款／稽核欄位                   | `types/api.types.ts:63-100`                                 |
-| S-4  | **P1** | 名單缺 `depositRefunded` 篩選                         | `event.service.ts:62-90`                                    |
-| S-5  | **P1** | 現場報名的回應只留 4 個欄位，付款資訊全丟             | `registration.service.ts:63-95`                             |
-| S-6  | **P1** | 完全不呼叫 `/my-access`，角色只是裝飾                 | `src/` 全庫 0 命中                                          |
-| S-7  | **P1** | overview 用受限端點借數字，OPERATOR 必 403            | `overview.tsx:133-142`                                      |
-| S-8  | **P1** | Token placeholder 深連結到不存在的 Web 路由           | `token.tsx:48-51`                                           |
-| S-9  | P2     | badges 缺 `boundOnly`                                 | `nfc.service.ts:37-70`                                      |
-| S-10 | P2     | 名單硬寫 `visibility: "active"`，無法看隱藏/封存      | `registrations.tsx:136,169,194`                             |
-| S-11 | P3     | 錯誤處理不讀 `normalizedCode` / `compatibleCodes`     | `utils/api-error.ts:30-31`                                  |
-| S-12 | P3     | 詳情頁路由參數叫 `registrationId`，但實際靠 `code` 查 | `registrant/[id].tsx:45-50,72`                              |
+| ID   | 嚴重度 | 一句話                                                | 證據位置                                                                                 |
+| ---- | ------ | ----------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| S-1  | **P0** | 呼叫一條不存在的路由                                  | base `registration.service.ts:50` → fixed `:43`（已移除）                                |
+| S-2  | **P1** | 錢包流水只看到前 20 筆，且讀一個不存在的欄位          | base `registrant/[registrationId].tsx:186` → fixed `:207`；`registration.service.ts:104` |
+| S-3  | **P1** | `Registration` 型別缺退款／稽核欄位                   | base `types/api.types.ts:63-100` → fixed `:111-120`（已補）                              |
+| S-4  | **P1** | 名單缺 `depositRefunded` 篩選                         | base `event.service.ts:62-90` → fixed `:93-106`（已補）                                  |
+| S-5  | **P1** | 現場報名的回應只留 4 個欄位，付款資訊全丟             | `registration.service.ts` 的 `createRegistration`（未修）                                |
+| S-6  | **P1** | 完全不呼叫 `/my-access`，角色只是裝飾                 | base `src/` 全庫 0 命中 → fixed `event.service.ts:85`                                    |
+| S-7  | **P1** | overview 用受限端點借數字，OPERATOR 必 403            | base `overview.tsx:133-142` → fixed `:187,201`                                           |
+| S-8  | **P1** | Token placeholder 深連結到不存在的 Web 路由           | base `token.tsx:48-51` → fixed `:50`（改指名單）                                         |
+| S-9  | P2     | badges 缺 `boundOnly`                                 | base `nfc.service.ts:37-70` → fixed `:44`（已補參數）                                    |
+| S-10 | P2     | 名單硬寫 `visibility: "active"`，無法看隱藏/封存      | `registrations.tsx:136,169,194`（未修，位置不變）                                        |
+| S-11 | P3     | 錯誤處理不讀 `normalizedCode` / `compatibleCodes`     | `utils/api-error.ts:30-31`                                                               |
+| S-12 | P3     | 詳情頁路由參數叫 `registrationId`，但實際靠 `code` 查 | `registrant/[registrationId].tsx:45-50,72`（未修）                                       |
 
 ---
 
@@ -34,7 +56,8 @@
 POST /api/v1/events/:eventId/registrations/checkin/override
 ```
 
-- **App**：`registration.service.ts:50`，UI 在 `check-in.tsx:303-330`
+- **App（base 7d0fcf5）**：`registration.service.ts:50`，UI 在 `check-in.tsx:303-330`
+  → **本輪已移除**（fixed `registration.service.ts:43` 的說明註解、`check-in.tsx` 改指詳情頁）
 - **後端**：`registrations.routes.ts` 只有 `/checkin` 與 `/:registrationId/status`
 - **前端**：沒有這個呼叫（Web 的 check-in 只顯示錯誤訊息）
 
@@ -193,7 +216,7 @@ App 有 `userRole`（`home.tsx:115-123` 還把它渲染成徽章），卻沒有�
 ## S-8（P1）Token placeholder 的死連結
 
 ```tsx
-// token.tsx:48-51
+// token.tsx（base 7d0fcf5）:48-51 → 本輪已移除
 void Linking.openURL(`${WEB_BASE_URL}/manage/${eventId}/wallet`);
 ```
 

@@ -47,13 +47,23 @@ const SNAPSHOT_PATH = join(HERE, "backend-routes.snapshot.json");
  *   router.use('/', eventsRoutes)                        ← 掛在最後，前綴為空
  * 再由 `src/app.ts:218` 統一掛到 `/api/v1/events`。
  *
- * ⚠️ 若後端新增一個 router.use(...)，這裡必須同步加一行，否則新路由不會進快照。
- * 這個限制是刻意的：寧可少收，也不要猜錯前綴而產生假陽性。
+ * ⚠️ 巢狀掛載也要算。這兩個檔不是由 `index.ts` 掛的，而是由同層路由檔用
+ * `router.use('/import', …)` 掛進去：
+ *   - `exhibitors.routes.ts:52`    → exhibitor-import.routes.ts
+ *   - `registrations.routes.ts:20` → registration-import.routes.ts
+ *
+ * 2026-10-22 的獨立驗證抓到第一版漏了這 8 條 `/import` 路由（快照 113 條，
+ * 實際 121 條）。漏收不會漏放，但會製造假陽性——未來 App 若改打
+ * `/registrations/import/*`，閘門會把它誤報成死路徑，然後大家就開始忽略它。
+ *
+ * ⚠️ 後端新增任何 `router.use(...)`，這裡必須同步加一行。
  */
 const EVENT_ROUTE_MOUNTS = {
   "exhibitors.routes.ts": "/:eventId/exhibitors",
+  "exhibitor-import.routes.ts": "/:eventId/exhibitors/import",
   "connection-requests.routes.ts": "/:eventId/connection-requests",
   "registrations.routes.ts": "/:eventId/registrations",
+  "registration-import.routes.ts": "/:eventId/registrations/import",
   "event-ops.routes.ts": "/:eventId",
   "sessions-polls.routes.ts": "/:eventId",
   "engagement.routes.ts": "/:eventId",

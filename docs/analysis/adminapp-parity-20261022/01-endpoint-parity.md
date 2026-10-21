@@ -53,23 +53,29 @@ App 目前的處理是誠實的——按下去必定失敗，然後顯示 `overr
 
 ## 1.3 App 對後端事件 API 的覆蓋率
 
-| 分組（後端 top-level segment）                   | 路由數  | App 用了幾條                                                      |
-| ------------------------------------------------ | ------- | ----------------------------------------------------------------- |
-| `nfc`                                            | 8       | 4（lookup / badges / bind / exchange）                            |
-| `registrations`                                  | 14      | 4 有效（list / create / by-code / checkin）＋1 死（**override**） |
-| `wallet`                                         | 4       | 1（transactions）                                                 |
-| `ticket-types`                                   | 4       | 1（list）                                                         |
-| `sessions`                                       | 8       | 0                                                                 |
-| `polls`                                          | 6       | 0                                                                 |
-| `exhibitors` + `:exhibitorId` + `:exhibitorSlug` | 22      | 0                                                                 |
-| `page-sections`                                  | 9       | 0                                                                 |
-| `connection-requests`                            | 7       | 0                                                                 |
-| `matching`                                       | 7       | 0                                                                 |
-| `org-roles`                                      | 4       | 0                                                                 |
-| `bank-transfers`                                 | 3       | 0                                                                 |
-| `export`                                         | 2       | 0                                                                 |
-| 其他（root / my-* / by-id / slugs）              | 13      | 2（my-managed / by-id）                                           |
-| **合計**                                         | **111** | **12 有效（10.8%）**                                              |
+| 分組（後端 top-level segment）                                                                                                                  | 路由數  | App 用了幾條                                                      |
+| ----------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ----------------------------------------------------------------- |
+| `exhibitors`（含巢狀 `/import`、`:exhibitorId`、`:exhibitorSlug`）                                                                              | 28      | 0                                                                 |
+| `registrations`（含巢狀 `/import`）                                                                                                             | 18      | 4 有效（list / create / by-code / checkin）＋1 死（**override**） |
+| `page-sections`                                                                                                                                 | 9       | 0                                                                 |
+| `nfc`                                                                                                                                           | 8       | 4（lookup / badges / bind / exchange）                            |
+| `sessions`                                                                                                                                      | 8       | 0                                                                 |
+| `connection-requests`                                                                                                                           | 7       | 0                                                                 |
+| `matching`                                                                                                                                      | 7       | 0                                                                 |
+| `polls`                                                                                                                                         | 6       | 0                                                                 |
+| `org-roles`                                                                                                                                     | 4       | 0                                                                 |
+| `ticket-types`                                                                                                                                  | 4       | 1（list）                                                         |
+| `wallet`                                                                                                                                        | 4       | 1（transactions）                                                 |
+| `bank-transfers`                                                                                                                                | 3       | 0                                                                 |
+| `export`                                                                                                                                        | 2       | 0                                                                 |
+| root（`GET /`、`POST /`、`PATCH /:eventId`）                                                                                                    | 3       | 0                                                                 |
+| 其他單條（`my-access`、`my`、`:eventSlug`、`activation`、`by-id`、`my-exhibitors`、`my-managed`、`my-participation`、`my-tickets`、`webhooks`） | 10      | 3（`my-managed`、`by-id`、`my-access`）                           |
+| **合計**                                                                                                                                        | **121** | **13 有效（10.7%）**                                              |
+
+> ⚠️ 這張表在 2026-10-22 的獨立驗證後修正過：第一版寫「111 條」，漏了
+> `exhibitors.routes.ts:52` 與 `registrations.routes.ts:20` 的兩層
+> `router.use('/import', …)`（共 8 條），以及 `index.ts` 直接掛的 2 條。
+> 詳見 `07-verification.md`。
 
 ## 1.4 前端也不完美：兩個反向發現
 
@@ -90,10 +96,10 @@ App 目前的處理是誠實的——按下去必定失敗，然後顯示 `overr
 
 ## 1.5 覆蓋率不代表完成度
 
-10.8% 這個數字很容易被誤讀成「App 只做了 10%」。事實不是這樣：
+10.7% 這個數字很容易被誤讀成「App 只做了 10%」。事實不是這樣：
 
-- 分母 111 條裡，**大部分是 Web 後台專屬**（page-sections 9、matching 7、org-roles 4、bank-transfers 3、export 2、exhibitors 22…）。
-- App 覆蓋的 12 條，正好是「門側現場」需要的全部資料面（報名查詢／報到／寫卡／名片交換／錢包查詢）。
+- 分母 121 條裡，**大部分是 Web 後台專屬**（exhibitors 28、page-sections 9、sessions 8、matching 7、org-roles 4、bank-transfers 3、export 2…）。
+- App 覆蓋的 13 條，正好是「門側現場」需要的全部資料面（報名查詢／報到／寫卡／名片交換／錢包查詢／權限查詢）。
 
 所以正確的讀法是：**端點覆蓋率低是設計結果，不是缺陷**。缺陷只有 §1.2 那一條。
 真正的問題在畫面層（見 `02-screen-parity.md`）與語意層（見 `03-semantic-drift.md`）。

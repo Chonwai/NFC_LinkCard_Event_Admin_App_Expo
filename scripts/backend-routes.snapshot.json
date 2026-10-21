@@ -3,7 +3,7 @@
   "generatedFrom": {
     "repo": "LinkCard_ExpressJS_Backend",
     "commit": "64be09e",
-    "generatedAt": "2026-10-21T17:31:14.454Z"
+    "generatedAt": "2026-10-21T18:36:36.684Z"
   },
   "eventRoutes": [
     {
@@ -185,6 +185,26 @@
       "method": "GET",
       "path": "/:eventId/exhibitors/:exhibitorSlug",
       "file": "exhibitors.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/exhibitors/import/confirm",
+      "file": "exhibitor-import.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/exhibitors/import/notify",
+      "file": "exhibitor-import.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/exhibitors/import/preview",
+      "file": "exhibitor-import.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/exhibitors/import/template",
+      "file": "exhibitor-import.routes.ts"
     },
     {
       "method": "POST",
@@ -450,6 +470,26 @@
       "method": "POST",
       "path": "/:eventId/registrations/files/image",
       "file": "registrations.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/registrations/import/confirm",
+      "file": "registration-import.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/registrations/import/notify",
+      "file": "registration-import.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/registrations/import/preview",
+      "file": "registration-import.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/registrations/import/template",
+      "file": "registration-import.routes.ts"
     },
     {
       "method": "GET",

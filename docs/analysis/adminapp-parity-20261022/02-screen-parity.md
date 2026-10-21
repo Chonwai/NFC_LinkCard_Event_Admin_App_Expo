@@ -28,14 +28,14 @@ Web 導覽的真實來源是 `app/(event)/manage/[eventId]/layout.tsx:168-190`�
 
 **App 獨有（Web 完全沒有）**：
 
-| App 畫面              | 能力                             | Web 有嗎                                 |
-| --------------------- | -------------------------------- | ---------------------------------------- |
-| `nfc-bind.tsx`        | 真 NDEF 寫卡（Android）          | ❌ 結構性不可能（Web 沒有 `NDEFReader`） |
-| `nfc-read.tsx`        | 讀卡取 UID                       | ❌                                       |
-| `nfc-exchange.tsx`    | 兩人卡片交換                     | ❌                                       |
-| `walk-in.tsx`         | 現場報名（選票種＋個資＋同意書） | ❌ **Web 沒有現場報名入口**              |
-| `registrant/[id].tsx` | 參加者詳情＋錢包流水             | 部分（Web 在名單 drawer 內）             |
-| `overview.tsx`        | 5 個即時統計                     | ❌ Web 的 overview 只有 3 張導覽卡       |
+| App 畫面                          | 能力                             | Web 有嗎                                 |
+| --------------------------------- | -------------------------------- | ---------------------------------------- |
+| `nfc-bind.tsx`                    | 真 NDEF 寫卡（Android）          | ❌ 結構性不可能（Web 沒有 `NDEFReader`） |
+| `nfc-read.tsx`                    | 讀卡取 UID                       | ❌                                       |
+| `nfc-exchange.tsx`                | 兩人卡片交換                     | ❌                                       |
+| `walk-in.tsx`                     | 現場報名（選票種＋個資＋同意書） | ❌ **Web 沒有現場報名入口**              |
+| `registrant/[registrationId].tsx` | 參加者詳情＋錢包流水             | 部分（Web 在名單 drawer 內）             |
+| `overview.tsx`                    | 5 個即時統計                     | ❌ Web 的 overview 只有 3 張導覽卡       |
 
 > 這一節的重點：**App 不是 Web 的子集**。它在門側場景是超集。
 
