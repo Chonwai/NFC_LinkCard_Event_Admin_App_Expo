@@ -143,3 +143,38 @@ test("the script payload decodes back to the original URL", () => {
   assert.ok(Buffer.isBuffer(ndef));
   assert.equal(decodeUriMessage(ndef).uri, url);
 });
+
+test("an oversized script says so in its own text", () => {
+  const longUrl = `https://example.com/${"a".repeat(400)}`;
+  const script = buildScript(longUrl, { variant: "NTAG213" });
+  assert.equal(script.overflow, true);
+  const text = renderScript(script);
+  // Someone calling the library directly must not get a script that looks
+  // sendable; the CLI guard is not enough.
+  assert.match(text, /DO NOT SEND/);
+  assert.match(text, /does not fit/);
+});
+
+test("a fitting script carries no do-not-send banner", () => {
+  const script = buildScript("https://linkcard.example/b/7F3A");
+  assert.equal(script.overflow, false);
+  assert.doesNotMatch(renderScript(script), /DO NOT SEND/);
+});
+
+test("a bare-hostname URL reports zero bytes saved, never a negative", () => {
+  // Prefix code 0x00 means "no prefix"; the saving is 0, not -1.
+  const { decodeUriMessage } = require("../src/ndef");
+  const script = buildScript("hello", { selfTest: false, verify: false });
+  const written = Buffer.concat(
+    script.steps.map((step) => step.apdu.subarray(7, 11)),
+  );
+  // TLV layout: 0x03, length, message… — slice the message out directly.
+  const ndef = written.subarray(2, 2 + written[1]);
+  const decoded = decodeUriMessage(ndef);
+  assert.equal(decoded.prefixCode, 0);
+  assert.ok(
+    decoded.compressedBytes >= 0,
+    "compressedBytes must not be negative",
+  );
+  assert.equal(decoded.uri, "hello");
+});

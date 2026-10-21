@@ -214,7 +214,9 @@ function decodeUriMessage(message) {
     uri: prefix + payload.subarray(1).toString("utf8"),
     prefixCode,
     // Count of bytes that were saved by prefix compression, useful in reports.
-    compressedBytes: prefix.length - 1,
+    // Prefix code 0x00 means "no prefix at all", so the saving is 0 rather
+    // than -1. A negative 'bytes saved' is meaningless in any report.
+    compressedBytes: Math.max(0, prefix.length - 1),
   };
 }
 

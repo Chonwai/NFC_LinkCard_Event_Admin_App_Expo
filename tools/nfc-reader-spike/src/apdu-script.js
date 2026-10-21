@@ -30,8 +30,11 @@ const {
   writePageCommand,
 } = require("./ntag");
 
-const PASS_THROUGH_CLA = 0x00;
-const PASS_THROUGH_INS = 0x00;
+// `FF 00 00 00 <Lc>` is a vendor pseudo-APDU: FF is the CLA, and the two
+// zero bytes are P1/P2. Naming them CLA/INS invites a "fix" in the wrong place.
+const PASS_THROUGH_CLA = 0xff;
+const PASS_THROUGH_P1 = 0x00;
+const PASS_THROUGH_P2 = 0x00;
 
 function toHex(buffer) {
   return buffer
@@ -55,9 +58,9 @@ function passThrough(command) {
   }
   return Buffer.concat([
     Buffer.from([
-      0xff,
       PASS_THROUGH_CLA,
-      PASS_THROUGH_INS,
+      PASS_THROUGH_P1,
+      PASS_THROUGH_P2,
       0x00,
       command.length,
     ]),
@@ -124,6 +127,7 @@ function buildScript(url, options = {}) {
     capacityBytes: plan.capacityBytes,
     pages: plan.requiredPages,
     fitted: plan.fits,
+    overflow: !plan.fits,
     steps,
     lines: steps.map((step) => toHex(step.apdu)),
   };
@@ -139,6 +143,19 @@ function buildScript(url, options = {}) {
 function renderScript(script, options = {}) {
   const withComments = options.comments !== false;
   const lines = [];
+  if (script.overflow) {
+    // A script that cannot fit must never look sendable, even to someone who
+    // calls the library directly instead of going through the CLI.
+    lines.push(
+      "###############################################################",
+      "# DO NOT SEND — payload does not fit this chip.",
+      `# needs ${script.bytes} bytes, ${script.variant} holds ${script.capacityBytes}.`,
+      "# Writes past the end of user memory will be rejected at best;",
+      "# use a bigger tag or a shorter URL. Shown for inspection only.",
+      "###############################################################",
+      "",
+    );
+  }
   if (withComments) {
     lines.push(
       `# ACR1555U badge script — ${script.variant}, ${script.bytes} bytes over ${script.pages} pages`,

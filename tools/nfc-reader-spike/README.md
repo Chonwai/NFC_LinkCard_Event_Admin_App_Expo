@@ -89,7 +89,7 @@ All commands accept `--json` for evidence capture, and `--timeout <seconds>`
 ## Tests
 
 ```bash
-npm test        # 42 tests, no hardware and no native build required
+npm test        # 79 tests, no hardware and no native build required
 ```
 
 The write path is tested against an **in-memory NTAG21x** (`tests/tag-session.test.js`),
