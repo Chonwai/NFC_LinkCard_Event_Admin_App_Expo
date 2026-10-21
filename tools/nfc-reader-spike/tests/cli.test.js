@@ -54,3 +54,61 @@ test("readers --assume answers from the name alone, with no hardware", async () 
   assert.match(output, /APDU tool:\s+yes/);
   assert.doesNotMatch(output, /NDEF URL write available/);
 });
+
+function captureConsole() {
+  const chunks = [];
+  const originalLog = console.log;
+  console.log = (...args) => chunks.push(args.join(" "));
+  return {
+    text: () => chunks.join("\n"),
+    restore: () => {
+      console.log = originalLog;
+    },
+  };
+}
+
+test("drivers prints every platform and exits 0", async () => {
+  const capture = captureConsole();
+  try {
+    assert.equal(await main(["drivers"]), 0);
+  } finally {
+    capture.restore();
+  }
+  const output = capture.text();
+  for (const os of ["windows", "macos", "linux", "android", "ios"]) {
+    assert.match(output, new RegExp(`^${os}\\b`, "m"), `${os} row missing`);
+  }
+  // The distinction that matters most: desktop USB needs nothing, Android does.
+  assert.match(output, /BLE PC\/SC Driver installer 1\.0\.3\.1/);
+  assert.match(output, /no driver exists/);
+});
+
+test("drivers --os follows the yes/no exit-code rule", async () => {
+  const capture = captureConsole();
+  try {
+    // Android has no driver to install, so the question "must I install
+    // something?" is answered no.
+    assert.equal(await main(["drivers", "--os", "android"]), 0);
+    // Windows Bluetooth does need the vendor bridge.
+    assert.equal(await main(["drivers", "--os", "windows"]), 1);
+    // An unknown platform must not silently look fine.
+    assert.equal(await main(["drivers", "--os", "beos"]), 1);
+  } finally {
+    capture.restore();
+  }
+  assert.match(capture.text(), /Unknown operating system/);
+});
+
+test("drivers --json is machine readable", async () => {
+  const capture = captureConsole();
+  try {
+    assert.equal(await main(["drivers", "--json"]), 0);
+  } finally {
+    capture.restore();
+  }
+  const parsed = JSON.parse(capture.text());
+  assert.ok(Array.isArray(parsed));
+  const macos = parsed.find((entry) => entry.os === "macos");
+  assert.equal(macos.installsNeeded, false);
+  assert.ok(macos.rows.some((row) => row.id === "macos-usb"));
+});

@@ -21,6 +21,7 @@ const os = require("node:os");
 const path = require("node:path");
 
 const { classifyReaders } = require("../src/reader-model");
+const { allDriverAnswers, driverAnswer } = require("../src/driver-matrix");
 const { encodeUriTlv } = require("../src/ndef");
 const { planPageWrites } = require("../src/ntag");
 const { TagSession } = require("../src/tag-session");
@@ -323,6 +324,8 @@ function usage() {
   node bin/spike.js readers --assume <name>
                                           classify a reader name without hardware
   node bin/spike.js doctor  [--json]      check this machine's PC/SC toolchain
+  node bin/spike.js drivers [--json]      which OS actually needs a driver
+  node bin/spike.js drivers --os macos    one line for a single platform
   node bin/spike.js read    [--json]      tap a tag, print UID + variant + URI
   node bin/spike.js write --url <url>     show the page plan for this tag (dry run)
   node bin/spike.js write --url <url> --yes    write it, then read it back
@@ -562,6 +565,69 @@ async function commandWrite(argv) {
   return 0;
 }
 
+const DRIVER_TAG = {
+  inbox: "no driver needed",
+  vendor: "vendor package required",
+  app: "no driver exists — the app does the work",
+  unsupported: "not a supported route",
+};
+
+function printDriverOs(entry) {
+  const lines = [bold(entry.os) + dim(`  — ${entry.summary}`)];
+  for (const row of entry.rows) {
+    lines.push(`  ${row.transport.padEnd(10)} ${DRIVER_TAG[row.requirement]}`);
+    lines.push(`             ${row.mechanism}`);
+    if (row.installer) {
+      lines.push(`             install: ${row.installer}`);
+    }
+    lines.push(dim(`             source:  ${row.evidence}`));
+  }
+  return lines.join("\n");
+}
+
+/**
+ * Answers "do I need a driver?" without touching hardware.
+ *
+ * Exit code follows the house rule: 0 when the platform needs nothing
+ * installed, 1 when it does. Unknown platforms also exit 1 — silence would
+ * read as "you are fine".
+ */
+function commandDrivers(argv) {
+  const json = argv.includes("--json");
+  const only = readOption(argv, "--os");
+
+  if (only) {
+    const answers = allDriverAnswers();
+    const wanted = String(only).toLowerCase();
+    const match = answers.find((entry) => entry.os === wanted);
+    if (json) {
+      console.log(JSON.stringify(match || driverAnswer(only), null, 2));
+    } else {
+      console.log(match ? printDriverOs(match) : driverAnswer(only).summary);
+    }
+    if (!match) return 1;
+    return match.installsNeeded ? 1 : 0;
+  }
+
+  const answers = allDriverAnswers();
+  if (json) {
+    console.log(JSON.stringify(answers, null, 2));
+    return 0;
+  }
+
+  console.log(bold("NFC Gate 1 — driver requirements per platform"));
+  console.log(
+    dim("  USB CCID is a device class, not a product driver. Read each row."),
+  );
+  for (const entry of answers) {
+    console.log("");
+    console.log(printDriverOs(entry));
+  }
+  console.log("");
+  console.log(dim("Ask one platform: node bin/spike.js drivers --os android"));
+  return 0;
+}
+
 async function main(argv) {
   const [command, ...rest] = argv;
   switch (command) {
@@ -569,6 +635,8 @@ async function main(argv) {
       return commandReaders(rest);
     case "doctor":
       return commandDoctor(rest);
+    case "drivers":
+      return commandDrivers(rest);
     case "read":
       return commandRead(rest);
     case "write":
