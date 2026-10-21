@@ -18,11 +18,11 @@
 
 取證時的 commit：
 
-| Repo                            | HEAD                       | 備註                                     |
-| ------------------------------- | -------------------------- | ---------------------------------------- |
-| `LinkCard_Event_Admin_App_Expo` | `7d0fcf5` (`main`)         | 審計分支 `audit/app-web-parity-20261022` |
-| `LinkCard_Frontend`             | `0a4ecab` (`staging`)      | 工作樹乾淨                               |
-| `LinkCard_ExpressJS_Backend`    | `206b1483` (`development`) | 工作樹乾淨                               |
+| Repo                            | HEAD                       | 備註                                                             |
+| ------------------------------- | -------------------------- | ---------------------------------------------------------------- |
+| `LinkCard_Event_Admin_App_Expo` | `7d0fcf5` (`main`)         | 審計分支 `audit/parity-20261022`（worktree `/tmp/lc-parity-wt`） |
+| `LinkCard_Frontend`             | `0a4ecab` (`staging`)      | 工作樹乾淨                                                       |
+| `LinkCard_ExpressJS_Backend`    | `206b1483` (`development`) | 工作樹乾淨                                                       |
 
 > ⚠️ 三個 repo 的預設分支不同（`main` / `staging` / `development`）。任何「兩邊不一致」的結論都必須先確認比較的是哪個分支——這是上一輪沒有寫清楚的地方。
 
