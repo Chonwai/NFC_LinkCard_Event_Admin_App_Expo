@@ -49,9 +49,9 @@ const DRIVER_MATRIX = [
     subsystem: "PC/SC (SCardSvr)",
     installer: null,
     evidence:
-      "Microsoft 'USB Device Class Drivers Included in Windows': Smart Card (0Bh) " +
-      "-> Usbccid.sys, replaced by WUDFUsbccidDriver.dll; ACS PC/SC Driver " +
-      "Installer 1.0.6.2 is therefore optional",
+      "Microsoft 'USB Device Class Drivers Included in Windows' (Windows 10 and 11): " +
+      "Smart Card (0Bh) -> Usbccid.sys, replaced by WUDFUsbccidDriver.dll; ACS " +
+      "PC/SC Driver Installer 1.0.6.2 is therefore optional",
   },
   {
     id: "windows-bluetooth",
@@ -65,8 +65,8 @@ const DRIVER_MATRIX = [
     subsystem: "PC/SC (SCardSvr)",
     installer: "BLE PC/SC Driver installer 1.0.3.1",
     evidence:
-      "ACS ACR1555U driver page lists 'BLE PC/SC Driver installer 1.0.3.1' for " +
-      "Windows only, with no macOS or Linux equivalent",
+      "ACS ACR1555U driver page (Windows 10 and 11 row) lists 'BLE PC/SC Driver " +
+      "installer 1.0.3.1' for Windows only, with no macOS or Linux equivalent",
   },
   {
     id: "macos-usb",
@@ -87,7 +87,7 @@ const DRIVER_MATRIX = [
   {
     id: "macos-bluetooth",
     os: "macos",
-    osLabel: "macOS 10.15+",
+    osLabel: "macOS",
     transport: "bluetooth",
     requirement: "unsupported",
     mechanism:
@@ -125,7 +125,9 @@ const DRIVER_MATRIX = [
       "No Linux BLE PC/SC transport is published, so Bluetooth is not a route here",
     subsystem: null,
     installer: null,
-    evidence: "ACS ACR1555U driver page has no Linux Bluetooth entry",
+    evidence:
+      "ACS ACR1555U driver page: the only Bluetooth entries are the Windows BLE " +
+      "PC/SC Driver 1.0.3.1 and the Android/iOS EVK packages; no Linux BLE bridge",
   },
   {
     id: "android-usb",
@@ -139,9 +141,9 @@ const DRIVER_MATRIX = [
     subsystem: "USB Host API (UsbManager)",
     installer: null,
     evidence:
-      "Android 'USB host overview': UsbManager/claimInterface/bulkTransfer, and " +
-      "'not all Android-powered devices are guaranteed to support the USB host " +
-      "APIs'; ACS ships Android EVK 1.1.8 for this",
+      "Android 'USB host overview': UsbManager/claimInterface/bulkTransfer, host " +
+      "mode from Android 4.3, and 'not all Android-powered devices are " +
+      "guaranteed to support the USB host APIs'; ACS ships Android EVK 1.1.8",
   },
   {
     id: "android-bluetooth",
@@ -170,8 +172,9 @@ const DRIVER_MATRIX = [
     subsystem: "CryptoTokenKit (PIV only)",
     installer: null,
     evidence:
-      "Apple 'Intro to smart card integration' scopes USB CCID support to PIV " +
-      "smart cards and warns some readers need a powered hub",
+      "Apple 'Intro to smart card integration': native USB CCID support arrives " +
+      "with iOS 16.1 / iPadOS 16 and is scoped to PIV smart cards; some readers " +
+      "need a powered hub",
   },
   {
     id: "ios-bluetooth",
@@ -186,7 +189,8 @@ const DRIVER_MATRIX = [
     installer: null,
     evidence:
       "ACS iOS BLE EVK (SmartCardIO) 0.7.0 for iOS 15.0+; Mobile Card Reader " +
-      "Utility is on the App Store (iOS 17.2+)",
+      "Utility is on the App Store requiring iOS 17.2+ (iPadOS 16+ per the " +
+      "product page)",
   },
 ];
 
@@ -243,6 +247,17 @@ function driverAnswer(os) {
     };
   }
 
+  return answerFromRows(rows, rows[0].os);
+}
+
+/**
+ * Pure: builds the answer from a set of rows. Exported so the "every route is
+ * unsupported" case can be tested without inventing a fake operating system.
+ *
+ * @param {DriverRow[]} rows
+ * @param {string} os
+ */
+function answerFromRows(rows, os) {
   const vendorRows = rows.filter((row) => row.requirement === "vendor");
   const appRows = rows.filter((row) => row.requirement === "app");
   const unsupportedRows = rows.filter(
@@ -262,13 +277,21 @@ function driverAnswer(os) {
   const usableRows = rows.filter((row) => row.requirement !== "unsupported");
   const usableTransports = usableRows.map((row) => row.transport);
 
-  // "installsNeeded" answers the question a person actually asks — must I
-  // install something to use this device here? — so it is true only when every
-  // usable transport demands a vendor package. Windows USB is inbox, so Windows
-  // as a whole is not "install required"; its Bluetooth half still is.
-  const installsNeeded =
-    usableRows.length > 0 &&
-    usableRows.every((row) => row.requirement === "vendor");
+  if (usableRows.length === 0) {
+    return {
+      os,
+      known: true,
+      installsNeeded: null,
+      installsNeededByTransport,
+      usableTransports,
+      vendorInstaller: null,
+      summary: "no supported route on this platform",
+    };
+  }
+
+  const installsNeeded = usableRows.every(
+    (row) => row.requirement === "vendor",
+  );
   const vendorInstaller = vendorRows.length ? vendorRows[0].installer : null;
 
   const parts = [];
@@ -282,11 +305,7 @@ function driverAnswer(os) {
       `no driver exists — an app must speak the protocol (${transports})`,
     );
   }
-  if (
-    usableRows.length > 0 &&
-    vendorRows.length === 0 &&
-    appRows.length === 0
-  ) {
+  if (vendorRows.length === 0 && appRows.length === 0) {
     parts.push("nothing to install");
   }
   if (unsupportedRows.length) {
@@ -295,7 +314,7 @@ function driverAnswer(os) {
   }
 
   return {
-    os: rows[0].os,
+    os,
     known: true,
     installsNeeded,
     installsNeededByTransport,
@@ -315,6 +334,7 @@ function allDriverAnswers() {
 
 module.exports = {
   DRIVER_MATRIX,
+  answerFromRows,
   REQUIREMENT_MEANING,
   listOperatingSystems,
   driverRows,

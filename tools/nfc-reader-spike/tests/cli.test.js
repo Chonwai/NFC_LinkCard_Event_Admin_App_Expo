@@ -137,3 +137,100 @@ test("drivers --json is machine readable", async () => {
   assert.equal(macos.installsNeeded, false);
   assert.ok(macos.rows.some((row) => row.id === "macos-usb"));
 });
+
+test("script prints a replayable sequence and exits 0", async () => {
+  const chunks = [];
+  const originalWrite = process.stdout.write.bind(process.stdout);
+  const originalLog = console.log;
+  const originalError = console.error;
+  process.stdout.write = (chunk) => {
+    chunks.push(String(chunk));
+    return true;
+  };
+  console.log = () => {};
+  console.error = () => {};
+  let code;
+  try {
+    code = await main(["script", "--url", "https://linkcard.example/b/7F3A"]);
+  } finally {
+    process.stdout.write = originalWrite;
+    console.log = originalLog;
+    console.error = originalError;
+  }
+  assert.equal(code, 0);
+  const text = chunks.join("");
+  assert.match(text, /^# ACR1555U badge script/m);
+  assert.match(text, /FF 00 00 00 01 60/);
+  assert.doesNotMatch(text, /DO NOT SEND/);
+});
+
+test("script --out writes the file and leaves stdout clean", async () => {
+  const fs = require("node:fs");
+  const os = require("node:os");
+  const path = require("node:path");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "spike-script-"));
+  const target = path.join(dir, "badge.script");
+  const originalLog = console.log;
+  console.log = () => {};
+  let code;
+  try {
+    code = await main([
+      "script",
+      "--url",
+      "https://linkcard.example/b/7F3A",
+      "--out",
+      target,
+    ]);
+  } finally {
+    console.log = originalLog;
+  }
+  assert.equal(code, 0);
+  const written = fs.readFileSync(target, "utf8");
+  assert.match(written, /A2 04/);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test("script refuses an oversized payload without writing a file", async () => {
+  const fs = require("node:fs");
+  const os = require("node:os");
+  const path = require("node:path");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "spike-big-"));
+  const target = path.join(dir, "badge.script");
+  const originalLog = console.log;
+  const originalError = console.error;
+  console.log = () => {};
+  console.error = () => {};
+  let code;
+  try {
+    code = await main([
+      "script",
+      "--url",
+      `https://example.com/${"a".repeat(400)}`,
+      "--variant",
+      "NTAG213",
+      "--out",
+      target,
+    ]);
+  } finally {
+    console.log = originalLog;
+    console.error = originalError;
+  }
+  assert.equal(code, 1);
+  // The guard must run before the write, not after.
+  assert.equal(fs.existsSync(target), false);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test("script rejects a bad command line with exit 2", async () => {
+  const originalError = console.error;
+  console.error = () => {};
+  try {
+    assert.equal(await main(["script"]), 2);
+    assert.equal(
+      await main(["script", "--url", "https://x.test", "--variant", "NTAG999"]),
+      2,
+    );
+  } finally {
+    console.error = originalError;
+  }
+});

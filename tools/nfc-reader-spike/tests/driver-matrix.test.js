@@ -10,6 +10,7 @@ const {
   driverRows,
   driverAnswer,
   allDriverAnswers,
+  answerFromRows,
 } = require("../src/driver-matrix");
 
 test("every matrix row is fully sourced and self-consistent", () => {
@@ -168,4 +169,50 @@ test("an unsupported row may explain a subsystem without breaking the shape", ()
       `${entry.id} subsystem must be null or a string`,
     );
   }
+});
+
+test("every row cites something a reviewer can look up", () => {
+  // The module exists so the answer cannot drift into folklore. A guideline with
+  // no lookupable marker fails that purpose, so require one.
+  const sourceMarker = /https?:\/\/|§|v?\d+\.\d+/;
+  for (const row of DRIVER_MATRIX) {
+    assert.match(
+      row.evidence,
+      sourceMarker,
+      `${row.id} cites nothing specific`,
+    );
+    assert.notEqual(
+      row.evidence,
+      row.mechanism,
+      `${row.id} repeats its mechanism instead of citing a source`,
+    );
+  }
+});
+
+test("any version number in a label also appears in the evidence", () => {
+  for (const row of DRIVER_MATRIX) {
+    const versions = row.osLabel.match(/\d+(\.\d+)*/g) || [];
+    for (const version of versions) {
+      assert.ok(
+        row.evidence.includes(version),
+        `${row.id} claims ${version} in its label but never sources it`,
+      );
+    }
+  }
+});
+
+test("a platform with only unsupported routes is not reported as install-free", () => {
+  const synthetic = [
+    {
+      id: "x-usb",
+      transport: "usb",
+      requirement: "unsupported",
+      installer: null,
+    },
+  ];
+  const answer = answerFromRows(synthetic, "x");
+  assert.equal(answer.known, true);
+  assert.equal(answer.installsNeeded, null);
+  assert.deepEqual(answer.installsNeededByTransport, { usb: null });
+  assert.match(answer.summary, /no supported route/);
 });

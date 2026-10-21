@@ -336,7 +336,8 @@ function usage() {
 
 Common options: --timeout <seconds> (tag wait, default 30)
                 --reader-timeout <seconds> (default 15)
-Exit codes: 0 = the checked question is a yes, 1 = no (or an error was reported).
+Exit codes: 0 = the checked question is a yes, 1 = no (or an error was reported),
+            2 = the command line itself was wrong.
 `);
 }
 
@@ -681,7 +682,9 @@ function commandDrivers(argv) {
     if (transport) {
       const wantedTransport = String(transport).trim().toLowerCase();
       const byTransport = answer.installsNeededByTransport || {};
-      if (!(wantedTransport in byTransport)) {
+      // `in` walks the prototype chain, so `--transport constructor` would look
+      // like a real route.
+      if (!Object.prototype.hasOwnProperty.call(byTransport, wantedTransport)) {
         if (json) {
           console.log(
             JSON.stringify(
@@ -735,7 +738,14 @@ function commandDrivers(argv) {
       console.log(match ? printDriverOs(match) : answer.summary);
     }
     if (!answer.known) return 1;
-    return answer.installsNeeded ? 1 : 0;
+    return answer.installsNeeded === false ? 0 : 1;
+  }
+
+  if (argv.includes("--transport")) {
+    console.error(
+      paint(RED, "--transport only means something together with --os <name>"),
+    );
+    return 2;
   }
 
   const answers = allDriverAnswers();

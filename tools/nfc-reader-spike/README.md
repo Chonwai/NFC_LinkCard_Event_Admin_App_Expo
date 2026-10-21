@@ -68,8 +68,13 @@ unless the URI on the tag matches what was asked for.
 | `drivers` | Does this platform need anything installed first?       | a platform asked for with `--os` does    |
 | `readers` | Is the purchased reader enumerated, and what is it?     | no PC/SC reader was seen                 |
 | `read`    | Does the reader see the tag, and what is already on it? | no tag, or tag not NDEF formatted        |
-| `script`  | Which APDUs write this URL, for the vendor app to send? | payload too large for the chosen chip    |
+| `script`  | Which APDUs write this URL, for the vendor app to send? | 1 = payload too large, 2 = bad arguments |
 | `write`   | Would this payload fit, and does it verify?             | payload too large, or read-back mismatch |
+
+`drivers --os <name> [--transport usb|bluetooth]` collapses the matrix to one
+route: it exits 1 when that route needs an install, and also when the platform
+does not have that route at all — "no such route" is not a healthy "no install
+needed". `--transport` without `--os` is an argument error (exit 2).
 
 `drivers` exists because "do I need a driver?" has a different answer per OS
 and, on Windows, per transport — USB is an inbox CCID class driver, Bluetooth
@@ -89,7 +94,7 @@ All commands accept `--json` for evidence capture, and `--timeout <seconds>`
 ## Tests
 
 ```bash
-npm test        # 79 tests, no hardware and no native build required
+npm test        # no hardware and no native build required
 ```
 
 The write path is tested against an **in-memory NTAG21x** (`tests/tag-session.test.js`),

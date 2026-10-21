@@ -30,9 +30,10 @@ const {
   writePageCommand,
 } = require("./ntag");
 
-// `FF 00 00 00 <Lc>` is a vendor pseudo-APDU: FF is the CLA, and the two
-// zero bytes are P1/P2. Naming them CLA/INS invites a "fix" in the wrong place.
+// `FF 00 00 00 <Lc>` is a vendor pseudo-APDU. Its header is CLA INS P1 P2, in
+// that order: FF is the CLA, the three zero bytes are INS, P1 and P2.
 const PASS_THROUGH_CLA = 0xff;
+const PASS_THROUGH_INS = 0x00;
 const PASS_THROUGH_P1 = 0x00;
 const PASS_THROUGH_P2 = 0x00;
 
@@ -59,9 +60,9 @@ function passThrough(command) {
   return Buffer.concat([
     Buffer.from([
       PASS_THROUGH_CLA,
+      PASS_THROUGH_INS,
       PASS_THROUGH_P1,
       PASS_THROUGH_P2,
-      0x00,
       command.length,
     ]),
     command,
