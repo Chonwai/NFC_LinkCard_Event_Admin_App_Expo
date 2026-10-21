@@ -44,5 +44,13 @@ test("readers --assume answers from the name alone, with no hardware", async () 
   }
   const output = lines.join("\n");
   assert.match(output, /acs-acr1555u/);
-  assert.match(output, /vendor app\s+NDEF URL write available/);
+  // The report must describe the vendor app the way the official guide does:
+  // the NDEF tab emulates, the APDU tool is what reaches a tag.
+  assert.match(
+    output,
+    /vendor app\s+Android com\.acs\.mobile_card_reader_utility/,
+  );
+  assert.match(output, /NDEF tab:\s+emulation-only/);
+  assert.match(output, /APDU tool:\s+yes/);
+  assert.doesNotMatch(output, /NDEF URL write available/);
 });

@@ -135,7 +135,11 @@ test("a Bluetooth reader with USB CCID is still a laptop reader", () => {
 test("records that the vendor app can write NDEF URLs over Bluetooth", () => {
   const entry = classifyReaderName("ACS ACR1555U-A1 PICC Reader");
   assert.equal(entry.vendorApp.android, "com.acs.mobile_card_reader_utility");
-  assert.equal(entry.vendorApp.ndefUrlWrite, "yes");
+  // The NDEF tab stores a record in the reader for emulation. It is not a card
+  // writer, and claiming otherwise is what made doc 19 wrong.
+  assert.equal(entry.vendorApp.ndefTab, "emulation-only");
+  assert.equal(entry.vendorApp.apduTool, "yes");
+  assert.equal(entry.vendorApp.apduScriptFile, "yes");
 });
 
 test("does not invent a vendor app for readers that have none recorded", () => {
@@ -148,6 +152,9 @@ test("does not invent a vendor app for readers that have none recorded", () => {
 
 test("a reader with a vendor NDEF app is not described as new native work", () => {
   const verdict = verdictFor(classifyReaderName("ACS ACR1555U PICC Reader"));
-  assert.match(verdict.summary, /vendor app/);
+  assert.match(verdict.summary, /APDU tool/);
   assert.doesNotMatch(verdict.summary, /new native work/);
+  // Guard the regression by name: the friendly NDEF tab must never again be
+  // described as writing a physical tag.
+  assert.match(verdict.summary, /emulation/);
 });

@@ -153,14 +153,21 @@ const FAMILIES = [
     ],
     // Three separate transports. HID and APDU are device modes, not simultaneous.
     transports: { usbCcId: "yes", bleApdu: "yes", bleHid: "yes" },
-    // A shipped vendor app already does NDEF URL writes over Bluetooth, which
-    // is the difference between "possible" and "usable on site today".
+    // The vendor app's NDEF tab is for CARD EMULATION: the record is stored in
+    // the reader, which then behaves like an NFC Type 2 tag. It does not write
+    // a physical NTAG. Reading the app-store blurb as "writes cards" is the
+    // exact mistake doc 19 shipped; the official guide (V1.07 §2.2) says
+    // "select the NDEF record type you want to save for card emulation" and
+    // "store the data in the ACR1555U".
     vendorApp: {
       android: "com.acs.mobile_card_reader_utility",
       ios: "id6478258371",
-      ndefUrlWrite: "yes",
-      apduTools: "yes",
-      note: "Mobile Card Reader Utility: NDEF Write Data Tools (Text, URL, Map, SMS, Email, Phone)",
+      ndefTab: "emulation-only",
+      apduTool: "yes",
+      apduScriptFile: "yes",
+      cardWriter: "ACOS3 only",
+      emulation: "NFC Type 2 Tag (NTAG) / FeliCa",
+      note: "Mobile Card Reader Utility: NDEF tab stores a record in the reader for emulation; APDU tool sends arbitrary APDU, including the pass-through FF 00 00 00 that reaches a tag in the field",
     },
     platforms: {
       macosPcsc: "yes",
@@ -174,7 +181,8 @@ const FAMILIES = [
       "This is the device actually purchased (listing: 'ACR1555U, replacement for ACR1255U', ¥399).",
       "USB side is real CCID, so the laptop batch path needs no vendor SDK at all.",
       "Bluetooth side exposes APDU-over-BLE: the ACS Android BLE EVK (SmartCardIO, Android 4.4+) does generic PC/SC APDU transceiving, and a third-party Flutter SDK documents the same.",
-      "ACS ships 'Mobile Card Reader Utility' with NDEF Write Data Tools (Text/URL/vCard/SmartPoster) over Bluetooth, so a phone or tablet can write a URL badge without any custom app.",
+      "The vendor app's NDEF tab is emulation, not a card writer: it stores the record in the reader so other phones read it. Its Card Writer tab only handles ACOS3 cards, and the badges here are NTAG215.",
+      "What does reach a physical tag from the tablet is the APDU tool: Reference Manual v2.02 §5.5.4.1 defines the pass-through command FF 00 00 00 <Lc> <ISO14443 command> (example: FF 00 00 00 01 60 = GET_VERSION), and the app can load a script file.",
       "Switching to HID keyboard mode needs the ACS ACR15XX Keyboard Configuration Tool on a PC; the MODE button restarts the reader into the configured mode.",
       "Included cable is USB-A to USB-C, so a USB-C tablet needs a C-to-C cable or an OTG adapter.",
       "Rechargeable 3.7 V 450 mAh battery; ~31 g without the card holder.",
@@ -402,8 +410,8 @@ function verdictFor(family) {
     expoAppDirect: "no",
     summary: usbWorks
       ? "Usable as a desktop batch-writing reader; " +
-        (family.vendorApp && family.vendorApp.ndefUrlWrite === "yes"
-          ? "a tablet can also write URL badges today with the vendor app over BLE; only in-app integration is remaining work."
+        (family.vendorApp && family.vendorApp.apduTool === "yes"
+          ? "a tablet can write a tag today with the vendor app's APDU tool, but only by feeding it pass-through scripts; the friendly NDEF tab writes to the reader for emulation, not to a tag."
           : androidTablet === "ble-apdu"
             ? "a tablet app can also write over BLE APDU, but that is new native work."
             : "not usable as a tablet accessory for this app.")

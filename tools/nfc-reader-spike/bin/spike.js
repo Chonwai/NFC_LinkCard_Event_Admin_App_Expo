@@ -138,10 +138,17 @@ function printReader(entry, index) {
   if (modes.length) {
     lines.push(`    transports  ${modes.join(" | ")}`);
   }
-  if (entry.vendorApp && entry.vendorApp.ndefUrlWrite === "yes") {
+  if (entry.vendorApp) {
+    const app = entry.vendorApp;
+    lines.push(`    vendor app  Android ${app.android}, iOS ${app.ios}`);
     lines.push(
-      `    vendor app  NDEF URL write available — Android ${entry.vendorApp.android}, iOS ${entry.vendorApp.ios}`,
+      `                NDEF tab: ${app.ndefTab} | APDU tool: ${app.apduTool} (script file: ${app.apduScriptFile})`,
     );
+    if (app.cardWriter) {
+      lines.push(
+        `                card writer: ${app.cardWriter} | emulation: ${app.emulation}`,
+      );
+    }
   }
   if (entry.standards.length) {
     lines.push(`    standards   ${entry.standards.join("\n                ")}`);
