@@ -24,6 +24,10 @@
 
 - **Windows / macOS：作業系統已內建 USB CCID class driver**（Windows 是 `WUDFUsbccidDriver.dll`／`Usbccid.sys` 家族；macOS 是 CryptoTokenKit 的 CCID 支援）。ACR1555U 的 USB 介面就是 **USB CCID**，屬 USB class `0x0B`，所以插上就會被 PC/SC 子系統列舉。**免驅可行。**
 - **Android：根本沒有「安裝驅動」這個動作。** USB 讀卡機要靠 App 透過 USB Host API `claimInterface()` 後自己實作 CCID；沒有 App，插了線什麼都不會發生。這就是「不需要 driver、但需要 app」。
+  > ⚠️ **2026-10-22 補註（見 `21-*.md`）**：這段只對 **USB** 成立。
+  > 同一台讀卡機的 **BLE** 介面**可以由瀏覽器（Web Bluetooth）直接驅動**，
+  > 不需要安裝 App。也就是說「Android 一定要 App」是錯的——
+  > 正確說法是「**USB 要 App，BLE 不一定要**」。
 - **iOS / iPadOS：也沒有可安裝的驅動。** 系統層的 CCID 支援（iOS 16.1 / iPadOS 16 起）只服務 **PIV 智慧卡**認證；要寫 NDEF 或送 APDU，官方路徑是 **BLE + App**。
 
 ### Q3：「廠商是不是已經有對應的驅動？Windows / macOS / Android / iOS 都有嗎？」
