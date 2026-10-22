@@ -229,6 +229,21 @@ demo app 通常有 APDU / Escape 輸入欄。以下指令都是**讀取**，不�
 > 判斷邏輯在 `LinkCard_Frontend/lib/nfc/availability.ts`，程式碼在
 > `app/nfc/`、`components/nfc/`、`lib/nfc/`。
 >
+> **另外三件事也已經在前端做完了**（2026-10-22，詳見
+> `LinkCard_Frontend/docs/20261022_NFC_Tag_Protection_And_Ndef_Note.md`）：
+>
+> | 功能                                            | 狀態            | 說明                                           |
+> | ----------------------------------------------- | --------------- | ---------------------------------------------- |
+> | NDEF 業務情境寫入（連結／文字／名片）           | ✅              | 不用再打 hex；有容量檢查與讀回驗證             |
+> | 密碼保護（`PWD` / `PACK` / `AUTH0` / `ACCESS`） | ✅              | 走 `FF 00 00 00` 直通送 `PWD_AUTH`             |
+> | 設定頁永久鎖定（`CFGLCK`）                      | ✅ 但**不可逆** | UI 要手動輸入確認字串                          |
+> | 原始鎖定位元（page 2 / D_LOCK）                 | ❌ **刻意未做** | 位元只 0→1、無回復路徑，位元對應未核實到可承擔 |
+>
+> ⚠️ **`tools/nfc-reader-spike/src/ndef.js` 與前端 `lib/nfc/ndef.ts` 是兩份實作。**
+> 前端那份是**canonical**（`lib/nfc/__tests__/ndef.test.ts` 有 36 個單元測試，
+> 並支援多 record 與 vCard）。`tools/nfc-reader-spike` 那份是筆電端批次寫卡用的，
+> 維持不動即可；若要改 NDEF 編碼規則，**先改前端那份**，再決定要不要同步。
+>
 > `tools/nfc-web-probe/probe.html` 保留為**參考實作**（單檔、零相依，方便貼給
 > 原廠或貼進 issue），但平板請用前端那一頁。
 
