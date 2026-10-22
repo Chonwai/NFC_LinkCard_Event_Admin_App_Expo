@@ -106,8 +106,12 @@
 | `FF D6 00 <page> 04 <4B>` 寫     | 是                                     | ✅ 正確（原廠有同樣例子：`FF D6 00 04 04 00 01 02 03`）              |
 
 **APDU 那一段是真的。** 這一點值得記下來，因為它容易被誤判——我自己第一輪就
-懷疑它錯，查完手冊發現是我錯。NTAG213/215/216 走 ACS 讀卡機時，確實用
-`FF B0` / `FF D6`（Ultralight 系列），不需要 `FF 00 00 00` pass-through。
+懷疑它錯，查完手冊發現是我錯。
+
+> ⚠️ 但要注意手冊寫的是 **MIFARE Ultralight**，不是 NTAG。
+> NTAG213/215/216 與 Ultralight 共用同一套記憶體指令（`30` 讀 / `A2` 寫），
+> 所以 `FF B0` / `FF D6` **應該**同樣可用——但**手冊沒有直接寫 NTAG**。
+> 這一條列在 §6 的 U7，要用實測確認，不要當成已驗證。
 
 ### 3.2 假的部分（致命）
 
@@ -222,14 +226,15 @@ characteristic。
 
 ## 6. 還沒驗證、不要當定論（U 清單）
 
-| 代號 | 未驗證                                                         | 怎麼驗                                                                   |
-| ---- | -------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| U1   | **ACR1555U 的 Service UUID 是否與 ACR1255U-J1 完全相同**       | 下載 ACR1555U 自己的 Reference Manual 對照 Table 4                       |
-| U2   | **ACR1555U 的預設 master key**                                 | 同上，查 §Authentication。**這是全文件最高風險的未知項**——錯六次鎖機     |
-| U3   | 平板（Redmi / Honor）的 Chrome 能否穩定完成 BLE 配對與斷線重連 | 跑官方 `BLETest-0.6.0.apk`                                               |
-| U4   | ACS Android BLE EVK 是否內建 NDEF 包裝 API，或只到 APDU 層     | 讀 EVK 的 AAR 與 sample                                                  |
-| U5   | 「不要先在 Android 系統設定手動配對」這個說法是否正確          | 原廠通篇用 "paired device"，HID 模式明確需要 bonding。**存疑，傾向相反** |
-| U6   | Web Bluetooth 在平板上寫入 >20 bytes 時的分片行為              | 寫一張完整的 NDEF URI 觀察                                               |
+| 代號 | 未驗證                                                                   | 怎麼驗                                                                   |
+| ---- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| U1   | **ACR1555U 的 Service UUID 是否與 ACR1255U-J1 完全相同**                 | 下載 ACR1555U 自己的 Reference Manual 對照 Table 4                       |
+| U2   | **ACR1555U 的預設 master key**                                           | 同上，查 §Authentication。**這是全文件最高風險的未知項**——錯六次鎖機     |
+| U3   | 平板（Redmi / Honor）的 Chrome 能否穩定完成 BLE 配對與斷線重連           | 跑官方 `BLETest-0.6.0.apk`                                               |
+| U4   | ACS Android BLE EVK 是否內建 NDEF 包裝 API，或只到 APDU 層               | 讀 EVK 的 AAR 與 sample                                                  |
+| U5   | 「不要先在 Android 系統設定手動配對」這個說法是否正確                    | 原廠通篇用 "paired device"，HID 模式明確需要 bonding。**存疑，傾向相反** |
+| U6   | Web Bluetooth 在平板上寫入 >20 bytes 時的分片行為                        | 寫一張完整的 NDEF URI 觀察                                               |
+| U7   | **`FF B0` / `FF D6` 在 NTAG213/215/216 上是否與 MIFARE Ultralight 一致** | 手冊只寫 Ultralight。拿一張 NTAG215 讀 Page 4、寫回、再讀回驗證          |
 
 > U1/U2 沒有確認之前，**不要對實體讀卡機做認證**（見 §4）。
 
