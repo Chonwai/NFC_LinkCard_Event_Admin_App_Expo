@@ -185,48 +185,67 @@ Response: E1 00 00 00 01 <Error Counter Value>
 > ⚠️ 我用的是 **ACR1255U-J1** 的手冊；ACR1555U 的 UUID 家族與本手冊一致，
 > 但**它的預設 master key 必須從自己的手冊確認**（見 §6 U2）。
 
-### 5.1 兩層框架
+### 5.1 兩層框架（**ACR1555U 版**）
 
-**外層（Communication Profile, §5.1.4）**：
+> ⚠️ 我第一版抄的是 ACR1255U-J1 的框架（`05h` … `0Ah`）。**1555U 完全不同。**
+> 以下出自 `ACR1555U Reference Manual V1.06` §5.2.3。
 
-```
-Start byte + Len + Datablock + Check + Stop byte
-   05h        2       N         1       0Ah
-```
-
-`Len` = Datablock 位元組數；`Check` = `Len` 與 `Datablock` 全部位元組的 XOR。
-
-**內層（Data Frame Format, §5.1.5.1）**：
+**外層（Communication Profile, §5.2.3）**：
 
 ```
-CmdMessageType + Length(2, Big Endian) + Slot + Seq + Param + Checksum + Data
+Start byte + Slot + Len(2) + Reserved(1) + Host Seq(1) + Reader Seq(1)
+           + Datablock(N) + Checksum(1) + Stop byte
+
+Start byte = 55h      ← 不是 05h
+Stop byte  = AAh
+Slot       = 00h (PICC) / 01h (SAM)
 ```
 
-`Checksum` = 前述全部位元組（含 Data）的 XOR。原廠範例：
-`62 00 00 00 01 00 63` → checksum = `63h`。
+`Checksum` = `Slot`、`Len`、Frame Type、`Host Seq`、`Reader Seq`、`Data` 全部位元組的
+XOR。
 
-總長超過 20 bytes 時，讀卡機或配對端**自動分片**。
+> 📌 手冊這一行寫「Frame Type」但表格列的是「Reserved」——編寫不一致。
+> 實作時以**實際位元組位置**為準，用讀卡機回傳的訊框反推驗證。
 
-### 5.2 命令表（§5.1.6 Table 6 / Table 7）
-
-| 送出  | 功能                             | 回應                     |
-| ----- | -------------------------------- | ------------------------ |
-| `62h` | PICC Power On                    | `80h` Data Block         |
-| `63h` | PICC Power Off                   | `81h` Slot Status        |
-| `65h` | Get Card Status                  | `50h` Notify Card Status |
-| `6Fh` | **Exchange APDU**                | `80h` Data Block         |
-| `6Bh` | **Escape Command**（認證走這條） | `83h` Response to Escape |
-
-另有 `51h` Response to Hardware Error。
-
-原廠 Escape 範例（注意外層與內層都齊）：
+**內層（CCID message body）**：
 
 ```
-Request command:  E0 00 00 40 01
-實際送出：        6B 00 05 00 00 00 CF E0 00 00 40 01
+bMessageType(1) + wLength(4, Little Endian) + bSlot(1) + bSeq(1)
+                + abRFU(3) + abData(N)
 ```
 
-⇒ 對照 §3.2 F4：那份教學送的是 `E0 00 00 48 00` 五個裸 byte，**外層內層都沒有**。
+注意三個和 1255U-J1 不同的地方：
+
+| 項目            | ACR1255U-J1                     | **ACR1555U**                  |
+| --------------- | ------------------------------- | ----------------------------- |
+| 外層 Start byte | `05h`                           | **`55h`**                     |
+| 外層 Stop byte  | `0Ah`                           | **`AAh`**                     |
+| 內層長度欄位    | 2 bytes, Big Endian             | **4 bytes, Little Endian**    |
+| 內層固定欄位    | `Slot + Seq + Param + Checksum` | **`bSlot + bSeq + abRFU(3)`** |
+
+### 5.2 命令表（§5.2.4 Table 8 / 9 / 10）
+
+| 送出  | 功能                             | 備註                   |
+| ----- | -------------------------------- | ---------------------- |
+| `62h` | PICC Power On                    |                        |
+| `63h` | PICC Power Off                   |                        |
+| `65h` | Get Card Status                  |                        |
+| `6Fh` | **Exchange APDU**                | APDU 走這條            |
+| `6Bh` | **Escape Command**（認證走這條） |                        |
+| `61h` | Set Parameters                   | 1555U 新增，1255U 沒有 |
+
+| 回應  | 功能                    |
+| ----- | ----------------------- |
+| `80h` | Response to Data Block  |
+| `81h` | Response to Slot Status |
+| `82h` | Response to Parameters  |
+| `83h` | Response to Escape      |
+| `53h` | Response to Error       |
+| `50h` | Notify Card Status      |
+| `52h` | Notify Enter Sleep Mode |
+
+⇒ 對照 §3.2 F4：那份教學送的是 `E0 00 00 48 00` 五個裸 byte，
+**外層內層都沒有**，而且用錯了 `05h`/`0Ah` 那一組。
 
 ### 5.3 認證流程（§5.1.7）
 
