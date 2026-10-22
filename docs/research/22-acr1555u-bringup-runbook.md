@@ -301,22 +301,85 @@ V1.06 有完整的四步認證（含 `E0 00 00 73 00`）。
 
 ---
 
-## 5. 實測記錄（做完請填這裏）
+## 5. 實測記錄
 
-> 這一節刻意留空。填寫的時候請附**證據**（截圖檔名、完整輸出），
-> 不要只寫「成功」。
+### 5.1 第一次實測（2026-10-22，NTAG216，官方 BLE Test app）
 
-| 項目                 | 日期 | 結果 | 證據 |
-| -------------------- | ---- | ---- | ---- |
-| 讀卡機藍燈進入閃爍   |      |      |      |
-| 安裝新版 BLE EVK APK |      |      |      |
-| 平板掃到讀卡機       |      |      |      |
-| 認證成功             |      |      |      |
-| 錯誤計數器基線值     |      |      |      |
-| 讀到卡片 UID         |      |      |      |
-| 探測器列出 service   |      |      |      |
-| service UUID 實際值  |      |      |      |
-| 斷線後重連           |      |      |      |
+**環境**：平板 + `BLETest-0.6.2.apk` + ACR1555U-A1（序號 `000688`）+ NTAG216 卡片
+
+**原始輸出（截圖原文）**：
+
+```
+Terminal: ACR1555U-A1-000688 PICC
+Protocol: T=0, T=1        Control Code: 3500
+Source: Script            Script: acos3.txt
+
+Waiting for card insertion (ACR1555U-A1-000688 PICC)... 5
+Waiting for card insertion (ACR1555U-A1-000688 PICC)... 4
+Connecting to the card (ACR1555U-A1-000688 PICC, *)...
+ATR:
+3B 8F 80 01 80 4F 0C A0 00 00 03 06 03 00 03 00
+00 00 00 68
+Active Protocol: T=1
+Running the script...
+Opening acos3.txt...
+Command:   80 20 07 00 08 41 43 4F 53 53 4C 54
+Response:  6A 81
+Bytes Sent : 13      Bytes Received: 2
+Transfer Time : 31 ms    Transfer Rate : 483.87 bytes/second
+Expected:  90 00
+Error: Unexpected response
+Closing acos3.txt...
+Disconnecting the card (ACR1555U-A1-000688 PICC)...
+```
+
+### 5.2 判讀：連線成功，腳本不對
+
+| 現象                                      | 判讀                                                                                               |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `Terminal: ACR1555U-A1-000688 PICC`       | ✅ BLE 已連上，PICC 卡槽已選取                                                                     |
+| `Connecting to the card` → **ATR 有回應** | ✅ **卡片已上電並被選取**——這是最硬的證據                                                          |
+| `Active Protocol: T=1`                    | ✅ 與 ATR 內的 `TD2 = 01h`（T=1）一致                                                              |
+| `Response: 6A 81`                         | ⚠️ **不是連線錯誤**。`6A 81` = 「功能不支援」，因為 `acos3.txt` 是 **ACOS3 卡片**的腳本，不是 NTAG |
+| `Error: Unexpected response`              | 腳本期待 `90 00`，但 NTAG 不可能回應 ACOS3 指令                                                    |
+
+⇒ **這是一次成功的連線測試**，只是拿錯腳本。硬體鏈（平板 → BLE → 讀卡機 → 卡片）**已全通**。
+
+### 5.3 ⭐ ATR 直接證明 NTAG216 被辨識為 MIFARE Ultralight
+
+依 `REF V2.02` §5.5.1.1 的 ATR 格式逐位組解：
+
+| 位元組 | 值               | 欄位         | 說明                                        |
+| ------ | ---------------- | ------------ | ------------------------------------------- |
+| 0      | `3B`             | TS           | 初始字元                                    |
+| 1      | `8F`             | T0           | 15 個歷史字元                               |
+| 2      | `80`             | TD1          | T=0                                         |
+| 3      | `01`             | TD2          | **T=1** ← 對應畫面的 `Active Protocol: T=1` |
+| 4      | `80`             | T1           | 類別指示                                    |
+| 5      | `4F`             | —            | 應用識別碼                                  |
+| 6      | `0C`             | —            | 長度 12                                     |
+| 7–11   | `A0 00 00 03 06` | RID          | PC/SC 工作組                                |
+| 12     | `03`             | SS           | **ISO 14443A，第 3 部分**                   |
+| 13–14  | **`00 03`**      | **卡片名稱** | **`00 03h = MIFARE Ultralight®`**           |
+| 15–18  | `00 00 00 00`    | RFU          | —                                           |
+| 19     | `68`             | TCK          | T0–Tk 的 XOR（已驗算：`0x68` ✓）            |
+
+⇒ **讀卡機自己把 NTAG216 歸類為「MIFARE Ultralight」。**
+這正好就是 §5.5.3 那組 `FF B0` / `FF D6` APDU 所操作的卡片類型。
+
+**所以 `21-*.md` 的 U7 由硬體本身回答了：**
+
+> NTAG216 走 Ultralight 分支，`FF B0`（讀）/ `FF D6`（寫）就是正確的 APDU。
+
+### 5.4 還沒驗證的
+
+| 項目                        | 狀態                                            |
+| --------------------------- | ----------------------------------------------- |
+| `FF CA 00 00 00` 取 UID     | ⬜ 沒測                                         |
+| `FF B0 00 04 10` 讀 NDEF 區 | ⬜ 沒測                                         |
+| `FF D6` 寫入                | ⬜ 沒測                                         |
+| 讀卡機相互認證是否已執行    | ⬜ 不清楚（腳本走的是卡片指令，不是讀卡機認證） |
+| Web Bluetooth 探測          | ⬜ 待做（見 §3.2）                              |
 
 ---
 
