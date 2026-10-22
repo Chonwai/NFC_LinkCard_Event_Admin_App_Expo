@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ACR1555U GATT 探測器（唯讀）</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        margin: 0;
+        padding: 16px;
+        line-height: 1.55;
+        max-width: 720px;
+        margin-inline: auto;
+      }
+      h1 {
+        font-size: 1.15rem;
+        margin: 0 0 4px;
+      }
+      .sub {
+        opacity: 0.7;
+        font-size: 0.85rem;
+        margin-bottom: 16px;
+      }
+      button {
+        font: inherit;
+        padding: 11px 16px;
+        border-radius: 10px;
+        border: 1px solid #8884;
+        background: #2563eb;
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+        margin-bottom: 8px;
+      }
+      button:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+      }
+      button.secondary {
+        background: transparent;
+        color: inherit;
+      }
+      #status {
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: #8881;
+        font-size: 0.9rem;
+        margin-bottom: 12px;
+      }
+      pre {
+        background: #0f172a;
+        color: #7dd3fc;
+        padding: 12px;
+        border-radius: 10px;
+        overflow-x: auto;
+        font-size: 12px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        word-break: break-all;
+        min-height: 180px;
+        margin: 0;
+      }
+      .note {
+        font-size: 0.82rem;
+        opacity: 0.8;
+        border-left: 3px solid #f59e0b;
+        padding-left: 10px;
+        margin: 12px 0;
+      }
+      .ok {
+        color: #16a34a;
+        font-weight: 700;
+      }
+      .bad {
+        color: #dc2626;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>ACR1555U · GATT 探測器（唯讀）</h1>
+    <div class="sub">
+      LinkCard NFC Gate 1 ｜
+      這個頁面<strong>只讀不寫</strong>：不改卡片、不做認證、不消耗錯誤額度。
+    </div>
+
+    <div id="status">狀態：尚未連線</div>
+
+    <button id="btnConnect">1. 搜尋並連線讀卡機</button>
+    <button id="btnEnumerate" class="secondary" disabled>
+      2. 列出所有 service 與 characteristic
+    </button>
+    <button id="btnReconnect" class="secondary" disabled>
+      3. 重新連線（測斷線復原）
+    </button>
+
+    <div class="note">
+      連線時 Chrome
+      會彈出裝置選擇視窗。若清單是空的：確認讀卡機藍燈<strong>閃爍</strong>（可被搜尋）、
+      平板藍牙與定位已開啟、且讀卡機沒被其他裝置佔住。
+    </div>
+
+    <pre id="log"></pre>
+
+    <script type="module">
+      // ---------------------------------------------------------------------------
+      // 已知的候選 UUID。ACR1555U 的 characteristic 由原廠手冊 Table 7 給定；
+      // service UUID 手冊沒有明列，所以這裡放候選值讓瀏覽器授權後逐一探測。
+      // 第 1 個是依 characteristic 命名規則推出來的候選（3970 對應 3971/2/3）。
+      // ---------------------------------------------------------------------------
+      const CANDIDATE_SERVICES = [
+        "00003970-817c-48df-8db2-476a8134ede0",
+        "00003971-817c-48df-8db2-476a8134ede0",
+        "00003972-817c-48df-8db2-476a8134ede0",
+        "00003973-817c-48df-8db2-476a8134ede0",
+        // 標準服務，用來確認裝置基本資訊與電量（手冊 Table 6 有列）
+        "battery_service",
+        "device_information",
+        "generic_access",
+      ];
+
+      // 手冊 Table 7 的 pipe 對照，用來標註我們看到的是哪一條。
+      const KNOWN = {
+        "00003971-817c-48df-8db2-476a8134ede0":
+          "Commands Request（配對端 → 讀卡機）",
+        "00003972-817c-48df-8db2-476a8134ede0":
+          "Commands Response（讀卡機 → 配對端）",
+        "00003973-817c-48df-8db2-476a8134ede0":
+          "Card Notification（讀卡機 → 配對端）",
+        "00002a19-0000-1000-8000-00805f9b34fb": "Battery Level",
+        "00002a24-0000-1000-8000-00805f9b34fb": "Model Number",
+        "00002a25-0000-1000-8000-00805f9b34fb": "Serial Number",
+        "00002a26-0000-1000-8000-00805f9b34fb": "Firmware Revision",
+        "00002a29-0000-1000-8000-00805f9b34fb": "Manufacturer Name",
+      };
+
+      const logEl = document.getElementById("log");
+      const statusEl = document.getElementById("status");
+      const btnConnect = document.getElementById("btnConnect");
+      const btnEnumerate = document.getElementById("btnEnumerate");
+      const btnReconnect = document.getElementById("btnReconnect");
+
+      let device = null;
+
+      function log(msg) {
+        logEl.textContent += msg + "\n";
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      function setStatus(html) {
+        statusEl.innerHTML = html;
+      }
+
+      function line(tag, text) {
+        return `${tag} ${text}`;
+      }
+
+      function propList(c) {
+        const p = c.properties;
+        const names = [];
+        if (p.read) names.push("read");
+        if (p.write) names.push("write");
+        if (p.writeWithoutResponse) names.push("writeNR");
+        if (p.notify) names.push("notify");
+        if (p.indicate) names.push("indicate");
+        if (p.broadcast) names.push("broadcast");
+        if (p.authenticatedSignedWrites) names.push("signedWrite");
+        return names.length ? names.join("|") : "none";
+      }
+
+      function requireBluetooth() {
+        if (!navigator.bluetooth) {
+          setStatus(
+            '<span class="bad">這個瀏覽器沒有 Web Bluetooth。</span>' +
+              " 需要 Chrome / Edge，且必須是 HTTPS 或 localhost。",
+          );
+          return false;
+        }
+        return true;
+      }
+
+      // ---------------------------------------------------------------------------
+      // 步驟 1：連線
+      // ---------------------------------------------------------------------------
+      btnConnect.addEventListener("click", async () => {
+        if (!requireBluetooth()) return;
+        btnConnect.disabled = true;
+        logEl.textContent = "";
+
+        try {
+          log("— 請求裝置 —");
+          device = await navigator.bluetooth.requestDevice({
+            // namePrefix 先試讀卡機常見的 "ACR" 命名；
+            // 若清單為空，改成 acceptAllDevices 即可看到全部裝置。
+            filters: [{ namePrefix: "ACR" }],
+            optionalServices: CANDIDATE_SERVICES,
+          });
+
+          log(line("✔ 已選擇", device.name || "(無名稱)"));
+          log(line("  id", device.id));
+
+          device.addEventListener("gattserverdisconnected", () => {
+            log(line("⚠", "GATT 已斷線"));
+            setStatus("狀態：已斷線（可按步驟 3 重連）");
+            btnReconnect.disabled = false;
+          });
+
+          log("— 連線中 —");
+          const server = await device.gatt.connect();
+          log(line("✔", `GATT connected=${server.connected}`));
+
+          setStatus(
+            '狀態：<span class="ok">已連線</span>，請按步驟 2 列出 service。',
+          );
+          btnEnumerate.disabled = false;
+        } catch (err) {
+          log(line("✘ 連線失敗", err.name + ": " + err.message));
+          setStatus(`狀態：<span class="bad">連線失敗</span> ${err.name}`);
+          btnConnect.disabled = false;
+        }
+      });
+
+      // ---------------------------------------------------------------------------
+      // 步驟 2：列出所有 service / characteristic（純讀取）
+      // ---------------------------------------------------------------------------
+      btnEnumerate.addEventListener("click", async () => {
+        if (!device?.gatt?.connected) {
+          log("✘ 尚未連線");
+          return;
+        }
+        btnEnumerate.disabled = true;
+
+        const server = device.gatt;
+        let found = 0;
+
+        log("");
+        log("================ GATT 探索開始 ================");
+
+        // 逐一探測候選 service。getPrimaryService() 只對「已被授權」的
+        // service 有效，所以用候選清單而不是「列出全部」。
+        for (const uuid of CANDIDATE_SERVICES) {
+          try {
+            const svc = await server.getPrimaryService(uuid);
+            found += 1;
+            log("");
+            log(`▸ SERVICE ${svc.uuid}`);
+
+            let chars = [];
+            try {
+              chars = await svc.getCharacteristics();
+            } catch (e) {
+              log(line("  ⚠", `getCharacteristics 失敗：${e.message}`));
+            }
+
+            if (chars.length === 0) {
+              log("  （沒有可存取的 characteristic）");
+            }
+
+            for (const c of chars) {
+              const known = KNOWN[c.uuid] ? `  ← ${KNOWN[c.uuid]}` : "";
+              log(`    • ${c.uuid}  [${propList(c)}]${known}`);
+            }
+          } catch (e) {
+            // NotFoundError = 這台裝置沒有這個 service，屬正常。
+            log(
+              line(
+                "  ·",
+                `${uuid} → ${e.name === "NotFoundError" ? "不存在" : e.name}`,
+              ),
+            );
+          }
+        }
+
+        log("================ GATT 探索結束 ================");
+        log("");
+        if (found === 0) {
+          log(
+            "⚠ 一個候選 service 都沒找到。可能原因：service UUID 與手冊不同、" +
+              "裝置未正確進入 BLE 模式，或 Chrome 未授權該 service。",
+          );
+        } else {
+          log(`✔ 找到 ${found} 個可存取的 service（見上方）。`);
+        }
+
+        // 讓操作者可以把結果複製出來貼到研究文件。
+        log("");
+        log("— 下一步 —");
+        log("把上面的 SERVICE / characteristic 清單複製保存，");
+        log(
+          "它會回答兩個開放問題：service UUID 實際值、以及哪條 pipe 支援 notify。",
+        );
+
+        btnEnumerate.disabled = false;
+        btnReconnect.disabled = !device;
+      });
+
+      // ---------------------------------------------------------------------------
+      // 步驟 3：重連（驗證斷線復原，對應 U3）
+      // ---------------------------------------------------------------------------
+      btnReconnect.addEventListener("click", async () => {
+        if (!device) return;
+        log("");
+        log("— 重新連線中 —");
+        try {
+          const server = await device.gatt.connect();
+          log(line("✔", `重連成功 connected=${server.connected}`));
+          setStatus('狀態：<span class="ok">已重連</span>');
+          btnEnumerate.disabled = false;
+        } catch (e) {
+          log(line("✘ 重連失敗", `${e.name}: ${e.message}`));
+          setStatus(
+            '狀態：<span class="bad">重連失敗</span>——記錄這個錯誤，它本身就是 U3 的答案',
+          );
+        }
+      });
+
+      log("就緒。此頁面不會寫入任何資料到讀卡機或卡片。");
+    </script>
+  </body>
+</html>
