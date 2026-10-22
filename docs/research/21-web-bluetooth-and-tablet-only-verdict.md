@@ -247,18 +247,46 @@ bMessageType(1) + wLength(4, Little Endian) + bSlot(1) + bSeq(1)
 ⇒ 對照 §3.2 F4：那份教學送的是 `E0 00 00 48 00` 五個裸 byte，
 **外層內層都沒有**，而且用錯了 `05h`/`0Ah` 那一組。
 
-### 5.3 認證流程（§5.1.7）
+### 5.3 認證流程（§5.2.6）
 
 ```
-1. 6Bh 訊框，Data = E0 00 00 45 00        ← SPH_to_RDR_ReqAuth
-2. 讀卡機回 83h，LEN = 00 15h，內含隨機挑戰碼  ← RDR_to_SPH_AuthRsp1
+1. 6Bh 訊框，abData = E0 00 00 73 00    ← SPH_to_RDR_ReqAuth
+   （wLength = 00000005h, bSlot = 00h, abRFU = 000000h）
+2. 讀卡機回 83h，dwLength = 00000015h，內含隨機挑戰碼
+                                          ← RDR_to_SPH_AuthRsp1
 3. 用 master key 做 AES-128-CBC 加密挑戰碼
-4. 6Bh 訊框送回密文                        ← SPH_to_RDR_AuthRsp
-5. 讀卡機回 83h                           ← RDR_to_SPH_AuthRsp2
-6. 讀卡機回 ACK；雙方各自產生 16-byte Session Key
+4. 6Bh 訊框送回密文                      ← SPH_to_RDR_AuthRsp
+5. 讀卡機回 83h                         ← RDR_to_SPH_AuthRsp2
+6. 雙方各自產生 16-byte Session Key；之後的訊框全部加密
 ```
 
-### 5.4 APDU 層（§6.2.4，這部分那份教學是對的）
+> ⚠️ **關鍵差異**：認證的 escape code 是 **`73h`**（ACR1555U），
+> 不是 `45h`（ACR1255U-J1）。我第一版寫 `45h`，依 1555U 手冊更正。
+
+### 5.4 NDEF 編碼（Appendix A）
+
+手冊 Appendix A 直接給了 NTAG 的 NDEF 編碼方式，這一點比 1255U-J1 手冊好：
+
+```
+NDEF Message = D1 01 0B 55 02 61 63 73 2E 63 6F 6D 2E 68 6B
+Encode to Ntag = 03 0F D1 01 0B 55 01 61 63 73 2E 63 6F 6D 2E 68 6B FE
+```
+
+| Offset | 內容                 | 說明                     |
+| ------ | -------------------- | ------------------------ |
+| 0      | `03`                 | TLV header：NDEF message |
+| 1      | `0F`                 | NDEF message 長度        |
+| 2..    | `D1 01 0B 55 xx ...` | NDEF 本體                |
+| 尾     | `FE`                 | TLV 結束                 |
+
+`D1` = TNF `01h` + `SR=1` + `MB=1` + `ME=1`；`55` = URI record；
+`01` = `http://www.`、`02` = `https://www.`、`04` = `https://`。
+
+> 🪤 **手冊自己有一個 typo 陷阱**：範例的 NDEF Message 用 `55 02`
+> （`https://www.`），但下一行 Encode to Ntag 卻用 `55 01`（`http://www.`）。
+> 兩者不一致。**我們自己的 URI prefix 請以實際網址為準，不要照抄手冊第二行。**
+
+### 5.5 APDU 層（§6.3，這部分那份教學是對的）
 
 | 操作     | APDU                            | 備註                                 |
 | -------- | ------------------------------- | ------------------------------------ |
@@ -271,19 +299,32 @@ characteristic。
 
 ---
 
-## 6. 還沒驗證、不要當定論（U 清單）
+## 6. 未驗證清單（U）
+
+### 6.1 ✅ 已結案（取得原廠 SDK 包後）
+
+| 代號 | 原本的疑問                            | 結論                                                                                             | 依據                                 |
+| ---- | ------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------ |
+| U1   | ACR1555U 的 UUID 是否與 1255U-J1 相同 | **完全不同。**1555U 用 `00003971/2/3-817C-48DF-8DB2-476A8134EDE0`；`3c4afff0` 系列是 1255U-J1 的 | `REF-ACR1555U-1.06-EN.pdf` Table 6/7 |
+| U2   | ACR1555U 的預設 master key            | **`41 43 52 31 35 35 35 55 2D 41 31 20 41 75 74 68`** = **`ACR1555U-A1 Auth`**                   | 同上 §5.2.5                          |
+| U4   | Android BLE EVK 是否有 NDEF 包裝 API  | **沒有。**只到 APDU 層；sample 內零 NDEF（唯一 `ndef` 命中是 `ERROR_UNDEFINED`）                 | `ACS_BT_EVK_Android-1.01`            |
+
+⇒ **U1 結案帶出一個更重要的結論**：那份流傳的教學不單是「細節錯」，
+它描述的是**另一台機器**。在 ACR1555U 上跑，第一步 `getPrimaryService()`
+就會失敗，連「送錯指令」都到不了。
+
+### 6.2 仍然開放
 
 | 代號 | 未驗證                                                                   | 怎麼驗                                                                   |
 | ---- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
-| U1   | **ACR1555U 的 Service UUID 是否與 ACR1255U-J1 完全相同**                 | 下載 ACR1555U 自己的 Reference Manual 對照 Table 4                       |
-| U2   | **ACR1555U 的預設 master key**                                           | 同上，查 §Authentication。**這是全文件最高風險的未知項**——錯六次鎖機     |
-| U3   | 平板（Redmi / Honor）的 Chrome 能否穩定完成 BLE 配對與斷線重連           | 跑官方 `BLETest-0.6.0.apk`                                               |
-| U4   | ACS Android BLE EVK 是否內建 NDEF 包裝 API，或只到 APDU 層               | 讀 EVK 的 AAR 與 sample                                                  |
+| U3   | 平板（Redmi / Honor）的 Chrome 能否穩定完成 BLE 配對與斷線重連           | 跑官方 `ACS_BT_EVK_Android-1.01/Demo App/BTDemo-1.0.1.apk`               |
 | U5   | 「不要先在 Android 系統設定手動配對」這個說法是否正確                    | 原廠通篇用 "paired device"，HID 模式明確需要 bonding。**存疑，傾向相反** |
 | U6   | Web Bluetooth 在平板上寫入 >20 bytes 時的分片行為                        | 寫一張完整的 NDEF URI 觀察                                               |
 | U7   | **`FF B0` / `FF D6` 在 NTAG213/215/216 上是否與 MIFARE Ultralight 一致** | 手冊只寫 Ultralight。拿一張 NTAG215 讀 Page 4、寫回、再讀回驗證          |
+| U8   | 手冊 checksum 描述寫「Frame Type」但表格列「Reserved」——哪個才對         | 用讀卡機實際回傳的訊框反推驗證                                           |
 
-> U1/U2 沒有確認之前，**不要對實體讀卡機做認證**（見 §4）。
+> ⚠️ U5 仍然重要：若真的需要在 Android 系統設定先配對才能用 Web Bluetooth，
+> 那它影響的是**操作流程**，不是協定正確性。跑 U3 時可以順便得到答案。
 
 ---
 
