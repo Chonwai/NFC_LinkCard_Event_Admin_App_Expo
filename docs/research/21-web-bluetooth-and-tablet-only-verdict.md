@@ -387,7 +387,27 @@ characteristic。
 | U5   | 「不要先在 Android 系統設定手動配對」這個說法是否正確                    | 原廠通篇用 "paired device"，HID 模式明確需要 bonding。**存疑，傾向相反**               |
 | U6   | Web Bluetooth 在平板上寫入 >20 bytes 時的分片行為                        | 寫一張完整的 NDEF URI 觀察                                                             |
 | U7   | **`FF B0` / `FF D6` 在 NTAG213/215/216 上是否與 MIFARE Ultralight 一致** | **已從三條證據推得高信度（見下）**，但最後仍要實測：拿 NTAG215 讀 Page 4、寫回、再讀回 |
-| U8   | 手冊 checksum 描述寫「Frame Type」但表格列「Reserved」——哪個才對         | 用讀卡機實際回傳的訊框反推驗證                                                         |
+
+> **U8 已結案（2026-10-23，實機捕獲）。** 外框 `Len` 欄位是 **big-endian**。
+> 決定性證據是一條 19 bytes 的回應訊框：
+>
+> ```
+> 55 00 00 0A 00 00 00 | 53 00 00 00 00 00 00 02 07 00 | 5C | AA
+>          ↑↑↑↑                     ↑ datablock 10 bytes
+>         00 0A = 10（BE）
+> ```
+>
+> 兩個獨立事實同時成立才足以定案：（a）`00 0A` 只有讀成 10 才等於後方 datablock 的實際長度；
+> 讀成 little-endian 會變成 2560，於是解析器永遠認為「還沒收完」而逾時。
+> （b）`0x5C` 恰好等於 offset 1..16 的 XOR，而 XOR 與位元組序無關——所以 checksum 對得上
+> **不能**證明位元組序，只能證明我們切出的欄位邊界正確。兩者合用才是完整證明。
+>
+> 修正方式：`lib/nfc/protocol.ts` 的 `buildFrame` / `parseFrame` / `tryParseFrame` 預設改為 `'be'`，
+> 並把這兩條實機訊框固化成回歸測試。
+>
+> 同時解開的疑問：手冊說 checksum 範圍寫「Frame Type」但表格列「Reserved」——實測顯示
+> checksum 涵蓋 offset 1 起（即 `Slot`）到 datablock 結尾，**不包含** start byte 與 stop byte，
+> 與表格一致、與「Frame Type」那句描述不一致。
 
 #### U7 的補充：NTAG 相容性已有三條間接證據
 
