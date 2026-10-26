@@ -38,6 +38,16 @@ const PARTS = {
 const esc = (s) =>
   String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+/**
+ * Manifest prose carries a little Markdown: **bold** for emphasis and `code`
+ * for paths. Escape first, then promote those two markers, so nothing in the
+ * text can ever reach the document as live markup.
+ */
+const rich = (s) =>
+  esc(s)
+    .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
+
 /** Bilingual labels, chosen once so the two documents cannot fall out of step. */
 const T = {
   zh: {
@@ -209,6 +219,37 @@ function buildHtml(lang) {
   );
   body.push(`</section>`);
 
+  // Which route? Phone app or laptop desk. Same prose, same order and same
+  // headers as render-journeys.mjs, because both documents are built from this
+  // one manifest: a reader holding the PDF must not get a shorter answer than
+  // a reader holding the .md. Prose only — no steps and no screenshots, since
+  // both routes already document themselves (Part 5 for the phone, the separate
+  // web handbook for the laptop) and a screenshot of the route you did not take
+  // only adds noise.
+  if (manifest.deskChoice) {
+    const dc = manifest.deskChoice;
+    const heads = lang === "zh" ? dc.tableHeadZh : dc.tableHeadEn;
+    body.push(`<section class="deskchoice">`);
+    body.push(`<h2>${esc(L(dc.headingZh, dc.headingEn))}</h2>`);
+    body.push(`<p>${rich(L(dc.introZh, dc.introEn))}</p>`);
+    body.push(`<p class="rule">${rich(L(dc.ruleZh, dc.ruleEn))}</p>`);
+    body.push(`<table class="routetable">`);
+    body.push(`<thead><tr>`);
+    for (const head of heads) body.push(`<th>${esc(head)}</th>`);
+    body.push(`</tr></thead><tbody>`);
+    for (const row of dc.rows) {
+      body.push(
+        `<tr><td>${rich(L(row.haveZh, row.haveEn))}</td>` +
+          `<td>${rich(L(row.routeZh, row.routeEn))}</td>` +
+          `<td>${rich(L(row.whyZh, row.whyEn))}</td></tr>`,
+      );
+    }
+    body.push(`</tbody></table>`);
+    body.push(`<p class="note">${rich(L(dc.clearZh, dc.clearEn))}</p>`);
+    body.push(`<p>${rich(L(dc.pointerZh, dc.pointerEn))}</p>`);
+    body.push(`</section>`);
+  }
+
   body.push(`<section class="toc">`);
   body.push(`<h2>${t.contents}</h2>`);
   body.push(`<table class="toc-table"><tbody>`);
@@ -292,6 +333,26 @@ function buildHtml(lang) {
   .front h2:first-child { margin-top: 0; }
   .front ul { margin: 0 0 2mm; padding-left: 5mm; }
   .front li { margin-bottom: 1.5mm; }
+
+  .deskchoice { page-break-after: always; }
+  .deskchoice h2 {
+    font-size: 15pt; color: #6d28d9; margin: 0 0 4mm;
+    border-bottom: 1px solid #e5e7eb; padding-bottom: 2mm;
+  }
+  .deskchoice .rule { font-size: 11.5pt; font-weight: 600; margin: 4mm 0; }
+  .deskchoice .routetable { width: 100%; border-collapse: collapse; margin: 0 0 4mm; }
+  .deskchoice .routetable th {
+    text-align: left; font-weight: 700; color: #4b5563;
+    padding: 1.8mm 2mm; border-bottom: 1.5px solid #d1d5db;
+  }
+  .deskchoice .routetable td {
+    padding: 1.8mm 2mm; border-bottom: 1px solid #f0f0f2; vertical-align: top;
+  }
+  .deskchoice .routetable td:first-child { width: 44mm; }
+  /* The only code spans here are repository paths. Breaking one mid-token
+     across three lines makes it unreadable and un-copyable, so keep it whole
+     and let it wrap as a single unit. */
+  .deskchoice code { white-space: nowrap; }
 
   .toc-table { width: 100%; border-collapse: collapse; }
   .toc-table td { padding: 1.6mm 2mm; border-bottom: 1px solid #f0f0f2; vertical-align: top; }
