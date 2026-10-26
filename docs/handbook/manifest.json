@@ -30,6 +30,46 @@
       "descEn": "Trusted to check people in and work the NFC desk, but cannot read the full roster."
     }
   },
+  "deskChoice": {
+    "headingZh": "該用手機 App，還是用筆電簽到台？",
+    "headingEn": "The phone app, or the laptop check-in desk?",
+    "introZh": "這個 App 的 NFC 寫卡**沒有**被取代：它仍然有效，仍然可以發卡。新增的「Web 簽到台」是**第二條**路，不是替代品。從現在起現場同時有兩條路，選錯就是白排一次隊。",
+    "introEn": "This app's NFC writing has **not** been retired: it still works and still issues cards. The new \"Web check-in desk\" is a **second** route, not a replacement. From now on both routes exist on site at the same time, and picking the wrong one costs you a queue.",
+    "ruleZh": "**一句話決策準則：** 手上有筆電和讀卡機，就用筆電簽到台；只有手機，就用這個 App。",
+    "ruleEn": "**The rule in one line:** if you have a laptop and a reader, use the laptop check-in desk; if you have only a phone, use this app.",
+    "tableHeadZh": ["你手上有什麼", "走哪一條路", "差別"],
+    "tableHeadEn": ["What you have", "Which route", "The difference"],
+    "clearZh": "**同一張卡不要兩邊都寫。** 一邊綁好就定案；兩邊都試，會變成一邊成功、另一邊回報這張卡已經有主人。",
+    "clearEn": "**Never write the same card from both routes.** Once one side has bound it, that is final; if you try both, one side succeeds and the other reports that the card already belongs to someone.",
+    "pointerZh": "筆電路線的完整操作（班前連讀卡機、六種讀卡機狀態、九條失敗分支、卡寫好但沒登記的黃態、以及「不要做什麼」）寫在另一本：**《Web 簽到台 — 現場操作手冊》**（`LinkCard_Frontend/docs/handbook/web-checkin-desk-zh.md`）。這一本不重複它的內容；兩本不要混著用。",
+    "pointerEn": "The full laptop procedure (connecting the reader before the doors open, the six reader states, the nine failure branches, the yellow \"written but not registered\" case, and the list of things not to do) lives in a separate book: **\"Web check-in desk — on-site operating manual\"** (`LinkCard_Frontend/docs/handbook/web-checkin-desk-zh.md`, in Chinese). This book does not repeat it; do not mix the two.",
+    "rows": [
+      {
+        "haveZh": "筆電 ＋ ACR1555U 讀卡機 ＋ Chrome 或 Edge",
+        "haveEn": "Laptop + an ACR1555U reader + Chrome or Edge",
+        "routeZh": "**Web 簽到台**（筆電）",
+        "routeEn": "**Web check-in desk** (laptop)",
+        "whyZh": "掃 QR 後按「寫入這張卡」，系統自動組出卡片網址、自動綁定、自動讀回驗證",
+        "whyEn": "Scan the QR, press \"Write this card\"; the system builds the card URL, binds it and reads it back to verify"
+      },
+      {
+        "haveZh": "只有手機（iPhone 或 Android），沒有讀卡機",
+        "haveEn": "Only a phone (iPhone or Android), no reader",
+        "routeZh": "**這個 App**（手機 NFC，第五部分 E1～E2）",
+        "routeEn": "**This app** (phone NFC, Part 5, E1–E2)",
+        "whyZh": "手機自己就是讀卡機，不需要外接設備",
+        "whyEn": "The phone is the reader; no extra hardware is involved"
+      },
+      {
+        "haveZh": "iPad、Android 平板、Safari、Firefox",
+        "haveEn": "iPad, an Android tablet, Safari, Firefox",
+        "routeZh": "**兩條都不能用**",
+        "routeEn": "**Neither route works**",
+        "whyZh": "網頁版需要 Web Bluetooth，這些裝置與瀏覽器都沒有；請改用上面任一條可用的路線",
+        "whyEn": "The web route needs Web Bluetooth, which none of these provide; switch to one of the routes above"
+      }
+    ]
+  },
   "journeys": [
     {
       "id": "A1",

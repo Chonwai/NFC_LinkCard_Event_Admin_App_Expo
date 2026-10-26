@@ -11,6 +11,22 @@
 - **Organiser**：Owns the event. Can read the roster, settings and every door tool.
 - **Door staff**：Trusted to check people in and work the NFC desk, but cannot read the full roster.
 
+## The phone app, or the laptop check-in desk?
+
+This app's NFC writing has **not** been retired: it still works and still issues cards. The new "Web check-in desk" is a **second** route, not a replacement. From now on both routes exist on site at the same time, and picking the wrong one costs you a queue.
+
+**The rule in one line:** if you have a laptop and a reader, use the laptop check-in desk; if you have only a phone, use this app.
+
+| What you have | Which route | The difference |
+| --- | --- | --- |
+| Laptop + an ACR1555U reader + Chrome or Edge | **Web check-in desk** (laptop) | Scan the QR, press "Write this card"; the system builds the card URL, binds it and reads it back to verify |
+| Only a phone (iPhone or Android), no reader | **This app** (phone NFC, Part 5, E1–E2) | The phone is the reader; no extra hardware is involved |
+| iPad, an Android tablet, Safari, Firefox | **Neither route works** | The web route needs Web Bluetooth, which none of these provide; switch to one of the routes above |
+
+**Never write the same card from both routes.** Once one side has bound it, that is final; if you try both, one side succeeds and the other reports that the card already belongs to someone.
+
+The full laptop procedure (connecting the reader before the doors open, the six reader states, the nine failure branches, the yellow "written but not registered" case, and the list of things not to do) lives in a separate book: **"Web check-in desk — on-site operating manual"** (`LinkCard_Frontend/docs/handbook/web-checkin-desk-zh.md`, in Chinese). This book does not repeat it; do not mix the two.
+
 ## Journey index
 
 | ID | Journey | Who | Steps |

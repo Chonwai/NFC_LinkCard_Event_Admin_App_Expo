@@ -122,6 +122,29 @@ function renderDocument(lang) {
   }
   out.push("");
 
+  // Which route? Phone app or laptop desk. Prose only: it deliberately has no
+  // steps and no screenshots, because both routes already document themselves
+  // (Part 5 for the phone, the separate web handbook for the laptop) and a
+  // screenshot of a route you are not taking only adds noise.
+  if (manifest.deskChoice) {
+    const dc = manifest.deskChoice;
+    out.push(`## ${L(dc.headingZh, dc.headingEn)}`, "");
+    out.push(L(dc.introZh, dc.introEn), "");
+    out.push(L(dc.ruleZh, dc.ruleEn), "");
+    out.push(
+      `| ${(lang === "zh" ? dc.tableHeadZh : dc.tableHeadEn).join(" | ")} |`,
+    );
+    out.push(`| --- | --- | --- |`);
+    for (const row of dc.rows) {
+      out.push(
+        `| ${L(row.haveZh, row.haveEn)} | ${L(row.routeZh, row.routeEn)} | ${L(row.whyZh, row.whyEn)} |`,
+      );
+    }
+    out.push("");
+    out.push(L(dc.clearZh, dc.clearEn), "");
+    out.push(L(dc.pointerZh, dc.pointerEn), "");
+  }
+
   out.push(lang === "zh" ? "## 旅程一覽" : "## Journey index", "");
   out.push(
     `| ${L("編號", "ID")} | ${L("旅程", "Journey")} | ${L("誰做", "Who")} | ${L("步驟", "Steps")} |`,
