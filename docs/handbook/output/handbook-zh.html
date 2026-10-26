@@ -24,6 +24,26 @@
   .front ul { margin: 0 0 2mm; padding-left: 5mm; }
   .front li { margin-bottom: 1.5mm; }
 
+  .deskchoice { page-break-after: always; }
+  .deskchoice h2 {
+    font-size: 15pt; color: #6d28d9; margin: 0 0 4mm;
+    border-bottom: 1px solid #e5e7eb; padding-bottom: 2mm;
+  }
+  .deskchoice .rule { font-size: 11.5pt; font-weight: 600; margin: 4mm 0; }
+  .deskchoice .routetable { width: 100%; border-collapse: collapse; margin: 0 0 4mm; }
+  .deskchoice .routetable th {
+    text-align: left; font-weight: 700; color: #4b5563;
+    padding: 1.8mm 2mm; border-bottom: 1.5px solid #d1d5db;
+  }
+  .deskchoice .routetable td {
+    padding: 1.8mm 2mm; border-bottom: 1px solid #f0f0f2; vertical-align: top;
+  }
+  .deskchoice .routetable td:first-child { width: 44mm; }
+  /* The only code spans here are repository paths. Breaking one mid-token
+     across three lines makes it unreadable and un-copyable, so keep it whole
+     and let it wrap as a single unit. */
+  .deskchoice code { white-space: nowrap; }
+
   .toc-table { width: 100%; border-collapse: collapse; }
   .toc-table td { padding: 1.6mm 2mm; border-bottom: 1px solid #f0f0f2; vertical-align: top; }
   .toc-table .part td { border: 0; padding-top: 5mm; font-weight: 700; color: #6d28d9; }
@@ -102,6 +122,23 @@
 </ul>
 <h2>這些畫面怎麼來的</h2>
 <p class="note">畫面以手機尺寸的瀏覽器視窗擷取（390 × 844，2 倍解析度）。相機與 NFC 屬於手機硬體，瀏覽器沒有，因此這兩個功能的相關畫面會顯示 App 自己的提示文字。</p>
+</section>
+<section class="deskchoice">
+<h2>該用手機 App，還是用筆電簽到台？</h2>
+<p>這個 App 的 NFC 寫卡<b>沒有</b>被取代：它仍然有效，仍然可以發卡。新增的「Web 簽到台」是<b>第二條</b>路，不是替代品。從現在起現場同時有兩條路，選錯就是白排一次隊。</p>
+<p class="rule"><b>一句話決策準則：</b> 手上有筆電和讀卡機，就用筆電簽到台；只有手機，就用這個 App。</p>
+<table class="routetable">
+<thead><tr>
+<th>你手上有什麼</th>
+<th>走哪一條路</th>
+<th>差別</th>
+</tr></thead><tbody>
+<tr><td>筆電 ＋ ACR1555U 讀卡機 ＋ Chrome 或 Edge</td><td><b>Web 簽到台</b>（筆電）</td><td>掃 QR 後按「寫入這張卡」，系統自動組出卡片網址、自動綁定、自動讀回驗證</td></tr>
+<tr><td>只有手機（iPhone 或 Android），沒有讀卡機</td><td><b>這個 App</b>（手機 NFC，第五部分 E1～E2）</td><td>手機自己就是讀卡機，不需要外接設備</td></tr>
+<tr><td>iPad、Android 平板、Safari、Firefox</td><td><b>兩條都不能用</b></td><td>網頁版需要 Web Bluetooth，這些裝置與瀏覽器都沒有；請改用上面任一條可用的路線</td></tr>
+</tbody></table>
+<p class="note"><b>同一張卡不要兩邊都寫。</b> 一邊綁好就定案；兩邊都試，會變成一邊成功、另一邊回報這張卡已經有主人。</p>
+<p>筆電路線的完整操作（班前連讀卡機、六種讀卡機狀態、九條失敗分支、卡寫好但沒登記的黃態、以及「不要做什麼」）寫在另一本：<b>《Web 簽到台 — 現場操作手冊》</b>（<code>LinkCard_Frontend/docs/handbook/web-checkin-desk-zh.md</code>）。這一本不重複它的內容；兩本不要混著用。</p>
 </section>
 <section class="toc">
 <h2>目錄</h2>

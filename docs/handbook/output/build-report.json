@@ -1,17 +1,17 @@
 {
-  "builtAt": "2026-10-15T20:45:56.199Z",
+  "builtAt": "2026-10-26T21:44:45.579Z",
   "results": [
     {
       "lang": "zh",
       "html": "/Users/chonwai/Desktop/Self/Lab/LinkCard/LinkCard_Event_Admin_App_Expo/docs/handbook/output/handbook-zh.html",
       "pdf": "/Users/chonwai/Desktop/Self/Lab/LinkCard/LinkCard_Event_Admin_App_Expo/docs/handbook/output/handbook-zh.pdf",
-      "bytes": 5201360
+      "bytes": 5302318
     },
     {
       "lang": "en",
       "html": "/Users/chonwai/Desktop/Self/Lab/LinkCard/LinkCard_Event_Admin_App_Expo/docs/handbook/output/handbook-en.html",
       "pdf": "/Users/chonwai/Desktop/Self/Lab/LinkCard/LinkCard_Event_Admin_App_Expo/docs/handbook/output/handbook-en.pdf",
-      "bytes": 4135234
+      "bytes": 4152234
     }
   ]
 }

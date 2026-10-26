@@ -24,6 +24,26 @@
   .front ul { margin: 0 0 2mm; padding-left: 5mm; }
   .front li { margin-bottom: 1.5mm; }
 
+  .deskchoice { page-break-after: always; }
+  .deskchoice h2 {
+    font-size: 15pt; color: #6d28d9; margin: 0 0 4mm;
+    border-bottom: 1px solid #e5e7eb; padding-bottom: 2mm;
+  }
+  .deskchoice .rule { font-size: 11.5pt; font-weight: 600; margin: 4mm 0; }
+  .deskchoice .routetable { width: 100%; border-collapse: collapse; margin: 0 0 4mm; }
+  .deskchoice .routetable th {
+    text-align: left; font-weight: 700; color: #4b5563;
+    padding: 1.8mm 2mm; border-bottom: 1.5px solid #d1d5db;
+  }
+  .deskchoice .routetable td {
+    padding: 1.8mm 2mm; border-bottom: 1px solid #f0f0f2; vertical-align: top;
+  }
+  .deskchoice .routetable td:first-child { width: 44mm; }
+  /* The only code spans here are repository paths. Breaking one mid-token
+     across three lines makes it unreadable and un-copyable, so keep it whole
+     and let it wrap as a single unit. */
+  .deskchoice code { white-space: nowrap; }
+
   .toc-table { width: 100%; border-collapse: collapse; }
   .toc-table td { padding: 1.6mm 2mm; border-bottom: 1px solid #f0f0f2; vertical-align: top; }
   .toc-table .part td { border: 0; padding-top: 5mm; font-weight: 700; color: #6d28d9; }
@@ -102,6 +122,23 @@
 </ul>
 <h2>How these screens were captured</h2>
 <p class="note">Screens were captured in a phone-sized browser window (390 x 844 at 2x). Camera and NFC are phone hardware, so the app's own notices appear on those screens instead of a live view.</p>
+</section>
+<section class="deskchoice">
+<h2>The phone app, or the laptop check-in desk?</h2>
+<p>This app's NFC writing has <b>not</b> been retired: it still works and still issues cards. The new "Web check-in desk" is a <b>second</b> route, not a replacement. From now on both routes exist on site at the same time, and picking the wrong one costs you a queue.</p>
+<p class="rule"><b>The rule in one line:</b> if you have a laptop and a reader, use the laptop check-in desk; if you have only a phone, use this app.</p>
+<table class="routetable">
+<thead><tr>
+<th>What you have</th>
+<th>Which route</th>
+<th>The difference</th>
+</tr></thead><tbody>
+<tr><td>Laptop + an ACR1555U reader + Chrome or Edge</td><td><b>Web check-in desk</b> (laptop)</td><td>Scan the QR, press "Write this card"; the system builds the card URL, binds it and reads it back to verify</td></tr>
+<tr><td>Only a phone (iPhone or Android), no reader</td><td><b>This app</b> (phone NFC, Part 5, E1–E2)</td><td>The phone is the reader; no extra hardware is involved</td></tr>
+<tr><td>iPad, an Android tablet, Safari, Firefox</td><td><b>Neither route works</b></td><td>The web route needs Web Bluetooth, which none of these provide; switch to one of the routes above</td></tr>
+</tbody></table>
+<p class="note"><b>Never write the same card from both routes.</b> Once one side has bound it, that is final; if you try both, one side succeeds and the other reports that the card already belongs to someone.</p>
+<p>The full laptop procedure (connecting the reader before the doors open, the six reader states, the nine failure branches, the yellow "written but not registered" case, and the list of things not to do) lives in a separate book: <b>"Web check-in desk — on-site operating manual"</b> (<code>LinkCard_Frontend/docs/handbook/web-checkin-desk-zh.md</code>, in Chinese). This book does not repeat it; do not mix the two.</p>
 </section>
 <section class="toc">
 <h2>Contents</h2>
