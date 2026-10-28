@@ -344,7 +344,7 @@
       "severity": "P1",
       "owner": "none-needed",
       "size": "S",
-      "status": "open",
+      "status": "ready-to-implement",
       "fixedOn": []
     },
     {

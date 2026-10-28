@@ -220,31 +220,38 @@ Cvent、zkipster、Swapcard、Bizzabo 六個產品都找不到對應物，是自
    活在 `audit/parity-20261022` 上，見 §5.1 閘門表的「把 `check:contract` 接進 CI」
    那一列與 `06 §6.6` 第 5 列。這一條要等它真的進 `main` 才驗得動；在那之前，「綠」
    指的是 `check:parity` 那一半。）
-2. **決策的**：**P0／P1 的缺口沒有一個懸空。** 懸空有兩種 `status`：`open`（沒人
-   認領）與 `decision-needed`（等人回答）。** 「選 A、明確不做」是合格答案，但答案
-   必須反映在登記表的 `status` 上——不能還是 `open` 或 `decision-needed`。
-   ** 只看 `decision-needed` 不夠：G-0（P0）與 G-7（P1）是 `open`，舊判準會在它們
-   懸空時回報「完成」。登記表目前實際用到三種值：`open`、`decision-needed`、
-   `fixed-on-branch`（`scripts/check-parity-registry.mjs` 只檢查這個欄位存不存在，
-   不管值）；要新增「明確不做」這種第四個值，判定與說明要一起改，不能只寫在會議
-   紀錄裡。
+2. **決策的**：**P0／P1 的缺口沒有一個懸空。** 這一條問的是「有沒有人欠一個決定」，
+   不是「有沒有做完」；判準用**允許清單**，只有兩種 `status` 算已處置：
+   `fixed-on-branch`（已修，驗證器另外要求 `fixedOn` 非空）與 `ready-to-implement`
+   （已判定、非決策題、待實作）。其餘任何值——`open`（沒人認領）、`decision-needed`
+   （等人回答），以及日後新增的值——一律算懸空。用允許清單而不是排除清單，是為了讓
+   新值預設落在「未處置」這一側，不會因為沒人更新判準就靜默變成「完成」。
+   ** 「選 A、明確不做」是合格答案，但答案必須反映在登記表的 `status` 上。
+   G-0（P0）與 G-7（P1）是 `open`，只看 `decision-needed` 的舊判準會在它們懸空時
+   回報「完成」。登記表目前用到四種值：`open`、`decision-needed`、`fixed-on-branch`、
+   `ready-to-implement`（`scripts/check-parity-registry.mjs` 只檢查這個欄位存不存在、
+   不管值，所以新增值不必改驗證器，但判定與說明要一起改，不能只寫在會議紀錄裡）。
+   第四個值是為 G-10 加的：它是缺陷、`owner` 是 `none-needed`（無爭議）、但還沒修，
+   用 `open` 會讓它長期被算成「等人認領」，而實際上沒有任何決定可做。
 
-第 2 條可以重跑，不必憑印象（`exit 1` 表示還有懸空項，可以直接進 CI）：
+第 2 條可以重跑，不必憑印象（`exit 1` 表示還有未處置項，可以直接進 CI）：
 
 ```
-node -e "const r=require('./parity/parity-registry.json');const f=r.gaps.filter(g=>(g.status==='decision-needed'||g.status==='open')&&['P0','P1'].includes(g.severity));if(f.length){console.log('✗ 仍有 P0/P1 懸空（open 或 decision-needed）：');f.forEach(g=>console.log('  '+g.id+'  '+g.severity+'  '+g.status));process.exitCode=1}else{console.log('✓ P0/P1 沒有懸空的缺口（open 與 decision-needed 皆空）')}"
+node -e "const r=require('./parity/parity-registry.json');const settled=['fixed-on-branch','ready-to-implement'];const f=r.gaps.filter(g=>['P0','P1'].includes(g.severity)&&!settled.includes(g.status));if(f.length){console.log('✗ 仍有 P0/P1 未處置（既非 fixed-on-branch 也非 ready-to-implement）：');f.forEach(g=>console.log('  '+g.id+'  '+g.severity+'  '+g.status));process.exitCode=1}else{console.log('✓ 所有 P0/P1 缺口都已處置（已修或已判定待實作）')}"
 ```
 
-`fa111a7` 上跑出來是紅的，也就是「還沒完成」：
+本次修正後的登記表跑出來（G-10 已不在清單裡）：
 
 ```
-✗ 仍有 P0/P1 懸空（open 或 decision-needed）：
+✗ 仍有 P0/P1 未處置（既非 fixed-on-branch 也非 ready-to-implement）：
   G-0  P0  open
   G-6  P1  decision-needed
   G-7  P1  open
   G-8  P1  decision-needed
-  G-10 P1  open
 ```
+
+在 G-10 還是 `open` 的座標上（`fa111a7`）會多一行 `G-10 P1 open`——那正是這條判準
+原本把一件沒有爭議的事算成「懸空」的地方。
 
 這條命令只讀 `parity/parity-registry.json`，不依賴 Web 或後端 repo。
 
