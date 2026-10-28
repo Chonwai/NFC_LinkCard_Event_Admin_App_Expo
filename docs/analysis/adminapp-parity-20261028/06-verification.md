@@ -158,6 +158,21 @@ node --test tests/parity-citations.test.mjs
    不敏感；絕對值則仍然依賴產生器。
 3. **產業對照沿用上一輪的六家研究，未重跑。**
 4. **`manage-stats` 的回應形狀未實際呼叫。** 形狀取自 controller 與 service 原始碼。
+5. **引用閘門驗不出語意漂移。** `tests/parity-citations.test.mjs:211-224` 只做兩件
+   事：`resolved.status === "missing"` 時報「引用不存在的檔案」，以及
+   `from > total || to > total` 時報「行號超出檔案長度」。**它不讀那一行的內容。**
+
+   這個邊界在本輪被實證過。`LinkCard_Frontend@app/check-in/[eventId]/page.tsx:90`
+   一度被用來指「卡片密碼來源」；今天那一行是 bind 的 409 家族註解（`sed -n '90p'`
+   可看到「這位已經有卡」那段），真正的來源在 `:19`
+   （`} from '@/lib/checkin/cardPassword';`）。檔案存在、`90 ≤ 967`（該檔全長）⇒
+   閘門 `problems=0`、全綠。**它抓到的是「引用壞掉」，不是「引用漂移」。**
+
+   所以本批文件的引用正確性有兩層：機械層只保證「指得到東西」，
+   「指到的是不是那個東西」仍然要靠人讀。這一條也是 `README.md`
+   「會自己檢查自己的三個測試」與 `05-alignment-plan.md` §5.1、
+   `08-cto-review-20261029.md` §8.5 三處同時改寫的理由——先前那些句子把
+   「擋得住壞掉」講成了「擋得住漂移」。
 
 ## 6.5 本輪自己犯的錯
 
