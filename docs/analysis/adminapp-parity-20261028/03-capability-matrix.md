@@ -59,13 +59,35 @@ const [totalRes, checkedInRes] = await Promise.all([
 
 ## 3.3 四個 `APP_GAP`
 
-### G-A Badges：App 只有「看」，Web 有「產」
+### G-A Badges：App 能綁能換卡，缺的是發卡批次鏈
 
 Web `badges/page.tsx` 匯入五個函式（`grep` 可重跑）：
 `listNfcBadges`、`createNfcBatch`、`claimNfcBadge`、`completeNfcBatch`、
 `exportNfcBadges`。
 
-App 只呼叫 `listBadges` 與 `lookup`（`LinkCard_Event_Admin_App_Expo@src/services/nfc.service.ts:23-57`）。
+App 端的 `nfcService` 要看**全檔**，不能看片段（`wc -l` = 98 行）。四個方法、讀寫
+各半：
+
+| 方法             | 行  | HTTP | 路由                               |
+| ---------------- | --- | ---- | ---------------------------------- |
+| `lookup`         | :23 | GET  | `/v1/events/:eventId/nfc/lookup`   |
+| `listBadges`     | :37 | GET  | `/v1/events/:eventId/nfc/badges`   |
+| `bind`           | :60 | POST | `/v1/events/:eventId/nfc/bind`     |
+| `recordExchange` | :84 | POST | `/v1/events/:eventId/nfc/exchange` |
+
+**App 不是只有讀。** 寫入的兩條路都在，而且都已接線到畫面：
+`nfc-bind.tsx:254` 呼叫 `nfcService.bind(...)`，
+`nfc-exchange.tsx:135` 呼叫 `nfcService.recordExchange(...)`。
+
+上一版這裡寫「App 只呼叫 `listBadges` 與 `lookup`（`nfc.service.ts:23-57`）」。那個
+引用窗剛好停在 `bind`（`:60`）之前，於是讀出「App 只有讀」的假前提——**引用窗比被
+描述的檔案短，缺掉的部分就會被當成不存在**。已於 2026-10-29 改為全檔引用。
+
+所以 G-A 的缺口不是「沒有寫入能力」，而是 **batch lifecycle**：
+`createNfcBatch`、`claimNfcBadge`、`completeNfcBatch`、`exportNfcBadges` 在
+`src/` 內零命中（`grep -rn`），也就是「發卡／認領／回填／匯出」這條鏈沒有 API
+包裝。判定維持 `APP_GAP`
+（`LinkCard_Event_Admin_App_Expo@parity/parity-registry.json:95`），只換理由。
 
 | 能力                       | Web | App | 後端 | App 缺什麼     |
 | -------------------------- | --- | --- | ---- | -------------- |
