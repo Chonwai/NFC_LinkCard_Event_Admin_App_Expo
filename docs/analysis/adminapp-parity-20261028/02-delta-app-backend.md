@@ -41,10 +41,13 @@ node scripts/check-backend-contract.mjs
 exit=1
 ```
 
-那個 `:47` 是閘門自己的定位，**不是**呼叫點的行號。實際呼叫在
-`LinkCard_Event_Admin_App_Expo@src/services/registration.service.ts:50`
-（`apiClient.post<…>(` 跨行時，閘門的行數計算少算了 3 行）。
-引用時請用 grep 得到的行號；這一點由獨立複核發現（`06-verification.md` §6.2 的 A4）。
+那個 `:47` 是閘門回報的**呼叫表達式起始行**（該行是
+`const res = await apiClient.post<`），不是「算錯」。URL 字面在
+`LinkCard_Event_Admin_App_Expo@src/services/registration.service.ts:50`——泛型與
+參數跨了 3 行，所以字面落在第 50 行（`sed -n '44,52p'` 可直接看到）。
+
+引用慣例：指「這條呼叫」用 `:47`；指「哪條路由／哪個 URL」用 `:50`。兩者都對，
+只是指的東西不同。這一點由獨立複核發現（`06-verification.md` §6.2 的 A4）。
 
 也就是說：除了那一條死路，其餘 14 個呼叫在後端都存在。上一輪的 P0 診斷是對的，
 但它沒有生效，因為修它的 commit 停在那條分支上。
