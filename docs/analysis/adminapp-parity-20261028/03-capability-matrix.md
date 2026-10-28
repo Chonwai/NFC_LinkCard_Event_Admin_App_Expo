@@ -9,6 +9,7 @@
 
 | #   | Web 模組       | 路徑                          | App 對應                           | 判定                |
 | --- | -------------- | ----------------------------- | ---------------------------------- | ------------------- |
+| —   | 活動清單       | `/manage/events`              | `home.tsx`                         | `ALIGNED`           |
 | 1   | Overview       | `/manage/:eventId`            | `overview.tsx`                     | `ALIGNED_DEFECT`    |
 | 2   | Profile        | `…/profile`                   | —                                  | `BY_DESIGN`         |
 | 3   | Content        | `…/content`                   | —                                  | `BY_DESIGN`         |
@@ -24,7 +25,10 @@
 | 13  | Settings       | `…/settings`                  | `settings.tsx`（App 偏好，非活動） | `BY_DESIGN`         |
 | —   | NFC 診斷台     | `/nfc`                        | —                                  | `WEB_ONLY_INTERNAL` |
 
-統計：`BY_DESIGN` 8、`APP_GAP` 4、`ALIGNED_DEFECT` 1、`WEB_ONLY_INTERNAL` 1。
+統計：`ALIGNED` 1（活動清單）、`ALIGNED_DEFECT` 1、`APP_GAP` 4、`BY_DESIGN` 8、
+`WEB_ONLY_INTERNAL` 1，共 15 項，與 `parity/parity-registry.json` 逐項對應。
+
+13 個活動內模組的分佈是：8 個 `BY_DESIGN`、4 個 `APP_GAP`、1 個 `ALIGNED_DEFECT`。
 
 `BY_DESIGN` 的每一項都必須有一句可反駁的理由，見 §3.6。理由是判定的主體，
 表格只是索引。
