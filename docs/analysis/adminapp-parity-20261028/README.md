@@ -28,6 +28,19 @@
 `git checkout audit/parity-20261028`；切回來用
 `git checkout feat/nfc-gate1-reader-spike`。
 
+### 資料夾不見了？
+
+分支出現在 GitHub 上，所以資料夾被刪掉也不會丟東西。三條命令重建：
+
+```
+git -C ~/Desktop/Self/Lab/LinkCard/LinkCard_Event_Admin_App_Expo fetch origin
+git -C ~/Desktop/Self/Lab/LinkCard/LinkCard_Event_Admin_App_Expo worktree add \
+  ~/Desktop/Self/Lab/LinkCard_worktrees/parity-20261028 audit/parity-20261028
+```
+
+不必 checkout 也能讀：`gh repo view Chonwai/NFC_LinkCard_Event_Admin_App_Expo`
+或直接開 GitHub 上 `docs/analysis/adminapp-parity-20261028/` 這條路徑。
+
 ## 一句話回答
 
 > **沒有對齊，而且這一週差距是往同一方向擴大的：Web 把「門口櫃檯」這件事做完了，
