@@ -5,12 +5,16 @@
 ## 這批文件在哪裡
 
 它**不在** `LinkCard_Event_Admin_App_Expo` 的預設分支上，所以直接開那個資料夾是
-找不到的。它住在同一層的另一個 worktree（同一個 git repo 的分支 checkout，不是
-複本）：
+找不到的。它住在**工作區外面**的另一個 worktree（同一個 git repo 的分支 checkout，
+不是複本）：
 
 ```
-LinkCard/20261028_App_Web_Parity_Report/docs/analysis/adminapp-parity-20261028/
+~/Desktop/Self/Lab/LinkCard_worktrees/parity-20261028/docs/analysis/adminapp-parity-20261028/
 ```
+
+> 為甚麼要放在工作區外：worktree 是一份完整 checkout（含 `src/`、`docs/handbook/`
+> 約 23 MB），放進 `LinkCard/` 裡面會讓 VS Code 的搜尋與 Quick Open 出現兩份同名
+> 檔案，也容易在錯的分支上改檔。
 
 三個入口：
 
