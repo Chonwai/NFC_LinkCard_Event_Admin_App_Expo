@@ -215,15 +215,35 @@ Cvent、zkipster、Swapcard、Bizzabo 六個產品都找不到對應物，是自
 這個計畫有兩個硬性完成條件，**兩個都要成立**：
 
 1. **機械的**：`npm run check:parity` 與 `npm run check:contract` 都在 `main` 上
-   綠，且登記表裡沒有任何 `APP_GAP` 處於「已判定但沒有 gapId」的狀態。
-2. **決策的**：**所有 `decision-needed` 的缺口都已有明確答案（做或不做），沒有
-   停在「待決策」。** 「選 A、明確不做」是合格答案；`status` 還停在
-   `decision-needed` 才是未完成。
+   綠，且登記表裡沒有任何 `APP_GAP` 處於「已判定但沒有 gapId」的狀態。（`check:contract`
+   目前**還不是** `package.json` 的 script——`scripts/check-backend-contract.mjs` 只
+   活在 `audit/parity-20261022` 上，見 §5.1 閘門表的「把 `check:contract` 接進 CI」
+   那一列與 `06 §6.6` 第 5 列。這一條要等它真的進 `main` 才驗得動；在那之前，「綠」
+   指的是 `check:parity` 那一半。）
+2. **決策的**：**P0／P1 的缺口沒有一個懸空。** 懸空有兩種 `status`：`open`（沒人
+   認領）與 `decision-needed`（等人回答）。** 「選 A、明確不做」是合格答案，但答案
+   必須反映在登記表的 `status` 上——不能還是 `open` 或 `decision-needed`。
+   ** 只看 `decision-needed` 不夠：G-0（P0）與 G-7（P1）是 `open`，舊判準會在它們
+   懸空時回報「完成」。登記表目前實際用到三種值：`open`、`decision-needed`、
+   `fixed-on-branch`（`scripts/check-parity-registry.mjs` 只檢查這個欄位存不存在，
+   不管值）；要新增「明確不做」這種第四個值，判定與說明要一起改，不能只寫在會議
+   紀錄裡。
 
-第 2 條可以重跑，不必憑印象：
+第 2 條可以重跑，不必憑印象（`exit 1` 表示還有懸空項，可以直接進 CI）：
 
 ```
-node -e "const r=require('./parity/parity-registry.json');const d=r.gaps.filter(g=>g.status==='decision-needed');if(!d.length){console.log('✓ 沒有停在待決策的缺口')}else{console.log('✗ 仍待決策：');d.forEach(g=>console.log('  '+g.id+'  '+g.severity))}"
+node -e "const r=require('./parity/parity-registry.json');const f=r.gaps.filter(g=>(g.status==='decision-needed'||g.status==='open')&&['P0','P1'].includes(g.severity));if(f.length){console.log('✗ 仍有 P0/P1 懸空（open 或 decision-needed）：');f.forEach(g=>console.log('  '+g.id+'  '+g.severity+'  '+g.status));process.exitCode=1}else{console.log('✓ P0/P1 沒有懸空的缺口（open 與 decision-needed 皆空）')}"
+```
+
+`fa111a7` 上跑出來是紅的，也就是「還沒完成」：
+
+```
+✗ 仍有 P0/P1 懸空（open 或 decision-needed）：
+  G-0  P0  open
+  G-6  P1  decision-needed
+  G-7  P1  open
+  G-8  P1  decision-needed
+  G-10 P1  open
 ```
 
 這條命令只讀 `parity/parity-registry.json`，不依賴 Web 或後端 repo。

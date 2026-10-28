@@ -23,14 +23,14 @@
 
 | Repo                            | 分支                          | 量測時的 HEAD |
 | ------------------------------- | ----------------------------- | ------------- |
-| `LinkCard_Event_Admin_App_Expo` | `feat/nfc-gate1-reader-spike` | `c645f20`     |
+| `LinkCard_Event_Admin_App_Expo` | `feat/nfc-gate1-reader-spike` | `fa111a7`     |
 | `LinkCard_Frontend`             | `development`                 | `c8508aa`     |
 | `LinkCard_ExpressJS_Backend`    | `development`                 | `7d08daff`    |
 
 產生上表的三條命令（互不相依，在 `LinkCard/` 這一層跑）：
 
 ```
-git -C LinkCard_Event_Admin_App_Expo rev-parse --short HEAD   # c645f20
+git -C LinkCard_Event_Admin_App_Expo rev-parse --short HEAD   # fa111a7
 git -C LinkCard_Frontend          rev-parse --short HEAD      # c8508aa
 git -C LinkCard_ExpressJS_Backend rev-parse --short HEAD      # 7d08daff
 ```
@@ -39,7 +39,16 @@ git -C LinkCard_ExpressJS_Backend rev-parse --short HEAD      # 7d08daff
 數字都是上表那三個 HEAD 上量到的。這批文件先前寫的 `6e58f0a`（Web）與 `5b39cbd4`
 （Backend）已不是那兩條分支的 HEAD。
 
-App 的 `c645f20` 是研究與文件分支。它的 **`src/`** 與 `origin/main`（`7d0fcf5`）
+**App 的 SHA 會隨本分支每一個 commit 前進**——這批文件本身就在這條分支上，每改一
+次文件它就前進一次，所以上表的 `fa111a7` 只保證「量測當時」。Web 與 Backend 在本
+輪全程唯讀，`c8508aa`／`7d08daff` 不會因為本分支的任何動作而變。引用這個表時請先
+確認你的 HEAD。
+
+**這是這批文件唯一的一份座標表。** 其他章節提到三方座標時一律指向本節，不再各自
+複寫一份會各自腐爛的副本。各章若自己標了 SHA，那是「那一節量測當時」的時點，不
+是本節的替代品。
+
+App 的 `fa111a7` 是研究與文件分支。它的 **`src/`** 與 `origin/main`（`7d0fcf5`）
 逐位元相同：
 
 ```
