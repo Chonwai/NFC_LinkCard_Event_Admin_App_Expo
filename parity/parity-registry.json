@@ -355,6 +355,15 @@
       "size": "S",
       "status": "fixed-on-branch",
       "fixedOn": ["audit/parity-20261022@7c19f0a"]
+    },
+    {
+      "id": "G-12",
+      "title": "授權只在 controller 層，路由層無角色閘門",
+      "severity": "P2",
+      "owner": "backend",
+      "size": "M",
+      "status": "decision-needed",
+      "fixedOn": []
     }
   ]
 }
