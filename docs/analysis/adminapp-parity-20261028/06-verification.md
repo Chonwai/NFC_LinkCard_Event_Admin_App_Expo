@@ -129,7 +129,7 @@ sibling 時印 `SKIPPED:`），今天的餘裕是：三 repo 環境 `43 / 25`、
 上面每一個數字都是 `89d9d5d` 那一天的快照。文件改一行、測試加一個、後端加一條
 路由，它們就不成立了。所以真正的防線不是把數字寫對（寫不對才是常態），而是把
 每一列的產生命令集中成一份**重算索引**，讓下一輪能整批重跑，而不是逐節找命令。
-本文件目前還沒有這一節，留給後續補（暫定編號 §6.6）。
+已補在 §6.6。
 
 ## 6.4 無法驗證的事（誠實邊界）
 
@@ -156,3 +156,47 @@ sibling 時印 `SKIPPED:`），今天的餘裕是：三 repo 環境 `43 / 25`、
    比再讀一遍有效。
 4. **把測試門檻設成 40，而實際只能解析 29 個。** 那個數字是憑感覺寫的，第一次跑就
    失敗。改成 25 並在註解寫明「這是偵測比對器壞掉的下限，不是品質指標」。
+
+## 6.6 重算索引（下一輪從這裡開始）
+
+§6.3 的每一個數字都是 `89d9d5d` 那天的快照，本節的是 `72dfb57` 的。兩者都會過期。
+所以這一節留下的不是數字，是**怎麼重算**：任何一列貼上命令，就知道今天還成不成立。
+
+全部在 App repo 根目錄執行，需要後端或 Web 的地方會寫出來。
+
+| 你要知道的事                                     | 命令                                                                                                                                                                                                                                                                                                                                                                                                                                      | 你會看到什麼                                                                                                                                                                                                                 |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. 三個 repo 的座標                              | `for r in LinkCard_Event_Admin_App_Expo LinkCard_Frontend LinkCard_ExpressJS_Backend; do printf '%-32s %s\n' "$r" "$(git -C "$r" rev-parse --short HEAD)"; done`                                                                                                                                                                                                                                                                          | 三行短 hash；本輪是 `72dfb57`、`b38316b`、`1bc06028`。再跑 `git status --porcelain src/`：空 ⇒ `src/` 零漂移。                                                                                                               |
+| 2. 對等登記表一致性 ＋ Web 頁面掃描              | `npm run check:parity`（Web 不在旁邊也能跑）／`npm run check:parity:full`（要 Web）                                                                                                                                                                                                                                                                                                                                                       | 有 Web：`Web 頁面掃描：18 個頁面，18 個已登記` ＋ `✓ 對等登記表一致：15 個能力（…）、12 個缺口`，exit 0。無 Web：`SKIPPED: Web repo 不在旁邊，跳過頁面掃描`，`check:parity` 仍 exit 0，`--require-web` 則 exit 1。           |
+| 3. 引用是否仍解析                                | `node --test tests/parity-citations.test.mjs`                                                                                                                                                                                                                                                                                                                                                                                             | `ok 1 - 審計文件裡的每一個引用都能解析`、`# pass 1`、`# fail 0`。**引用數不會印出來**，只有門檻失守時才出現在錯誤訊息裡；要量就用 §6.6.1 的複本把 `: 15;` 改成 `: 9999;`，它會自己講「解析成功 N、跳過 N、無法唯一解析 N」。 |
+| 4. 全套閘門                                      | `npm test`                                                                                                                                                                                                                                                                                                                                                                                                                                | `# pass 216`／`# fail 0`／`# todo 3`。fail 不是 0 時先懷疑這一節的引用——文件引用也在 `npm test` 的範圍內。                                                                                                                   |
+| 5. App 端點契約                                  | 腳本**不在 `HEAD`**，先把它放進 App 的暫存複本：`git show audit/parity-20261022:scripts/check-backend-contract.mjs > $TMP/scripts/check-backend-contract.mjs`（快照 `backend-routes.snapshot.json` 同法），再於 `$TMP` 跑 `node scripts/check-backend-contract.mjs`                                                                                                                                                                       | `✗ 1 條呼叫在後端路由快照中找不到：` 加一條 `registration.service.ts:47 POST …/registrations/checkin/override`，exit 1。`HEAD` 上這條命令跑不起來（`ls scripts/check-backend-contract.mjs` 回 No such file）。               |
+| 6. 後端路由總數與差異                            | `node scripts/check-backend-contract.mjs --refresh --backend ../LinkCard_ExpressJS_Backend`（同樣在暫存複本裡跑，`--refresh` 會改寫快照）                                                                                                                                                                                                                                                                                                 | `已寫入 backend-routes.snapshot.json：122 條 events 路由（後端 1bc0602）`。上一輪是 121，多出來的是 `GET /:eventId/manage-stats`。                                                                                           |
+| 7. 「未合併分支上的修復」還在不在                | `git merge-base --is-ancestor audit/parity-20261022 HEAD && echo '22 MERGED' \|\| echo '22 NOT merged'`；再跑 `git rev-list --count origin/main..audit/parity-20261022`                                                                                                                                                                                                                                                                   | `22 NOT merged` ＋ `28`。前者哪天變成 `MERGED`，就代表 G-0 被解決，第 8 列的六項才有機會翻成「已修」。                                                                                                                       |
+| 8. 六個 `fixed-on-branch` 缺口在 HEAD 是否仍存在 | 逐項（判定依據見 §4.1）：`grep -n 'checkin/override' src/services/registration.service.ts`／`grep -n 'wallet' 'src/app/(auth)/[eventId]/token.tsx'`／`grep -n 'approvedBy' ../LinkCard_ExpressJS_Backend/src/events/services/EventWalletService.ts`／`for f in depositRefunded archivedAt checkedInBy boundOnly; do echo "$f $(grep -rl "$f" src/ \| wc -l)"; done`／`grep -rn 'my-access' src/`／`ls scripts/check-backend-contract.mjs` | 依序：`:50`／`:49`／投影 `select` 裡沒有 `approvedBy`／四個字串各 0 檔／0 命中／No such file ⇒ 六項全部仍在。任何一項開始有命中，就是它被修了。                                                                              |
+| 9. CI 實際跑了哪些檢查                           | `grep -n 'run:' .github/workflows/ci.yml`                                                                                                                                                                                                                                                                                                                                                                                                 | 八行：`npm ci`、`require-node-version`、`regenerate:typed-routes`、`typecheck`、`lint`、`format:check`、`check:parity`、`npm test`。**沒有** `check:parity:full`、**沒有**契約閘門、也**沒有** checkout 其他 repo。          |
+| 10. 「Web 是否已超集」怎麼重判                   | 讀 `../LinkCard_Frontend/app/check-in/[eventId]/page.tsx` 的三個符號：`useNfcReader`（`:9` 匯入、`:200` 呼叫）、`DeskReaderBar`（`:12` 匯入、`:707` 使用）、`Web Bluetooth` 分支（`:666`、`:917`）                                                                                                                                                                                                                                        | 三個都在 ⇒ Web 仍把「報到後不換頁寫卡＋讀卡機狀態」做完了，判定維持 Web 超集。少任一個就要重看 `03-capability-matrix.md` §3.4，不要沿用本輪的結論。                                                                          |
+
+### 6.6.1 單 repo 環境怎麼模擬（CI 就是這個環境）
+
+CI 只 checkout 本 repo，所以 `check:parity:full` 與跨 repo 引用在那裡驗不到。要重現
+CI 的判定，把 repo 複製到一個**沒有 sibling** 的目錄再跑：
+
+```
+mkdir -p /tmp/ci-sim
+rsync -a --exclude node_modules --exclude .git --exclude ios --exclude .expo ./ /tmp/ci-sim/LinkCard_Event_Admin_App_Expo/
+cd /tmp/ci-sim/LinkCard_Event_Admin_App_Expo
+node scripts/check-parity-registry.mjs --web ../LinkCard_Frontend   # SKIPPED，exit 0
+node --test tests/parity-citations.test.mjs                          # 這一條現在會紅
+```
+
+複本裡沒有 `.git` 不影響結論：CI 有 `.git`，但它的父目錄同樣沒有 sibling，
+`findSiblingRepo()` 兩邊都回 `null`。
+
+2026-10-29 在 `72dfb57` 上實測：三 repo 環境 `解析成功 70、跳過 0、無法唯一解析 2`
+（下限 25、上限 3，兩者都過）；單 repo 環境 `解析成功 32、跳過 28、無法唯一解析
+12`——下限 15 過關，**上限 3 被 12 突破，`npm test` 在 CI 上會紅**。原因與處置寫在
+`08-cto-review-20261029.md` §8.4。
+
+**本節的所有命令都在 `72dfb57` 上實跑過；若你看到不同的輸出，是程式碼或文件動了，
+不是命令壞了。**
