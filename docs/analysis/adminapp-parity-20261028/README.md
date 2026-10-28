@@ -60,8 +60,16 @@ Web 寫卡需要 Web Bluetooth 與 ACR1555U 讀卡機，不支援的環境會顯
 
 ## 分支與狀態
 
-`audit/parity-20261028`，起點 `origin/main` = `7d0fcf5`，在獨立 worktree
-（`/tmp/lc-parity28-wt`）內作業，避免與其他 session 的 checkout 互相踩。
+`audit/parity-20261028`，起點 `origin/main` = `7d0fcf5`。
+
+這條分支**沒有**checkout 在 `LinkCard_Event_Admin_App_Expo` 裡，所以直接開那個
+資料夾是看不到的。它放在同層的另一個 worktree：
+`LinkCard/20261028_App_Web_Parity_Report/`（同一個 git repo 的 branch checkout，
+用 `git worktree` 建立，不是複本）。想看它就開那個資料夾，或在 App repo 執行
+`git checkout audit/parity-20261028`。
+
+用 worktree 而不是直接切換，是為了不干擾其他 session 在 `feat/nfc-gate1-reader-spike`
+上的工作。
 
 未 push、未合併。Frontend 與 Backend 兩個 repo 全程唯讀，零改動。
 

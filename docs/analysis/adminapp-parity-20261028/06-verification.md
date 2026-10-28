@@ -13,7 +13,13 @@
 ## 6.2 獨立複核：10/10 PASS，但挑出兩個表述問題
 
 複核由 `smith`（獨立 agent，另一個 process）執行，只給它工單，不給結論。
-工單与原始報告在 `/tmp/parity-verify-spec.md`、`/tmp/parity-verify-report.md`。
+工單與原始報告的原稿收在附錄：
+`appendix/independent-check-work-order.md`（121 行）、
+`appendix/independent-check-report-raw.md`（241 行）。
+
+兩份附錄是逐字原稿，不參與 `tests/parity-citations.test.mjs` 的引用檢查——
+它們描述的是「當時跑了什麼」，不是「現在的 HEAD 長什麼樣」，硬讓它們跟著
+HEAD 走反而會讓歷史失真。原文裡的 `/tmp` 路徑是當時的工作目錄。
 
 結果 10 條全過，但它在「全部 PASS」之外多做了一件事：指出哪些 PASS **不代表**
 我寫的那句話。
