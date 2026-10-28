@@ -143,7 +143,7 @@
 | ---- | -------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | G-2  | `grep -n 'wallet' 'src/app/(auth)/[eventId]/token.tsx'`              | `:49` → `/manage/:id/wallet`                                              |
 | G-2  | `find ../LinkCard_Frontend/app -name '*wallet*'`                     | 只有 `my-tickets/[registrationId]/wallet`（參加者視角）⇒ 管理者路徑不存在 |
-| G-1  | `grep -rn 'checkin/override' src/`                                   | `src/services/registration.service.ts:50`                                 |
+| G-1  | `grep -rn 'checkin/override' src/`                                   | `LinkCard_Event_Admin_App_Expo@src/services/registration.service.ts:50`   |
 | G-1  | `grep -rn 'override' ../LinkCard_ExpressJS_Backend/src/routes/`      | 零命中 ⇒ 路由確實不存在                                                   |
 | G-10 | `grep -n 'getRegistrations' 'src/app/(auth)/[eventId]/overview.tsx'` | `:134-135` 仍用兩次名單請求                                               |
 
