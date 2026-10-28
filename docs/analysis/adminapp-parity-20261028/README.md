@@ -4,17 +4,14 @@
 
 ## 這批文件在哪裡
 
-它**不在** `LinkCard_Event_Admin_App_Expo` 的預設分支上，所以直接開那個資料夾是
-找不到的。它住在**工作區外面**的另一個 worktree（同一個 git repo 的分支 checkout，
-不是複本）：
+就在**這個資料夾**，跟同類的兩份審計並排：
 
 ```
-~/Desktop/Self/Lab/LinkCard_worktrees/parity-20261028/docs/analysis/adminapp-parity-20261028/
+LinkCard_Event_Admin_App_Expo/docs/analysis/
+├── adminapp-parity-20261015/
+├── adminapp-parity-20261022/
+└── adminapp-parity-20261028/   ← 本檔
 ```
-
-> 為甚麼要放在工作區外：worktree 是一份完整 checkout（含 `src/`、`docs/handbook/`
-> 約 23 MB），放進 `LinkCard/` 裡面會讓 VS Code 的搜尋與 Quick Open 出現兩份同名
-> 檔案，也容易在錯的分支上改檔。
 
 三個入口：
 
@@ -24,27 +21,24 @@
 | 轉述給別人、或要做決定 | `07-briefing.md`                                |
 | 查某一項的證據         | `03-capability-matrix.md`、`04-gap-register.md` |
 
-若想讓它在 App repo 的資料夾裡直接出現，在 App repo 執行
-`git checkout audit/parity-20261028`；切回來用
-`git checkout feat/nfc-gate1-reader-spike`。
+> **它一度不在這裡。** 這份報告原本只存在於 `audit/parity-20261028` 分支，
+> 那條分支沒有被 checkout，所以資料夾看起來像「消失了」。2026-10-29 已把該分支
+> 併入工作分支，之後就跟其他兩份一樣直接開得到。
 
-### 資料夾不見了？
+## 會自己檢查自己的兩個測試
 
-分支出現在 GitHub 上，所以資料夾被刪掉也不會丟東西。三條命令重建：
+這份報告最容易壞的地方是「引用漂移」——寫的時候指到某個檔案的某一行，之後
+程式碼一改，那句話就變成假的。所以有一組機械閘門盯著它：
 
-```
-git -C ~/Desktop/Self/Lab/LinkCard/LinkCard_Event_Admin_App_Expo fetch origin
-git -C ~/Desktop/Self/Lab/LinkCard/LinkCard_Event_Admin_App_Expo worktree add \
-  ~/Desktop/Self/Lab/LinkCard_worktrees/parity-20261028 audit/parity-20261028
-```
+| 檔案                                | 盯什麼                                         |
+| ----------------------------------- | ---------------------------------------------- |
+| `tests/parity-citations.test.mjs`   | 每個 `Repo@path:line` 的檔案存在、行號在範圍內 |
+| `tests/parity-registry.test.mjs`    | 登記表本身的一致性（含反例測試）               |
+| `scripts/check-parity-registry.mjs` | Web 頁面是否都登記了、P0/P1 缺口是否有計畫章節 |
+| `parity/parity-registry.json`       | 15 個能力、12 個缺口的最終事實                 |
 
-不必 checkout 也能讀，但要指定分支（它不是預設分支）：
-
-```
-gh browse -b audit/parity-20261028 \
-  docs/analysis/adminapp-parity-20261028/README.md \
-  --repo Chonwai/NFC_LinkCard_Event_Admin_App_Expo
-```
+跑它們：`npm test`（含在內）、`npm run check:parity`、`npm run check:parity:full`
+（最後一條需要 `../LinkCard_Frontend` 在旁邊）。
 
 ## 一句話回答
 
