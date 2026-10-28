@@ -25,11 +25,17 @@ git diff --stat origin/main..feat/nfc-gate1-reader-spike -- src/   # 空
 第三條會隨這條分支的每一個 commit 前進，本節自己的 commit 也算在內，所以重跑時看到
 比 111 大是正常的；看到比它小才要回頭確認你量的是哪條分支。
 
-「`src/` 零改」不等於「這條分支沒改東西」。它對 `origin/main` 有 62 檔、
-+11,656 行差異（`git diff --stat origin/main..HEAD | tail -1`），分佈於 `docs/`
-（31 檔）、`tools/`（19 檔）、`.edison/`（4 檔）、`tests/`（2 檔）、`scripts/`、
-`parity/`、`package.json`、`.github/`、`.prettierignore`，以及 `eslint.config.js`
-一段只作用於 `tools/nfc-reader-spike/**` 的 Node globals 例外。
+「`src/` 零改」不等於「這條分支沒改東西」。它對 `origin/main` 有一批差異
+（`git diff --stat origin/main..HEAD | tail -1`），分佈於 `docs/`、`tools/`
+（`nfc-reader-spike/` 17 檔＋`nfc-web-probe/` 2 檔）、`.edison/`、`tests/`、
+`scripts/`、`parity/`、`package.json`、`.github/`、`.prettierignore`、`.gitignore`，
+以及 `eslint.config.js` 一段只作用於 `tools/nfc-reader-spike/**` 的 Node globals
+例外。
+
+**這一節不寫檔數與行數。** 這條分支每加一個 commit 它們就變一次，而這份文件本身就在
+這條分支上。先前版本寫的「62 檔、+11,656 行」是 `fa111a7` 的讀數；`e188071` 上是
+63 檔、+11,946 行（多一個 `.gitignore`）。兩個都對，只是時點不同；要看現值就跑上面
+那條命令。完整位置清單在 `00-method-and-scope.md` §0.2。
 
 先前版本這裡寫的是 `-- src tests scripts .github package.json` 並宣稱空輸出。那條
 命令今天會回 5 個檔、+807 行，因為本輪自己往 `scripts/`、`tests/`、`.github/`、
@@ -64,14 +70,18 @@ exit=1
 
 **這代表「端點層對等」目前是 14/15，而不是 README 上一輪寫的 15/15。**
 
-## 2.3 後端：23 個 commit，路由只多一條
+## 2.3 後端：32 個 commit，路由只多一條
 
-比對基準 `49b2103a`（10-22 收工）→ `5b39cbd4`（今日），共 23 個 commit。
-但 `src/events/routes` 與 `src/events/controllers` 在整段區間內零改動。
+比對基準 `49b2103a`（10-22 收工）→ `7d08daff`（今日 HEAD），共 32 個 commit
+（`git rev-list --count 49b2103a..7d08daff`）。上一輪記的 23 是 `5b39cbd` 當時的
+讀數（`49b2103a..5b39cbd` = 23），`5b39cbd` 之後又走了 9 個 commit。但
+`src/events/routes` 與 `src/events/controllers` 在整段區間內零改動
+（`git diff --stat 49b2103a..7d08daff -- src/events/routes src/events/controllers`
+空輸出）。
 
 用上一輪的路由快照重新產生一次，差異只有一行：
 
-| 項目        | 10-22 快照（後端 `64be09e`） | 今日（後端 `5b39cbd`）       |
+| 項目        | 10-22 快照（後端 `64be09e`） | 今日（後端 `7d08daff`）      |
 | ----------- | ---------------------------- | ---------------------------- |
 | events 路由 | 121                          | 122                          |
 | 新增        | —                            | `GET /:eventId/manage-stats` |
@@ -79,6 +89,18 @@ exit=1
 
 命令：`node scripts/check-backend-contract.mjs --refresh --backend <後端路徑>`
 （在臨時目錄跑，不動任何 repo）。
+
+**`generatedFrom` 這一個欄位要另外說清楚，因為它留有兩個值。** 兩次 `--refresh`
+分別印過不同的時點：`5b39cbd`（本節與 `06 §6.3`）與 `1bc0602`（`06 §6.6` 第 6 列）。
+兩者相差 6 個 commit（`git rev-list --count 5b39cbd..1bc0602` = 6），`1bc0602` 在後。
+**沒有任何落地的檔案能證明哪一個才是那一行輸出的來源**：`HEAD` 上根本沒有
+`scripts/backend-routes.snapshot.json`（它只在未合併的 `audit/parity-20261022` 上，
+那份寫的是 `64be09e`），兩次 `--refresh` 都在 `/tmp` 的複本裡跑、跑完就沒了。
+所以要確認 `generatedFrom` 只能重跑一次 `--refresh`。
+
+**但「122」這個數字不受影響，這件事可以驗。** `src/events/routes` 從 `49b2103a`
+到 `7d08daff` 全程零改動，所以 `5b39cbd`、`1bc0602`、`7d08daff` 三個 SHA 上都產生
+同一份路由集合。差的是標籤，不是結論。
 
 所以在契約層面，這個星期**後端沒有給 App 帶來任何需要跟上的東西**，除了
 `manage-stats` 這一支。
@@ -110,7 +132,10 @@ Write access 的角色集不含 OPERATOR。所以：
 三個 repo 的變化方向很不對稱：
 
 - 後端：+1 條路由，App 沒用到。
-- Web：+20,907 行，集中在報到桌與讀卡機。
+- Web：+21,341 行／64 檔，集中在報到桌與讀卡機（`git diff --stat b52c08c..c8508aa
+-- app/check-in components/checkin components/nfc lib/nfc lib/checkin
+hooks/useNfcReader.ts 'app/(event)/manage' | tail -1`，量於 `c8508aa`；同一條命令
+  對 `6e58f0a` 是 +20,907 行／62 檔）。
 - App：0 行產品碼，修復停在工作分支。
 
 因此「功能是否對齊」這個問題，本輪幾乎完全由能力層決定，

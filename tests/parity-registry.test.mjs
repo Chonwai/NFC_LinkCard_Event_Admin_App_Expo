@@ -251,6 +251,52 @@ test("P0 缺口沒有對應章節時失敗", () => {
   assert.match(result.stderr, /G-7/);
 });
 
+/**
+ * `ready-to-implement` 是第二個「已處置」的 status，所以它也必須有證據欄位。
+ * 沒有這條檢查時，任何人一行編輯就能讓一個缺口從 §5.6 的判準清單上消失：
+ * 無 commit、無決議、無任何可回溯的位置。
+ */
+test("ready-to-implement 沒有 decidedIn 時失敗", () => {
+  const registry = baseRegistry({
+    gaps: [
+      {
+        id: "G-1",
+        title: "缺口一",
+        severity: "P1",
+        owner: "none-needed",
+        size: "S",
+        status: "ready-to-implement",
+        fixedOn: [],
+      },
+    ],
+  });
+  const { root, webRoot } = makeFixture({ registry });
+  const result = run(root, ["--web", webRoot, "--require-web"]);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /ready-to-implement 但沒有記錄判定依據/);
+});
+
+test("ready-to-implement 有 decidedIn 時通過", () => {
+  const registry = baseRegistry({
+    gaps: [
+      {
+        id: "G-1",
+        title: "缺口一",
+        severity: "P1",
+        owner: "none-needed",
+        size: "S",
+        status: "ready-to-implement",
+        decidedIn: `${DOC_DIR}/04-gap-register.md#G-1`,
+        fixedOn: [],
+      },
+    ],
+  });
+  const { root, webRoot } = makeFixture({ registry });
+  const result = run(root, ["--web", webRoot, "--require-web"]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /對等登記表一致/);
+});
+
 test("真實登記表在當前 repo 上是一致的", (t) => {
   const registry = JSON.parse(readFileSync(REAL_REGISTRY, "utf8"));
   const webRoot = findWebRoot(registry.webSurfaces.repo);

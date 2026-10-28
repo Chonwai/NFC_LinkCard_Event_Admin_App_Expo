@@ -136,6 +136,17 @@ function checkRegistry(registry, errors) {
     if (gap.status === "fixed-on-branch" && (gap.fixedOn ?? []).length === 0) {
       errors.push(`${gap.id}: 標記 fixed-on-branch 但沒有記錄 commit`);
     }
+    // 與 fixed-on-branch／fixedOn 對稱：ready-to-implement 也是一個「已處置」的
+    // status，它會讓缺口從 §5.6 的判準清單上消失。沒有證據欄位就等於任何人一行
+    // 編輯就能讓一個缺口無聲結案——那不是判定，是把它藏起來。
+    if (
+      gap.status === "ready-to-implement" &&
+      (typeof gap.decidedIn !== "string" || gap.decidedIn.trim().length === 0)
+    ) {
+      errors.push(
+        `${gap.id}: 標記 ready-to-implement 但沒有記錄判定依據（decidedIn）`,
+      );
+    }
   }
 
   for (const item of appOnly) {

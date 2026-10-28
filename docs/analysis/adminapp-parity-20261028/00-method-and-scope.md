@@ -65,27 +65,31 @@ git diff --name-only origin/main..HEAD -- src/ | wc -l
 `tests/`、`.github/workflows/ci.yml`、`package.json` 加了對等登記表閘門與引用測試。
 量測工具改變了自己的讀數。所以正確的範圍是 `-- src/`，不是那五個路徑。
 
-整條分支對 `origin/main` 的差異（同日重新量測）：
+整條分支對 `origin/main` 的差異，**這一節不寫死**——這條分支每加一個 commit 它就變
+一次，而這份文件本身就在這條分支上，寫下來的當下就開始過期。要看現值就跑：
 
 ```
 git diff --stat origin/main..HEAD | tail -1
-# 62 files changed, 11656 insertions(+), 11 deletions(-)
+git diff --name-only origin/main..HEAD | awk -F/ '{print ($0 ~ /\// ? $1"/" : $0)}' | sort | uniq -c
 ```
 
-分佈（`git diff --name-only origin/main..HEAD | awk -F/ '{print ($0 ~ /\// ? $1"/" : $0)}' | sort | uniq -c`，加總 62）：
+先前版本寫的 `62 files changed, 11656 insertions(+)` 是 `fa111a7` 的讀數；`e188071`
+上同一條命令回 `63 files changed, 11946 insertions(+), 11 deletions(-)`。兩個都對，
+只是時點不同。所以下面的表只列「有哪些位置」，不列檔數總計，也不列行數。
 
-| 位置               | 檔數 | 內容                                                              |
-| ------------------ | ---- | ----------------------------------------------------------------- |
-| `docs/`            | 31   | 研究與手冊文件                                                    |
-| `tools/`           | 19   | `nfc-reader-spike/` 17 檔（獨立 Node CLI）＋`nfc-web-probe/` 2 檔 |
-| `.edison/`         | 4    | 迴圈狀態                                                          |
-| `tests/`           | 2    | 引用與登記表測試                                                  |
-| `scripts/`         | 1    | 對等登記表閘門                                                    |
-| `parity/`          | 1    | 能力登記表                                                        |
-| `package.json`     | 1    | 兩個 `check:parity` script                                        |
-| `eslint.config.js` | 1    | +18 行，只對 `tools/nfc-reader-spike/**` 給 Node globals          |
-| `.prettierignore`  | 1    | 讓 `tools/` 不進 prettier 範圍                                    |
-| `.github/`         | 1    | CI 加一步 `check:parity`                                          |
+| 位置               | 內容                                                              |
+| ------------------ | ----------------------------------------------------------------- |
+| `docs/`            | 研究與手冊文件                                                    |
+| `tools/`           | `nfc-reader-spike/` 17 檔（獨立 Node CLI）＋`nfc-web-probe/` 2 檔 |
+| `.edison/`         | 迴圈狀態                                                          |
+| `tests/`           | 引用與登記表測試                                                  |
+| `scripts/`         | 對等登記表閘門                                                    |
+| `parity/`          | 能力登記表                                                        |
+| `package.json`     | 兩個 `check:parity` script                                        |
+| `eslint.config.js` | +18 行，只對 `tools/nfc-reader-spike/**` 給 Node globals          |
+| `.prettierignore`  | 讓 `tools/` 不進 prettier 範圍                                    |
+| `.gitignore`       | 加 `.edison/state/`：loop 狀態是每輪重寫的本機檔，不進版控        |
+| `.github/`         | CI 加一步 `check:parity`                                          |
 
 所以正確的說法是兩句，不能併成一句：
 

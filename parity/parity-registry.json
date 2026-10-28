@@ -345,6 +345,7 @@
       "owner": "none-needed",
       "size": "S",
       "status": "ready-to-implement",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/04-gap-register.md#G-10",
       "fixedOn": []
     },
     {
