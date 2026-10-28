@@ -132,3 +132,25 @@
 
 這一項值得記在心裡：App 在「做不到」的地方是誠實的。這一輪找到的問題（死路由、
 不存在的欄位）反而是「假裝做得到」的地方——那才是需要修的類型。
+
+## 7.11 併入主線後的重測（2026-10-29）
+
+本文件在 2026-10-29 被 merge 進 `feat/nfc-gate1-reader-spike`，HEAD 從審計當時的
+`58affea` 變成 `5235d50`。文件一旦換了 HEAD 就開始過期，所以併入後立刻在新 HEAD
+重測三個「會傷人」的缺陷。三個全部仍然存在：
+
+| ID   | 重跑的命令                                                           | 新 HEAD 的結果                                                            |
+| ---- | -------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| G-2  | `grep -n 'wallet' 'src/app/(auth)/[eventId]/token.tsx'`              | `:49` → `/manage/:id/wallet`                                              |
+| G-2  | `find ../LinkCard_Frontend/app -name '*wallet*'`                     | 只有 `my-tickets/[registrationId]/wallet`（參加者視角）⇒ 管理者路徑不存在 |
+| G-1  | `grep -rn 'checkin/override' src/`                                   | `src/services/registration.service.ts:50`                                 |
+| G-1  | `grep -rn 'override' ../LinkCard_ExpressJS_Backend/src/routes/`      | 零命中 ⇒ 路由確實不存在                                                   |
+| G-10 | `grep -n 'getRegistrations' 'src/app/(auth)/[eventId]/overview.tsx'` | `:134-135` 仍用兩次名單請求                                               |
+
+**同日收到的一張截圖就是 G-2 的實物。** App 的 Token 頁顯示「功能建置中」，唯一的
+次要動作叫「在網頁打開櫃台」——按下去就是上一列 404 的那條路徑。這張截圖讓 G-2 從
+「程式碼推論」升級成「畫面上真的有一個壞掉的按鈕」，也說明為什麼它的嚴重度是 P1：
+它出現在一個本來可以只寫「此功能在 Web」的空白頁上。
+
+修法成本仍然是 `S`，且不需要任何產品決策：把次要動作改指向 App 自己的名單頁
+（Token 流水在參加者詳情頁就查得到），或直接移除該動作並保留說明文字。
