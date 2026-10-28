@@ -20,6 +20,13 @@
  * 為什麼要有「檔案層級的預設 repo」：01 那一節整張表都是 Web 的檔案，
  * 每列都寫 `LinkCard_Frontend@…` 只會讓表格讀不下去。預設值要寫在檔案裡，
  * 不能靠讀者的記憶。
+ *
+ * 為什麼下限分兩種環境：可驗證的引用數量取決於「旁邊有幾個 repo」，不是取決於
+ * 文件品質。本機三個 repo 並排時可驗 42 個；CI 只 checkout 本 repo，Web 與
+ * Backend 的引用全部無從解析，只剩 26 個。同一條 25 的下限在 CI 只是剛好擦過，
+ * 文件任何微調都會讓它變成必紅。所以下限跟著環境走——兩個 sibling 都在 → 25，
+ * 不在 → 15。缺哪一個都會印 `SKIPPED:`，不會靜靜地少驗。下限再低也不設成 0：
+ * 同 repo 的引用在任何環境都必須驗得到。
  */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
@@ -128,6 +135,21 @@ test("審計文件裡的每一個引用都能解析", () => {
   const webRoot = findSiblingRepo(WEB_REPO);
   const backendRoot = findSiblingRepo(BACKEND_REPO);
 
+  // 缺哪個 sibling 就講出來，不靜靜地少驗（與 check-parity-registry.mjs 同一種說法）。
+  const missing = [
+    [WEB_REPO, webRoot],
+    [BACKEND_REPO, backendRoot],
+  ]
+    .filter(([, root]) => root === null)
+    .map(([repo]) => repo);
+  const siblingsPresent = missing.length === 0;
+  for (const repo of missing) {
+    console.log(
+      `SKIPPED: 缺少 ${repo}，它的引用本次不驗（本 repo 的引用照驗）`,
+    );
+  }
+  const floor = siblingsPresent ? 25 : 15;
+
   const roots = {
     [APP_REPO]: appRoot,
     [WEB_REPO]: webRoot,
@@ -194,15 +216,25 @@ test("審計文件裡的每一個引用都能解析", () => {
 
   assert.deepEqual(problems, [], `\n${problems.join("\n")}`);
   // 這個下限不是品質指標，是「比對器還在動」的偵測器。
-  // 2026-10-28 的實際值：解析到 29 個、可驗證 28 個。若哪天這個數字掉到個位數，
-  // 表示正則或解析規則壞了，而不是文件變乾淨了。
+  // 2026-10-29 的實際值：兩個 sibling 都在 → checked 42／skipped 0／ambiguous 2；
+  // 只有本 repo（CI）→ checked 26／skipped 15／ambiguous 3。
+  // 若哪天這個數字掉到個位數，表示正則或解析規則壞了，而不是文件變乾淨了。
   assert.ok(
-    checked >= 25,
-    `只用 ${checked} 個引用做驗證，低於下限 25（解析成功 ${checked}、跳過 ${skipped}、無法唯一解析 ${ambiguous}）`,
+    checked >= floor,
+    siblingsPresent
+      ? `兩個 sibling repo 都在的環境，只用 ${checked} 個引用做驗證，低於下限 ${floor}（解析成功 ${checked}、跳過 ${skipped}、無法唯一解析 ${ambiguous}）`
+      : `只有本 repo 的環境（缺 ${missing.join("、")}），只用 ${checked} 個引用做驗證，低於單 repo 下限 ${floor}（解析成功 ${checked}、跳過 ${skipped}、無法唯一解析 ${ambiguous}）。本機應在 ${WEB_REPO} 與 ${BACKEND_REPO} 都放在旁邊時跑 npm test，才能驗到完整的 42 個引用。`,
   );
   assert.ok(
     ambiguous <= 3,
     `${ambiguous} 個引用無法唯一解析，請在文件內補上目錄前綴`,
   );
-  assert.equal(skipped, webRoot === null ? skipped : 0);
+  // 兩個 sibling 都在時，一個引用都不該被跳過；不在時 skipped 由上面的 SKIPPED 交代。
+  if (siblingsPresent) {
+    assert.equal(
+      skipped,
+      0,
+      `兩個 sibling repo 都在，卻有 ${skipped} 個引用被跳過`,
+    );
+  }
 });
