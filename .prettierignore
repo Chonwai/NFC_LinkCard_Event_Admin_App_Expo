@@ -39,3 +39,8 @@ docs/handbook/journeys-en.md
 # 引用檢查，因為它描述的是「當時跑了什麼」）。prettier 會 reflow 表格與換行，
 # 一排版「逐字」就不再成立，所以只能排除，不能改寫。
 docs/analysis/adminapp-parity-20261028/appendix/independent-check-report-raw.md
+
+# Edison loop 的執行狀態檔（`.edison/state/loop-*.md`）：每輪 loop 重寫一次，
+# 不該被 prettier reflow。`.gitignore` 已經列了，這裡再列一次當雙保險——
+# 若哪天 `--ignore-path` 鏈被改掉，`format:check` 也不會因此變紅。
+.edison/state/

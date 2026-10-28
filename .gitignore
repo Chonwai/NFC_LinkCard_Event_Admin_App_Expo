@@ -35,3 +35,8 @@ yarn-error.*
 
 # EAS
 .eas/dist/
+
+# Edison loop 執行狀態（本機）。這不是原始碼——每輪 loop 都會重寫，進版控只會製造
+# 衝突，並且讓本機 `format:check` 永遠紅（CI 的 checkout 不含未追蹤檔，看不到）。
+# 只忽略 `state/`：`.edison/artifacts/`（審查報告）是交付物，仍受版控。
+.edison/state/
