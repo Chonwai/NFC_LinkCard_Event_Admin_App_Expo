@@ -166,7 +166,13 @@ Web 有 session CRUD（`createSession`/`listEventSessions`/`updateSession`/
 原始碼後必須更正：
 
 - `src/app/(auth)/[eventId]/token.tsx` 是一個 **placeholder**，內容是
-  `EmptyState`（`token.tsx:28-59`），沒有任何帳本。
+  `EmptyState`（`token.tsx:28-55`），沒有任何帳本。
+- 這個判定的證據不必讀到畫面：**整檔只有 68 行**（`wc -l` 實測）。其中
+  `export default function TokenPlaceholderScreen()` 在 `:16`、
+  `StyleSheet.create` 在 `:61-68`，`EmptyState` 元素佔 `:28-55`。全檔對
+  `useEffect|useState|fetch|apiClient|service|useQuery|await` **零命中**
+  （grep exit 1）——68 行裡沒有任何一次資料請求，一個沒有請求的畫面不可能有帳本。
+  先前寫 `token.tsx:28-59` 是引到元件函式的收尾大括號（`:59`），不是元素的收尾。
 - 它的次要動作會開 `WEB_BASE_URL/manage/:id/wallet`（`token.tsx:49`），
   而 Web 沒有這條路由：`find app -name '*wallet*'` 只找到
   `app/(personal)/(shell)/my-tickets/[registrationId]/wallet`（參加者視角）。
