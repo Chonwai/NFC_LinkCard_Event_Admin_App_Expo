@@ -73,7 +73,7 @@ git diff --stat origin/main..HEAD | tail -1
 git diff --name-only origin/main..HEAD | awk -F/ '{print ($0 ~ /\// ? $1"/" : $0)}' | sort | uniq -c
 ```
 
-先前版本寫的 `62 files changed, 11656 insertions(+)` 是 `fa111a7` 的讀數；`e188071`
+先前版本寫的 `62 files changed, 11656 insertions(+)` 是 `44f6bd9` 的讀數；`e188071`
 上同一條命令回 `63 files changed, 11946 insertions(+), 11 deletions(-)`。兩個都對，
 只是時點不同。所以下面的表只列「有哪些位置」，不列檔數總計，也不列行數。
 

@@ -26,11 +26,11 @@
 
 ## 5.1 第一階段：讓這份結論可以被機器複驗（1 天）
 
-| 動作                               | 解決什麼                                     |
-| ---------------------------------- | -------------------------------------------- |
-| 提交 `parity/parity-registry.json` | 能力判定有唯一來源                           |
-| `npm run check:parity`             | 判定過期時 CI 會失敗——**只在有 Web repo 時** |
-| 把 `check:contract` 接進 CI        | 端點漂移會在 PR 上現形（G-11）               |
+| 動作                               | 解決什麼                                                    |
+| ---------------------------------- | ----------------------------------------------------------- |
+| 提交 `parity/parity-registry.json` | 能力判定有唯一來源                                          |
+| `npm run check:parity`             | **新增未登記的 Web 頁面**時會失敗——且只在 Web repo 在旁邊時 |
+| 把 `check:contract` 接進 CI        | 端點漂移會在 PR 上現形（G-11）                              |
 
 登記表回答的是「哪一個 Web 模組在 App 有對應、判定是什麼、證據在哪、理由是什麼」。
 閘門做四件事：
@@ -237,8 +237,9 @@ Cvent、zkipster、Swapcard、Bizzabo 六個產品都找不到對應物，是自
    ** 「選 A、明確不做」是合格答案，但答案必須反映在登記表的 `status` 上。
    G-0（P0）與 G-7（P1）是 `open`，只看 `decision-needed` 的舊判準會在它們懸空時
    回報「完成」。登記表目前用到四種值：`open`、`decision-needed`、`fixed-on-branch`、
-   `ready-to-implement`（`scripts/check-parity-registry.mjs` 只檢查這個欄位存不存在、
-   不管值，所以新增值不必改驗證器，但判定與說明要一起改，不能只寫在會議紀錄裡）。
+   `ready-to-implement`（`scripts/check-parity-registry.mjs` 對這兩個值都要求對應的
+   證據欄位非空——`fixedOn`／`decidedIn`，不是只檢查欄位存不存在；新增值時驗證器要
+   一起改，不能只寫在會議紀錄裡）。
    第四個值是為 G-10 加的：它是缺陷、`owner` 是 `none-needed`（無爭議）、但還沒修，
    用 `open` 會讓它長期被算成「等人認領」，而實際上沒有任何決定可做。
 
