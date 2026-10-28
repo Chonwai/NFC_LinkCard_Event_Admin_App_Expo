@@ -65,15 +65,71 @@ URL 字面在第 50 行，因為泛型與參數跨了 3 行（`sed -n '44,52p'` 
 
 ## 6.3 本輪跑過的機械量測
 
-| 量測               | 命令                                                                    | 結果                           |
-| ------------------ | ----------------------------------------------------------------------- | ------------------------------ |
-| App 端點契約       | `node scripts/check-backend-contract.mjs`（worktree 內）                | 1 條死路、exit 1               |
-| 後端路由總數與差異 | `node scripts/check-backend-contract.mjs --refresh --backend <後端>`    | 121 → 122，只加 `manage-stats` |
-| 對等登記表         | `node scripts/check-parity-registry.mjs --web <web> --require-web`      | 18/18 頁、exit 0               |
-| 引用座標           | `node --test tests/parity-citations.test.mjs`                           | 29 個解析、28 個可驗、0 個壞   |
-| 全 repo 閘門       | `npm run typecheck && npm run lint && npm run format:check && npm test` | 215 pass / 0 fail              |
+量測於 `89d9d5d`；引用數會隨文件改動漂移，重算命令見本節各列。其中「引用座標」
+那一列在寫完本節之後重測過——本節自己新增了一個引用，寫之前的數字已經不成立（寫之
+前是 44 / 42 / 0，寫之後是 45 / 43 / 0）。
+
+| 量測               | 命令                                                                 | 結果                           |
+| ------------------ | -------------------------------------------------------------------- | ------------------------------ |
+| App 端點契約       | `node scripts/check-backend-contract.mjs`（腳本不在 `HEAD`，見下）   | 1 條死路、exit 1               |
+| 後端路由總數與差異 | `node scripts/check-backend-contract.mjs --refresh --backend <後端>` | 121 → 122，只加 `manage-stats` |
+| 對等登記表         | `node scripts/check-parity-registry.mjs --web <web> --require-web`   | 18/18 頁、exit 0               |
+| 引用座標           | `node --test tests/parity-citations.test.mjs`                        | 45 個引用、43 個可驗、0 個壞   |
+| 全 repo 閘門       | `npm run typecheck`／`npm run lint`／`npm test`（三者分開跑）        | 216 pass／0 fail／3 todo       |
+
+每一列的數字各自怎麼來的：
+
+- **1 條死路**：`POST */registrations/checkin/override`，呼叫點在
+  `src/services/registration.service.ts:47`。閘門回報的是呼叫表達式的起始行，路由
+  字面在第 50 行（引用慣例見 §6.2 A4）。exit code 是 1，不是 0。
+- **121 → 122**：`eventRoutes` 由 121 增至 122，`nonEventRoutes` 2 條不變；唯一
+  新增的是 `GET /:eventId/manage-stats`。快照的 `generatedFrom` 由 `64be09e` 走到
+  `5b39cbd`。
+- **18/18 頁**：Web 掃到 18 個頁面、18 個已登記；登記表 15 個能力、12 個缺口。
+- **45 個引用 / 43 個可驗 / 0 個壞**：43 個通過行號檢查、2 個無法唯一解析（上限
+  3）、0 個指向不存在的檔案或超出行長、0 個被跳過。
+- **216 pass**：共 219 個測試，其中 3 個是 `todo`。`typecheck` exit 0；`lint`
+  0 error、1 warning（`tools/nfc-reader-spike/src/apdu-script.js` 的未使用
+  `PAGE_SIZE`，既有問題、不在本次範圍）。
+
+第一列的腳本**不在這條分支上**：`scripts/check-backend-contract.mjs` 與它的快照
+目前只存在於未合併的 `audit/parity-20261022`（腳本新增於 `7c19f0a`）。本輪的跑法
+是把這兩份檔案從該分支抽到 `/tmp`、放進 repo 的複本再執行，所以這兩個數字反映的
+是**那個分支的腳本對現在的 `src/services` 所做的判定**，不是 `HEAD` 上的閘門結果。
+換句話說，這條閘門今天在 `HEAD` 上根本跑不起來——它擋不擋得住漂移，取決於那份
+分支有沒有被併進來。
 
 `--refresh` 會改寫快照檔，所以是在 `/tmp` 的複本上跑，不動任何 repo。
+
+### 6.3.1 兩個還沒被修掉的脆弱點
+
+**1. 引用下限的餘裕比看起來小。**
+
+`tests/parity-citations.test.mjs` 的下限在 `89d9d5d` 之前是固定 25。單 repo 環境
+（CI 只 checkout 本 repo）在改這一節**之前**的實測是 `checked=26`——離那個下限只差
+一個引用。多寫一個引用、或少解析一個，就會紅，而紅的理由會看起來像「文件品質變
+差」。（本節新增一個引用之後是 `checked=27`，餘裕仍然是同一個量級。）
+
+`89d9d5d` 改成環境感知之後（兩個 sibling 都在 → 25，缺任一個 → 15，並在缺
+sibling 時印 `SKIPPED:`），今天的餘裕是：三 repo 環境 `43 / 25`、單 repo 環境
+`27 / 15`。單 repo 環境實測會過，不是會紅：`parity-citations` 1 pass、
+`parity-registry` 7 pass / 0 fail / 1 skipped，兩者 exit 0。
+
+但這只把門檻移到不會誤報的位置，**沒有解決「餘裕」這件事**：
+
+- 另一個上限是硬性數字 `ambiguous <= 3`。三 repo 環境實測 2，單 repo 環境實測
+  **3，剛好卡在上限**。
+- 也就是說，這兩個數字今天是「剛好過」，不是「有空間」。任何一個新的裸檔名引用
+  只要撞不到唯一命中，就立刻越線——而越線的訊息會指向引用，不會指向「門檻是人工
+  挑的」。
+- 真正該做的是讓解析在必要時明確退化（跳過並計數），而不是靠一個人工挑的門檻。
+
+**2. `06 §6.3` 這種數字一定會過期。**
+
+上面每一個數字都是 `89d9d5d` 那一天的快照。文件改一行、測試加一個、後端加一條
+路由，它們就不成立了。所以真正的防線不是把數字寫對（寫不對才是常態），而是把
+每一列的產生命令集中成一份**重算索引**，讓下一輪能整批重跑，而不是逐節找命令。
+本文件目前還沒有這一節，留給後續補（暫定編號 §6.6）。
 
 ## 6.4 無法驗證的事（誠實邊界）
 
