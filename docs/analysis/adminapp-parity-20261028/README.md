@@ -69,7 +69,7 @@ Web 把另一半補上了：掃碼成功後**不必離開報到頁**（同一個
 
 `audit/parity-20261022` 分支上有 28 個 commit，包含一顆 P0 修復：App 的
 「申請主管覆核」按鈕呼叫 `POST /registrations/checkin/override`，而後端從來沒有
-這條路由。這條呼叫今天仍在 `main` 上（`src/services/registration.service.ts:50`）。
+這條路由。這條呼叫今天仍在 `main` 上（`LinkCard_Event_Admin_App_Expo@src/services/registration.service.ts:50`）。
 
 分支沒有合併、沒有 push。也就是說：上一輪的診斷有效，但修復沒有生效。
 

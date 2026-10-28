@@ -96,7 +96,7 @@ git diff --stat origin/main..feat/nfc-gate1-reader-spike \
 `tests/parity-citations.test.mjs` 會解析這些文件裡的每一個 `檔案:行號`，
 檢查檔案存在、行號不超過長度。規則有三條：
 
-1. 路徑寫完整，不寫 `page.tsx:101` 這種要靠上下文的縮寫。
+1. 路徑寫完整，不寫「只給檔名、後面接一個行號」這種要靠上下文的縮寫。
 2. 跨 repo 引用寫 `Repo@路徑`，例如
    `LinkCard_Event_Admin_App_Expo@src/services/nfc.service.ts:23`。
 3. 同一份文件若整篇都在講同一個 repo，在標題下寫一行

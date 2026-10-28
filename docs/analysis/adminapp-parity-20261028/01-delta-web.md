@@ -20,7 +20,7 @@
 | 能力                 | 落點                                                                                  |
 | -------------------- | ------------------------------------------------------------------------------------- |
 | 讀卡機連線（含重連） | `hooks/useNfcReader.ts`、`components/checkin/DeskReaderBar.tsx`                       |
-| 讀卡機支援度偵測     | `DeskReaderBar.tsx:73-88`（`readerBarState`）                                         |
+| 讀卡機支援度偵測     | `components/checkin/DeskReaderBar.tsx:73-88`（`readerBarState`）                      |
 | 寫卡面板             | `components/checkin/WriteCardPanel.tsx`（524 行）                                     |
 | 報到桌狀態機         | `lib/checkin/nfcDesk.ts:29-188`                                                       |
 | 現場處置動作         | `lib/checkin/nfcDesk.ts:60`（`retry`／`swap_card`／`skip`／`retry_bind`／`next`）     |
