@@ -168,8 +168,8 @@ Web 沒有這條路由（`find app -name '*wallet*'` 只有參加者視角的
 **修法成本（2026-10-29 實測）。** 這是全冊最便宜的一項，因為欄位**已經在 DB
 裡**：`LinkCard_ExpressJS_Backend@prisma/schema.prisma:1313` 已有
 `approvedBy String? @map("approved_by")`（可為 null）。卡住的只是後端投影——
-`src/events/services/EventWalletService.ts:43-51` 的 `select` 少了它。補一行
-`approvedBy: true` 就會回傳，**免 migration、不動 schema**。
+`LinkCard_ExpressJS_Backend@src/events/services/EventWalletService.ts:43-51` 的
+`select` 少了它。補一行 `approvedBy: true` 就會回傳，**免 migration、不動 schema**。
 
 App 這端要改 **0 行**：`src/services/registration.service.ts:108` 已經宣告
 `approvedBy?: string | null`，`[registrationId].tsx:186` 也已經在渲染。
@@ -177,11 +177,13 @@ App 這端要改 **0 行**：`src/services/registration.service.ts:108` 已經�
 但「每行從 `—` 變人名」需要拆成三步講，否則會低估：
 
 1. **一行 select 換到的是 User UUID，不是姓名。** 寫入端存的是
-   `approvedBy: operatorUserId`（`EventWalletService.ts:113`），該值來自
-   `req.user.id`（`EventWalletController.ts:74`）＝`User.id`（uuid）。要顯示姓名
-   得再一步把 id 換成 `User.display_name`。`approvedBy` 是裸 `String?`、**沒有
-   relation**，所以這一步只能**另查 users**（不能 `include`；但也**不需要**為此
-   建 FK 或跑 migration）。
+   `approvedBy: operatorUserId`
+   （`LinkCard_ExpressJS_Backend@src/events/services/EventWalletService.ts:113`），
+   該值來自 `req.user.id`
+   （`LinkCard_ExpressJS_Backend@src/events/controllers/EventWalletController.ts:74`）
+   ＝`User.id`（uuid）。要顯示姓名得再一步把 id 換成 `User.display_name`。
+   `approvedBy` 是裸 `String?`、**沒有 relation**，所以這一步只能**另查 users**
+   （不能 `include`；但也**不需要**為此建 FK 或跑 migration）。
 2. **只有 TOP_UP 類的行會變。** 三個寫入點裡只有 `topUp` 帶 operator；
    `deductToken`（`:167`）與 `allocateInitialTokens`（`:203`）寫入時都沒帶，所以
    DEDUCTION／INITIAL_ALLOCATION 無論投影怎麼改仍是 `—`。要補的是 `deductToken`
