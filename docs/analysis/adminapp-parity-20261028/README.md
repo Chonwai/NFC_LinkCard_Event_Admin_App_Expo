@@ -38,8 +38,13 @@ git -C ~/Desktop/Self/Lab/LinkCard/LinkCard_Event_Admin_App_Expo worktree add \
   ~/Desktop/Self/Lab/LinkCard_worktrees/parity-20261028 audit/parity-20261028
 ```
 
-不必 checkout 也能讀：`gh repo view Chonwai/NFC_LinkCard_Event_Admin_App_Expo`
-或直接開 GitHub 上 `docs/analysis/adminapp-parity-20261028/` 這條路徑。
+不必 checkout 也能讀，但要指定分支（它不是預設分支）：
+
+```
+gh browse -b audit/parity-20261028 \
+  docs/analysis/adminapp-parity-20261028/README.md \
+  --repo Chonwai/NFC_LinkCard_Event_Admin_App_Expo
+```
 
 ## 一句話回答
 
