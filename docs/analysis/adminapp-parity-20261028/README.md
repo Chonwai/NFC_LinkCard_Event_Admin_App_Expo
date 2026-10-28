@@ -64,3 +64,5 @@ Web 寫卡需要 Web Bluetooth 與 ACR1555U 讀卡機，不支援的環境會顯
 （`/tmp/lc-parity28-wt`）內作業，避免與其他 session 的 checkout 互相踩。
 
 未 push、未合併。Frontend 與 Backend 兩個 repo 全程唯讀，零改動。
+
+本輪**沒有改任何產品碼**，包含 G-1。理由見 `00-method-and-scope.md` §0.6。

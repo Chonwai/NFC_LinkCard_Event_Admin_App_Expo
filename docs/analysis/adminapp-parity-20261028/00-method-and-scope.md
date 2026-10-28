@@ -27,7 +27,8 @@
 | `LinkCard_Frontend`             | `development`                 | `6e58f0a`  |
 | `LinkCard_ExpressJS_Backend`    | `development`                 | `5b39cbd4` |
 
-App 的 `58affea` 是研究與文件分支。產品碼與 `origin/main`（`7d0fcf5`）逐位元相同：
+App 的 `58affea` 是研究與文件分支。它的**執行期產品碼**與 `origin/main`（`7d0fcf5`）
+相同：
 
 ```
 git diff --stat origin/main..feat/nfc-gate1-reader-spike \
@@ -35,7 +36,22 @@ git diff --stat origin/main..feat/nfc-gate1-reader-spike \
 # 空輸出
 ```
 
-所以本輪所有 App 結論都對 `origin/main` 成立，不會因為換分支而漂移。
+這句話必須寫得比上一輪精確，因為獨立複核指出了一件事：整條分支對 `origin/main`
+其實有 43 個檔案、+7,994 行的差異。那些差異是：
+
+| 位置                      | 內容                                                     |
+| ------------------------- | -------------------------------------------------------- |
+| `tools/nfc-reader-spike/` | 17 檔，獨立的 Node CLI（讀卡機 spike）                   |
+| `tools/nfc-web-probe/`    | 2 檔，只讀的 Web Bluetooth 探針                          |
+| `docs/`、`.edison/`       | 研究與手冊文件                                           |
+| `eslint.config.js`        | +18 行，只對 `tools/nfc-reader-spike/**` 給 Node globals |
+
+所以正確的說法是「`src/` 與其他執行期相依的設定沒有變動，且唯一的 lint 設定變更
+作用域只在 `tools/`」，而不是「這條分支沒有產品面向的改動」。兩者的差別在於：
+若有人以為這條分支的 lint 通過等同 `main` 的 lint 通過，那個推論是錯的——
+它的 lint 規則集合確實不同，只是差異不會落到 app 程式碼上。
+
+本輪所有 App 結論都對 `origin/main` 成立，不會因為換分支而漂移。
 
 ## 0.3 與 2026-10-22 審計的關係
 

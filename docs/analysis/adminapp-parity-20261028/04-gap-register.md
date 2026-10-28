@@ -67,6 +67,9 @@ Web 沒有這條路由（`find app -name '*wallet*'` 只有參加者視角的
 這是「placeholder 假裝自己有下一步」的典型：整個畫面本來就是 `EmptyState`，
 卻還給了一個會 404 的次要動作。
 
+上一輪的做法（`860404f`）是把它改指向 App 自己的名單頁——因為「誰有 token 流水」
+這件事在 App 內就查得到（參加者詳情頁），不需要把人送去 Web。
+
 ### G-3 錢包流水讀錯欄位且忽略分頁（P1，缺陷）
 
 `LinkCard_Event_Admin_App_Expo@src/app/(auth)/[eventId]/registrant/[registrationId].tsx:186`

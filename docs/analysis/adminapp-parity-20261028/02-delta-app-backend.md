@@ -6,11 +6,11 @@
 
 `LinkCard_Event_Admin_App_Expo` 在 10-22 之後有三條分支：
 
-| 分支                          | commits | 內容                           | 是否在 `main`         |
-| ----------------------------- | ------- | ------------------------------ | --------------------- |
-| `audit/parity-20261022`       | 28      | 上一輪對等審計＋7 個產品修復   | 否                    |
-| `feat/onsite-scope-decisions` | 53      | 上述內容＋現場四項決策         | 否                    |
-| `feat/nfc-gate1-reader-spike` | 59      | 讀卡機研究與文件（產品碼零改） | 否（但產品碼同 main） |
+| 分支                          | commits | 內容                            | 是否在 `main`           |
+| ----------------------------- | ------- | ------------------------------- | ----------------------- |
+| `audit/parity-20261022`       | 28      | 上一輪對等審計＋7 個產品修復    | 否                      |
+| `feat/onsite-scope-decisions` | 53      | 上述內容＋現場四項決策          | 否                      |
+| `feat/nfc-gate1-reader-spike` | 59      | 讀卡機研究與文件（`src/` 零改） | 否（但 `src/` 同 main） |
 
 驗證方式：
 
@@ -22,6 +22,12 @@ git diff --stat origin/main..feat/nfc-gate1-reader-spike \
   -- src tests scripts .github package.json                        # 空
 ```
 
+「`src/` 零改」不等於「這條分支沒改東西」。它對 `origin/main` 仍有 43 檔、
++7,994 行差異，分布於 `tools/`（19 檔）、`docs/`、`.edison/`，以及
+`eslint.config.js` 一段只作用於 `tools/nfc-reader-spike/**` 的 Node globals 例外。
+這句話的意義只到「執行期行為與 `main` 相同」，不包含 lint 規則集合相同。
+見 `06-verification.md` §6.2 的 A1。
+
 ## 2.2 端點層現況：15 個呼叫字面，14 條有效，1 條死路
 
 這是本輪唯一用機械方式重跑過的量測。做法是用上一輪留下的契約閘門
@@ -31,8 +37,14 @@ git diff --stat origin/main..feat/nfc-gate1-reader-spike \
 node scripts/check-backend-contract.mjs
 ✗ 1 條呼叫在後端路由快照中找不到：
   - registration.service.ts:47 POST …/registrations/checkin/override
+    shape: POST */registrations/checkin/override
 exit=1
 ```
+
+那個 `:47` 是閘門自己的定位，**不是**呼叫點的行號。實際呼叫在
+`LinkCard_Event_Admin_App_Expo@src/services/registration.service.ts:50`
+（`apiClient.post<…>(` 跨行時，閘門的行數計算少算了 3 行）。
+引用時請用 grep 得到的行號；這一點由獨立複核發現（`06-verification.md` §6.2 的 A4）。
 
 也就是說：除了那一條死路，其餘 14 個呼叫在後端都存在。上一輪的 P0 診斷是對的，
 但它沒有生效，因為修它的 commit 停在那條分支上。
