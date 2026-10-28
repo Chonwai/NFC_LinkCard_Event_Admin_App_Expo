@@ -145,9 +145,12 @@ Web 有 session CRUD（`createSession`/`listEventSessions`/`updateSession`/
 
 - `src/app/(auth)/[eventId]/token.tsx` 是一個 **placeholder**，內容是
   `EmptyState`（`token.tsx:28-59`），沒有任何帳本。
-- 它的次要動作會開 `WEB_BASE_URL/manage/:id/wallet`（`token.tsx:48`），
+- 它的次要動作會開 `WEB_BASE_URL/manage/:id/wallet`（`token.tsx:49`），
   而 Web 沒有這條路由：`find app -name '*wallet*'` 只找到
   `app/(personal)/(shell)/my-tickets/[registrationId]/wallet`（參加者視角）。
+
+  引用慣例：`:48` 是 `Linking.openURL(` 的呼叫起點，URL 字面在 `:49`。
+  本文原本寫 `:48`，那是把呼叫起點當成字面行，已於 2026-10-29 更正。
 
 真正的錢包流水在 `registrant/[registrationId].tsx`，但它有兩個缺陷（沿用上一輪
 診斷，今日仍在 `main`）：

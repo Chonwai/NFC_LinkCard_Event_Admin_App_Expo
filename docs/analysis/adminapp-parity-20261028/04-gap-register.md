@@ -60,9 +60,15 @@
 
 ### G-2 Token 畫面連到不存在的 Web 路由（P1，缺陷）
 
-`src/app/(auth)/[eventId]/token.tsx:48` 開 `${WEB_BASE_URL}/manage/${eventId}/wallet`。
+`src/app/(auth)/[eventId]/token.tsx:49` 開 `${WEB_BASE_URL}/manage/${eventId}/wallet`。
 Web 沒有這條路由（`find app -name '*wallet*'` 只有參加者視角的
 `my-tickets/[registrationId]/wallet`）。
+
+**引用行號的更正（2026-10-29）。** 上述行號原本寫 `:48`，那是 `Linking.openURL(`
+的呼叫起點，URL 字面在下一行的 `:49`。`07-briefing.md §7.11` 從一開始就寫 `:49`
+（該節是在併入後的 HEAD 上重跑 `grep -n 'wallet'` 得到），**是 03／04 兩份文件寫錯**，
+不是 briefing 寫錯。矛盾的來源是「呼叫起點 vs 字面行」這兩種引用慣例混用：指涉
+「哪一條 URL」時一律引用字面行。
 
 這是「placeholder 假裝自己有下一步」的典型：整個畫面本來就是 `EmptyState`，
 卻還給了一個會 404 的次要動作。
