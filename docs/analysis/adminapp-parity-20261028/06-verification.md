@@ -130,6 +130,13 @@ node --test tests/parity-citations.test.mjs
 
 所以這一節不記數字：記下來的每一個都會在下一次改文件時過期。
 
+**歷史上確實紅過一次，而同一個 round 內就修掉了。** 上一輪記的「`ambiguous` 上限已
+滿、CI 會紅」不是誤判：`72dfb57` 時單 repo 環境是 `ambiguous=12 → RC=1`。
+`de0d291`（補完 gap register 的後端引用前綴）與 `4688c8f`（補完 method 與 README
+的最後幾支）之後，兩個環境都是 `ambiguous=0 → RC=0`。所以現在的待決問題不是「要不
+要修」，而是**「上限憑什麼是 3」**——兩個環境今天都是 0，收成 0 做得到，但那要明講。
+時間線與重跑命令在 `08-cto-review-20261029.md` §8.4-5。
+
 **2. `06 §6.3` 這種數字一定會過期。**
 
 上面每一個數字都是 `89d9d5d` 那一天的快照。文件改一行、測試加一個、後端加一條
@@ -193,8 +200,12 @@ mkdir -p /tmp/ci-sim
 rsync -a --exclude node_modules --exclude .git --exclude ios --exclude .expo ./ /tmp/ci-sim/LinkCard_Event_Admin_App_Expo/
 cd /tmp/ci-sim/LinkCard_Event_Admin_App_Expo
 node scripts/check-parity-registry.mjs --web ../LinkCard_Frontend   # SKIPPED，exit 0
-node --test tests/parity-citations.test.mjs                          # 這一條現在會紅
+node --test tests/parity-citations.test.mjs                          # 看 MEASURED 那行；現行 HEAD 是 ambiguous=0 → RC=0
 ```
+
+對照用：同一套複本手法在 `72dfb57` 上跑（`git archive 72dfb57 | tar -x -C /tmp/at-72dfb57/LinkCard_Event_Admin_App_Expo`）當時是 `ambiguous=12`、`RC=1`
+——那是真的紅過，但已在同一個 round 內被 `de0d291` + `4688c8f` 修掉（時間線見
+`08-cto-review-20261029.md` §8.4-5）。
 
 複本裡沒有 `.git` 不影響結論：CI 有 `.git`，但它的父目錄同樣沒有 sibling，
 `findSiblingRepo()` 兩邊都回 `null`。
@@ -204,5 +215,5 @@ node --test tests/parity-citations.test.mjs                          # 這一條
 會落進 `skipped` 或 `ambiguous`。不要在這份文件裡記「今天是多少」，那個值隨文件增減
 而變；要比較就看你自己跑出來的那兩行。
 
-**本節的所有命令都在 `72dfb57` 上實跑過；若你看到不同的輸出，是程式碼或文件動了，
-不是命令壞了。**
+**本節的命令在 `72dfb57` 與 `4688c8f` 兩個座標上都實跑過；若你看到不同的輸出，是程式碼
+或文件動了，不是命令壞了。**
