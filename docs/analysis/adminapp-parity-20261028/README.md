@@ -100,17 +100,38 @@ Web 寫卡需要 Web Bluetooth 與 ACR1555U 讀卡機，不支援的環境會顯
 
 ## 分支與狀態
 
-`audit/parity-20261028`，起點 `origin/main` = `7d0fcf5`。
+這份報告在 `audit/parity-20261028` 上寫成，起點是 `origin/main` = `7d0fcf5`。
 
-這條分支**沒有**checkout 在 `LinkCard_Event_Admin_App_Expo` 裡，所以直接開那個
-資料夾是看不到的。它放在同層的另一個 worktree：
-`LinkCard/20261028_App_Web_Parity_Report/`（同一個 git repo 的 branch checkout，
-用 `git worktree` 建立，不是複本）。想看它就開那個資料夾，或在 App repo 執行
-`git checkout audit/parity-20261028`。
+**不要記這一節的數字，數字會變。** 要查就重跑下面這幾條：
 
-用 worktree 而不是直接切換，是為了不干擾其他 session 在 `feat/nfc-gate1-reader-spike`
-上的工作。
+```bash
+git branch -vv | grep -i parity
+git rev-list --count audit/parity-20261028 --not HEAD   # 0 = 已併入本工作分支
+git rev-list --count audit/parity-20261022 --not HEAD   # >0 = 還沒併
+git worktree list                                        # 有沒有額外 checkout
+git log --oneline origin/audit/parity-20261028 -1        # 遠端到底有沒有這條
+```
 
-未 push、未合併。Frontend 與 Backend 兩個 repo 全程唯讀，零改動。
+### 今天（2026-10-29）的實況
+
+| 分支                            | 已 push                       | 已併入本工作分支 | 備註                                   |
+| ------------------------------- | ----------------------------- | ---------------- | -------------------------------------- |
+| `audit/parity-20261028`         | 是，與 `origin/` 同名分支同步 | **是**           | 這份報告的作者分支                     |
+| `audit/parity-20261022`         | 否，沒有遠端同名分支          | **否**           | 上一輪的修復全停在這裡，含一顆 P0      |
+| `audit/app-web-parity-20261022` | 否                            | 否               | 更早的一條，內容已被後兩條取代，未採用 |
+
+**真正待決的是 `audit/parity-20261022`，不是 28。** 28 已經併進
+`feat/nfc-gate1-reader-spike`（上面第二條指令今天回 0），所以這個資料夾直接開得到，
+下面的證據也都是在工作分支上讀到的。22 沒有併、也沒有遠端分支，它帶的 G-1 修復
+（把 `/registrations/checkin/override` 這條後端不存在的呼叫改掉）因此還沒進
+`main`——這是本文開頭「上一輪修好的東西，沒進主線」那一段的同一個事實。
+
+**沒有 worktree。** 這條 repo 只有一個 checkout，`git worktree list` 只列
+`LinkCard_Event_Admin_App_Expo` 本身。本節早先的版本寫過一個
+`LinkCard/20261028_App_Web_Parity_Report/` 的 worktree，那個路徑今天不存在；也寫過
+「未 push、未合併」，而 28 的事實是已 push、已合併。兩處都在 2026-10-29 更正，
+並與本檔開頭「已把該分支併入工作分支」那句對齊。
+
+Frontend 與 Backend 兩個 repo 全程唯讀，零改動。
 
 本輪**沒有改任何產品碼**，包含 G-1。理由見 `00-method-and-scope.md` §0.6。
