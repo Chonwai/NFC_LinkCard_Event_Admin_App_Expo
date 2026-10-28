@@ -22,11 +22,15 @@
  * 不能靠讀者的記憶。
  *
  * 為什麼下限分兩種環境：可驗證的引用數量取決於「旁邊有幾個 repo」，不是取決於
- * 文件品質。本機三個 repo 並排時可驗 42 個；CI 只 checkout 本 repo，Web 與
- * Backend 的引用全部無從解析，只剩 26 個。同一條 25 的下限在 CI 只是剛好擦過，
- * 文件任何微調都會讓它變成必紅。所以下限跟著環境走——兩個 sibling 都在 → 25，
- * 不在 → 15。缺哪一個都會印 `SKIPPED:`，不會靜靜地少驗。下限再低也不設成 0：
- * 同 repo 的引用在任何環境都必須驗得到。
+ * 文件品質。本機三個 repo 並排時絕大多數引用都解析得到；CI 只 checkout 本 repo，
+ * Web 與 Backend 的引用全部無從解析，只剩同 repo 那一批。同一條本機下限搬到 CI
+ * 只是剛好擦過，文件任何微調都會讓它變成必紅。所以下限跟著環境走——兩個 sibling
+ * 都在 → 25，不在 → 15（值寫在 `floor` 那一行）。缺哪一個都會印 `SKIPPED:`，
+ * 不會靜靜地少驗。下限再低也不設成 0：同 repo 的引用在任何環境都必須驗得到。
+ *
+ * 量到的實際值不要寫進這個檔案：那是當天文件的快照，文件一改一加就不成立，
+ * 而「把數字寫對」從來不是防線。要量就跑 `node --test tests/parity-citations.test.mjs`
+ * 看輸出。
  */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
@@ -216,14 +220,14 @@ test("審計文件裡的每一個引用都能解析", () => {
 
   assert.deepEqual(problems, [], `\n${problems.join("\n")}`);
   // 這個下限不是品質指標，是「比對器還在動」的偵測器。
-  // 2026-10-29 的實際值：兩個 sibling 都在 → checked 42／skipped 0／ambiguous 2；
-  // 只有本 repo（CI）→ checked 26／skipped 15／ambiguous 3。
-  // 若哪天這個數字掉到個位數，表示正則或解析規則壞了，而不是文件變乾淨了。
+  // 下限隨環境走（25／15，見上方常數）；實際 checked／skipped／ambiguous 跑
+  // `node --test tests/parity-citations.test.mjs` 看輸出，不寫死在這裡。
+  // 若哪天量到的數字掉到個位數，表示正則或解析規則壞了，而不是文件變乾淨了。
   assert.ok(
     checked >= floor,
     siblingsPresent
       ? `兩個 sibling repo 都在的環境，只用 ${checked} 個引用做驗證，低於下限 ${floor}（解析成功 ${checked}、跳過 ${skipped}、無法唯一解析 ${ambiguous}）`
-      : `只有本 repo 的環境（缺 ${missing.join("、")}），只用 ${checked} 個引用做驗證，低於單 repo 下限 ${floor}（解析成功 ${checked}、跳過 ${skipped}、無法唯一解析 ${ambiguous}）。本機應在 ${WEB_REPO} 與 ${BACKEND_REPO} 都放在旁邊時跑 npm test，才能驗到完整的 42 個引用。`,
+      : `只有本 repo 的環境（缺 ${missing.join("、")}），只用 ${checked} 個引用做驗證，低於單 repo 下限 ${floor}（解析成功 ${checked}、跳過 ${skipped}、無法唯一解析 ${ambiguous}）。本機應在 ${WEB_REPO} 與 ${BACKEND_REPO} 都放在旁邊時跑 npm test，才能驗到完整的引用集。`,
   );
   assert.ok(
     ambiguous <= 3,
