@@ -30,6 +30,51 @@
 
 `S` ≦ 半天、`M` ≦ 兩天、`L` 需要設計與驗收。
 
+> **讀 `status` 欄位之前先讀這段（2026-10-29 實測）。**
+> `parity/parity-registry.json` 的 `fixed-on-branch` 意思是「**修法存在於某條
+> 未合併的分支**」，**不是**「已修好」。它回答的是「有沒有人做過」，不是「現在
+> 這棵樹上有沒有」。
+>
+> 判定依據是 `audit/parity-20261022` **不是** HEAD 的 ancestor：
+>
+> ```
+> git merge-base --is-ancestor audit/parity-20261022 HEAD && echo '22 MERGED' || echo '22 NOT merged'
+> # → 22 NOT merged
+> git rev-list --count origin/main..audit/parity-20261022
+> # → 28
+> ```
+>
+> 所以標成 `fixed-on-branch` 的六項——`G-1 G-2 G-3 G-4 G-5 G-11`——在
+> `feat/nfc-gate1-reader-spike`（本輪文件的 HEAD）上**有效修復數是 0**，六項
+> **全部仍然存在**。逐項在 HEAD 上重跑的證據：
+>
+> - **G-1** — `src/services/registration.service.ts:50` 仍打
+>   `…/registrations/checkin/override`。
+> - **G-2** — `src/app/(auth)/[eventId]/token.tsx:49` 仍開
+>   `${WEB_BASE_URL}/manage/${eventId}/wallet`。
+> - **G-3** — 後端投影仍缺 `approvedBy`（見 §4.2 G-3）。
+> - **G-4** — `depositRefunded`／`archivedAt`／`checkedInBy`／`boundOnly` 四個
+>   字串在 `src/` 各命中 **0 檔**。
+> - **G-5** — `grep -rn 'my-access' src/` 命中 **0**。
+> - **G-11** — `scripts/check-backend-contract.mjs` 在 HEAD 不存在
+>   （`ls` 回 No such file）；該檔在 `audit/parity-20261022` 上才存在。
+>
+> 一個容易誤讀的例外：`.github/workflows/ci.yml:46` **確實**有
+> `npm run check:parity`。但那是**登記冊一致性**閘門，不是 G-11 講的**後端契約**
+> 閘門；後者指 `scripts/check-backend-contract.mjs`。不要因為 CI 有一個 check
+> 就以為 G-11 已解。
+>
+> 重跑（App repo 根目錄）：
+>
+> ```
+> git merge-base --is-ancestor audit/parity-20261022 HEAD && echo '22 MERGED' || echo '22 NOT merged'
+> git rev-list --count origin/main..audit/parity-20261022
+> node -e "const r=require('./parity/parity-registry.json');console.log((r.gaps||[]).filter(g=>g.status==='fixed-on-branch').map(g=>g.id).join(' '))"
+> ```
+>
+> 這不改變任何一項的 `status` 值——`fixed-on-branch` 本身是準確的，會誤導人的是
+> 讀者的預設解讀。
+
 ## 4.2 逐項說明
 
 ### G-0 上一輪的修復沒有進主線（P0，流程）
