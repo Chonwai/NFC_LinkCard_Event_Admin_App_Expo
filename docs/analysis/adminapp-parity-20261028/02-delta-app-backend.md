@@ -4,27 +4,37 @@
 
 ## 2.1 App：產品碼沒有動，但修復卡在兩個未合併分支上
 
-`LinkCard_Event_Admin_App_Expo` 在 10-22 之後有三條分支：
+`LinkCard_Event_Admin_App_Expo` 在 10-22 之後有三條分支。commit 數於 2026-10-29
+重新量測（量測時的 HEAD = `c645f20`）：
 
-| 分支                          | commits | 內容                            | 是否在 `main`           |
-| ----------------------------- | ------- | ------------------------------- | ----------------------- |
-| `audit/parity-20261022`       | 28      | 上一輪對等審計＋7 個產品修復    | 否                      |
-| `feat/onsite-scope-decisions` | 53      | 上述內容＋現場四項決策          | 否                      |
-| `feat/nfc-gate1-reader-spike` | 59      | 讀卡機研究與文件（`src/` 零改） | 否（但 `src/` 同 main） |
+| 分支                          | commits | 內容                                 | 是否在 `main`           |
+| ----------------------------- | ------- | ------------------------------------ | ----------------------- |
+| `audit/parity-20261022`       | 28      | 上一輪對等審計＋7 個產品修復         | 否                      |
+| `feat/onsite-scope-decisions` | 53      | 上述內容＋現場四項決策               | 否                      |
+| `feat/nfc-gate1-reader-spike` | 111     | 讀卡機研究、文件，以及對等登記表閘門 | 否（但 `src/` 同 main） |
 
 驗證方式：
 
 ```
 git rev-list --count origin/main..audit/parity-20261022            # 28
 git rev-list --count origin/main..feat/onsite-scope-decisions      # 53
-git rev-list --count origin/main..feat/nfc-gate1-reader-spike      # 59
-git diff --stat origin/main..feat/nfc-gate1-reader-spike \
-  -- src tests scripts .github package.json                        # 空
+git rev-list --count origin/main..feat/nfc-gate1-reader-spike      # 111
+git diff --stat origin/main..feat/nfc-gate1-reader-spike -- src/   # 空
 ```
 
-「`src/` 零改」不等於「這條分支沒改東西」。它對 `origin/main` 仍有 43 檔、
-+7,994 行差異，分布於 `tools/`（19 檔）、`docs/`、`.edison/`，以及
-`eslint.config.js` 一段只作用於 `tools/nfc-reader-spike/**` 的 Node globals 例外。
+第三條會隨這條分支的每一個 commit 前進，本節自己的 commit 也算在內，所以重跑時看到
+比 111 大是正常的；看到比它小才要回頭確認你量的是哪條分支。
+
+「`src/` 零改」不等於「這條分支沒改東西」。它對 `origin/main` 有 62 檔、
++11,656 行差異（`git diff --stat origin/main..HEAD | tail -1`），分佈於 `docs/`
+（31 檔）、`tools/`（19 檔）、`.edison/`（4 檔）、`tests/`（2 檔）、`scripts/`、
+`parity/`、`package.json`、`.github/`、`.prettierignore`，以及 `eslint.config.js`
+一段只作用於 `tools/nfc-reader-spike/**` 的 Node globals 例外。
+
+先前版本這裡寫的是 `-- src tests scripts .github package.json` 並宣稱空輸出。那條
+命令今天會回 5 個檔、+807 行，因為本輪自己往 `scripts/`、`tests/`、`.github/`、
+`package.json` 加了閘門。正確的範圍是 `-- src/`。
+
 這句話的意義只到「執行期行為與 `main` 相同」，不包含 lint 規則集合相同。
 見 `06-verification.md` §6.2 的 A1。
 

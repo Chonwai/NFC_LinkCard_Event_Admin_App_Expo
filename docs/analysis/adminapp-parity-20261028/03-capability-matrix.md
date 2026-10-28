@@ -132,7 +132,7 @@ App `registrations.tsx`：狀態篩選（5 種）、前端搜尋、排序（時�
 | 手動輸入報名碼          | ✅                                   | ✅                               |
 | 防連掃門閂              | ✅ `scanInFlight`                    | ✅ `scanInFlight:100`            |
 | 成功後顯示 profile 路徑 | ✅                                   | ✅                               |
-| 不必離開報到頁即可寫卡  | ✅ `WriteCardPanel`（524 行）        | ❌ 要跳 `nfc-bind`               |
+| 不必離開報到頁即可寫卡  | ✅ `WriteCardPanel`（568 行）        | ❌ 要跳 `nfc-bind`               |
 | 寫完自動綁卡            | ✅ `bindWrittenBadge`                | ✅ 在 `nfc-bind` 內              |
 | 卡片上鎖（PWD_AUTH）    | ✅ `lib/nfc/globalPassword`          | ❌ 無對應層                      |
 | 讀卡機連線／重連        | ✅ `DeskReaderBar`                   | ❌ 不適用                        |

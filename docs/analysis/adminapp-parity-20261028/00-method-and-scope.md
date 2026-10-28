@@ -17,39 +17,78 @@
 
 本輪只做「查清楚」與「列出該補什麼」，不改產品行為（唯一例外見 §0.6）。
 
-## 0.2 座標
+## 0.2 量測座標（2026-10-29）
 
 比對基準是三個 repo 的實際 HEAD，不是記憶中的版本。
 
-| Repo                            | 分支                          | SHA        |
-| ------------------------------- | ----------------------------- | ---------- |
-| `LinkCard_Event_Admin_App_Expo` | `feat/nfc-gate1-reader-spike` | `58affea`  |
-| `LinkCard_Frontend`             | `development`                 | `6e58f0a`  |
-| `LinkCard_ExpressJS_Backend`    | `development`                 | `5b39cbd4` |
+| Repo                            | 分支                          | 量測時的 HEAD |
+| ------------------------------- | ----------------------------- | ------------- |
+| `LinkCard_Event_Admin_App_Expo` | `feat/nfc-gate1-reader-spike` | `c645f20`     |
+| `LinkCard_Frontend`             | `development`                 | `c8508aa`     |
+| `LinkCard_ExpressJS_Backend`    | `development`                 | `7d08daff`    |
 
-App 的 `58affea` 是研究與文件分支。它的**執行期產品碼**與 `origin/main`（`7d0fcf5`）
-相同：
+產生上表的三條命令（互不相依，在 `LinkCard/` 這一層跑）：
 
 ```
-git diff --stat origin/main..feat/nfc-gate1-reader-spike \
-  -- src tests scripts .github package.json
+git -C LinkCard_Event_Admin_App_Expo rev-parse --short HEAD   # c645f20
+git -C LinkCard_Frontend          rev-parse --short HEAD      # c8508aa
+git -C LinkCard_ExpressJS_Backend rev-parse --short HEAD      # 7d08daff
+```
+
+**這三個 SHA 會前進；重測前請先確認你量的和文件量的是同一個 HEAD。** 本節每一個
+數字都是上表那三個 HEAD 上量到的。這批文件先前寫的 `6e58f0a`（Web）與 `5b39cbd4`
+（Backend）已不是那兩條分支的 HEAD。
+
+App 的 `c645f20` 是研究與文件分支。它的 **`src/`** 與 `origin/main`（`7d0fcf5`）
+逐位元相同：
+
+```
+git diff --stat origin/main..HEAD -- src/
 # 空輸出
+
+git diff --name-only origin/main..HEAD -- src/ | wc -l
+# 0
 ```
 
-這句話必須寫得比上一輪精確，因為獨立複核指出了一件事：整條分支對 `origin/main`
-其實有 43 個檔案、+7,994 行的差異。那些差異是：
+**這裡原本引用的命令已經失效，而原因值得留在文件裡。** 舊版寫的是
+`git diff --stat origin/main..<branch> -- src tests scripts .github package.json`
+並宣稱空輸出；今天同一條命令回 5 個檔、+807 行——因為**這一輪自己**在 `scripts/`、
+`tests/`、`.github/workflows/ci.yml`、`package.json` 加了對等登記表閘門與引用測試。
+量測工具改變了自己的讀數。所以正確的範圍是 `-- src/`，不是那五個路徑。
 
-| 位置                      | 內容                                                     |
-| ------------------------- | -------------------------------------------------------- |
-| `tools/nfc-reader-spike/` | 17 檔，獨立的 Node CLI（讀卡機 spike）                   |
-| `tools/nfc-web-probe/`    | 2 檔，只讀的 Web Bluetooth 探針                          |
-| `docs/`、`.edison/`       | 研究與手冊文件                                           |
-| `eslint.config.js`        | +18 行，只對 `tools/nfc-reader-spike/**` 給 Node globals |
+整條分支對 `origin/main` 的差異（同日重新量測）：
 
-所以正確的說法是「`src/` 與其他執行期相依的設定沒有變動，且唯一的 lint 設定變更
-作用域只在 `tools/`」，而不是「這條分支沒有產品面向的改動」。兩者的差別在於：
-若有人以為這條分支的 lint 通過等同 `main` 的 lint 通過，那個推論是錯的——
-它的 lint 規則集合確實不同，只是差異不會落到 app 程式碼上。
+```
+git diff --stat origin/main..HEAD | tail -1
+# 62 files changed, 11656 insertions(+), 11 deletions(-)
+```
+
+分佈（`git diff --name-only origin/main..HEAD | awk -F/ '{print ($0 ~ /\// ? $1"/" : $0)}' | sort | uniq -c`，加總 62）：
+
+| 位置               | 檔數 | 內容                                                              |
+| ------------------ | ---- | ----------------------------------------------------------------- |
+| `docs/`            | 31   | 研究與手冊文件                                                    |
+| `tools/`           | 19   | `nfc-reader-spike/` 17 檔（獨立 Node CLI）＋`nfc-web-probe/` 2 檔 |
+| `.edison/`         | 4    | 迴圈狀態                                                          |
+| `tests/`           | 2    | 引用與登記表測試                                                  |
+| `scripts/`         | 1    | 對等登記表閘門                                                    |
+| `parity/`          | 1    | 能力登記表                                                        |
+| `package.json`     | 1    | 兩個 `check:parity` script                                        |
+| `eslint.config.js` | 1    | +18 行，只對 `tools/nfc-reader-spike/**` 給 Node globals          |
+| `.prettierignore`  | 1    | 讓 `tools/` 不進 prettier 範圍                                    |
+| `.github/`         | 1    | CI 加一步 `check:parity`                                          |
+
+所以正確的說法是兩句，不能併成一句：
+
+1. **`src/`（App 的執行期產品碼）沒有變動。**
+2. 這條分支**不是**「只有文件」——它多了 19 個 `tools/` 檔、一套閘門與測試，以及
+   一段只作用於 `tools/nfc-reader-spike/**` 的 lint 例外。
+
+`06-verification.md` §6.2 的 A1 記錄的是獨立複核**當時**的讀數（43 檔、+7,994 行）。
+那個數字沒有錯，只是快照比本節早：中間多了本輪自己加的閘門與測試，以及後續文件。
+
+若有人以為這條分支的 lint 通過等同 `main` 的 lint 通過，那個推論是錯的：它的 lint
+規則集合確實不同。差別只在於，那些差異不會落到 app 程式碼上。
 
 本輪所有 App 結論都對 `origin/main` 成立，不會因為換分支而漂移。
 

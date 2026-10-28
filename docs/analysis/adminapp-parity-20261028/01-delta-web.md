@@ -2,10 +2,17 @@
 
 <!-- citations: LinkCard_Frontend -->
 
-比對區間：`b52c08c`（10-22 當日收工）→ `6e58f0a`（今日 HEAD），共 202 個 commit。
-其中與本題相關的區域（`app/check-in`、`components/checkin`、`components/nfc`、
-`lib/nfc`、`lib/checkin`、`hooks/useNfcReader.ts`、`app/(event)/manage`）合計
-62 個檔案、20,907 行新增。
+比對區間：`b52c08c`（10-22 當日收工）→ `c8508aa`（2026-10-29 量測時的 HEAD），
+共 214 個 commit。其中與本題相關的區域（`app/check-in`、`components/checkin`、
+`components/nfc`、`lib/nfc`、`lib/checkin`、`hooks/useNfcReader.ts`、
+`app/(event)/manage`）合計 64 個檔案、+21,341／-737 行：
+
+```
+git rev-list --count b52c08c..c8508aa          # 214
+git diff --stat b52c08c..c8508aa -- 'app/check-in' components/checkin \
+  components/nfc lib/nfc lib/checkin hooks/useNfcReader.ts 'app/(event)/manage' | tail -1
+# 64 files changed, 21341 insertions(+), 737 deletions(-)
+```
 
 這一節只列會改變「對等判定」的變化，不列內部重構。
 
@@ -15,21 +22,31 @@
 那個結論當時成立，但它的前提已經被換掉了：Web 不再嘗試用瀏覽器的 NDEF API，而是
 自己寫了一個走 Web Bluetooth 的 ACR1555U 讀卡機 client。
 
-證據（皆在 `LinkCard_Frontend@6e58f0a`）：
+證據（皆在 `LinkCard_Frontend@c8508aa`）：
 
-| 能力                 | 落點                                                                                  |
-| -------------------- | ------------------------------------------------------------------------------------- |
-| 讀卡機連線（含重連） | `hooks/useNfcReader.ts`、`components/checkin/DeskReaderBar.tsx`                       |
-| 讀卡機支援度偵測     | `components/checkin/DeskReaderBar.tsx:73-88`（`readerBarState`）                      |
-| 寫卡面板             | `components/checkin/WriteCardPanel.tsx`（524 行）                                     |
-| 報到桌狀態機         | `lib/checkin/nfcDesk.ts:29-188`                                                       |
-| 現場處置動作         | `lib/checkin/nfcDesk.ts:60`（`retry`／`swap_card`／`skip`／`retry_bind`／`next`）     |
-| 失敗分類→操作員文案  | `lib/checkin/nfcDesk.ts:464,522,566`                                                  |
-| 卡片上鎖決策         | `lib/checkin/nfcDesk.ts:360-399`（`policy_on`／`policy_off`／`password_unavailable`） |
-| 上鎖結果回報         | `lib/checkin/nfcDesk.ts:57`（`locked`／`unlocked`／`lock_failed`）                    |
-| 卡片密碼來源         | `app/check-in/[eventId]/page.tsx:90` → `app/api/check-in/card-password/route.ts`      |
+| 能力                 | 落點                                                                                                                 |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| 讀卡機連線（含重連） | `hooks/useNfcReader.ts`、`components/checkin/DeskReaderBar.tsx`                                                      |
+| 讀卡機支援度偵測     | `components/checkin/DeskReaderBar.tsx:73-88`（`readerBarState`）                                                     |
+| 寫卡面板             | `components/checkin/WriteCardPanel.tsx`（568 行）                                                                    |
+| 報到桌狀態機         | `lib/checkin/nfcDesk.ts:29-188`                                                                                      |
+| 現場處置動作         | `lib/checkin/nfcDesk.ts:60`（`retry`／`swap_card`／`skip`／`retry_bind`／`next`）                                    |
+| 失敗分類→操作員文案  | `lib/checkin/nfcDesk.ts:464,522,566`                                                                                 |
+| 卡片上鎖決策         | `lib/checkin/nfcDesk.ts:360-399`（`policy_on`／`policy_off`／`password_unavailable`）                                |
+| 上鎖結果回報         | `lib/checkin/nfcDesk.ts:57`（`locked`／`unlocked`／`lock_failed`）                                                   |
+| 卡片密碼來源         | `app/check-in/[eventId]/page.tsx:19` → `lib/checkin/cardPassword.ts:140` → `app/api/check-in/card-password/route.ts` |
 
-`app/check-in/[eventId]/page.tsx` 這一個檔案在區間內新增 684 行，現在是 972 行。
+`app/check-in/[eventId]/page.tsx` 這一個檔案在區間內新增 659 行、刪除 20 行，
+現在是 967 行：
+
+```
+git diff --numstat b52c08c..c8508aa -- 'app/check-in/[eventId]/page.tsx'
+# 659     20      app/check-in/[eventId]/page.tsx
+wc -l 'app/check-in/[eventId]/page.tsx'
+# 967
+```
+
+`b52c08c` 是 10-22 當天的 Web HEAD，`c8508aa` 是本節量測時的 HEAD。
 
 ### 這為什麼重要
 
@@ -40,8 +57,8 @@ Web 現在是：掃碼 → 不換頁直接寫卡 → 自動綁卡 → 寫入時�
 「這張卡要換、要重試、還是可以先跳過」的明確處置。
 
 要講精確的話，「不換頁」指的是**同一個頁面、同一條藍牙連線**：讀卡機狀態條在所有
-狀態下都在，寫卡面板要掃到人之後才出現（`app/check-in/[eventId]/page.tsx:717`、
-`app/check-in/[eventId]/page.tsx:876`）；上鎖不是對既有的卡另外送一次 `PWD_AUTH`，
+狀態下都在，寫卡面板要掃到人之後才出現（`app/check-in/[eventId]/page.tsx:707`、
+`app/check-in/[eventId]/page.tsx:866`）；上鎖不是對既有的卡另外送一次 `PWD_AUTH`，
 而是「寫入 → 逐 byte 讀回 →（上鎖）」這段發卡序列的最後一步
 （`hooks/useNfcReader.ts:690-722`）。
 
