@@ -1,0 +1,267 @@
+/**
+ * 對等登記表閘門的行為鎖定。
+ *
+ * 為什麼要測一支「檢查文件的腳本」：一個永遠會過的檢查比沒有檢查更糟。
+ * 2026-10-22 的獨立驗證就抓到過這種事——路由快照漏收 8 條巢狀路由，
+ * 於是閘門會在未來對合法呼叫發出假陽性警告，然後被所有人忽略。
+ *
+ * 所以這裡除了正向（真實登記表要過），主要測**負向**：
+ * 缺少理由、gapId 指到不存在的缺口、Web 出現未登記頁面、引用不存在的檔案、
+ * P0 缺口沒有對應章節——每一種都必須讓腳本失敗。
+ */
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { test } from "node:test";
+import { fileURLToPath } from "node:url";
+
+const REPO_ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+);
+const SCRIPT = path.join(REPO_ROOT, "scripts", "check-parity-registry.mjs");
+const REAL_REGISTRY = path.join(REPO_ROOT, "parity", "parity-registry.json");
+
+const DOC_DIR = "docs/analysis/fixture-audit";
+
+function baseRegistry(overrides = {}) {
+  return {
+    schemaVersion: 1,
+    audit: { id: "fixture", docPath: DOC_DIR },
+    webSurfaces: { repo: "web", scanRoots: ["app/(event)/manage"] },
+    capabilities: [
+      {
+        id: "registrations",
+        title: "名單",
+        webPages: ["app/(event)/manage/[eventId]/registrations/page.tsx"],
+        appFiles: ["src/app/(auth)/[eventId]/registrations.tsx"],
+        verdict: "APP_GAP",
+        gapId: "G-1",
+        evidence: ["fixture evidence"],
+      },
+    ],
+    appOnly: [],
+    gaps: [
+      {
+        id: "G-1",
+        title: "缺口一",
+        severity: "P1",
+        owner: "product",
+        size: "S",
+        status: "open",
+        fixedOn: [],
+      },
+    ],
+    ...overrides,
+  };
+}
+
+/**
+ * 建一個最小的假 repo：腳本、登記表、文件、App 檔案、Web 頁面。
+ * 腳本會以自己的位置推算 repo 根目錄，所以必須複製到 fixture 內。
+ */
+function makeFixture({ registry = baseRegistry(), webPages = [] } = {}) {
+  const root = mkdtempSync(path.join(tmpdir(), "parity-fixture-"));
+  const webRoot = mkdtempSync(path.join(tmpdir(), "parity-web-"));
+
+  mkdirSync(path.join(root, "scripts"), { recursive: true });
+  copyFileSync(SCRIPT, path.join(root, "scripts", "check-parity-registry.mjs"));
+
+  mkdirSync(path.join(root, "parity"), { recursive: true });
+  writeFileSync(
+    path.join(root, "parity", "parity-registry.json"),
+    JSON.stringify(registry, null, 2),
+  );
+
+  mkdirSync(path.join(root, DOC_DIR), { recursive: true });
+  writeFileSync(
+    path.join(root, DOC_DIR, "04-gap-register.md"),
+    "### G-1 缺口一\n\n說明。\n",
+  );
+
+  const appFile = path.join(root, "src/app/(auth)/[eventId]/registrations.tsx");
+  mkdirSync(path.dirname(appFile), { recursive: true });
+  writeFileSync(appFile, "export default function Screen() {}\n");
+
+  for (const page of [
+    "app/(event)/manage/[eventId]/registrations/page.tsx",
+    ...webPages,
+  ]) {
+    const full = path.join(webRoot, page);
+    mkdirSync(path.dirname(full), { recursive: true });
+    writeFileSync(full, "export default function Page() {}\n");
+  }
+
+  return { root, webRoot };
+}
+
+function run(root, args = []) {
+  const result = spawnSync(
+    process.execPath,
+    [path.join(root, "scripts", "check-parity-registry.mjs"), ...args],
+    { encoding: "utf8" },
+  );
+  return {
+    status: result.status,
+    stdout: result.stdout ?? "",
+    stderr: result.stderr ?? "",
+  };
+}
+
+/**
+ * 找同層的 Web repo。
+ *
+ * 不能只寫 `resolve(REPO_ROOT, '..', repo)`：本 repo 常常在 worktree 裡作業
+ * （`/tmp/…`），那時上層不是 LinkCard/。改用 git 的 common dir 反推真正的
+ * 主 repo 位置，再取它的同層目錄。
+ */
+function findWebRoot(repo) {
+  const candidates = [];
+  if (process.env.PARITY_WEB_ROOT) candidates.push(process.env.PARITY_WEB_ROOT);
+  candidates.push(path.resolve(REPO_ROOT, "..", repo));
+
+  const common = spawnSync(
+    "git",
+    [
+      "-C",
+      REPO_ROOT,
+      "rev-parse",
+      "--path-format=absolute",
+      "--git-common-dir",
+    ],
+    { encoding: "utf8" },
+  );
+  if (common.status === 0) {
+    const mainRepo = path.dirname(common.stdout.trim());
+    candidates.push(path.resolve(mainRepo, "..", repo));
+  }
+
+  return candidates.find((candidate) => existsSync(candidate)) ?? null;
+}
+
+test("fixture 的正向情況會通過", () => {
+  const { root, webRoot } = makeFixture();
+  const result = run(root, ["--web", webRoot, "--require-web"]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /對等登記表一致/);
+});
+
+test("Web 不在旁邊時跳過而不是失敗，但 --require-web 會失敗", () => {
+  const { root } = makeFixture();
+  const skipped = run(root, ["--web", path.join(root, "no-such-dir")]);
+  assert.equal(skipped.status, 0);
+  assert.match(skipped.stdout, /SKIPPED/);
+
+  const required = run(root, [
+    "--web",
+    path.join(root, "no-such-dir"),
+    "--require-web",
+  ]);
+  assert.equal(required.status, 1);
+  assert.match(required.stderr, /--require-web/);
+});
+
+test("BY_DESIGN 沒有理由時失敗", () => {
+  const registry = baseRegistry({
+    capabilities: [
+      {
+        id: "profile",
+        title: "活動資料",
+        webPages: ["app/(event)/manage/[eventId]/registrations/page.tsx"],
+        appFiles: [],
+        verdict: "BY_DESIGN",
+        rationale: "太短",
+        evidence: ["x"],
+      },
+    ],
+  });
+  const { root, webRoot } = makeFixture({ registry });
+  const result = run(root, ["--web", webRoot, "--require-web"]);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /BY_DESIGN 必須有可反駁的 rationale/);
+});
+
+test("APP_GAP 指向不存在的缺口時失敗", () => {
+  const registry = baseRegistry({
+    capabilities: [
+      {
+        ...baseRegistry().capabilities[0],
+        gapId: "G-999",
+      },
+    ],
+  });
+  const { root, webRoot } = makeFixture({ registry });
+  const result = run(root, ["--web", webRoot, "--require-web"]);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /G-999 不在 gaps 清單/);
+});
+
+test("Web 出現未登記的頁面時失敗", () => {
+  const { root, webRoot } = makeFixture({
+    webPages: ["app/(event)/manage/[eventId]/polls/page.tsx"],
+  });
+  const result = run(root, ["--web", webRoot, "--require-web"]);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /未登記的頁面/);
+  assert.match(result.stderr, /polls\/page\.tsx/);
+});
+
+test("登記的 App 檔案不存在時失敗", () => {
+  const registry = baseRegistry({
+    capabilities: [
+      {
+        ...baseRegistry().capabilities[0],
+        appFiles: ["src/app/(auth)/[eventId]/does-not-exist.tsx"],
+      },
+    ],
+  });
+  const { root, webRoot } = makeFixture({ registry });
+  const result = run(root, ["--web", webRoot, "--require-web"]);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /App 檔案不存在/);
+});
+
+test("P0 缺口沒有對應章節時失敗", () => {
+  const registry = baseRegistry({
+    capabilities: [],
+    gaps: [
+      {
+        id: "G-7",
+        title: "未寫進文件的缺口",
+        severity: "P0",
+        owner: "product",
+        size: "S",
+        status: "open",
+        fixedOn: [],
+      },
+    ],
+  });
+  const { root, webRoot } = makeFixture({ registry });
+  const result = run(root, ["--web", webRoot, "--require-web"]);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /G-7/);
+});
+
+test("真實登記表在當前 repo 上是一致的", (t) => {
+  const registry = JSON.parse(readFileSync(REAL_REGISTRY, "utf8"));
+  const webRoot = findWebRoot(registry.webSurfaces.repo);
+  if (webRoot === null) {
+    t.skip(`找不到 ${registry.webSurfaces.repo}（可用 PARITY_WEB_ROOT 指定）`);
+    return;
+  }
+  const result = spawnSync(
+    process.execPath,
+    [SCRIPT, "--web", webRoot, "--require-web"],
+    { encoding: "utf8" },
+  );
+  assert.equal(result.status, 0, result.stderr);
+});

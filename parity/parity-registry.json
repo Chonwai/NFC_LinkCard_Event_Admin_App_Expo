@@ -1,0 +1,360 @@
+{
+  "schemaVersion": 1,
+  "audit": {
+    "id": "2026-10-28",
+    "docPath": "docs/analysis/adminapp-parity-20261028",
+    "question": "Does the Event Admin App carry the same capabilities as the web event-admin surface?",
+    "coordinates": {
+      "app": {
+        "repo": "LinkCard_Event_Admin_App_Expo",
+        "sha": "7d0fcf5",
+        "note": "origin/main; product code identical on feat/nfc-gate1-reader-spike"
+      },
+      "web": {
+        "repo": "LinkCard_Frontend",
+        "branch": "development",
+        "sha": "6e58f0a"
+      },
+      "backend": {
+        "repo": "LinkCard_ExpressJS_Backend",
+        "branch": "development",
+        "sha": "5b39cbd4"
+      }
+    }
+  },
+  "webSurfaces": {
+    "repo": "LinkCard_Frontend",
+    "navSource": "app/(event)/manage/[eventId]/layout.tsx",
+    "scanRoots": ["app/(event)/manage", "app/check-in", "app/nfc"]
+  },
+  "capabilities": [
+    {
+      "id": "events-list",
+      "title": "活動清單",
+      "webPages": ["app/(event)/manage/events/page.tsx"],
+      "appFiles": ["src/app/(auth)/home.tsx"],
+      "verdict": "ALIGNED",
+      "evidence": [
+        "App: GET /events/my-managed，_meta 內層 role/counts 由 event.service.ts:38-48 unwrap",
+        "Web: listManageableEvents，導覽入口 /manage/events"
+      ]
+    },
+    {
+      "id": "overview",
+      "title": "活動總覽",
+      "webPages": ["app/(event)/manage/[eventId]/page.tsx"],
+      "appFiles": ["src/app/(auth)/[eventId]/overview.tsx"],
+      "verdict": "ALIGNED_DEFECT",
+      "gapId": "G-10",
+      "evidence": [
+        "Web: 每個入口卡帶數字，單一 GET /events/:eventId/manage-stats（hooks/events/useManageStats.ts）",
+        "App: overview.tsx:133-159 用兩次 limit:1 的 registrations 請求算總數，該端點為 write access，OPERATOR 403",
+        "App 已有 registrationCount（event.service.ts:38-48），未使用"
+      ]
+    },
+    {
+      "id": "profile",
+      "title": "活動資料",
+      "webPages": ["app/(event)/manage/[eventId]/profile/page.tsx"],
+      "appFiles": [],
+      "verdict": "BY_DESIGN",
+      "rationale": "改活動名稱、時間、地點是活動前的工作，且需要同時看整份報名表單設計；手機不是合適的編輯裝置。若出現活動當天改時間的實際需求，此判定應重新檢視。",
+      "evidence": ["Web: updateEvent／EventStatus／EventLandingPageMode"]
+    },
+    {
+      "id": "content",
+      "title": "落地頁內容",
+      "webPages": ["app/(event)/manage/[eventId]/content/page.tsx"],
+      "appFiles": [],
+      "verdict": "BY_DESIGN",
+      "rationale": "文案與區塊編輯是長文本工作，需要大螢幕與並排預覽；現場不需要改文案。",
+      "evidence": [
+        "Web: createEventPageCard／createEventPageSection／update…／delete…"
+      ]
+    },
+    {
+      "id": "ticket-types",
+      "title": "票種",
+      "webPages": ["app/(event)/manage/[eventId]/ticket-types/page.tsx"],
+      "appFiles": ["src/app/(auth)/[eventId]/walk-in.tsx"],
+      "verdict": "BY_DESIGN",
+      "rationale": "票種與語意綁定屬於設定層，App 只需在現場報名時讀取可用票種（已實作 listTicketTypes）。現場改價或改名額需要授權設計，目前沒有這個需求。",
+      "evidence": [
+        "Web: 票種 CRUD＋語意綁定驗證",
+        "App: eventService.listTicketTypes 供 walk-in 使用"
+      ]
+    },
+    {
+      "id": "badges",
+      "title": "Badge 庫存與批次",
+      "webPages": ["app/(event)/manage/[eventId]/badges/page.tsx"],
+      "appFiles": [
+        "src/app/(auth)/[eventId]/badges.tsx",
+        "src/services/nfc.service.ts"
+      ],
+      "verdict": "APP_GAP",
+      "gapId": "G-7",
+      "evidence": [
+        "Web 匯入 listNfcBadges／createNfcBatch／claimNfcBadge／completeNfcBatch／exportNfcBadges",
+        "App 只有 listBadges 與 lookup（nfc.service.ts:23-57），且無 boundOnly 參數",
+        "後端 7 條 nfc 端點皆存在"
+      ]
+    },
+    {
+      "id": "registrations",
+      "title": "報名名單",
+      "webPages": ["app/(event)/manage/[eventId]/registrations/page.tsx"],
+      "appFiles": [
+        "src/app/(auth)/[eventId]/registrations.tsx",
+        "src/app/(auth)/[eventId]/registrant/[registrationId].tsx",
+        "src/services/event.service.ts"
+      ],
+      "verdict": "APP_GAP",
+      "gapId": "G-6",
+      "evidence": [
+        "Web: exportAttendeesCsv／hide／unhide／archive／unarchive／退款登記／狀態更正／depositRefundFilter",
+        "App: 狀態篩選、前端搜尋、排序、分頁（只讀）",
+        "相關缺陷：G-3 錢包欄位與分頁、G-4 型別缺退款稽查欄位"
+      ]
+    },
+    {
+      "id": "check-in",
+      "title": "現場報到",
+      "webPages": [
+        "app/check-in/[eventId]/page.tsx",
+        "app/check-in/[eventId]/nfc/page.tsx"
+      ],
+      "appFiles": [
+        "src/app/(auth)/[eventId]/check-in.tsx",
+        "src/app/(auth)/[eventId]/nfc-bind.tsx"
+      ],
+      "verdict": "APP_GAP",
+      "gapId": "G-8",
+      "evidence": [
+        "兩邊都有 QR 掃碼、手動輸入、防連掃門閂",
+        "Web 同一畫面寫卡＋綁卡＋上鎖（WriteCardPanel 524 行、lib/checkin/nfcDesk.ts、lib/nfc/globalPassword.ts）",
+        "App 寫卡在另一個畫面（nfc-bind.tsx），且無上鎖能力；iOS 硬阻擋（nfc-bind.tsx:84-85）",
+        "App 的「申請主管覆核」呼叫不存在的路由（G-1）"
+      ]
+    },
+    {
+      "id": "exhibitors",
+      "title": "參展廠商",
+      "webPages": [
+        "app/(event)/manage/[eventId]/exhibitors/page.tsx",
+        "app/(event)/manage/[eventId]/exhibitors/import/page.tsx"
+      ],
+      "appFiles": [],
+      "verdict": "BY_DESIGN",
+      "rationale": "廠商審核與名單匯入是批次工作，需要檔案上傳與逐列錯誤檢視；現場不做這件事。目前也沒有攤位報到需求。",
+      "evidence": [
+        "Web: listAllExhibitorsAdmin／updateExhibitorStatus／CSV import"
+      ]
+    },
+    {
+      "id": "sessions",
+      "title": "場次",
+      "webPages": [
+        "app/(event)/manage/[eventId]/sessions/page.tsx",
+        "app/(event)/manage/[eventId]/sessions/[sessionId]/registrations/page.tsx"
+      ],
+      "appFiles": [],
+      "verdict": "APP_GAP",
+      "gapId": "G-9",
+      "evidence": [
+        "Web: session CRUD＋每場次名冊",
+        "App 全庫無 session 概念",
+        "產業對照：Cvent／Whova／zkipster 都把場次報到放在行動端"
+      ]
+    },
+    {
+      "id": "polls",
+      "title": "投票",
+      "webPages": ["app/(event)/manage/[eventId]/polls/page.tsx"],
+      "appFiles": [],
+      "verdict": "BY_DESIGN",
+      "rationale": "投票的建立、啟用與計票是主持端工作，需要投影或大螢幕；操作員在門口不參與。",
+      "evidence": ["Web: createPoll／activatePoll／closePoll／getPollResults"]
+    },
+    {
+      "id": "bank-transfers",
+      "title": "匯款覆核",
+      "webPages": ["app/(event)/manage/[eventId]/bank-transfers/page.tsx"],
+      "appFiles": [],
+      "verdict": "BY_DESIGN",
+      "rationale": "財務覆核需要稽核軌跡、雙人核可與完整匯款憑證比對，屬於辦公室職責；門口人員不應有放行款項的能力。",
+      "evidence": ["Web: listBankTransferApprovals／reviewBankTransfer"]
+    },
+    {
+      "id": "org-roles",
+      "title": "組織角色",
+      "webPages": ["app/(event)/manage/[eventId]/org-roles/page.tsx"],
+      "appFiles": [],
+      "verdict": "BY_DESIGN",
+      "rationale": "授權他人是治理動作，應在有完整說明與稽核的環境完成；行動端只讀角色（透過 /my-access）即可。",
+      "evidence": [
+        "Web: getMyEventAccess／inviteEventAdmin／listEventOrgRoles／removeEventAdmin"
+      ]
+    },
+    {
+      "id": "settings",
+      "title": "活動設定",
+      "webPages": ["app/(event)/manage/[eventId]/settings/page.tsx"],
+      "appFiles": ["src/app/(auth)/settings.tsx"],
+      "verdict": "BY_DESIGN",
+      "rationale": "活動整體設定（狀態、報名開關）屬於活動前準備。App 的 settings.tsx 是登入者偏好，不是活動設定，兩者同名但不同事。",
+      "evidence": [
+        "Web: updateEvent（狀態與報名開關）",
+        "App: settings.tsx 為帳號與 App 偏好"
+      ]
+    },
+    {
+      "id": "nfc-diagnostic-tool",
+      "title": "ACR1555U 診斷台",
+      "webPages": ["app/nfc/page.tsx"],
+      "appFiles": [],
+      "verdict": "WEB_ONLY_INTERNAL",
+      "rationale": "受眾是工程師而非操作員，且需要 Web Bluetooth 與 noindex 的孤立路由；不應出現在 App。",
+      "evidence": ["Web: app/nfc/page.tsx 檔頭明載為內部診斷頁，robots noindex"]
+    }
+  ],
+  "appOnly": [
+    {
+      "id": "walk-in",
+      "title": "現場報名",
+      "appFiles": ["src/app/(auth)/[eventId]/walk-in.tsx"],
+      "webCounterpart": "無（全庫無 walk-in 頁面）",
+      "evidence": ["App: walk-in.tsx 選票種＋個資＋同意書＋付費票導向付款"]
+    },
+    {
+      "id": "nfc-exchange",
+      "title": "卡片交換",
+      "appFiles": ["src/app/(auth)/[eventId]/nfc-exchange.tsx"],
+      "webCounterpart": "lib/events/nfc.ts:95 有 API 綁定，但沒有任何頁面使用",
+      "evidence": [
+        "App: nfc-exchange.tsx",
+        "Web: grep recordNfcExchange 僅命中定義"
+      ]
+    },
+    {
+      "id": "nfc-read",
+      "title": "手機感應讀 UID",
+      "appFiles": ["src/app/(auth)/[eventId]/nfc-read.tsx"],
+      "webCounterpart": "等價能力由讀卡機提供（lib/nfc/card.ts）",
+      "evidence": ["App: Android 專用；Web 走 ACR1555U"]
+    }
+  ],
+  "gaps": [
+    {
+      "id": "G-0",
+      "title": "上一輪修復未進主線",
+      "severity": "P0",
+      "owner": "product",
+      "size": "S",
+      "status": "open",
+      "fixedOn": []
+    },
+    {
+      "id": "G-1",
+      "title": "呼叫不存在的 checkin/override 路由",
+      "severity": "P0",
+      "owner": "none-needed",
+      "size": "S",
+      "status": "fixed-on-branch",
+      "fixedOn": ["audit/parity-20261022@5bcdb53"]
+    },
+    {
+      "id": "G-2",
+      "title": "Token 畫面連到不存在的 Web 路由",
+      "severity": "P1",
+      "owner": "none-needed",
+      "size": "S",
+      "status": "fixed-on-branch",
+      "fixedOn": ["audit/parity-20261022@860404f"]
+    },
+    {
+      "id": "G-3",
+      "title": "錢包流水讀錯欄位且忽略分頁",
+      "severity": "P1",
+      "owner": "none-needed",
+      "size": "S",
+      "status": "fixed-on-branch",
+      "fixedOn": ["audit/parity-20261022@075f775"]
+    },
+    {
+      "id": "G-4",
+      "title": "名單型別缺退款稽核欄位與篩選參數",
+      "severity": "P1",
+      "owner": "none-needed",
+      "size": "S",
+      "status": "fixed-on-branch",
+      "fixedOn": [
+        "audit/parity-20261022@031972f",
+        "audit/parity-20261022@84cb423"
+      ]
+    },
+    {
+      "id": "G-5",
+      "title": "從不查 /my-access",
+      "severity": "P1",
+      "owner": "none-needed",
+      "size": "S",
+      "status": "fixed-on-branch",
+      "fixedOn": ["audit/parity-20261022@9e3c7a2"]
+    },
+    {
+      "id": "G-6",
+      "title": "名單管理動作（政策）",
+      "severity": "P1",
+      "owner": "product+finance",
+      "size": "M",
+      "status": "decision-needed",
+      "fixedOn": []
+    },
+    {
+      "id": "G-7",
+      "title": "Badge 批次生命週期",
+      "severity": "P1",
+      "owner": "product",
+      "size": "M",
+      "status": "open",
+      "fixedOn": []
+    },
+    {
+      "id": "G-8",
+      "title": "報到桌同畫面寫卡綁卡上鎖",
+      "severity": "P1",
+      "owner": "product+ops",
+      "size": "L",
+      "status": "decision-needed",
+      "fixedOn": []
+    },
+    {
+      "id": "G-9",
+      "title": "場次現場報到",
+      "severity": "P2",
+      "owner": "product",
+      "size": "L",
+      "status": "decision-needed",
+      "fixedOn": []
+    },
+    {
+      "id": "G-10",
+      "title": "總覽對 OPERATOR 失效",
+      "severity": "P1",
+      "owner": "none-needed",
+      "size": "S",
+      "status": "open",
+      "fixedOn": []
+    },
+    {
+      "id": "G-11",
+      "title": "契約閘門不在 CI",
+      "severity": "P1",
+      "owner": "none-needed",
+      "size": "S",
+      "status": "fixed-on-branch",
+      "fixedOn": ["audit/parity-20261022@7c19f0a"]
+    }
+  ]
+}

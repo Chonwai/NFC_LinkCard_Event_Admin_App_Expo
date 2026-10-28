@@ -39,5 +39,11 @@ jobs:
       - name: Format check
         run: npm run format:check
 
+      # 能力對等登記表。Web repo 不在 CI 的 checkout 範圍內，所以這一步只驗
+      # 登記表自身的一致性、App 側檔案與缺口章節；完整掃描（會抓到 Web 新增
+      # 但未登記的頁面）需要兩個 repo 都在旁邊，用 npm run check:parity:full。
+      - name: Parity registry
+        run: npm run check:parity
+
       - name: Test
         run: npm test
