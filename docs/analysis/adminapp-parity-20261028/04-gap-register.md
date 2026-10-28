@@ -50,13 +50,47 @@
 `POST /api/v1/events/:eventId/registrations/checkin/override`。
 後端 grep 零命中；`GET` 也一樣。
 
-它不是單純的死路徑，是**誤導的死路徑**：畫面會顯示「覆核已送出／尚未就緒」的
-橫幅（`check-in.tsx:315,718-723`），操作員因此以為有人會處理。
+它不是單純的死路徑，是**誤導的死路徑**：畫面會顯示「覆核 API 尚未開放」的橫幅，
+操作員因此以為有人會處理。這個宣稱牽涉三個不同位置，先前併寫成
+`check-in.tsx:315,718-723` 是錯的引法——三件事分開引用：
+
+1. **文案字串**在 `src/constants/copy.zh-TW.ts:277-278`
+   （`overrideBlockedBanner`，字面為「覆核 API 尚未開放（BLOCKED／待後端 B-2）。
+   現場請人工放行並記錄。」），不在 `check-in.tsx` 裡。同檔 `:276` 是按鈕標籤
+   「申請主管覆核」；`:279` 的 `overrideBlockedToast` 全 repo 零引用，是死文案
+   （`grep -rn 'overrideBlockedToast' src/` 只回定義那一行）。
+2. **設定狀態**在 `check-in.tsx:315`
+   （`setOverrideBanner(copy.checkIn.overrideBlockedBanner)`）；失敗分支再設一次，
+   `check-in.tsx:330`。
+3. **渲染**在 `check-in.tsx:714-731` 的 `duplicate` 分支：橫幅 `:716-719`，
+   申請按鈕 `:720-724`。
+
+先前寫的「覆核已送出／尚未就緒」也不精確：字面上沒有「已送出」，只有「尚未開放」。
 
 修法（上一輪已做，`5bcdb53`）：移除按鈕，改指向詳情頁，那裡看得到實際報到時間。
 
 不要嘗試用 `/registrations/:id/status` 頂替：它對已 CHECKED_IN 的紀錄回
 `409 REGISTRATION_STATUS_UNCHANGED`，而且需要 COORDINATOR，不是門口的 OPERATOR。
+
+**補充（2026-10-29 複核）：這個按鈕沒有任何角色閘門。**
+
+`grep -n 'canOverride\|Gate\|role' 'src/app/(auth)/[eventId]/check-in.tsx'`
+零命中（exit 1）。放寬到
+`useAuth|permission|Permission|admin|operator|OPERATOR|organizer|staff|scope`
+再跑一次，命中的行全部是 `expo-camera` 的**相機權限**（`:14`、`:83`、`:151-155`、
+`:168`、`:467-481`），沒有一行是 RBAC。
+
+`onRequestOverride`（`check-in.tsx:310-334`）唯一的守衛是 `:311` 的
+`!eventId || state.phase !== "outcome" || state.kind !== "duplicate"`——那是**畫面
+狀態**的守衛，不是**身份**的守衛。
+
+所以 G-1 的性質比「呼叫不存在的路由」更重：那條路由就算補上，**任何能開到這個畫面
+的操作者都能按下去**，畫面上不會有任何角色差異。只補後端而以為前端已有限制，會做出
+一條沒有授權邊界的覆核通道。
+
+這也是**不另立 gap ID** 的理由：角色閘門與路由存在性綁在同一個按鈕上，依上述修法把
+按鈕整個移除後，兩件事一起消失。日後若要做成真的可用的覆核入口，屆時再依「誰可以
+覆核」重新立項，而不是現在拆一條沒有實作位置的缺口。
 
 ### G-2 Token 畫面連到不存在的 Web 路由（P1，缺陷）
 
