@@ -204,5 +204,21 @@ Web 有 session CRUD（`createSession`/`listEventSessions`/`updateSession`/
 | Org Roles      | 授權他人是治理動作，應在有大螢幕與完整說明的環境完成                                     | 無（不建議）                       |
 | Settings       | 活動整體設定（狀態、報名開關）屬於活動前準備                                             | 出現「臨時關閉報名」的現場需求     |
 
-注意這八項全部符合上一輪的產業對照（設定層／內容層／財務層留在 Web）。
-本輪沒有找到反例。
+**這八條的產業依據沿自 2026-10-22 那一輪的六家研究，本輪未重跑。**
+
+上一輪把六家（Eventbrite、Whova、Cvent、zkipster、Expo Pass、Swapcard）收斂成
+四層模型（設定層／內容層／現場執行層／參與層）。本輪做的只是把這張表重新對到上面
+八個模組：對應關係仍是 1:1，八項全部落在設定層、內容層或財務層，沒有一項落在現場
+執行層。
+
+**證據等級：一度成立、未經本輪複核。** 上一輪的原始研究在
+`audit/parity-20261022:docs/analysis/adminapp-parity-20261022/05-industry-research.md`
+與 `appendix/r1-vendor-capability-split.md`（450 行／53 個來源），而該分支**尚未併入
+`main`**——`git merge-base --is-ancestor audit/parity-20261022 HEAD` 為假，
+`git ls-tree HEAD` 下該目錄只有 `00-method-and-scope.md`。也就是說**在本分支上這個
+引用是打不開的**，要讀原文得 `git show audit/parity-20261022:<path>`。
+
+**重跑條件：不必全跑。** 只有當上表某一列的「何時該重新考慮」真的發生（例如出現
+「活動當天改時間」的實際需求、或財務要求行動覆核），才針對**那一列**去重跑對應廠商
+的公開文件，並只更正那一列。右欄同時是這八條可被反駁的入口——某條觸發後重跑若站不
+住，它就得從 `BY_DESIGN` 降級成 `APP_GAP`（判準見本節開頭）。
