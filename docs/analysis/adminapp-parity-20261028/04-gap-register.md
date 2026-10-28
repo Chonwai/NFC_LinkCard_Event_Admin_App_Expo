@@ -13,20 +13,21 @@
 
 ## 4.1 總表
 
-| ID   | 項目                                   | 類別 | 嚴重度 | 決策者         | 工作量 |
-| ---- | -------------------------------------- | ---- | ------ | -------------- | ------ |
-| G-0  | 上一輪的修復沒有進主線                 | 流程 | P0     | 你             | S      |
-| G-1  | 「申請主管覆核」呼叫不存在的路由       | 缺陷 | P0     | —（無爭議）    | S      |
-| G-2  | Token 畫面連到不存在的 Web 路由        | 缺陷 | P1     | —（無爭議）    | S      |
-| G-3  | 錢包流水讀錯欄位且忽略分頁             | 缺陷 | P1     | —（無爭議）    | S      |
-| G-4  | 名單型別缺退款／稽核欄位與兩個篩選參數 | 缺陷 | P1     | —（無爭議）    | S      |
-| G-5  | 從不查 `/my-access`，角色只是裝飾      | 缺陷 | P1     | —（無爭議）    | S      |
-| G-6  | 名單的管理動作（撤銷報到、封存、退款） | 能力 | P1     | 你＋財務       | M      |
-| G-7  | Badge 批次生命週期（建立／回填／匯出） | 能力 | P1     | 你             | M      |
-| G-8  | 報到桌：同畫面寫卡＋綁卡＋上鎖         | 能力 | P1     | 你＋現場負責人 | L      |
-| G-9  | 場次現場報到                           | 能力 | P2     | 你             | L      |
-| G-10 | 總覽對 OPERATOR 失效，且多打一次請求   | 缺陷 | P1     | —（無爭議）    | S      |
-| G-11 | 契約閘門不在 CI 上                     | 流程 | P1     | —（無爭議）    | S      |
+| ID   | 項目                                     | 類別 | 嚴重度 | 決策者         | 工作量 |
+| ---- | ---------------------------------------- | ---- | ------ | -------------- | ------ |
+| G-0  | 上一輪的修復沒有進主線                   | 流程 | P0     | 你             | S      |
+| G-1  | 「申請主管覆核」呼叫不存在的路由         | 缺陷 | P0     | —（無爭議）    | S      |
+| G-2  | Token 畫面連到不存在的 Web 路由          | 缺陷 | P1     | —（無爭議）    | S      |
+| G-3  | 錢包流水讀錯欄位且忽略分頁               | 缺陷 | P1     | —（無爭議）    | S      |
+| G-4  | 名單型別缺退款／稽核欄位與兩個篩選參數   | 缺陷 | P1     | —（無爭議）    | S      |
+| G-5  | 從不查 `/my-access`，角色只是裝飾        | 缺陷 | P1     | —（無爭議）    | S      |
+| G-6  | 名單的管理動作（撤銷報到、封存、退款）   | 能力 | P1     | 你＋財務       | M      |
+| G-7  | Badge 批次生命週期（建立／回填／匯出）   | 能力 | P1     | 你             | M      |
+| G-8  | 報到桌：同畫面寫卡＋綁卡＋上鎖           | 能力 | P1     | 你＋現場負責人 | L      |
+| G-9  | 場次現場報到                             | 能力 | P2     | 你             | L      |
+| G-10 | 總覽對 OPERATOR 失效，且多打一次請求     | 缺陷 | P1     | —（無爭議）    | S      |
+| G-11 | 契約閘門不在 CI 上                       | 流程 | P1     | —（無爭議）    | S      |
+| G-12 | 授權只在 controller 層，路由層無角色閘門 | 缺陷 | P2     | 需決策（後端） | M      |
 
 `S` ≦ 半天、`M` ≦ 兩天、`L` 需要設計與驗收。
 
@@ -272,6 +273,72 @@ App 沒有 session 概念。要做的話是新的資訊架構（活動 → 場�
 `scripts/check-backend-contract.mjs` 只存在於 `audit/parity-20261022`。
 G-1 之所以能活這麼久，就是因為沒有任何自動檢查。這一項的最小版本是一個 CI step，
 加上一份帶 commit 戳記的快照。
+
+### G-12 授權只在 controller 層，路由層無角色閘門（P2，缺陷）
+
+**待驗事實（2026-10-29 實測，`LinkCard_ExpressJS_Backend`）。**
+
+`src/events/routes/` 共 12 個路由檔、**124 條** `router.<verb>` 註冊。這 12 個檔
+從 middleware 匯入的角色檢查只有**一個**：`CheckEventAccessPermissionFactory`，
+而且它只在 `sessions-polls.routes.ts` 出現一次，掛在
+`POST /sessions/:sessionId/checkin`（`:40` 路徑、`:42`
+`eventAccessFactory.create({ level: 'OPERATOR', eventIdSource: 'params' })`）。
+其餘 **123 條**路由的路由層只有 `authMiddleware`，或 `optionalAuthMiddleware` 與
+上傳 middleware。
+
+真正的角色判斷寫在 **controller**，而且不是一種寫法，是**三套**：
+
+| helper 家族                                                       | 代表呼叫點                                                                                                                                        | 角色語意                                                                                    |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `EventService.getEvent*Access`                                    | `EventTicketTypeController.ts:30`、`EventSessionController.ts:76`、`EventNfcBatchController.ts:38-39`、`EventRegistrationImportController.ts:128` | `EventService.ts:361` 的 `getEventWriteAccess`，角色集在 `:384` 為 SUPER_ADMIN／COORDINATOR |
+| `ExhibitorService.getEventOwnerAccess`／`getExhibitorWriteAccess` | `ExhibitorController.ts:47,185,251`、`ExhibitorPageContentController.ts:284`                                                                      | 展商側自己一套                                                                              |
+| `utils/registrationAccess.assert*`                                | `EventWalletController.ts:6`（`assertRegistrationOwnershipOrOperator`）                                                                           | 報名擁有者或操作員                                                                          |
+
+**與原始描述的差異（照實標示）。** 簡報所述「路由層無角色閘門」在**結果**上成立
+（123／124 條如此），但**機制**上不完全成立：
+`src/events/middleware/checkEventAccessPermission.ts` 裡有一支**專為此目的寫的**
+factory，它的檔頭註解自己寫著「在 route 層強制檢查 event 管理權限…避免各
+controller 手動檢查容易漏掛」（`checkEventAccessPermission.ts:17-18`）。
+
+這一點讓缺口**更明確而不是更輕**：修法已經存在、論證已經寫在程式碼裡，缺的是
+**套用**。所以工作量不是「設計一個閘門」，而是「逐條掛上去並確認等級」。
+
+**四問。**
+
+- **多嚴重**：`P2`。它不是「現在就開放」——本輪掃過的 20 支 controller 中，凡是
+  會改資料的動作都找得到上述三套 helper 之一。它是**前瞻風險**：新增一條特權路由
+  時，路由層只需要 `authMiddleware`，沒有任何 lint、型別或 CI 要求你補上角色檢查；
+  漏掉的那一條不會壞、不會紅燈，只會安靜地對所有已登入者開放。這正是 factory 註解
+  所預言的失效模式。
+- **誰該決定**：後端 owner，而且是**架構決策**而不是實作決策——要決定授權歸屬在
+  route 層還是 controller 層。三套 helper 並存本身就說明這個問題從來沒有被統一定調。
+- **多少工**：`M`。機制已存在，難的是 123 條路由的**分級**：哪一條要 `WRITE`、
+  哪一條 `OPERATOR`、哪一條本來就該公開。等級選錯會讓現場操作員直接 403——
+  這比「多一個檢查」風險高，因為它會在活動當天擋住人。
+- **卡在誰**：卡在後端 repo 的 PR 排程。**本輪 App 端無事可做，也不該做**——
+  App 無法從外部補上後端的授權邊界。
+
+**兩條路（不代人選）。**
+
+- **A — 現在就掛既有 factory。** 用 `CheckEventAccessPermissionFactory` 覆蓋既有的
+  高權限路由，先挑「動錢、動別人的報名、動角色」三類。代價 `M`，且必須逐條跑既有
+  整合測試確認等級正確；主要風險是等級選錯造成的 403 回歸，需要一次 staging 驗證。
+- **B — 排 P2，先加一道便宜的防漏。** 不動既有路由，只加一條「新增
+  `router.<verb>` 時必須同時出現 `eventAccessFactory`，或該檔白名單聲明自己公開」
+  的檢查（代價 `S`）。它不會修好既有 123 條，但會阻止第 124、125 條繼續累積——
+  效果是**止血而非治癒**。
+
+兩條不互斥：B 在任何情況下都划算，A 取決於你要不要在本輪之後動後端。
+
+**這是後端 repo 的改動，不在本輪範圍。本輪只記錄，不改程式。**
+
+**未驗證、因此不斷言的部分。** `grep` 在下列 5 支 controller 找不到任何 access
+helper：`CompanyPageController`、`ExhibitorInviteController`、
+`ConnectionRequestController`、`EventActivationController`、
+`EventNfcExchangeController`。其中至少「公開頁」「邀請 token 即憑證」「操作自己
+的資源」三類**本來就不該有活動角色檢查**，所以 grep 不到不等於有缺口。要斷言其中
+任何一條有問題，必須逐支讀端點語意與其路由的 auth 形態，那個動作不在本輪。寫在這裡
+是為了讓下一個人不必從零重新猜，而不是預先定罪。
 
 ## 4.3 不在這裡的東西
 
