@@ -21,11 +21,11 @@
 
 比對基準是三個 repo 的實際 HEAD，不是記憶中的版本。
 
-| Repo                            | 分支                       | SHA        |
-| ------------------------------- | -------------------------- | ---------- |
+| Repo                            | 分支                          | SHA        |
+| ------------------------------- | ----------------------------- | ---------- |
 | `LinkCard_Event_Admin_App_Expo` | `feat/nfc-gate1-reader-spike` | `58affea`  |
-| `LinkCard_Frontend`             | `development`              | `6e58f0a`  |
-| `LinkCard_ExpressJS_Backend`    | `development`              | `5b39cbd4` |
+| `LinkCard_Frontend`             | `development`                 | `6e58f0a`  |
+| `LinkCard_ExpressJS_Backend`    | `development`                 | `5b39cbd4` |
 
 App 的 `58affea` 是研究與文件分支。產品碼與 `origin/main`（`7d0fcf5`）逐位元相同：
 
@@ -53,14 +53,14 @@ git diff --stat origin/main..feat/nfc-gate1-reader-spike \
 
 每個能力只能落在下列一種，沒有「其他」。
 
-| 判定              | 意思                                             |
-| ----------------- | ------------------------------------------------ |
-| `ALIGNED`         | 兩邊都有，行為一致                                |
-| `ALIGNED_DEFECT`  | 兩邊都有，但 App 這一側實作有明確缺陷，需修       |
-| `APP_GAP`         | Web 有、App 該有而沒有                            |
-| `BY_DESIGN`       | Web 有、App 刻意不做，附理由                      |
-| `APP_ONLY`        | App 獨有，Web 沒有或不打算有                      |
-| `WEB_ONLY_INTERNAL` | Web 獨有的內部工具，不是產品能力               |
+| 判定                | 意思                                        |
+| ------------------- | ------------------------------------------- |
+| `ALIGNED`           | 兩邊都有，行為一致                          |
+| `ALIGNED_DEFECT`    | 兩邊都有，但 App 這一側實作有明確缺陷，需修 |
+| `APP_GAP`           | Web 有、App 該有而沒有                      |
+| `BY_DESIGN`         | Web 有、App 刻意不做，附理由                |
+| `APP_ONLY`          | App 獨有，Web 沒有或不打算有                |
+| `WEB_ONLY_INTERNAL` | Web 獨有的內部工具，不是產品能力            |
 
 `BY_DESIGN` 不是「先跳過」的同義詞。每一個 `BY_DESIGN` 都必須有一句可反駁的理由，
 寫在 `03-capability-matrix.md` 的證據欄，否則一律降級成 `APP_GAP`。

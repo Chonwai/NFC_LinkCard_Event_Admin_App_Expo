@@ -5,22 +5,22 @@
 
 ## 3.1 一覽
 
-| #   | Web 模組       | 路徑                                 | App 對應                          | 判定              |
-| --- | -------------- | ------------------------------------ | --------------------------------- | ----------------- |
-| 1   | Overview       | `/manage/:eventId`                   | `overview.tsx`                    | `ALIGNED_DEFECT`  |
-| 2   | Profile        | `…/profile`                          | —                                 | `BY_DESIGN`       |
-| 3   | Content        | `…/content`                          | —                                 | `BY_DESIGN`       |
-| 4   | Ticket Types   | `…/ticket-types`                     | 只讀票種（現場報名用）            | `BY_DESIGN`       |
-| 5   | Badges         | `…/badges`                           | `badges.tsx`                      | `APP_GAP`         |
-| 6   | Registrations  | `…/registrations`                    | `registrations.tsx`＋詳情頁       | `APP_GAP`         |
-| 7   | Check-in       | `/check-in/:eventId`                 | `check-in.tsx`＋`nfc-bind.tsx`    | `APP_GAP`         |
-| 8   | Exhibitors     | `…/exhibitors`（＋`/import`）        | —                                 | `BY_DESIGN`       |
-| 9   | Sessions       | `…/sessions`（＋名冊子頁）           | —                                 | `APP_GAP`         |
-| 10  | Polls          | `…/polls`                            | —                                 | `BY_DESIGN`       |
-| 11  | Bank Transfers | `…/bank-transfers`                   | —                                 | `BY_DESIGN`       |
-| 12  | Org Roles      | `…/org-roles`                        | —                                 | `BY_DESIGN`       |
-| 13  | Settings       | `…/settings`                         | `settings.tsx`（App 偏好，非活動）| `BY_DESIGN`       |
-| —   | NFC 診斷台     | `/nfc`                               | —                                 | `WEB_ONLY_INTERNAL` |
+| #   | Web 模組       | 路徑                          | App 對應                           | 判定                |
+| --- | -------------- | ----------------------------- | ---------------------------------- | ------------------- |
+| 1   | Overview       | `/manage/:eventId`            | `overview.tsx`                     | `ALIGNED_DEFECT`    |
+| 2   | Profile        | `…/profile`                   | —                                  | `BY_DESIGN`         |
+| 3   | Content        | `…/content`                   | —                                  | `BY_DESIGN`         |
+| 4   | Ticket Types   | `…/ticket-types`              | 只讀票種（現場報名用）             | `BY_DESIGN`         |
+| 5   | Badges         | `…/badges`                    | `badges.tsx`                       | `APP_GAP`           |
+| 6   | Registrations  | `…/registrations`             | `registrations.tsx`＋詳情頁        | `APP_GAP`           |
+| 7   | Check-in       | `/check-in/:eventId`          | `check-in.tsx`＋`nfc-bind.tsx`     | `APP_GAP`           |
+| 8   | Exhibitors     | `…/exhibitors`（＋`/import`） | —                                  | `BY_DESIGN`         |
+| 9   | Sessions       | `…/sessions`（＋名冊子頁）    | —                                  | `APP_GAP`           |
+| 10  | Polls          | `…/polls`                     | —                                  | `BY_DESIGN`         |
+| 11  | Bank Transfers | `…/bank-transfers`            | —                                  | `BY_DESIGN`         |
+| 12  | Org Roles      | `…/org-roles`                 | —                                  | `BY_DESIGN`         |
+| 13  | Settings       | `…/settings`                  | `settings.tsx`（App 偏好，非活動） | `BY_DESIGN`         |
+| —   | NFC 診斷台     | `/nfc`                        | —                                  | `WEB_ONLY_INTERNAL` |
 
 統計：`BY_DESIGN` 8、`APP_GAP` 4、`ALIGNED_DEFECT` 1、`WEB_ONLY_INTERNAL` 1。
 
@@ -61,15 +61,15 @@ Web `badges/page.tsx` 匯入五個函式（`grep` 可重跑）：
 
 App 只呼叫 `listBadges` 與 `lookup`（`src/services/nfc.service.ts:23-57`）。
 
-| 能力                     | Web | App | 後端 | App 缺什麼          |
-| ------------------------ | --- | --- | ---- | ------------------- |
-| 列出庫存（分頁/狀態/批次）| ✅  | ✅  | ✅   | —                   |
-| 查單張 badge             | ✅  | ✅  | ✅   | —                   |
-| `boundOnly` 篩選         | ✅  | ❌  | ✅   | 少一個查詢參數      |
-| CSV 匯出                 | ✅  | ❌  | ✅   | 無 UI               |
-| 建立批次                 | ✅  | ❌  | ✅   | 無 UI               |
-| 批次認領                 | ✅  | ❌  | ✅   | 無 UI               |
-| 回填真實 UID             | ✅  | ❌  | ✅   | 無 UI               |
+| 能力                       | Web | App | 後端 | App 缺什麼     |
+| -------------------------- | --- | --- | ---- | -------------- |
+| 列出庫存（分頁/狀態/批次） | ✅  | ✅  | ✅   | —              |
+| 查單張 badge               | ✅  | ✅  | ✅   | —              |
+| `boundOnly` 篩選           | ✅  | ❌  | ✅   | 少一個查詢參數 |
+| CSV 匯出                   | ✅  | ❌  | ✅   | 無 UI          |
+| 建立批次                   | ✅  | ❌  | ✅   | 無 UI          |
+| 批次認領                   | ✅  | ❌  | ✅   | 無 UI          |
+| 回填真實 UID               | ✅  | ❌  | ✅   | 無 UI          |
 
 「建立批次」與「回填 UID」是發卡流程的頭尾。目前活動當天要回 Web 做，或先在
 Web 做好再帶平板出門。這一項的嚴重度不是「功能少」，是「流程被切成兩半」。
@@ -88,18 +88,18 @@ App `registrations.tsx`：狀態篩選（5 種）、前端搜尋、排序（時�
 
 ### G-C Check-in：Web 現在是超集
 
-| 能力                       | Web                          | App                       |
-| -------------------------- | ---------------------------- | ------------------------- |
-| QR 掃碼                    | ✅ `@yudiel/react-qr-scanner` | ✅ `expo-camera`          |
-| 手動輸入報名碼             | ✅                           | ✅                        |
-| 防連掃門閂                 | ✅ `scanInFlight`            | ✅ `scanInFlight:100`     |
-| 成功後顯示 profile 路徑    | ✅                           | ✅                        |
-| 同一畫面寫卡               | ✅ `WriteCardPanel`（524 行）| ❌ 要跳 `nfc-bind`        |
-| 寫完自動綁卡               | ✅ `bindWrittenBadge`        | ✅ 在 `nfc-bind` 內       |
-| 卡片上鎖（PWD_AUTH）       | ✅ `lib/nfc/globalPassword`  | ❌ 無對應層               |
-| 讀卡機連線／重連           | ✅ `DeskReaderBar`           | ❌ 不適用                 |
-| 失敗後的處置動作           | ✅ `retry/swap_card/skip/retry_bind` | ⚠️ 分散在文案        |
-| 重複報到的處理             | 顯示錯誤字串                 | 錯誤＋**「申請主管覆核」死按鈕** |
+| 能力                    | Web                                  | App                              |
+| ----------------------- | ------------------------------------ | -------------------------------- |
+| QR 掃碼                 | ✅ `@yudiel/react-qr-scanner`        | ✅ `expo-camera`                 |
+| 手動輸入報名碼          | ✅                                   | ✅                               |
+| 防連掃門閂              | ✅ `scanInFlight`                    | ✅ `scanInFlight:100`            |
+| 成功後顯示 profile 路徑 | ✅                                   | ✅                               |
+| 同一畫面寫卡            | ✅ `WriteCardPanel`（524 行）        | ❌ 要跳 `nfc-bind`               |
+| 寫完自動綁卡            | ✅ `bindWrittenBadge`                | ✅ 在 `nfc-bind` 內              |
+| 卡片上鎖（PWD_AUTH）    | ✅ `lib/nfc/globalPassword`          | ❌ 無對應層                      |
+| 讀卡機連線／重連        | ✅ `DeskReaderBar`                   | ❌ 不適用                        |
+| 失敗後的處置動作        | ✅ `retry/swap_card/skip/retry_bind` | ⚠️ 分散在文案                    |
+| 重複報到的處理          | 顯示錯誤字串                         | 錯誤＋**「申請主管覆核」死按鈕** |
 
 最後一列是全份文件唯一的 P0，見 `04-gap-register.md` §G-1。
 
@@ -116,23 +116,23 @@ Web 有 session CRUD（`createSession`/`listEventSessions`/`updateSession`/
 
 這一節存在的理由：如果不寫清楚，結論會被讀成「Web 比較強，App 要追」。
 
-| 情境                            | 寫卡 | 綁卡 | 上鎖 | 報到 |
-| ------------------------------- | ---- | ---- | ---- | ---- |
-| Web＋ACR1555U 讀卡機＋Chrome    | ✅   | ✅   | ✅   | ✅   |
-| Web，沒有讀卡機／非 Chrome      | ❌ `write-card-blocked` | ❌ | ❌ | ✅   |
-| App，Android                    | ✅ NDEF | ✅ | ❌   | ✅   |
-| App，iOS                        | ❌ 硬阻擋（`nfc-bind.tsx:84-85`） | ✅ | ❌ | ✅   |
+| 情境                         | 寫卡                              | 綁卡 | 上鎖 | 報到 |
+| ---------------------------- | --------------------------------- | ---- | ---- | ---- |
+| Web＋ACR1555U 讀卡機＋Chrome | ✅                                | ✅   | ✅   | ✅   |
+| Web，沒有讀卡機／非 Chrome   | ❌ `write-card-blocked`           | ❌   | ❌   | ✅   |
+| App，Android                 | ✅ NDEF                           | ✅   | ❌   | ✅   |
+| App，iOS                     | ❌ 硬阻擋（`nfc-bind.tsx:84-85`） | ✅   | ❌   | ✅   |
 
 所以正確的敘述是：Web 在有讀卡機時是超集，App 在只有手機時是唯一可行解。
 兩者不是替代關係，是同一條流程的兩種設備配置。
 
 ## 3.5 App 獨有的三項，以及一項要撤回
 
-| 能力                   | App 落點                | Web 有嗎                        | 判定     |
-| ---------------------- | ----------------------- | ------------------------------- | -------- |
-| 現場報名（walk-in）    | `walk-in.tsx`（304 行） | ❌ 全庫無 walk-in 頁            | `APP_ONLY` |
-| 卡片交換的 UI          | `nfc-exchange.tsx`      | ⚠️ 只有 API 綁定，無頁面        | `APP_ONLY` |
-| 手機直接感應讀 UID     | `nfc-read.tsx`          | ➖ 改用讀卡機，等價能力存在     | `APP_ONLY`（裝置路徑不同） |
+| 能力                | App 落點                | Web 有嗎                    | 判定                       |
+| ------------------- | ----------------------- | --------------------------- | -------------------------- |
+| 現場報名（walk-in） | `walk-in.tsx`（304 行） | ❌ 全庫無 walk-in 頁        | `APP_ONLY`                 |
+| 卡片交換的 UI       | `nfc-exchange.tsx`      | ⚠️ 只有 API 綁定，無頁面    | `APP_ONLY`                 |
+| 手機直接感應讀 UID  | `nfc-read.tsx`          | ➖ 改用讀卡機，等價能力存在 | `APP_ONLY`（裝置路徑不同） |
 
 **要撤回的一項：Token 帳本。** 上一輪把「Token 帳本」列為 App 差異化，這一輪讀了
 原始碼後必須更正：
@@ -154,16 +154,16 @@ Web 有 session CRUD（`createSession`/`listEventSessions`/`updateSession`/
 
 每一條都要能被反駁；若反駁不了，它就該降級成 `APP_GAP`。
 
-| 模組           | 理由                                                                 | 何時該重新考慮 |
-| -------------- | -------------------------------------------------------------------- | -------------- |
-| Profile        | 改活動名稱、時間、地點是**活動前**的事，且需要看整份報名表單的欄位設計 | 出現「活動當天改時間」的實際需求 |
-| Content        | 落地頁文案與區塊編輯是長文本工作，手機不是合適的輸入裝置              | 平板成為主要營運裝置 |
-| Ticket Types   | 票種與語意綁定（`hasInvalidSemanticBinding` 等）是設定層，App 只需在現場報名時**讀**票種 | 出現現場改價／改名額的授權需求 |
-| Exhibitors     | 廠商審核與匯入是批次工作，現場不做                                    | 出現「攤位現場報到」需求（目前無） |
-| Polls          | 即時投票的建立與計票是主持端工作                                      | 主持人改用平板操作 |
-| Bank Transfers | 匯款覆核是財務職責，需要雙人核可與完整稽核軌跡                        | 財務明確要求行動覆核 |
-| Org Roles      | 授權他人是治理動作，應在有大螢幕與完整說明的環境完成                  | 無（不建議）   |
-| Settings       | 活動整體設定（狀態、報名開關）屬於活動前準備                          | 出現「臨時關閉報名」的現場需求 |
+| 模組           | 理由                                                                                     | 何時該重新考慮                     |
+| -------------- | ---------------------------------------------------------------------------------------- | ---------------------------------- |
+| Profile        | 改活動名稱、時間、地點是**活動前**的事，且需要看整份報名表單的欄位設計                   | 出現「活動當天改時間」的實際需求   |
+| Content        | 落地頁文案與區塊編輯是長文本工作，手機不是合適的輸入裝置                                 | 平板成為主要營運裝置               |
+| Ticket Types   | 票種與語意綁定（`hasInvalidSemanticBinding` 等）是設定層，App 只需在現場報名時**讀**票種 | 出現現場改價／改名額的授權需求     |
+| Exhibitors     | 廠商審核與匯入是批次工作，現場不做                                                       | 出現「攤位現場報到」需求（目前無） |
+| Polls          | 即時投票的建立與計票是主持端工作                                                         | 主持人改用平板操作                 |
+| Bank Transfers | 匯款覆核是財務職責，需要雙人核可與完整稽核軌跡                                           | 財務明確要求行動覆核               |
+| Org Roles      | 授權他人是治理動作，應在有大螢幕與完整說明的環境完成                                     | 無（不建議）                       |
+| Settings       | 活動整體設定（狀態、報名開關）屬於活動前準備                                             | 出現「臨時關閉報名」的現場需求     |
 
 注意這八項全部符合上一輪的產業對照（設定層／內容層／財務層留在 Web）。
 本輪沒有找到反例。

@@ -15,17 +15,17 @@
 
 證據（皆在 `LinkCard_Frontend@6e58f0a`）：
 
-| 能力                     | 落點                                                  |
-| ------------------------ | ----------------------------------------------------- |
-| 讀卡機連線（含重連）     | `hooks/useNfcReader.ts`、`components/checkin/DeskReaderBar.tsx` |
-| 讀卡機支援度偵測         | `DeskReaderBar.tsx:73-88`（`readerBarState`）         |
-| 寫卡面板                 | `components/checkin/WriteCardPanel.tsx`（524 行）     |
-| 報到桌狀態機             | `lib/checkin/nfcDesk.ts:29-188`                       |
-| 現場處置動作             | `lib/checkin/nfcDesk.ts:60`（`retry`／`swap_card`／`skip`／`retry_bind`／`next`） |
-| 失敗分類→操作員文案      | `lib/checkin/nfcDesk.ts:464,522,566`                  |
-| 卡片上鎖決策             | `lib/checkin/nfcDesk.ts:360-399`（`policy_on`／`policy_off`／`password_unavailable`） |
-| 上鎖結果回報             | `lib/checkin/nfcDesk.ts:57`（`locked`／`unlocked`／`lock_failed`） |
-| 卡片密碼來源             | `app/check-in/[eventId]/page.tsx:90` → `app/api/check-in/card-password/route.ts` |
+| 能力                 | 落點                                                                                  |
+| -------------------- | ------------------------------------------------------------------------------------- |
+| 讀卡機連線（含重連） | `hooks/useNfcReader.ts`、`components/checkin/DeskReaderBar.tsx`                       |
+| 讀卡機支援度偵測     | `DeskReaderBar.tsx:73-88`（`readerBarState`）                                         |
+| 寫卡面板             | `components/checkin/WriteCardPanel.tsx`（524 行）                                     |
+| 報到桌狀態機         | `lib/checkin/nfcDesk.ts:29-188`                                                       |
+| 現場處置動作         | `lib/checkin/nfcDesk.ts:60`（`retry`／`swap_card`／`skip`／`retry_bind`／`next`）     |
+| 失敗分類→操作員文案  | `lib/checkin/nfcDesk.ts:464,522,566`                                                  |
+| 卡片上鎖決策         | `lib/checkin/nfcDesk.ts:360-399`（`policy_on`／`policy_off`／`password_unavailable`） |
+| 上鎖結果回報         | `lib/checkin/nfcDesk.ts:57`（`locked`／`unlocked`／`lock_failed`）                    |
+| 卡片密碼來源         | `app/check-in/[eventId]/page.tsx:90` → `app/api/check-in/card-password/route.ts`      |
 
 `app/check-in/[eventId]/page.tsx` 這一個檔案在區間內新增 684 行，現在是 972 行。
 
@@ -101,9 +101,9 @@ App 的名單頁有狀態篩選、搜尋、排序、分頁，沒有上述任何�
 
 上一輪的 9 項「刻意差異」裡，**check-in 與 overview 兩項的判定被推翻**：
 
-| 模組      | 上一輪                   | 本輪                | 為什麼 |
-| --------- | ------------------------ | ------------------- | ------ |
-| Check-in  | 基本一致，App 多一顆死按鈕 | `APP_GAP`           | Web 已成為超集（寫卡＋綁卡＋上鎖） |
-| Overview  | App 更強                 | `ALIGNED_DEFECT`    | Web 改成單請求且對每個角色誠實；App 對 OPERATOR 會壞 |
+| 模組     | 上一輪                     | 本輪             | 為什麼                                               |
+| -------- | -------------------------- | ---------------- | ---------------------------------------------------- |
+| Check-in | 基本一致，App 多一顆死按鈕 | `APP_GAP`        | Web 已成為超集（寫卡＋綁卡＋上鎖）                   |
+| Overview | App 更強                   | `ALIGNED_DEFECT` | Web 改成單請求且對每個角色誠實；App 對 OPERATOR 會壞 |
 
 其餘 7 項刻意差異維持原判，理由不變。
