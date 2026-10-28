@@ -21,16 +21,21 @@
  * 每列都寫 `LinkCard_Frontend@…` 只會讓表格讀不下去。預設值要寫在檔案裡，
  * 不能靠讀者的記憶。
  *
- * 為什麼下限分兩種環境：可驗證的引用數量取決於「旁邊有幾個 repo」，不是取決於
- * 文件品質。本機三個 repo 並排時絕大多數引用都解析得到；CI 只 checkout 本 repo，
- * Web 與 Backend 的引用全部無從解析，只剩同 repo 那一批。同一條本機下限搬到 CI
- * 只是剛好擦過，文件任何微調都會讓它變成必紅。所以下限跟著環境走——兩個 sibling
- * 都在 → 25，不在 → 15（值寫在 `floor` 那一行）。缺哪一個都會印 `SKIPPED:`，
- * 不會靜靜地少驗。下限再低也不設成 0：同 repo 的引用在任何環境都必須驗得到。
+ * 為什麼下限是一個固定值 20（原本是「兩個 sibling 都在 → 25，不在 → 15」）：
+ * 環境感知的下限只是把「靠環境決定會不會紅」換成「靠運氣決定」——兩個分支各自
+ * 貼著一個人工挑的數字，任一邊多寫一個引用、或少解析一個，就翻紅，而紅的訊息會
+ * 指向引用，不會指向「門檻是人工挑的」。修好 repo 前綴之後，單 repo（CI 同構）
+ * 實測 checked=44、三 repo 實測 checked=85，一個固定值在兩邊都成立，所以不需要
+ * 兩個分支。
+ *
+ * 這個下限不是品質指標，是「比對器還活著」的偵測器（見檔尾的說明）。
  *
  * 量到的實際值不要寫進這個檔案：那是當天文件的快照，文件一改一加就不成立，
- * 而「把數字寫對」從來不是防線。要量就跑 `node --test tests/parity-citations.test.mjs`
- * 看輸出。
+ * 而「把數字寫對」從來不是防線。要量就跑
+ *   node --test tests/parity-citations.test.mjs
+ * 看它**不論通過或失敗都印**的那一行：
+ *   MEASURED checked=<n> skipped=<n> ambiguous=<n> floor=<n> problems=<n>
+ * 「今天的值是多少」因此永遠有答案，不必去改門檻才問得出來。
  */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
@@ -152,7 +157,9 @@ test("審計文件裡的每一個引用都能解析", () => {
       `SKIPPED: 缺少 ${repo}，它的引用本次不驗（本 repo 的引用照驗）`,
     );
   }
-  const floor = siblingsPresent ? 25 : 15;
+  // 單一下限：不隨環境改變（理由見檔頭）。修好 repo 前綴之後，單 repo 實測 44、
+  // 三 repo 實測 85，20 這個值在兩邊都成立且有餘裕，所以不必再分兩個分支。
+  const floor = 20;
 
   const roots = {
     [APP_REPO]: appRoot,
@@ -218,16 +225,20 @@ test("審計文件裡的每一個引用都能解析", () => {
     }
   }
 
+  // 不論通過或失敗都印一行。這是本檔唯一的「輸出介面」：文件不寫死數字，改成叫
+  // 讀者來看這一行，所以它必須在最前面的 assert 之前印出來——assert 一拋，後面
+  // 的程式碼就不會執行了。
+  console.log(
+    `MEASURED checked=${checked} skipped=${skipped} ambiguous=${ambiguous} floor=${floor} problems=${problems.length}`,
+  );
+
   assert.deepEqual(problems, [], `\n${problems.join("\n")}`);
   // 這個下限不是品質指標，是「比對器還在動」的偵測器。
-  // 下限隨環境走（25／15，見上方常數）；實際 checked／skipped／ambiguous 跑
-  // `node --test tests/parity-citations.test.mjs` 看輸出，不寫死在這裡。
+  // 實際 checked／skipped／ambiguous 一律看上面那行 MEASURED，不寫死在這裡。
   // 若哪天量到的數字掉到個位數，表示正則或解析規則壞了，而不是文件變乾淨了。
   assert.ok(
     checked >= floor,
-    siblingsPresent
-      ? `兩個 sibling repo 都在的環境，只用 ${checked} 個引用做驗證，低於下限 ${floor}（解析成功 ${checked}、跳過 ${skipped}、無法唯一解析 ${ambiguous}）`
-      : `只有本 repo 的環境（缺 ${missing.join("、")}），只用 ${checked} 個引用做驗證，低於單 repo 下限 ${floor}（解析成功 ${checked}、跳過 ${skipped}、無法唯一解析 ${ambiguous}）。本機應在 ${WEB_REPO} 與 ${BACKEND_REPO} 都放在旁邊時跑 npm test，才能驗到完整的引用集。`,
+    `只用 ${checked} 個引用做驗證，低於下限 ${floor}（解析成功 ${checked}、跳過 ${skipped}、無法唯一解析 ${ambiguous}）。這個下限不隨環境改變：單 repo 環境實測 44、三 repo 環境實測 85，掉到 ${floor} 以下表示解析規則壞了，不是文件變乾淨。本機在 ${WEB_REPO} 與 ${BACKEND_REPO} 都放在旁邊時跑 npm test，驗到的引用集最完整。`,
   );
   assert.ok(
     ambiguous <= 3,
