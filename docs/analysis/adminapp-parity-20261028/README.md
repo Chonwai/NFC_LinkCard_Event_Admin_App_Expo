@@ -92,18 +92,19 @@ Web 寫卡需要 Web Bluetooth 與 ACR1555U 讀卡機，不支援的環境會顯
 
 ## 檔案導覽
 
-| 檔案                          | 什麼時候讀                           |
-| ----------------------------- | ------------------------------------ |
-| `00-method-and-scope.md`      | 想知道判定規則、座標與證據紀律       |
-| `01-delta-web.md`             | 想知道 10-22 之後 Web 多了什麼       |
-| `02-delta-app-backend.md`     | 想知道 App 與後端這段時間的變化      |
-| `03-capability-matrix.md`     | 想看逐能力的對照表與判定             |
-| `04-gap-register.md`          | 想知道要補哪幾項、多嚴重、誰該決定   |
-| `05-alignment-plan.md`        | 想知道接下來怎麼補、什麼不要補       |
-| `06-verification.md`          | 想知道這份文件自己被怎麼檢查         |
-| `07-briefing.md`              | 要轉述給別人、或開會前十分鐘讀       |
-| `appendix/`                   | 獨立複核的工單與原始報告（逐字原稿） |
-| `parity/parity-registry.json` | 機器可讀的能力登記表，閘門讀這一份   |
+| 檔案                          | 什麼時候讀                             |
+| ----------------------------- | -------------------------------------- |
+| `00-method-and-scope.md`      | 想知道判定規則、座標與證據紀律         |
+| `01-delta-web.md`             | 想知道 10-22 之後 Web 多了什麼         |
+| `02-delta-app-backend.md`     | 想知道 App 與後端這段時間的變化        |
+| `03-capability-matrix.md`     | 想看逐能力的對照表與判定               |
+| `04-gap-register.md`          | 想知道要補哪幾項、多嚴重、誰該決定     |
+| `05-alignment-plan.md`        | 想知道接下來怎麼補、什麼不要補         |
+| `06-verification.md`          | 想知道這份文件自己被怎麼檢查           |
+| `07-briefing.md`              | 要轉述給別人、或開會前十分鐘讀         |
+| `08-cto-review-20261029.md`   | 想知道這批文件被怎麼批判、還有什麼沒修 |
+| `appendix/`                   | 獨立複核的工單與原始報告（逐字原稿）   |
+| `parity/parity-registry.json` | 機器可讀的能力登記表，閘門讀這一份     |
 
 ## 分支與狀態
 

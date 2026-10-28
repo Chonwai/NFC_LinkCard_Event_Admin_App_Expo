@@ -507,15 +507,48 @@ G-1 之所以能活這麼久，就是因為沒有任何自動檢查。這一項�
 
 ### G-12 授權只在 controller 層，路由層無角色閘門（P2，缺陷）
 
-**待驗事實（2026-10-29 實測，`LinkCard_ExpressJS_Backend`）。**
+**待驗事實（2026-10-29 實測，`LinkCard_ExpressJS_Backend@7d08daff`）。**
 
-`src/events/routes/` 共 12 個路由檔、**124 條** `router.<verb>` 註冊。這 12 個檔
-從 middleware 匯入的角色檢查只有**一個**：`CheckEventAccessPermissionFactory`，
-而且它只在 `sessions-polls.routes.ts` 出現一次，掛在
-`POST /sessions/:sessionId/checkin`（`:40` 路徑、`:42`
-`eventAccessFactory.create({ level: 'OPERATOR', eventIdSource: 'params' })`）。
-其餘 **123 條**路由的路由層只有 `authMiddleware`，或 `optionalAuthMiddleware` 與
-上傳 middleware。
+`src/events/routes/` 共 12 個 `.ts`（含 `index.ts`）、**124 條** `router.<verb>`
+註冊。路由層的授權形態是三類，不是兩類：
+
+| 類別                                                          | 條數    | 路由層長什麼樣                      |
+| ------------------------------------------------------------- | ------- | ----------------------------------- |
+| (1) 有 `authMiddleware`／`optionalAuthMiddleware`，無角色閘門 | **112** | 只驗「你是誰」，不驗「你能不能」    |
+| (2) **連 `authMiddleware` 都沒有**                            | **11**  | 只有限流或上傳 middleware，或全無   |
+| (3) 有 `CheckEventAccessPermissionFactory`                    | **1**   | `POST /sessions/:sessionId/checkin` |
+
+三類加總 124。產生這張表的方式，是把每一條 `router.<verb>(…)` 的括號內容展開
+（含跨行的 middleware 參數）後，檢查其中是否出現 `authMiddleware`／
+`optionalAuthMiddleware`／`eventAccessFactory`。**不能用單行 `grep`**：多數註冊
+跨行，單行檢查會把「第二行才掛 auth」的誤判成沒有。
+
+**(2) 的 11 條完整清單。**
+
+| 端點                          | 位置                                                                          | 程式碼裡有理由嗎                                           |
+| ----------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `GET /`（`listPublicEvents`） | `LinkCard_ExpressJS_Backend@src/events/routes/events.routes.ts:20`            | 語意自明（handler 名稱）                                   |
+| `POST /webhooks/stripe`       | `LinkCard_ExpressJS_Backend@src/events/routes/index.ts:36`                    | 有（`:35`：必須在 `express.json()` 之前掛）                |
+| `POST /activation/claim`      | `LinkCard_ExpressJS_Backend@src/events/routes/index.ts:37`                    | **路由層沒有**；controller `:14` 只說用途、沒說為何免 auth |
+| `GET /export/exhibitors`      | `LinkCard_ExpressJS_Backend@src/events/routes/event-ops.routes.ts:93`         | 有（`:92`：exhibitors 公開、attendees 要 auth）            |
+| `GET /nfc/lookup`             | `LinkCard_ExpressJS_Backend@src/events/routes/event-ops.routes.ts:77`         | 有（`:44`、`:76`：明寫 PUBLIC，另加 IP 限流）              |
+| `GET /:token`（展商邀請）     | `LinkCard_ExpressJS_Backend@src/events/routes/exhibitor-invites.routes.ts:51` | 語意自明（路徑就是憑證）＋限流                             |
+| `GET /by-code/:code`          | `LinkCard_ExpressJS_Backend@src/events/routes/registrations.routes.ts:118`    | 有（`:117` 說明用途；`:30-33` 說明兩層共用 429）           |
+| `GET /sessions/:sessionId`    | `LinkCard_ExpressJS_Backend@src/events/routes/sessions-polls.routes.ts:28`    | **沒有**                                                   |
+| `GET /polls`                  | `LinkCard_ExpressJS_Backend@src/events/routes/sessions-polls.routes.ts:53`    | 有（`:52`：results public，kiosk／大螢幕）                 |
+| `POST /polls/:pollId/vote`    | `LinkCard_ExpressJS_Backend@src/events/routes/sessions-polls.routes.ts:57`    | 有（同上 `:52`）                                           |
+| `GET /polls/:pollId/results`  | `LinkCard_ExpressJS_Backend@src/events/routes/sessions-polls.routes.ts:58`    | 有（同上 `:52`）                                           |
+
+**這 11 條不必然是缺陷，而且 9 條已經在程式碼裡寫了理由。** 這一點決定了缺口的
+性質：它主要不是「有人忘了掛 auth」，而是「有些端點刻意公開，而公開的理由是否
+一致、是否寫在現場旁邊」並不總是清楚。
+
+**本輪不斷言那 2 條是缺陷。** `GET /sessions/:sessionId` 與 `POST
+/activation/claim` 可能是刻意公開；這裡只主張一件事：**若是公開端點，應該在
+程式碼裡留下理由**——同一個目錄已經示範了怎麼寫，而這 2 條沒有。順帶一個觀察
+（不是缺陷）：`GET /sessions`（`:27`）掛 `optionalAuthMiddleware`，緊鄰的
+`GET /sessions/:sessionId`（`:28`）卻完全沒有，兩者的可見範圍差異沒有寫在任何
+地方。
 
 真正的角色判斷寫在 **controller**，而且不是一種寫法，是**三套**：
 
