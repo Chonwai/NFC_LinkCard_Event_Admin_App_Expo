@@ -25,20 +25,25 @@ LinkCard_Event_Admin_App_Expo/docs/analysis/
 > 那條分支沒有被 checkout，所以資料夾看起來像「消失了」。2026-10-29 已把該分支
 > 併入工作分支，之後就跟其他兩份一樣直接開得到。
 
-## 會自己檢查自己的兩個測試
+## 會自己檢查自己的三個測試
 
 這份報告最容易壞的地方是「引用漂移」——寫的時候指到某個檔案的某一行，之後
-程式碼一改，那句話就變成假的。所以有一組機械閘門盯著它：
+程式碼一改，那句話就變成假的。所以有一組機械閘門盯著它。
+這三條**不是同一件事**，差別在「需不需要 Web repo 在旁邊」：
 
-| 檔案                                | 盯什麼                                         |
-| ----------------------------------- | ---------------------------------------------- |
-| `tests/parity-citations.test.mjs`   | 每個 `Repo@path:line` 的檔案存在、行號在範圍內 |
-| `tests/parity-registry.test.mjs`    | 登記表本身的一致性（含反例測試）               |
-| `scripts/check-parity-registry.mjs` | Web 頁面是否都登記了、P0/P1 缺口是否有計畫章節 |
-| `parity/parity-registry.json`       | 15 個能力、12 個缺口的最終事實                 |
+| #   | 指令                        | 需要 `../LinkCard_Frontend` | 驗什麼                                                                                                                          |
+| --- | --------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `npm run check:parity`      | 不需要                      | 登記表自身一致性、App 側檔案存在、P0/P1 缺口章節。Web 不在旁邊時頁面掃描**跳過**（印一行 `SKIPPED`，仍 `exit 0`）               |
+| 2   | `npm run check:parity:full` | **需要**                    | 第 1 條的全部，加上「Web 有新頁面但沒有登記」——**只有這一條會抓到過期的判定**                                                   |
+| 3   | `npm test`                  | 不需要，但會改變下限        | 參照檢查＋登記表反例測試。兩個 sibling 都在時驗 43 個引用（下限 25）；只剩本 repo 時驗 27 個（下限 15）；缺哪一個都印 `SKIPPED` |
 
-跑它們：`npm test`（含在內）、`npm run check:parity`、`npm run check:parity:full`
-（最後一條需要 `../LinkCard_Frontend` 在旁邊）。
+上面三條的實作是：`tests/parity-citations.test.mjs`（每個 `Repo@path:line` 的檔案
+存在、行號在範圍內）、`tests/parity-registry.test.mjs`（登記表本身的一致性，含反例
+測試）、`scripts/check-parity-registry.mjs`（Web 頁面是否都登記了、P0/P1 缺口是否有
+計畫章節）、`parity/parity-registry.json`（15 個能力、12 個缺口的最終事實）。
+
+CI 只跑第 1 條與第 3 條，而 CI 沒有 checkout Web repo——所以第 2 條在 CI 上
+**不會發生**，只在你自己的機器上（或你手動跑）才會。
 
 ## 一句話回答
 
