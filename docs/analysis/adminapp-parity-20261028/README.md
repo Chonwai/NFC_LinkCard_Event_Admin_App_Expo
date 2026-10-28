@@ -40,7 +40,8 @@ LinkCard_Event_Admin_App_Expo/docs/analysis/
 上面三條的實作是：`tests/parity-citations.test.mjs`（每個 `Repo@path:line` 的檔案
 存在、行號在範圍內）、`tests/parity-registry.test.mjs`（登記表本身的一致性，含反例
 測試）、`scripts/check-parity-registry.mjs`（Web 頁面是否都登記了、P0/P1 缺口是否有
-計畫章節）、`parity/parity-registry.json`（15 個能力、12 個缺口的最終事實）。
+計畫章節）、`parity/parity-registry.json`（能力與缺口數的最終事實；引用時看檔案本身，`fa111a7`
+時為 15 個能力、13 個缺口）。
 
 CI 只跑第 1 條與第 3 條，而 CI 沒有 checkout Web repo——所以第 2 條在 CI 上
 **不會發生**，只在你自己的機器上（或你手動跑）才會。

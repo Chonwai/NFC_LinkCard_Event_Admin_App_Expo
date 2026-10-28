@@ -213,6 +213,10 @@ A10_exit=0
 
 含 `Web 頁面掃描：18 個頁面`，`exit=0`。
 
+（上面這段是 2026-10-28 的原始輸出，逐字保留不改：`12 個缺口` 是那天的值。
+`7dd038c` 登記 G-12 之後變成 13，現值以 `npm run check:parity:full` 的輸出為準，
+見 `08 §8.2`。）
+
 **環境註記**：`/tmp/lc-parity28-wt` **是 App repo 的 git worktree**（`…/LinkCard_Event_Admin_App_Expo/.git/worktrees/lc-parity28-wt`），`git status --porcelain` 只有 `?? node_modules`（未追蹤，非本輪產生）。腳本為唯讀，未改動工作區。
 
 ---
