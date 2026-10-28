@@ -1,5 +1,7 @@
 # 01 — 10-22 之後，Web 多了什麼
 
+<!-- citations: LinkCard_Frontend -->
+
 比對區間：`b52c08c`（10-22 當日收工）→ `6e58f0a`（今日 HEAD），共 202 個 commit。
 其中與本題相關的區域（`app/check-in`、`components/checkin`、`components/nfc`、
 `lib/nfc`、`lib/checkin`、`hooks/useNfcReader.ts`、`app/(event)/manage`）合計
@@ -90,10 +92,14 @@ App 的 `overview.tsx` 在同一件事上做法相反：它為了拿 `pagination
 
 `app/(event)/manage/[eventId]/registrations/page.tsx` 在區間內 +50 行，現有動作：
 
-- `hide`／`unhide`／`archive`／`unarchive`（含 undo，`page.tsx:101,148-190`）
-- 退款登記 modal（`page.tsx:106`）
-- CSV 匯出 `exportAttendeesCsv`（`page.tsx:29`）
-- 狀態更正、`depositRefundFilter`（`page.tsx:94,140`）
+- `hide`／`unhide`／`archive`／`unarchive`，含 undo
+  （`app/(event)/manage/[eventId]/registrations/page.tsx:101`）
+- 退款登記 modal（`app/(event)/manage/[eventId]/registrations/page.tsx:106`）
+- CSV 匯出 `exportAttendeesCsv`（`app/(event)/manage/[eventId]/registrations/page.tsx:29`）
+- 狀態更正、`depositRefundFilter`（`app/(event)/manage/[eventId]/registrations/page.tsx:94`）
+
+檔案層級的預設 repo 寫在本檔頂端的 `citations` 標記裡；路徑本身仍然寫完整，
+因為縮寫過的引用是上一輪對不上的主要原因。
 
 App 的名單頁有狀態篩選、搜尋、排序、分頁，沒有上述任何一項。
 

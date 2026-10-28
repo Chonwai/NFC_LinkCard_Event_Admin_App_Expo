@@ -1,5 +1,7 @@
 # 04 — 缺口登記冊
 
+<!-- citations: LinkCard_Event_Admin_App_Expo -->
+
 每一項都要能回答四個問題：多嚴重、誰該決定、要多少工、卡在誰身上。
 沒有這四項的條目不算缺口，只是感想。
 
@@ -67,7 +69,8 @@ Web 沒有這條路由（`find app -name '*wallet*'` 只有參加者視角的
 
 ### G-3 錢包流水讀錯欄位且忽略分頁（P1，缺陷）
 
-`registrant/[registrationId].tsx:186` 渲染 `tx.approvedBy`，後端投影沒有這個欄位
+`LinkCard_Event_Admin_App_Expo@src/app/(auth)/[eventId]/registrant/[registrationId].tsx:186`
+渲染 `tx.approvedBy`，後端投影沒有這個欄位
 ⇒ 每一行顯示 `—`。同時 `getWalletTransactions` 沒有帶分頁參數，預設 20 筆，
 超過的部分無聲消失。
 

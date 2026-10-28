@@ -1,5 +1,7 @@
 # 02 — App 與後端在同一個區間的變化
 
+<!-- citations: LinkCard_ExpressJS_Backend -->
+
 ## 2.1 App：產品碼沒有動，但修復卡在兩個未合併分支上
 
 `LinkCard_Event_Admin_App_Expo` 在 10-22 之後有三條分支：

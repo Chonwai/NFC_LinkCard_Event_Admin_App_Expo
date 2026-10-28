@@ -1,5 +1,7 @@
 # 03 — 能力對等矩陣
 
+<!-- citations: LinkCard_Frontend -->
+
 座標見 `00-method-and-scope.md` §0.2。Web 側的模組清單取自導覽的真實來源
 `LinkCard_Frontend@app/(event)/manage/[eventId]/layout.tsx:170-190`，共 13 項。
 
@@ -59,7 +61,7 @@ Web `badges/page.tsx` 匯入五個函式（`grep` 可重跑）：
 `listNfcBadges`、`createNfcBatch`、`claimNfcBadge`、`completeNfcBatch`、
 `exportNfcBadges`。
 
-App 只呼叫 `listBadges` 與 `lookup`（`src/services/nfc.service.ts:23-57`）。
+App 只呼叫 `listBadges` 與 `lookup`（`LinkCard_Event_Admin_App_Expo@src/services/nfc.service.ts:23-57`）。
 
 | 能力                       | Web | App | 後端 | App 缺什麼     |
 | -------------------------- | --- | --- | ---- | -------------- |
@@ -146,7 +148,9 @@ Web 有 session CRUD（`createSession`/`listEventSessions`/`updateSession`/
 真正的錢包流水在 `registrant/[registrationId].tsx`，但它有兩個缺陷（沿用上一輪
 診斷，今日仍在 `main`）：
 
-1. 渲染 `tx.approvedBy`（`registrant/[registrationId].tsx:186`），而後端的交易投影
+1. 渲染 `tx.approvedBy`
+   （`LinkCard_Event_Admin_App_Expo@src/app/(auth)/[eventId]/registrant/[registrationId].tsx:186`），
+   而後端的交易投影
    沒有這個欄位 ⇒ 每一行都顯示 `—`，看起來像「沒有經手人」。
 2. 沒有分頁 ⇒ 超過 20 筆的流水看不到，也沒有提示。
 
