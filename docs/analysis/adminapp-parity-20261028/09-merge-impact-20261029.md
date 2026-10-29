@@ -29,16 +29,31 @@
 | ②   | `audit/parity-20261028` → 工作分支     | 已做（`bc6ec47`） | 18 檔：11 docs／2 tests／2 root／1 scripts／1 parity／1 CI，**src 0** | 只加閘門與文件，不改變 App 行為               |
 | ③   | `feat/nfc-gate1-reader-spike` → `main` | **還沒做**        | 待併 90 檔：46 docs／44 非 docs（其中 9 是 src）                      | ← **你問的是這個。** 9.3 逐級拆解             |
 
-三列的產生命令（`1cb2b73^1` 要加引號，zsh 會把 `^` 當 glob）：
+三列的產生命令。① 與 ② 是**固定座標**的 diff（兩個 commit 都不會動），數字永遠
+不變；③ 與最後兩條是 `origin/main..HEAD`，每 commit 一次就變一次。
+
+**`^` 一定要加引號。** zsh 會把 `^` 當 glob，而 `zsh: no matches found` 發生在
+`git` 執行**之前** ⇒ 管線的 `wc -l` 拿到空輸入，**印出 0，而且 exit code 還是 0**：
 
 ```
-git --no-pager diff --name-only 1cb2b73^1 1cb2b73 | wc -l          # 30
-git --no-pager diff --name-only 1cb2b73^1 1cb2b73 -- src/ | wc -l  # 9
-git --no-pager diff --name-only bc6ec47^1 bc6ec47 | wc -l          # 18
-git --no-pager diff --name-only bc6ec47^1 bc6ec47 -- src/ | wc -l  # 0
-git --no-pager diff --name-only origin/main..HEAD | wc -l          # 90
-git --no-pager diff --name-only origin/main..HEAD -- docs/ | wc -l # 46
+git --no-pager diff --name-only 1cb2b73^1 1cb2b73 | wc -l       # zsh: no matches found → 0（錯）
+git --no-pager diff --name-only '1cb2b73^1' '1cb2b73' | wc -l   # 30（對）
 ```
+
+這是本節最容易無聲出錯的一行：不加引號會把核心論斷「① 是三次裡唯一動產品碼的
+一次」整個顛倒成「三次都沒動產品碼」。加上引號的正確形式：
+
+```
+git --no-pager diff --name-only '1cb2b73^1' '1cb2b73' | wc -l          # 30
+git --no-pager diff --name-only '1cb2b73^1' '1cb2b73' -- src/ | wc -l  # 9
+git --no-pager diff --name-only 'bc6ec47^1' 'bc6ec47' | wc -l          # 18
+git --no-pager diff --name-only 'bc6ec47^1' 'bc6ec47' -- src/ | wc -l  # 0
+git --no-pager diff --name-only origin/main..HEAD | wc -l              # 會變，重跑方式見 9.7
+git --no-pager diff --name-only origin/main..HEAD -- docs/ | wc -l     # 會變，重跑方式見 9.7
+```
+
+最後兩條在本文其他處被引用成 90 與 46，那是 10-29 當時的讀數。**今天重跑是 91 與
+47**——這段期間文件又多了。兩條命令本身沒有壞，是快照過期。
 
 ① 與 ② 的差別值得記住：兩次合併的「合併」動作長得一樣，足跡卻完全不同類。
 ① 帶進 9 個 `src/` 檔，② 一個都沒有。所以「之前合併過，都沒事」**不能**推論到
@@ -105,6 +120,26 @@ done
 # main        ⊂ HEAD ? YES
 # origin/development ⊂ HEAD ? YES
 ```
+
+**四、上表只列了「與這個決定直接相關」的四條 ref，不是完整清單。**
+`git branch -a` 現在是 7 條本地＋4 條遠端（＋1 個符號 ref `origin`）。其中一條不在
+上表、但值得單獨看：`feat/onsite-scope-decisions`。
+
+```
+git for-each-ref --format='%(refname:short)' refs/heads refs/remotes \
+  | grep -vc '^origin/HEAD$'                                  # 12
+for r in $(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes \
+  | grep -v '^origin/HEAD$'); do git merge-base --is-ancestor "$r" HEAD || echo "NOT ancestor: $r"; done
+# NOT ancestor: feat/onsite-scope-decisions   ← 只有這一條
+git rev-list --count HEAD..feat/onsite-scope-decisions        # 25
+git diff --stat HEAD...feat/onsite-scope-decisions -- src/    # 空輸出
+git diff --name-only HEAD...feat/onsite-scope-decisions | wc -l  # 20
+```
+
+它對 `src/` 零改動（20 個檔＝13 份文件＋`scripts/` 4＋`tests/` 1＋CI 1＋
+`package.json`），但**有 25 個 commit 不在本分支的歷史裡**，而且**它是 12 條 ref 裡
+唯一不是 HEAD 祖先的一條**——其餘 11 條全在 HEAD 的祖先鏈上。
+⇒ **它不會隨這次合併進 `main`。** 要不要併、還是丟掉，是 9.6 那個問題的同類。
 
 ⚠️ 一個容易誤讀的地方：本地 `main`（`fd996f0`）**比 `origin/main` 多 2 顆未推的
 commit**，但那 2 顆已經在工作分支的歷史裡了，所以它仍然是工作分支的祖先、仍然可以
@@ -239,8 +274,18 @@ grep -cE '^\s+- name:' .github/workflows/ci.yml   # 9
 九個 step 依序是 Install、Node version guard、Regenerate typed routes、Typecheck、
 Lint、Format check、**Parity registry**（`.github/workflows/ci.yml:49`）、
 **Backend contract**（`.github/workflows/ci.yml:56`）、**Test**
-（`.github/workflows/ci.yml:59`）。前六個是常規檢查，後三個才是這輪新增的閘門
-——「Parity registry」與「Backend contract」則是**它們的第一次真實執行**。
+（`.github/workflows/ci.yml:59`）。前六個是常規檢查，**後兩個**才是這輪新增的閘門
+（`Parity registry`、`Backend contract`）——這兩支則是**它們的第一次真實執行**。
+
+> **更正（2026-10-29）：這裡原本寫「後三個」。** 實測只有**兩**個新增——`Test`
+> 在 `origin/main` 上早就有（`git show origin/main:.github/workflows/ci.yml` 的
+> `:42`），本分支只是把它從第 7 個步驟擠到第 9 個位置。數錯的後果是讓人以為
+> 「連測試都是新的」，而實際上合併帶進 `main` 的新閘門只有兩支。
+>
+> ```
+> git show origin/main:.github/workflows/ci.yml | grep -cE '^\s+- name:'   # 7（含 Test）
+> grep -cE '^\s+- name:' .github/workflows/ci.yml                          # 9
+> ```
 
 > **一個必須說清楚的機制細節。** 「沒跑過」的原因**不是** workflow 看不見 feature
 > 分支。`.github/workflows/ci.yml:6` 有 `pull_request:`，而且**沒有分支白名單**
@@ -260,12 +305,21 @@ Lint、Format check、**Parity registry**（`.github/workflows/ci.yml:49`）、
   PR 上也會留下「這兩支閘門是什麼時候第一次通過」的紀錄。
 - **代價**：多一到兩個步驟。而且**要把分支先推上去**——目前 `origin/feat/...` 停在
   `81f8fa8`，本地還有 2 顆沒推：
+
   ```
   git rev-list --left-right --count origin/feat/nfc-gate1-reader-spike...HEAD  # 0  2
   ```
+
   另外 `Parity registry` 這一步在 CI 上是**降級執行**的：Web repo 不在 checkout
   範圍內，所以完整掃描（會抓到「Web 新增一頁但沒登記」）不會發生（見
-  `06-verification.md` §6.4 第 5 條）。綠燈的意義比看起來窄。
+  `06-verification.md` §6.6.1「單 repo 環境怎麼模擬（CI 就是這個環境）」）。
+  綠燈的意義比看起來窄。
+
+  > **更正（2026-10-29）：這句原本引 `06-verification.md` §6.4 第 5 條。** 那條講
+  > 的是「**引用閘門**驗不出語意漂移」（`tests/parity-citations.test.mjs` 只檢查
+  > 解析得到與行號不越界，不讀內容），與「**Parity registry** 在單 repo 環境降級」
+  > 是兩件不同的事。正確出處是 §6.6.1。
+
 - **選它等於承認**：你願意為「先知道結果」多付一輪等待。
 
 ### B — 直接 fast-forward push `main`
@@ -314,6 +368,19 @@ Lint、Format check、**Parity registry**（`.github/workflows/ci.yml:49`）、
 白名單裡（`.github/workflows/ci.yml:5` 確實列了它）。一個被 CI 承認、卻沒有人推
 東西上去的分支，比一個被刪掉的分支更危險。
 
+**而且真正該問「怎麼辦」的不只 `development`。** 差別在獨有 commit 的數量：
+`development` 是 **0**，所以它的「怎麼辦」是**清理**問題（留著也不會丟東西）；
+`feat/onsite-scope-decisions` 是 **25**（9.2 第四句），它的「怎麼辦」是
+**內容會不會消失**的問題——它比 `development` 危險，正好因為那個數字不是 0。
+
+```
+git rev-list --count HEAD..development                 # 0
+git rev-list --count HEAD..feat/onsite-scope-decisions # 25
+```
+
+兩個都要有答案，但**不能當成同一個問題回答**：一個是「刪不刪」，一個是
+「併不併／丟不丟」。
+
 ## 9.7 這份文件的邊界
 
 - **沒有跑過 CI。** 那正是本文的主題——9.4 講的是「它沒跑過」，不是「它會綠」。
@@ -323,6 +390,10 @@ Lint、Format check、**Parity registry**（`.github/workflows/ci.yml:49`）、
 - **沒有驗證 EAS build。** 合併不觸發它（9.3(b) 第一條），所以本文也沒有理由驗。
 - **170 顆 commit 沒有逐個讀。** 我讀的是**差異的形狀**：檔數、目錄分佈、commit
   類型分佈、`src/` 那 9 個檔的來源。逐個讀 170 顆是另一件工作，那件事沒做。
+- **`feat/onsite-scope-decisions` 的 25 顆 commit 也沒有逐條讀。** 只讀了檔案清單
+  （`git diff --name-only`）與那份決策簡報的開頭。所以「它是決策與閘門分支、`src/`
+  零改動」是**檔案形狀**的結論，不是「裡面每一句話都對」的結論。要把它併進 `main`
+  之前，那些 commit 的內容仍然要有人讀過。
 - **沒有替任何人做決定。** 9.5 的三條路、9.6 的三種處置，都是並列。本文只提供
   「選它等於承認什麼」，不提供推薦。
 - **數字有時效。** 每一個都附了命令。若你的讀數與本文不同，先確認
