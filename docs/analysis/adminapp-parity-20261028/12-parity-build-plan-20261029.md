@@ -435,6 +435,44 @@ Web call sites: 79 | backend routes: 123
 「有報名者時的行為」**（409 或軟刪 `isPublished=false`）。這一點寫在這裡，是因為它
 會讓一個看起來 S 的東西變成 M。
 
+#### 🚧 `ESC-CRA-001` — 跨 repo blocker（2026-10-29 由「一項發現」升級登記）
+
+這一條不再是「App 落後 Web」的對齊問題，而是**Web 與後端之間**的事，因此不屬於本
+分支的修復範圍，也**不該由本分支修**。升級的理由是三條都可機械複驗的事實：
+
+- **Web 的呼叫是活的**：`LinkCard_Frontend@app/(event)/manage/[eventId]/sessions/page.tsx:315`
+  的 `handleDelete`（`:317` 呼叫 `deleteSession`）→
+  `LinkCard_Frontend@lib/events/sessions.ts:143` 的 `deleteSession` 送
+  `method: 'DELETE'`。按鈕在畫面上，不是死碼。
+- **後端沒有這條路由**：`LinkCard_ExpressJS_Backend@src/events/routes/sessions-polls.routes.ts`
+  只有五條（GET 列表 `:27`、GET 單筆 `:28`、POST 建立 `:34`、PATCH 更新 `:35`、
+  POST 報名 `:37`），唯一的 `router.delete` 是 `…/sessions/:sessionId/register`
+  （`:46`）。
+- **⇒ 現在按下去是全站 404**，不是只有 App 沒有。
+
+**決定前的硬性限制：`sessions` 不得排入任何一波實作。** 理由不是「價值低」（那是排
+序問題），是 A2 在這個模組上**無法達成**：Web 那一項只做到一半（UI 有、端點無），
+App 照抄就複製一個 404；App 自己發明 `PATCH status=DELETED` 假裝對齊，則 A2（不接受
+等效的新端點）直接失守。兩條路都違反判準，所以唯一正確的動作是**先解除 blocker**。
+
+解除條件（兩者之一，且需要有人指名認領）：
+
+1. 後端補 `DELETE /:eventId/sessions/:sessionId`，並先回答「已有報名者時是 409 還是
+   軟刪」；
+2. Web 移除這顆按鈕、改為「取消發佈」（`PATCH isPublished=false`），並把 registry
+   的 `sessions` 驗收標的改成不含刪除。
+
+在那之前，registry 的 `sessions` 條目只能停在「已知 blocker」，**不能標 `ALIGNED`**
+——A1（狀態變更集合）會少一項，而那不是用文字補得起來的差。`§12.7` 第 2 條講的是
+「它會拖住整波」，這一節講的是「它是誰的責任、什麼條件下才解」；兩者指的是同一件事
+的不同面向。
+
+```bash
+# 覆核（兩條都是機械可驗的）
+grep -rn "sessions/:sessionId" LinkCard_ExpressJS_Backend/src/events/routes/sessions-polls.routes.ts
+grep -n "deleteSession" 'LinkCard_Frontend/app/(event)/manage/[eventId]/sessions/page.tsx'
+```
+
 #### 發現二：`WEB-DEFECT` ×1（**潛伏**）— `PATCH /:eventId/org-roles/accept` 打錯 method
 
 | 項目         | 內容                                                                                                                                                                                                                                                                                                                                                                                  |
