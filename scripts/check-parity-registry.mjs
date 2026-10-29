@@ -72,6 +72,27 @@ function readJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));
 }
 
+/**
+ * `decidedIn` 是指回「為什麼這樣判」的位置（`docs/…/04-gap-register.md#G-9`）。
+ * 它指到的**檔案必須存在**。
+ *
+ * 為什麼這一條比它看起來重要：`decidedIn` 是整個登記冊裡唯一「不能被機械複驗」
+ * 的欄位——它證明的是「有人做過判定」。正因為如此，一個指到不存在的檔案的
+ * `decidedIn` 比沒有更糟：它讓判定看起來有依據，而那個依據打不開。2026-10-29
+ * 的產品決定把九筆能力判定從 `BY_DESIGN` 改成 `APP_GAP` 時，順手替 capability
+ * 加了 `decidedIn`／`status`；若沒有這條檢查，那兩個欄位就只是裝飾。
+ *
+ * 它只驗檔案存在，不驗錨點——錨點屬於渲染層，`#` 後面的字串在檔案裡找不找得到
+ * 不是這支腳本猜得出來的（也不該猜）。
+ */
+function checkDecidedIn(ref, where, errors) {
+  if (typeof ref !== "string" || ref.trim().length === 0) return;
+  const file = ref.split("#")[0];
+  if (!existsSync(join(APP_ROOT, file))) {
+    errors.push(`${where}: decidedIn 指向不存在的檔案 → ${file}`);
+  }
+}
+
 /** 遞迴列出 dir 底下的檔案，回傳相對於 base 的 posix 路徑。 */
 function walk(dir, base) {
   const out = [];
@@ -120,6 +141,10 @@ function checkRegistry(registry, errors) {
         errors.push(`${cap.id}: gapId ${cap.gapId} 不在 gaps 清單`);
       }
     }
+    // capability 上的 decidedIn／status 是 2026-10-29 加上的（九筆 BY_DESIGN
+    // 轉 APP_GAP 時需要一個指回決定的位置）。若它指向不存在的檔案，這兩個欄位
+    // 就只是裝飾，所以跟 gap 的 decidedIn 用同一條檢查。
+    checkDecidedIn(cap.decidedIn, cap.id, errors);
   }
 
   const gapIds = new Set();
@@ -190,6 +215,7 @@ function checkRegistry(registry, errors) {
         `${gap.id}: 標記 deferred 但沒有記錄判定依據（decidedIn）——延後也必須可回溯`,
       );
     }
+    checkDecidedIn(gap.decidedIn, gap.id, errors);
   }
 
   for (const item of appOnly) {

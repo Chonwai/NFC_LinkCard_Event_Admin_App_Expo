@@ -11,28 +11,31 @@
 | --- | -------------- | ----------------------------- | ---------------------------------- | ------------------- |
 | —   | 活動清單       | `/manage/events`              | `home.tsx`                         | `ALIGNED`           |
 | 1   | Overview       | `/manage/:eventId`            | `overview.tsx`                     | `ALIGNED_DEFECT`    |
-| 2   | Profile        | `…/profile`                   | —                                  | `BY_DESIGN`         |
-| 3   | Content        | `…/content`                   | —                                  | `BY_DESIGN`         |
-| 4   | Ticket Types   | `…/ticket-types`              | 只讀票種（現場報名用）             | `BY_DESIGN`         |
+| 2   | Profile        | `…/profile`                   | —                                  | `APP_GAP`           |
+| 3   | Content        | `…/content`                   | —                                  | `APP_GAP`           |
+| 4   | Ticket Types   | `…/ticket-types`              | 只讀票種（現場報名用）             | `APP_GAP`           |
 | 5   | Badges         | `…/badges`                    | `badges.tsx`                       | `APP_GAP`           |
 | 6   | Registrations  | `…/registrations`             | `registrations.tsx`＋詳情頁        | `APP_GAP`           |
 | 7   | Check-in       | `/check-in/:eventId`          | `check-in.tsx`＋`nfc-bind.tsx`     | `APP_GAP`           |
-| 8   | Exhibitors     | `…/exhibitors`（＋`/import`） | —                                  | `BY_DESIGN`         |
-| 9   | Sessions       | `…/sessions`（＋名冊子頁）    | —                                  | `BY_DESIGN`         |
-| 10  | Polls          | `…/polls`                     | —                                  | `BY_DESIGN`         |
-| 11  | Bank Transfers | `…/bank-transfers`            | —                                  | `BY_DESIGN`         |
-| 12  | Org Roles      | `…/org-roles`                 | —                                  | `BY_DESIGN`         |
-| 13  | Settings       | `…/settings`                  | `settings.tsx`（App 偏好，非活動） | `BY_DESIGN`         |
+| 8   | Exhibitors     | `…/exhibitors`（＋`/import`） | —                                  | `APP_GAP`           |
+| 9   | Sessions       | `…/sessions`（＋名冊子頁）    | —                                  | `APP_GAP`           |
+| 10  | Polls          | `…/polls`                     | —                                  | `APP_GAP`           |
+| 11  | Bank Transfers | `…/bank-transfers`            | —                                  | `APP_GAP`           |
+| 12  | Org Roles      | `…/org-roles`                 | —                                  | `APP_GAP`           |
+| 13  | Settings       | `…/settings`                  | `settings.tsx`（App 偏好，非活動） | `APP_GAP`           |
 | —   | NFC 診斷台     | `/nfc`                        | —                                  | `WEB_ONLY_INTERNAL` |
 
-統計：`ALIGNED` 1（活動清單）、`ALIGNED_DEFECT` 1、`APP_GAP` 3、`BY_DESIGN` 9、
-`WEB_ONLY_INTERNAL` 1，共 15 項，與 `parity/parity-registry.json` 逐項對應。
+統計（**2026-10-29 決定後**：`ALIGNED` 1（活動清單）、`ALIGNED_DEFECT` 1、
+`APP_GAP` 12、`BY_DESIGN` 0、`WEB_ONLY_INTERNAL` 1，共 15 項，與
+`parity/parity-registry.json` 逐項對應。九筆原 `BY_DESIGN` 的改判理由見
+`11-full-parity-decision-20261029.md`。
 
-13 個活動內模組的分佈是：9 個 `BY_DESIGN`、3 個 `APP_GAP`、1 個 `ALIGNED_DEFECT`。
+13 個活動內模組的分佈是：12 個 `APP_GAP`、1 個 `ALIGNED_DEFECT`。表格的判定欄
+已經更新，但**路徑、對應欄与證據栏仍是 10-28 的量測**——那些沒有因判定改變而
+改變。
 
-`BY_DESIGN` 的每一項都必須有一句可反駁的理由，見 §3.6。理由是判定的主體，
-表格只是索引。而「為什麼不整體對齊成 Web 的鏡像」這個問題另有一條可重複使用的
-判準，見 §3.7。
+每項原本都有一句可反駁的理由（前八條見 §3.6，現在是歷史）；那個理由的**用途**
+已經改了：它不再決定「做不做」，只決定「先做哪一個」。
 
 ## 3.2 Overview：兩邊都有，403 那半已修、兩次請求那半未修
 
@@ -318,6 +321,11 @@ grep -rn 'eventAccessFactory.create' src/ | wc -l                              #
 
 ## 3.6 九個 `BY_DESIGN` 的理由
 
+> ⚠️ **本節已於 2026-10-29 被推翻（只推翻用途，不推翻內容）。** 使用者決定改為與
+> Web 全面功能對齊，這九項現在全部是 `APP_GAP`（建置目標）。本節的九條理由保留
+> 全文，作為歷史與排優先順序的依據；它們不再用來決定做不做。見
+> `11-full-parity-decision-20261029.md`。
+
 每一條都要能被反駁；若反駁不了，它就該降級成 `APP_GAP`。**（九條裡有兩種類型的
 反駁，差別在「要推翻什麼」，見本節末的小表。）**
 
@@ -375,6 +383,14 @@ grep -rn 'eventAccessFactory.create' src/ | wc -l                              #
 開頭）。
 
 ## 3.7 為什麼不把 App 對齊成 Web 的完整鏡像
+
+> ⚠️ **本節結論已於 2026-10-29 被推翻。** 使用者決定改為與 Web 全面功能對齊。
+> 本節的場景判準仍然可用於**排優先順序**，但不再用於**決定做不做**。見
+> `11-full-parity-decision-20261029.md`。
+>
+> 措辭要精確：本節不是「錯的」，是被**更高優先的產品一致性目標取代**。它的技術前提
+> （§3.7.1：手機做得到）與三項代價（§3.7.5）都沒被推翻，而且代價現在變成建置的
+> 前置條件（§3.7.8）。
 
 使用者在 2026-10-29 親口問過：
 

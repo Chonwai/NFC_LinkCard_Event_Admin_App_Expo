@@ -59,8 +59,11 @@
       "title": "活動資料",
       "webPages": ["app/(event)/manage/[eventId]/profile/page.tsx"],
       "appFiles": [],
-      "verdict": "BY_DESIGN",
-      "rationale": "改活動名稱、時間、地點是活動前的工作，且需要同時看整份報名表單設計；手機不是合適的編輯裝置。若出現活動當天改時間的實際需求，此判定應重新檢視。",
+      "verdict": "APP_GAP",
+      "gapId": "G-15",
+      "status": "ready-to-implement",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3",
+      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。原判如下——改活動名稱、時間、地點是活動前的工作，且需要同時看整份報名表單設計；手機不是合適的編輯裝置。若出現活動當天改時間的實際需求，此判定應重新檢視。",
       "evidence": ["Web: updateEvent／EventStatus／EventLandingPageMode"]
     },
     {
@@ -68,8 +71,11 @@
       "title": "落地頁內容",
       "webPages": ["app/(event)/manage/[eventId]/content/page.tsx"],
       "appFiles": [],
-      "verdict": "BY_DESIGN",
-      "rationale": "文案與區塊編輯是長文本工作，需要大螢幕與並排預覽；現場不需要改文案。",
+      "verdict": "APP_GAP",
+      "gapId": "G-15",
+      "status": "ready-to-implement",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3",
+      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。原判如下——文案與區塊編輯是長文本工作，需要大螢幕與並排預覽；現場不需要改文案。",
       "evidence": [
         "Web: createEventPageCard／createEventPageSection／update…／delete…"
       ]
@@ -79,8 +85,11 @@
       "title": "票種",
       "webPages": ["app/(event)/manage/[eventId]/ticket-types/page.tsx"],
       "appFiles": ["src/app/(auth)/[eventId]/walk-in.tsx"],
-      "verdict": "BY_DESIGN",
-      "rationale": "票種與語意綁定屬於設定層，App 只需在現場報名時讀取可用票種（已實作 listTicketTypes）。現場改價或改名額需要授權設計，目前沒有這個需求。",
+      "verdict": "APP_GAP",
+      "gapId": "G-15",
+      "status": "ready-to-implement",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3",
+      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。原判如下——票種與語意綁定屬於設定層，App 只需在現場報名時讀取可用票種（已實作 listTicketTypes）。現場改價或改名額需要授權設計，目前沒有這個需求。",
       "evidence": [
         "Web: 票種 CRUD＋語意綁定驗證",
         "App: eventService.listTicketTypes 供 walk-in 使用"
@@ -147,8 +156,11 @@
         "app/(event)/manage/[eventId]/exhibitors/import/page.tsx"
       ],
       "appFiles": [],
-      "verdict": "BY_DESIGN",
-      "rationale": "廠商審核與名單匯入是批次工作，需要檔案上傳與逐列錯誤檢視；現場不做這件事。目前也沒有攤位報到需求。",
+      "verdict": "APP_GAP",
+      "gapId": "G-15",
+      "status": "ready-to-implement",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3",
+      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。原判如下——廠商審核與名單匯入是批次工作，需要檔案上傳與逐列錯誤檢視；現場不做這件事。目前也沒有埔位報到需求。",
       "evidence": [
         "Web: listAllExhibitorsAdmin／updateExhibitorStatus／CSV import"
       ]
@@ -161,8 +173,11 @@
         "app/(event)/manage/[eventId]/sessions/[sessionId]/registrations/page.tsx"
       ],
       "appFiles": [],
-      "verdict": "BY_DESIGN",
-      "rationale": "營運模型沒有場次這個單位：入場簽到時即派發 NFC 手環與掛牌，之後以掛牌人工目視進出會場，不需要逐場次的出席紀錄。若未來活動改為多場次制（同一張票要選場次、每場有獨立容量），此判定應重新評估。",
+      "verdict": "APP_GAP",
+      "gapId": "G-9",
+      "status": "ready-to-implement",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3",
+      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊；營運事實（沒有場次）沒有變，但「做不做」改由一致性目標決定。原判如下——營運模型沒有場次這個單位：入場筽到時即派發 NFC 手環與掛牌，之後以掛牌人工目視進出會場，不需要逐場次的出席紀錄。若未來活動改為多場次制（同一張票要選場次、每場有獨立容量），此判定應重新評估。",
       "evidence": [
         "Web: session CRUD＋每場次名冊",
         "App 全庫無 session 概念",
@@ -175,8 +190,11 @@
       "title": "投票",
       "webPages": ["app/(event)/manage/[eventId]/polls/page.tsx"],
       "appFiles": [],
-      "verdict": "BY_DESIGN",
-      "rationale": "投票的建立、啟用與計票是主持端工作，需要投影或大螢幕；操作員在門口不參與。",
+      "verdict": "APP_GAP",
+      "gapId": "G-15",
+      "status": "ready-to-implement",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3",
+      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。原判如下——投票的建立、啟用與計票是主持端工作，需要投影或大螢幕；操作員在門口不參與。",
       "evidence": ["Web: createPoll／activatePoll／closePoll／getPollResults"]
     },
     {
@@ -184,8 +202,11 @@
       "title": "匯款覆核",
       "webPages": ["app/(event)/manage/[eventId]/bank-transfers/page.tsx"],
       "appFiles": [],
-      "verdict": "BY_DESIGN",
-      "rationale": "財務覆核需要稽核軌跡、雙人核可與完整匯款憑證比對，屬於辦公室職責；門口人員不應有放行款項的能力。",
+      "verdict": "APP_GAP",
+      "gapId": "G-15",
+      "status": "ready-to-implement",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3",
+      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。原判如下——財務覆核需要稽核軌跡、雙人核可與完整匯款憑證比對，屬於辦公室職責；門口人員不應有放行款項的能力。",
       "evidence": ["Web: listBankTransferApprovals／reviewBankTransfer"]
     },
     {
@@ -193,8 +214,11 @@
       "title": "組織角色",
       "webPages": ["app/(event)/manage/[eventId]/org-roles/page.tsx"],
       "appFiles": [],
-      "verdict": "BY_DESIGN",
-      "rationale": "授權他人是治理動作，應在有完整說明與稽核的環境完成；行動端只讀角色（透過 /my-access）即可。",
+      "verdict": "APP_GAP",
+      "gapId": "G-15",
+      "status": "ready-to-implement",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3",
+      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。原判如下——授權他人是治理動作，應在有完整說明與稽核的環境完成；行動端只讀角色（透過 /my-access）即可。",
       "evidence": [
         "Web: getMyEventAccess／inviteEventAdmin／listEventOrgRoles／removeEventAdmin"
       ]
@@ -204,8 +228,11 @@
       "title": "活動設定",
       "webPages": ["app/(event)/manage/[eventId]/settings/page.tsx"],
       "appFiles": ["src/app/(auth)/settings.tsx"],
-      "verdict": "BY_DESIGN",
-      "rationale": "活動整體設定（狀態、報名開關）屬於活動前準備。App 的 settings.tsx 是登入者偏好，不是活動設定，兩者同名但不同事。",
+      "verdict": "APP_GAP",
+      "gapId": "G-15",
+      "status": "ready-to-implement",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3",
+      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。原判如下——活動整體設定（狀態、報名開關）屬於活動前準備。App 的 settings.tsx 是登入者偏好，不是活動設定，兩者同名但不同事。",
       "evidence": [
         "Web: updateEvent（狀態與報名開關）",
         "App: settings.tsx 為帳號與 App 偏好"
@@ -335,9 +362,10 @@
       "severity": "P2",
       "owner": "product",
       "size": "L",
-      "status": "by-design",
-      "decidedIn": "docs/analysis/adminapp-parity-20261028/04-gap-register.md#G-9",
-      "fixedOn": []
+      "status": "ready-to-implement",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3",
+      "fixedOn": [],
+      "note": "2026-10-29 上午的判定是 by-design（營運不分場次）；同日下午的全面功能對齊決定把它改回要做的目標——營運事實沒有變，改的是目標函數。優先度仍是最後（見 11 §11.4）。"
     },
     {
       "id": "G-10",
@@ -386,6 +414,17 @@
       "status": "fixed-on-branch",
       "fixedOn": ["LinkCard_ExpressJS_Backend@800790cf"],
       "note": "修復在另一個 repo：LinkCard_ExpressJS_Backend 的 development 分支，未 push、未部署。嚴重度與四問見 docs/analysis/adminapp-parity-20261028/04-gap-register.md#G-14。"
+    },
+    {
+      "id": "G-15",
+      "title": "與 Web 後台全面功能對齊（8 個原 BY_DESIGN 模組轉為建置目標）",
+      "severity": "P2",
+      "owner": "product",
+      "size": "XL",
+      "status": "ready-to-implement",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3",
+      "fixedOn": [],
+      "note": "承接 profile／content／ticket-types／exhibitors／polls／bank-transfers／org-roles／settings 八項；sessions 走 G-9（後端已就緒，只缺 UI）。severity 定 P2 是按 04 §4.1 的定義（無現行錯誤、不縮短現場流程），不是「可選」——它是已決的建置工作。驗收定義見 11 §11.3 的 A1-A4，動工前置見 03 §3.7.8。"
     }
   ]
 }

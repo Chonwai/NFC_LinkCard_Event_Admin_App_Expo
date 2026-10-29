@@ -417,6 +417,51 @@ test("deferred 有 decidedIn 時通過", () => {
   assert.match(result.stdout, /對等登記表一致/);
 });
 
+/**
+ * `decidedIn` 驗的是「指到的那個檔案還在不在」。
+ *
+ * 為什麼要單獨鎖這一條：`decidedIn` 是整個登記冊裡唯一證明「有人做過判定」的
+ * 欄位，也正因為如此，它可以被寫成一句誰都反駁不了的空話。指到一個不存在的
+ * 檔案時，判定看起來有依據，而那個依據打不開——這比留空更糟，因為留空至少
+ * 會讓下一個人去問。
+ */
+test("decidedIn 指向不存在的檔案時失敗（gap）", () => {
+  const registry = baseRegistry({
+    gaps: [
+      {
+        id: "G-1",
+        title: "缺口一",
+        severity: "P2",
+        owner: "product",
+        size: "S",
+        status: "deferred",
+        decidedIn: `${DOC_DIR}/no-such-doc.md#G-1`,
+        fixedOn: [],
+      },
+    ],
+  });
+  const { root, webRoot } = makeFixture({ registry });
+  const result = run(root, ["--web", webRoot, "--require-web"]);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /decidedIn 指向不存在的檔案/);
+});
+
+test("decidedIn 指向不存在的檔案時失敗（capability）", () => {
+  const registry = baseRegistry({
+    capabilities: [
+      {
+        ...baseRegistry().capabilities[0],
+        status: "ready-to-implement",
+        decidedIn: `${DOC_DIR}/no-such-doc.md#11.3`,
+      },
+    ],
+  });
+  const { root, webRoot } = makeFixture({ registry });
+  const result = run(root, ["--web", webRoot, "--require-web"]);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /registrations: decidedIn 指向不存在的檔案/);
+});
+
 test("真實登記表在當前 repo 上是一致的", (t) => {
   const registry = JSON.parse(readFileSync(REAL_REGISTRY, "utf8"));
   const webRoot = findWebRoot(registry.webSurfaces.repo);
