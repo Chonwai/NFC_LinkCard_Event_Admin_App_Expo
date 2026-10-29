@@ -50,8 +50,8 @@
       "gapId": "G-10",
       "evidence": [
         "Web: 每個入口卡帶數字，單一 GET /events/:eventId/manage-stats（hooks/events/useManageStats.ts）",
-        "App: overview.tsx:133-159 用兩次 limit:1 的 registrations 請求算總數，該端點為 write access，OPERATOR 403",
-        "App 已有 registrationCount（event.service.ts:38-48），未使用"
+        "App: overview.tsx:204-218 的 canManage 分支仍打兩次 limit:1 的 registrations 換算總數與已報到數；Web 用單一 manage-stats",
+        "403 那一半已於 9e3c7a2 修好：overview.tsx:204 先問 getMyAccess，沒有 canManage 的人走本地 registrationCount（overview.tsx:187）並把已報到數顯示為「未取得」，不再去換一個 403"
       ]
     },
     {
