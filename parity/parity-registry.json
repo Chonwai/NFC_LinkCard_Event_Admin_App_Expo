@@ -4,21 +4,23 @@
     "id": "2026-10-28",
     "docPath": "docs/analysis/adminapp-parity-20261028",
     "question": "Does the Event Admin App carry the same capabilities as the web event-admin surface?",
+    "measuredAt": "2026-10-29",
+    "note": "audit 區塊是人工維護，沒有自動保護：閘門只驗 audit.docPath 指向的目錄存在（scripts/check-parity-registry.mjs:183-185），不驗 coordinates / measuredAt。這裡的 SHA 是 measuredAt 當下的實際 HEAD，會隨分支前進；docs/analysis/adminapp-parity-20261028/00-method-and-scope.md §0.2 記的則是「本批文件的數字是在哪個 HEAD 上量到的」。要重現文件裡的任何數字，請用 §0.2 的座標；兩者不一致時以 §0.2 為準 —— 那裡附了可重跑的命令。",
     "coordinates": {
       "app": {
         "repo": "LinkCard_Event_Admin_App_Expo",
-        "sha": "7d0fcf5",
-        "note": "origin/main; product code identical on feat/nfc-gate1-reader-spike"
+        "sha": "2d63b87",
+        "note": "feat/nfc-gate1-reader-spike 尖端（origin/main 仍是 7d0fcf5）。src/ 相對 origin/main 已不相同：9 檔、+302/−133，也就是 G-1..G-5 的修復。重跑：git diff --stat origin/main..HEAD -- src/"
       },
       "web": {
         "repo": "LinkCard_Frontend",
         "branch": "development",
-        "sha": "6e58f0a"
+        "sha": "0c8473e"
       },
       "backend": {
         "repo": "LinkCard_ExpressJS_Backend",
         "branch": "development",
-        "sha": "5b39cbd4"
+        "sha": "2e84699c"
       }
     }
   },
