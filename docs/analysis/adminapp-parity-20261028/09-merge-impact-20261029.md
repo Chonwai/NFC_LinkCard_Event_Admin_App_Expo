@@ -63,12 +63,12 @@ git --no-pager diff --name-only origin/main..HEAD -- docs/ | wc -l     # 會變�
 
 不是示意圖，是四條 ref 的實測值。
 
-| 分支                          | HEAD      | 最後一顆 commit | 與 `HEAD` 的 ahead / behind |
-| ----------------------------- | --------- | --------------- | --------------------------- |
-| `origin/main`                 | `7d0fcf5` | 2026-10-16      | behind **0** / ahead 170    |
-| `origin/development`          | `b58e95c` | 2026-09-22      | behind **0** / ahead 234    |
-| `main`（本地，未推 2 顆）     | `fd996f0` | 2026-10-22      | behind **0** / ahead 168    |
-| `feat/nfc-gate1-reader-spike` | `ffffbec` | 2026-10-29      | —（這就是 HEAD）            |
+| 分支                          | HEAD      | 最後一顆 commit | 與 `HEAD` 的 ahead / behind    |
+| ----------------------------- | --------- | --------------- | ------------------------------ |
+| `origin/main`                 | `7d0fcf5` | 2026-10-16      | behind **0** / ahead 170       |
+| `origin/development`          | `b58e95c` | 2026-09-22      | behind **0** / ahead 234       |
+| `main`（本地，未推 2 顆）     | `fd996f0` | 2026-10-22      | behind **0** / ahead 168       |
+| `feat/nfc-gate1-reader-spike` | `ffffbec` | 2026-10-29      | —（量測座標，不是現在的 HEAD） |
 
 ```
 git rev-parse --short origin/main origin/development main HEAD
@@ -79,6 +79,10 @@ git rev-list --left-right --count origin/development...HEAD # → 0    234
 git rev-list --left-right --count main...HEAD               # → 0    168
 git rev-list --left-right --count origin/development...origin/main  # → 0  64
 ```
+
+這張表是 **2026-10-29 的量測座標**，不是「現在的 HEAD」。要判斷它還成不成立，跑
+`git rev-parse --short HEAD` 與 `git rev-list --count origin/main..HEAD`，不要假設
+它還是 `ffffbec`。
 
 三句結論，每句都附上判定的命令：
 

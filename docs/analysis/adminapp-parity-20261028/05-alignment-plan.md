@@ -231,6 +231,10 @@ Cvent、zkipster、Swapcard、Bizzabo 六個產品都找不到對應物，是自
 `POST /sessions/:sessionId/checkin`（後者掛 `OPERATOR` 的 event access），
 而 App 對 `sessions/` 的呼叫是 0 次。所以成本幾乎全在前端，不必先排後端工作。
 
+另有一題不是優先度：**G-9 該不該繼續掛在 `APP_GAP`**——同一個桶裡同時裝著「Web
+有、App 缺」與「兩邊都缺、後端就緒」兩種東西。那是分類問題，與上面兩個選項是兩
+條軸，見 `04-gap-register.md` §G-9 的〈分類問題（需你決定）〉。
+
 ## 5.5 第五階段：G-12 路由層授權（**後端 repo**，跨 repo，待決策）
 
 這一節存在的理由不是分析不足，是**位置不對**：`04-gap-register.md` 有 `### G-12`

@@ -651,6 +651,52 @@ Onsite Command App／check-in by Session／OnArrival session tracking）。這�
 **足以支撐「有這個能力」，不足以支撐「這家公司怎麼稱呼它」**；Cvent 那一條仍屬
 Premium 商業包裝，不是能力差異。
 
+#### 分類問題（需你決定）
+
+這一題與上面「有沒有場次」是兩條不同的軸：上面問**優先度**，這裡問**它該掛在
+哪一類底下**。今天它掛在 `APP_GAP`，而這個桶裡其實裝了兩種東西：
+
+- (a) **Web 有、App 缺**——修一次就結案。G-A／G-B／G-C 屬這一種。
+- (b) **兩邊都缺、後端就緒**——要修兩次（Web 一次、App 一次）；而且**先做完 App
+  會讓人以為結案**。
+
+G-9 屬 (b)。`03-capability-matrix.md` §3.3 的 G-D 段有三條實測：Web 名冊頁全長 242
+行、裡面只有兩顆分頁按鈕；`grep -rn 'sessions/.*checkin'` 在 Web 零命中；後端
+`POST /sessions/:sessionId/checkin` 掛著 `OPERATOR` 的 event access，已就緒。所以
+「App 相對 Web 少了那個頁面」仍然成立（這一格的意思沒變），但把它讀成「App 落後
+Web」就不成立——是**兩個前端都落後於後端**。
+
+**選項 A：維持 `APP_GAP`（不動 registry）。**
+
+- 代價：它會跟「Web 成熟、App 待追」的項目排在同一個桶裡。桶的語意實際上是「App
+  還沒做完的東西」，於是「Web 也還沒做」只寫在內文、不寫在分類上；任何只看
+  verdict 統計的人（`03-capability-matrix.md` §3.1 的統計列、
+  `parity/parity-registry.json:157-165`）都會把它讀成 (a)。
+- 選它等於承認：**verdict 描述的是「App 相對 Web 少了什麼」，不是「產品缺了
+  什麼」**——也就是分類的服務對象是 App 側待辦，不是產品缺口清單。
+  （`03-capability-matrix.md` §3.3 的 G-D 末段已經替這個立場寫過理由，所以 A 不是
+  一個隨手可丟的預設。）
+
+**選項 B：新增一類（例如 `PRODUCT_GAP_BOTH`）並把 G-9 移過去。**
+
+- 代價：四處要一起改，少一處就不一致——
+  1. `parity/parity-registry.json:157-165`：`sessions` 這一項的 `verdict`。
+  2. `scripts/check-parity-registry.mjs:44-51`：`VERDICTS` 這個集合（現在 6 個
+     值）。另外要決定 `APP_GAP` 專屬的那條「必須有 `gapId`」檢查
+     （`scripts/check-parity-registry.mjs:117-118`）要不要沿用。
+  3. `03-capability-matrix.md` §3.1 的統計列（`APP_GAP` 4 → 3、多一類 1）與 §3.3
+     的標題（「四個 `APP_GAP`」→ 三個）。
+  4. `tests/parity-registry.test.mjs`：現有案例以 `APP_GAP` 為輸入，要確認新的
+     verdict 不會落進未定義的分支。
+- 選它等於承認：**verdict 描述的是「能力是否存在」**——那麼 G-A／G-B／G-C 要繼續
+  留在 `APP_GAP`，就得各補一句「為什麼它們不是產品缺口」的理由，因為它們的 Web
+  側確實是成熟的。
+
+**不決定 ⇒ 默認 A（現狀）**：registry 不動，這一節只是一份記錄。
+
+> 本批不動任何 verdict。這一節的目的只是把一個隱形的分類預設，變成一個可以選的
+> 題目。
+
 ### G-10 總覽對 OPERATOR 失效（P1，缺陷）
 
 見 `03-capability-matrix.md` §3.2。兩個獨立問題：
