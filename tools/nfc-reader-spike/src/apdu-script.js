@@ -23,7 +23,6 @@ const { encodeUriTlv } = require("./ndef");
 const {
   FIRST_USER_PAGE,
   NDEF_CAPACITY_BYTES,
-  PAGE_SIZE,
   getVersionCommand,
   planPageWrites,
   readPageCommand,
