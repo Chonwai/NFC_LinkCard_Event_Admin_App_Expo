@@ -161,12 +161,13 @@
         "app/(event)/manage/[eventId]/sessions/[sessionId]/registrations/page.tsx"
       ],
       "appFiles": [],
-      "verdict": "APP_GAP",
-      "gapId": "G-9",
+      "verdict": "BY_DESIGN",
+      "rationale": "營運模型沒有場次這個單位：入場簽到時即派發 NFC 手環與掛牌，之後以掛牌人工目視進出會場，不需要逐場次的出席紀錄。若未來活動改為多場次制（同一張票要選場次、每場有獨立容量），此判定應重新評估。",
       "evidence": [
         "Web: session CRUD＋每場次名冊",
         "App 全庫無 session 概念",
-        "產業對照：Cvent／Whova／zkipster 都把場次報到放在行動端"
+        "產業對照：Cvent／Whova／zkipster 都把場次報到放在行動端",
+        "2026-10-29 決（營運模型）：活動不分場次，入場即簽到並派發手環＋掛牌，出入靠掛牌人工目視而非系統掃描——判定由 APP_GAP 改為 BY_DESIGN，見 04-gap-register.md §G-9 的〈已決〉段"
       ]
     },
     {
@@ -334,7 +335,8 @@
       "severity": "P2",
       "owner": "product",
       "size": "L",
-      "status": "decision-needed",
+      "status": "by-design",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/04-gap-register.md#G-9",
       "fixedOn": []
     },
     {

@@ -153,6 +153,17 @@ function checkRegistry(registry, errors) {
         `${gap.id}: 標記 ready-to-implement 但沒有記錄判定依據（decidedIn）`,
       );
     }
+    // `by-design` 是同一個家族裡最強的一個值：`ready-to-implement` 說「會做、
+    // 只是還沒排」，`by-design` 說「永遠不做、下一輪不必再問」。後者一旦被誤用，
+    // 就再也沒有人會回頭看它——它連「還沒做」這個提醒都消失了。所以它比
+    // `ready-to-implement` 更需要一個可回溯的位置：沒有 `decidedIn` 的
+    // `by-design`，等於把一個缺口連同它為什麼被放棄的原因一起刪掉。
+    if (
+      gap.status === "by-design" &&
+      (typeof gap.decidedIn !== "string" || gap.decidedIn.trim().length === 0)
+    ) {
+      errors.push(`${gap.id}: 標記 by-design 但沒有記錄判定依據（decidedIn）`);
+    }
   }
 
   for (const item of appOnly) {

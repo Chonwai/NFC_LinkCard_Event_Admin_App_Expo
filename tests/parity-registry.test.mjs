@@ -321,6 +321,52 @@ test("ready-to-implement 有 decidedIn 時通過", () => {
   assert.match(result.stdout, /對等登記表一致/);
 });
 
+/**
+ * `by-design` 是「已決定永遠不做」。它是所有 status 裡最不可逆的一個：一旦用它
+ * 結案，下一輪審計就不會再問同一個問題。所以它必須帶一個能回頭查的位置，
+ * 否則一個缺口只會被安靜地從清單上刪掉，連「為什麼放棄」都不留。
+ */
+test("by-design 沒有 decidedIn 時失敗", () => {
+  const registry = baseRegistry({
+    gaps: [
+      {
+        id: "G-1",
+        title: "缺口一",
+        severity: "P2",
+        owner: "product",
+        size: "S",
+        status: "by-design",
+        fixedOn: [],
+      },
+    ],
+  });
+  const { root, webRoot } = makeFixture({ registry });
+  const result = run(root, ["--web", webRoot, "--require-web"]);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /by-design 但沒有記錄判定依據/);
+});
+
+test("by-design 有 decidedIn 時通過", () => {
+  const registry = baseRegistry({
+    gaps: [
+      {
+        id: "G-1",
+        title: "缺口一",
+        severity: "P2",
+        owner: "product",
+        size: "S",
+        status: "by-design",
+        decidedIn: `${DOC_DIR}/04-gap-register.md#G-1`,
+        fixedOn: [],
+      },
+    ],
+  });
+  const { root, webRoot } = makeFixture({ registry });
+  const result = run(root, ["--web", webRoot, "--require-web"]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /對等登記表一致/);
+});
+
 test("真實登記表在當前 repo 上是一致的", (t) => {
   const registry = JSON.parse(readFileSync(REAL_REGISTRY, "utf8"));
   const webRoot = findWebRoot(registry.webSurfaces.repo);
