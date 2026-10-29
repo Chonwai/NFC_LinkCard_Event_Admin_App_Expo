@@ -2,16 +2,16 @@
 
 <!-- citations: LinkCard_ExpressJS_Backend -->
 
-## 2.1 App：產品碼沒有動，但修復卡在兩個未合併分支上
+## 2.1 App：`audit/parity-20261022` 已合併；`feat/onsite-scope-decisions` 仍未合併
 
 `LinkCard_Event_Admin_App_Expo` 在 10-22 之後有三條分支。commit 數於 2026-10-29
 重新量測（量測時的 HEAD = `c645f20`）：
 
-| 分支                          | commits | 內容                                 | 是否在 `main`           |
-| ----------------------------- | ------- | ------------------------------------ | ----------------------- |
-| `audit/parity-20261022`       | 28      | 上一輪對等審計＋7 個產品修復         | 否                      |
-| `feat/onsite-scope-decisions` | 53      | 上述內容＋現場四項決策               | 否                      |
-| `feat/nfc-gate1-reader-spike` | 111     | 讀卡機研究、文件，以及對等登記表閘門 | 否（但 `src/` 同 main） |
+| 分支                          | commits | 內容                                                               | 是否在 `main`                     |
+| ----------------------------- | ------- | ------------------------------------------------------------------ | --------------------------------- |
+| `audit/parity-20261022`       | 28      | 上一輪對等審計＋7 個產品修復                                       | 否                                |
+| `feat/onsite-scope-decisions` | 53      | 上述內容＋現場四項決策                                             | 否                                |
+| `feat/nfc-gate1-reader-spike` | 111     | 讀卡機研究、文件、對等登記表閘門，以及 `1cb2b73` 帶進來的 G-1～G-5 | 否（`src/` 已與 main 不同，見下） |
 
 驗證方式：
 
@@ -19,13 +19,20 @@
 git rev-list --count origin/main..audit/parity-20261022            # 28
 git rev-list --count origin/main..feat/onsite-scope-decisions      # 53
 git rev-list --count origin/main..feat/nfc-gate1-reader-spike      # 111
-git diff --stat origin/main..feat/nfc-gate1-reader-spike -- src/   # 空
+git diff --stat origin/main..feat/nfc-gate1-reader-spike -- src/   # 9 files, +302/−133
 ```
 
 第三條會隨這條分支的每一個 commit 前進，本節自己的 commit 也算在內，所以重跑時看到
 比 111 大是正常的；看到比它小才要回頭確認你量的是哪條分支。
 
-「`src/` 零改」不等於「這條分支沒改東西」。它對 `origin/main` 有一批差異
+**最後一條不再回空輸出（2026-10-29 複核）。** `1cb2b73` 把 `audit/parity-20261022`
+併進本分支之後，`-- src/` 是 **9 檔、+302/−133**，那就是 G-1～G-5 的修復。所以
+上表那一格「`src/` 同 main」是**合併前**（`fa111a7`）的讀數，不是現在的值——
+`00-method-and-scope.md` §0.2 的「合併之後」小節跑同一條命令、寫同一個 9 檔，
+兩節現在一致。
+
+「`src/` 零改」**只在 `fa111a7` 上成立**，也不等於「這條分支沒改東西」。這條分支對
+`origin/main` 還有一批差異
 （`git diff --stat origin/main..HEAD | tail -1`），分佈於 `docs/`、`tools/`
 （`nfc-reader-spike/` 17 檔＋`nfc-web-probe/` 2 檔）、`.edison/`、`tests/`、
 `scripts/`、`parity/`、`package.json`、`.github/`、`.prettierignore`、`.gitignore`，
@@ -41,8 +48,8 @@ git diff --stat origin/main..feat/nfc-gate1-reader-spike -- src/   # 空
 命令今天會回 5 個檔、+807 行，因為本輪自己往 `scripts/`、`tests/`、`.github/`、
 `package.json` 加了閘門。正確的範圍是 `-- src/`。
 
-這句話的意義只到「執行期行為與 `main` 相同」，不包含 lint 規則集合相同。
-見 `06-verification.md` §6.2 的 A1。
+「`src/` 零改」在那個時點的意義只到「執行期行為與 `main` 相同」，不包含 lint 規則
+集合相同。見 `06-verification.md` §6.2 的 A1。
 
 ## 2.2 端點層現況：15 個呼叫字面，15 條有效（那條死路已修）
 

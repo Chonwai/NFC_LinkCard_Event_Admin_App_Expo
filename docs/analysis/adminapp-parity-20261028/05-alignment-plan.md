@@ -107,7 +107,7 @@
 | G-3  | 錢包流水改讀真實欄位（原定加分頁）          | 每行不再是 `—`；>20 筆時**有提示**（`tokenPagingHint`）——**翻頁器未做** |
 | G-4  | 補 `Registration` 欄位與兩個查詢參數        | 型別與後端投影一致；篩選送得出去且後端有反應                            |
 | G-5  | 以 `/my-access` 作為能力開關                | OPERATOR 看得到該看的、看不到不該看的                                   |
-| G-10 | 總覽總數改用 `event.registrationCount`      | OPERATOR 不再 403；請求數下降                                           |
+| G-10 | 總覽總數改用 `event.registrationCount`      | OPERATOR 不再 403（**已達成**）；請求數下降（**未達成**，見下）         |
 
 順序建議：G-1 → G-10 → G-5 → G-3 → G-4 → G-2。
 理由：G-1 與 G-10 直接影響現場，G-5 會改變其他頁面的顯示條件，所以排在資料層
@@ -117,6 +117,13 @@
 ——只有提示，是『不再無聲截斷』，不是『可以翻頁』」。所以上面那一列的驗收已改成
 「有提示」，**翻頁器仍是未做的工作**。階段 2 因此標為部分完成：六個修復都落地了，
 但其中一個的驗收條件沒有全達成。
+
+**G-10 的驗收也是兩半（2026-10-29 實測）**：`03-capability-matrix.md` §3.2 寫著
+「403 那半已修、兩次請求那半未修」。`overview.tsx:204` 的 `if (!access.canManage)`
+早退，讓 OPERATOR 不再撞那個必定 403 的端點；但 `overview.tsx:213-214` 仍是兩支
+`getRegistrations`，只為了取兩個 `pagination.total`。所以「請求數下降」這一項
+**未達成**——`registrationCount` 早在 `event.service.ts:62` 就在手上了。階段 2 裡
+G-10 只算修好一半，跟 G-3 一樣。
 
 ### 這六項不必重寫，可以撿回來
 
@@ -283,7 +290,7 @@ origin/feat/nfc-gate1-reader-spike..HEAD` 不為 `0`），所以「已 push 讓 
    `fixed`／`fixed-on-branch` 要求 `fixedOn` 非空、對 `ready-to-implement` 要求
    `decidedIn` 非空——不是只檢查欄位存不存在；新增值時驗證器要一起改，不能只寫在
    會議紀錄裡）。
-   第四個值是為 G-10 加的：它是缺陷、`owner` 是 `none-needed`（無爭議）、但還沒修，
+   第四個值是為 G-10 加的：它是缺陷、`owner` 是 `none-needed`（無爭議）、但當時只修好一半（403 那半已修、兩次請求那半未修，見 `03-capability-matrix.md` §3.2），
    用 `open` 會讓它長期被算成「等人認領」，而實際上沒有任何決定可做。
    第五個值 `fixed` 是為 G-1～G-5、G-11 加的：那些修復已於 2026-10-29 併入
    **本工作分支**（merge `1cb2b73`），因此在該分支的 `HEAD` 上可驗證。再用
