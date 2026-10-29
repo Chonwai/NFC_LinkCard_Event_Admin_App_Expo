@@ -46,6 +46,7 @@ function baseRegistry(overrides = {}) {
         appFiles: ["src/app/(auth)/[eventId]/registrations.tsx"],
         verdict: "APP_GAP",
         gapId: "G-1",
+        decidedIn: `${DOC_DIR}/04-gap-register.md#G-1`,
         evidence: ["fixture evidence"],
       },
     ],
@@ -57,7 +58,7 @@ function baseRegistry(overrides = {}) {
         severity: "P1",
         owner: "product",
         size: "S",
-        status: "open",
+        status: "decision-needed",
         fixedOn: [],
       },
     ],
@@ -240,7 +241,7 @@ test("P0 缺口沒有對應章節時失敗", () => {
         severity: "P0",
         owner: "product",
         size: "S",
-        status: "open",
+        status: "decision-needed",
         fixedOn: [],
       },
     ],
@@ -460,6 +461,103 @@ test("decidedIn 指向不存在的檔案時失敗（capability）", () => {
   const result = run(root, ["--web", webRoot, "--require-web"]);
   assert.equal(result.status, 1);
   assert.match(result.stderr, /registrations: decidedIn 指向不存在的檔案/);
+});
+
+/**
+ * 「有才驗、沒有就放行」是這一支腳本最容易寫出的假防護。
+ *
+ * 2026-10-29 的複核實測到它：`delete cap.decidedIn` 之後腳本仍然 exit 0。
+ * 原因是 `checkDecidedIn` 在欄位不存在時直接 return——於是**刪掉證據**比
+ * **偽造證據**更安全，而一個 APP_GAP 可以完全不說判定記在哪裡。但 APP_GAP
+ * 這個判定本身已經是被記錄過的（`04-gap-register.md` 一定有它的章節），
+ * 指不出位置只表示登記冊忘了寫，不表示「這個欄位不適用」。
+ */
+test("APP_GAP 沒有 decidedIn 時失敗", () => {
+  const capability = { ...baseRegistry().capabilities[0] };
+  delete capability.decidedIn;
+  const { root, webRoot } = makeFixture({
+    registry: baseRegistry({ capabilities: [capability] }),
+  });
+  const result = run(root, ["--web", webRoot, "--require-web"]);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /APP_GAP 必須有 decidedIn/);
+});
+
+test("APP_GAP 有 decidedIn 時通過", () => {
+  const { root, webRoot } = makeFixture();
+  const result = run(root, ["--web", webRoot, "--require-web"]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /對等登記表一致/);
+});
+
+/**
+ * `status` 決定一個缺口／能力會出現在 §5.6／§5.7 的哪一張清單上。
+ * 一個自創的值（`done`）不會被任何一張清單撿走：缺口同時從「待辦」與
+ * 「已處置」兩邊消失，而登記冊看起來一切正常。§5.7 只擋 P0/P1，擋不住 P2。
+ * 所以列舉驗證必須在腳本裡，而且 capability 與 gap 共用同一組詞——
+ * 兩邊各用一套的話，「已排」在兩處代表不同的事，讀的人分不出來。
+ */
+test("capability 的 status 不在列舉內時失敗", () => {
+  const registry = baseRegistry({
+    capabilities: [{ ...baseRegistry().capabilities[0], status: "done" }],
+  });
+  const { root, webRoot } = makeFixture({ registry });
+  const result = run(root, ["--web", webRoot, "--require-web"]);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /registrations: status 不合法（done）/);
+});
+
+test("capability 的 status 在列舉內時通過", () => {
+  const registry = baseRegistry({
+    capabilities: [
+      { ...baseRegistry().capabilities[0], status: "ready-to-implement" },
+    ],
+  });
+  const { root, webRoot } = makeFixture({ registry });
+  const result = run(root, ["--web", webRoot, "--require-web"]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /對等登記表一致/);
+});
+
+test("gap 的 status 不在列舉內時失敗", () => {
+  const registry = baseRegistry({
+    gaps: [
+      {
+        id: "G-1",
+        title: "缺口一",
+        severity: "P2",
+        owner: "product",
+        size: "S",
+        status: "done",
+        fixedOn: [],
+      },
+    ],
+  });
+  const { root, webRoot } = makeFixture({ registry });
+  const result = run(root, ["--web", webRoot, "--require-web"]);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /G-1: status 不合法（done）/);
+});
+
+test("gap 的 status 在列舉內時通過", () => {
+  const registry = baseRegistry({
+    gaps: [
+      {
+        id: "G-1",
+        title: "缺口一",
+        severity: "P2",
+        owner: "product",
+        size: "S",
+        status: "deferred",
+        decidedIn: `${DOC_DIR}/04-gap-register.md#G-1`,
+        fixedOn: [],
+      },
+    ],
+  });
+  const { root, webRoot } = makeFixture({ registry });
+  const result = run(root, ["--web", webRoot, "--require-web"]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /對等登記表一致/);
 });
 
 test("真實登記表在當前 repo 上是一致的", (t) => {

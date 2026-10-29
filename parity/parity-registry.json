@@ -105,6 +105,7 @@
       ],
       "verdict": "APP_GAP",
       "gapId": "G-7",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/04-gap-register.md#G-7",
       "evidence": [
         "Web 匯入 listNfcBadges／createNfcBatch／claimNfcBadge／completeNfcBatch／exportNfcBadges",
         "App 只有 listBadges 與 lookup（nfc.service.ts:23-57），且無 boundOnly 參數",
@@ -122,6 +123,7 @@
       ],
       "verdict": "APP_GAP",
       "gapId": "G-6",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/04-gap-register.md#G-6",
       "evidence": [
         "Web: exportAttendeesCsv／hide／unhide／archive／unarchive／退款登記／狀態更正／depositRefundFilter",
         "App: 狀態篩選、前端搜尋、排序、分頁（只讀）",
@@ -141,6 +143,7 @@
       ],
       "verdict": "APP_GAP",
       "gapId": "G-8",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/04-gap-register.md#G-8",
       "evidence": [
         "兩邊都有 QR 掃碼、手動輸入、防連掃門閂",
         "Web 同一畫面寫卡＋綁卡＋上鎖（WriteCardPanel 524 行、lib/checkin/nfcDesk.ts、lib/nfc/globalPassword.ts）",

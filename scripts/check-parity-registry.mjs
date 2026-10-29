@@ -11,10 +11,11 @@
  * 它檢查「表格與世界是否還對得上」：
  *
  *   1. 登記表裡引用的每一個檔案都還存在（畫面被搬走、改名會被抓到）
- *   2. 每一個 BY_DESIGN 都有理由，每一個 APP_GAP 都有 gapId 與嚴重度
+ *   2. 每一個 BY_DESIGN 都有理由，每一個 APP_GAP 都有 gapId、嚴重度與 decidedIn
  *   3. Web 端出現一個沒有登記的頁面 ⇒ 失敗
  *      （這一條是核心：新增能力會強迫做出判定，而不是默默漂移）
  *   4. P0/P1 的缺口都必須在 04-gap-register.md 有對應章節
+ *   5. status 只能在既定詞彙內（capability 與 gap 共用同一組，見 STATUSES）
  *
  * 用法
  * ----
@@ -51,6 +52,27 @@ const VERDICTS = new Set([
 ]);
 
 const SEVERITIES = new Set(["P0", "P1", "P2"]);
+
+/**
+ * `status` 的合法詞彙。**這不是新發明的字**：它就是 `gaps[]` 目前實際在用的
+ * 那一組（`decision-needed`／`ready-to-implement`／`by-design`／`deferred`／
+ * `fixed-on-branch`／`fixed`）。`capabilities[]` 的 `status` 由 2026-10-29 的
+ * 九筆改判引入，用的也是 `ready-to-implement`——兩邊共用同一組詞，才不會出現
+ * 「capability 已排、gap 待決」這種誰也讀不懂的組合。
+ *
+ * 為什麼要列舉：`status` 決定一個缺口會出現在 §5.6／§5.7 的哪一張清單上。
+ * 一個拼錯或自創的值（`done`、`Fixed`、`fixed ` 帶尾隨空白）不會被任何一張
+ * 清單撿走，缺口就這樣同時從「待辦」與「已處置」兩邊消失——而登記冊看起來
+ * 一切正常。這一條原本只靠 §5.7 對 P0/P1 的規則擋，擋不住 P2。
+ */
+const STATUSES = new Set([
+  "decision-needed",
+  "ready-to-implement",
+  "by-design",
+  "deferred",
+  "fixed-on-branch",
+  "fixed",
+]);
 
 function parseArgs(argv) {
   const opts = {
@@ -140,10 +162,25 @@ function checkRegistry(registry, errors) {
       else if (!gaps.some((gap) => gap.id === cap.gapId)) {
         errors.push(`${cap.id}: gapId ${cap.gapId} 不在 gaps 清單`);
       }
+      // 「有才驗、沒有就放行」是假防護：`delete cap.decidedIn` 原本會 exit 0，
+      // 於是 APP_GAP 可以完全不說判定記在哪裡。APP_GAP 這個判定本身已經是被
+      // 記錄過的判定（至少 04-gap-register.md 有一節），指不出位置只表示登記冊
+      // 忘了寫，不表示「不適用」——所以缺欄位是錯誤。
+      if (
+        typeof cap.decidedIn !== "string" ||
+        cap.decidedIn.trim().length === 0
+      ) {
+        errors.push(`${cap.id}: APP_GAP 必須有 decidedIn（判定記在哪裡）`);
+      }
     }
-    // capability 上的 decidedIn／status 是 2026-10-29 加上的（九筆 BY_DESIGN
-    // 轉 APP_GAP 時需要一個指回決定的位置）。若它指向不存在的檔案，這兩個欄位
-    // 就只是裝飾，所以跟 gap 的 decidedIn 用同一條檢查。
+    // capability 上的 status 是 2026-10-29 加上的。多數 capability 只描述對等
+    // 狀態，沒有排程語意，所以不寫 status 仍然合法；但一旦寫了，就必須是同一個
+    // 詞彙表裡的字。
+    if (cap.status !== undefined && !STATUSES.has(cap.status)) {
+      errors.push(`${cap.id}: status 不合法（${cap.status}）`);
+    }
+    // capability 上的 decidedIn 若指向不存在的檔案，它只是裝飾，所以跟 gap 的
+    // decidedIn 用同一條檢查。
     checkDecidedIn(cap.decidedIn, cap.id, errors);
   }
 
@@ -158,6 +195,9 @@ function checkRegistry(registry, errors) {
     }
     if (!gap.owner) errors.push(`${gap.id}: 缺少 owner（誰決定）`);
     if (!gap.status) errors.push(`${gap.id}: 缺少 status`);
+    else if (!STATUSES.has(gap.status)) {
+      errors.push(`${gap.id}: status 不合法（${gap.status}）`);
+    }
     // fixed 與 fixed-on-branch 共用同一條證據要求：兩者都代表「這個缺口不用再
     // 處理了」，差別只在修復 commit 落在哪條分支上。若放行沒有 fixedOn 的
     // `fixed`，任何人一行編輯就能讓缺口無聲結案——沒有 commit 的「已修」無法回溯。
