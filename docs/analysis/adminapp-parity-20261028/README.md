@@ -64,6 +64,43 @@ CI 另外還跑 `npm run check:contract`（契約閘門，不在上面三條裡�
 15 條呼叫與後端路由快照，**不需要** Web repo。快照邊界與重算方式見
 `06-verification.md` §6.6 第 5、9 列。
 
+## 最新的程式碼在哪條分支
+
+**答案：`feat/nfc-gate1-reader-spike`。**（`git rev-parse --abbrev-ref HEAD` 回這個名字。
+本節寫作時 `git rev-parse --short HEAD` 是 `ea496a4`——但寫下這一節的那個 commit 自己
+又把 HEAD 往前推了一格，所以**現值一定與它不同，不要抄**。分支名才是答案，短 hash
+只是「當時在哪一格」。）
+
+判斷依據不是「這條分支最多人動」，而是**每一條分支的 `src/` 都與它沒有差異**：
+
+```
+for r in origin/main origin/development feat/onsite-scope-decisions audit/parity-20261022 audit/parity-20261028; do
+  printf '%-30s src 差異=%s\n' "$r" "$(git diff --name-only HEAD...$r -- src/ | wc -l | tr -d ' ')"
+done
+```
+
+| 分支                          | 它的 `src/` 與本分支差異檔數（上面那條命令的輸出） | 一句話定位                                                                                                                                                                                           |
+| ----------------------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `origin/main`                 | 0                                                  | 生產線。它不是另一個版本，是**還沒收到**這條分支                                                                                                                                                     |
+| `origin/development`          | 0                                                  | 同上，不領先                                                                                                                                                                                         |
+| `feat/onsite-scope-decisions` | 0                                                  | 10-22 的分叉線：`git rev-list --count HEAD..feat/onsite-scope-decisions` 個 commit 本分支沒有，**全部落在 `docs/`、`scripts/`、`tests/`、`.github/workflows/ci.yml`、`package.json`**，`src/` 零差異 |
+| `audit/parity-20261022`       | 0                                                  | 已在 `1cb2b73` 併入，只留作證據                                                                                                                                                                      |
+| `audit/parity-20261028`       | 0                                                  | 本目錄的來源，已併入                                                                                                                                                                                 |
+
+**結論：沒有任何一條分支的產品碼比這條新；`main` 只是「還沒收到」，不是另一個版本。**
+
+兩個邊界，「最新」這兩個字要連著一起讀：
+
+1. **`main` 仍落後。** 落後多少**不要抄**——跑 `git rev-list --count origin/main..HEAD`。
+   那個數字只會長大，寫在這裡就是下一個人要修的東西（`05-alignment-plan.md` §5.6 的
+   最後一列講的就是這個）。
+2. **這條分支的 commit 從未在 CI 上跑過。** `.github/workflows/ci.yml` 的
+   `on.push.branches` 只有 `main, master, develop, development`，feature 分支的 push
+   不在清單裡；這個分支也沒有 PR，所以 `pull_request` 那條同樣沒亮過
+   （`gh run list --branch feat/nfc-gate1-reader-spike` 回空、`gh pr list --head
+feat/nfc-gate1-reader-spike` 回空）。**「最新」不等於「已驗證」**——這也是
+   `05-alignment-plan.md` §5.7 第一個完成條件的缺口所在。
+
 ## 一句話回答
 
 > **沒有對齊，而且這一週差距是往同一方向擴大的：Web 把「門口櫃檯」這件事做完了，
