@@ -113,7 +113,33 @@ export function slugFromProfileUrl(
   if (segments.length !== 2) return null;
   if (segments[0] !== "p") return null;
 
-  return segments[1] || null;
+  return normalizeProfileSlug(segments[1]);
+}
+
+/**
+ * slug 的白名單檢查——與 `LinkCard_Frontend:lib/nfc/cardPayloadUrl.ts` 的
+ * `normalisePathSegment()` **逐字等價**。
+ *
+ * 為什麼孿生要連這裡都一樣（2026-10-30 QA 補）：原本這裡是 `segments[1] || null`，
+ * 只擋「空」，不擋「語意」。於是同一個 `profileUrl` 在兩個 repo 會得到不同答案：
+ *
+ * | `profileUrl`   | FE（`chooseCardPayload`） | ADM（修前）          |
+ * | -------------- | ------------------------- | -------------------- |
+ * | `/p/mei-chen`  | 名片 `/p/mei-chen`        | 名片 `/p/mei-chen`   |
+ * | `/p/..`        | `null` ⇒ 退回 `/t/`       | 名片 `/p/..`（死卡） |
+ * | `/p/a b`       | `null` ⇒ 退回 `/t/`       | `/p/a%20b`（404）    |
+ * | `/p/a%2Fb`     | `null` ⇒ 退回 `/t/`       | `/p/a%252Fb`（404）  |
+ *
+ * `encodeURIComponent` 只擋「字元」，不擋「語意」：`..` 編碼後仍然是 `..`，卡片會
+ * 指到上一層。而實體卡寫進去之後，現場**沒有工具可以改**——所以寧可多一跳（`/t/`
+ * 一定開得起來），也不要寫一條看起來正確的死連結。
+ *
+ * 白名單與 FE 相同：unreserved 字元（`A-Za-z0-9._~-`），並額外拒絕 `.` 與 `..`。
+ */
+function normalizeProfileSlug(raw: string | undefined): string | null {
+  const slug = String(raw ?? "").trim();
+  if (slug === "" || slug === "." || slug === "..") return null;
+  return /^[A-Za-z0-9._~-]+$/.test(slug) ? slug : null;
 }
 
 /** 絕對網址取 pathname；不是合法網址回 `null`（不拋）。 */

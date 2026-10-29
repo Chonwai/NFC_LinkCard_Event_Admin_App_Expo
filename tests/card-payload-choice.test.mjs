@@ -98,6 +98,12 @@ describe("chooseCardPayloadUrl 家族決策", () => {
       `${WEB_BASE_URL}/p/a/b`, // 多段
       "not-a-url", // 完全不是網址
       "https://[bad", // 連網址都不是（取 pathname 會拋）
+      // 2026-10-30 QA 補：以下四個是「孿生不同步」的實際破口。修前 ADM 會照收，
+      // FE 會退回 `/t/`；同一個 profileUrl 在兩個 repo 得到不同答案。
+      `${WEB_BASE_URL}/p/..`, // 編碼擋不住語意（會指到上一層）
+      `${WEB_BASE_URL}/p/.`, // 同上
+      `${WEB_BASE_URL}/p/a b`, // 空白 ⇒ 寫進卡會變成 %20 的 404
+      `${WEB_BASE_URL}/p/a%2Fb`, // 已編碼的斜線 ⇒ 二次編碼成 %252F
     ]) {
       assert.equal(
         slugFromProfileUrl(profileUrl),
