@@ -396,8 +396,8 @@ P2」都是被回答過的選項，而不是被漏掉的選項。
 
    > **這一條今天還沒滿足。** 兩支閘門在工作分支的 `HEAD` 上都是綠的（見下方
    > 實跑），分支**也已經 push 過**（但不是最新那顆），而**CI 一次都沒有跑
-   > 過**：`ci.yml` 的 `on.push.branches` 只有 `main, master, develop,
-development`，feature 分支的 push 不在清單裡；這個分支也沒有 PR，所以
+   > 過**：`ci.yml` 的 `on.push.branches` 只有 `main, master, develop, development`，
+   > feature 分支的 push 不在清單裡；這個分支也沒有 PR，所以
    > `pull_request` 那條同樣沒亮過（`gh run list --branch …` 回空）。因此「已
    > push 讓 CI 跑過」這半句仍然沒有任何證據——差的不是 push，是**觸發**。補救
    > 辦法寫在 `04 §G-11`：開 PR，或合併進 `main`。判準刻意寫成「綠 **且** 已
