@@ -117,18 +117,15 @@ describe("J-PREFILL-VISIBILITY 建帳後名片連結可見 [persona:staff-onsite
       /from "@\/utils\/desk-handoff"/,
       "nfc-bind 沒有接上交棒純邏輯模組",
     );
-    // `INC-3`（Loop AF）書面例外：卡面 URL 由 `nfc-utils` 以 config 的
-    // WEB_BASE_URL 單一來源組裝——BE 沒有「已知 UID 就能回卡面 URL」的服務端點，
-    // tagUid 必須感應當下讀取。X-23 的精神（不在畫面散落多份 origin）不變：畫面
-    // 只呼叫這一個 builder。
-    //
-    // 2026-10-29：builder 由 `buildCardPayloadUrl`（只會組 `/t/`）升級為
-    // `chooseCardPayloadUrl`（有公開名片就寫 `/p/{slug}`，否則才退回 `/t/`）。
-    // 守的仍然是「畫面不得自己拼網址」，只是拼法多了一個家族。
+    // `INC-3`（Loop AF）書面例外：卡面 URL 改為解析器
+    // `${WEB_BASE_URL}/t/{eventId}/{tagUid}`——BE 沒有「已知 UID 就能回卡面 URL」
+    // 的服務端點，tagUid 必須感應當下讀取，因此由 `nfc-utils.buildCardPayloadUrl`
+    // 以 config 的 WEB_BASE_URL 單一來源組裝。X-23 的精神（不在畫面散落多份 origin）
+    // 不變：畫面只呼叫這一個 builder。
     assert.match(
       NFC_BIND_SOURCE,
-      /chooseCardPayloadUrl\(\{/,
-      "nfc-bind 未使用 chooseCardPayloadUrl 單一來源",
+      /buildCardPayloadUrl\(eventId, uid\)/,
+      "nfc-bind 未使用 buildCardPayloadUrl 單一來源（INC-3）",
     );
     assert.equal(
       /buildRegistrationProfileUrl\s*\(/.test(
