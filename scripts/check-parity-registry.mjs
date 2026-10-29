@@ -133,8 +133,14 @@ function checkRegistry(registry, errors) {
     }
     if (!gap.owner) errors.push(`${gap.id}: 缺少 owner（誰決定）`);
     if (!gap.status) errors.push(`${gap.id}: 缺少 status`);
-    if (gap.status === "fixed-on-branch" && (gap.fixedOn ?? []).length === 0) {
-      errors.push(`${gap.id}: 標記 fixed-on-branch 但沒有記錄 commit`);
+    // fixed 與 fixed-on-branch 共用同一條證據要求：兩者都代表「這個缺口不用再
+    // 處理了」，差別只在修復 commit 落在哪條分支上。若放行沒有 fixedOn 的
+    // `fixed`，任何人一行編輯就能讓缺口無聲結案——沒有 commit 的「已修」無法回溯。
+    if (
+      (gap.status === "fixed-on-branch" || gap.status === "fixed") &&
+      (gap.fixedOn ?? []).length === 0
+    ) {
+      errors.push(`${gap.id}: 標記 ${gap.status} 但沒有記錄 commit`);
     }
     // 與 fixed-on-branch／fixedOn 對稱：ready-to-implement 也是一個「已處置」的
     // status，它會讓缺口從 §5.6 的判準清單上消失。沒有證據欄位就等於任何人一行

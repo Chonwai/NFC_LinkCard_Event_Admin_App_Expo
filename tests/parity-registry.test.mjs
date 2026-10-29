@@ -276,6 +276,30 @@ test("ready-to-implement 沒有 decidedIn 時失敗", () => {
   assert.match(result.stderr, /ready-to-implement 但沒有記錄判定依據/);
 });
 
+/**
+ * `fixed` 是「已修，且 commit 已在主線上」的正式值，它與 `fixed-on-branch`
+ * 共用同一條證據要求：沒有 `fixedOn` 的「已修」無法回溯到底是哪一次提交修掉的。
+ */
+test("fixed 沒有 fixedOn 時失敗", () => {
+  const registry = baseRegistry({
+    gaps: [
+      {
+        id: "G-1",
+        title: "缺口一",
+        severity: "P1",
+        owner: "none-needed",
+        size: "S",
+        status: "fixed",
+        fixedOn: [],
+      },
+    ],
+  });
+  const { root, webRoot } = makeFixture({ registry });
+  const result = run(root, ["--web", webRoot, "--require-web"]);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /fixed 但沒有記錄 commit/);
+});
+
 test("ready-to-implement 有 decidedIn 時通過", () => {
   const registry = baseRegistry({
     gaps: [

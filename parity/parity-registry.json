@@ -260,8 +260,8 @@
       "severity": "P0",
       "owner": "none-needed",
       "size": "S",
-      "status": "fixed-on-branch",
-      "fixedOn": ["audit/parity-20261022@5bcdb53"]
+      "status": "fixed",
+      "fixedOn": ["5bcdb53"]
     },
     {
       "id": "G-2",
@@ -269,8 +269,8 @@
       "severity": "P1",
       "owner": "none-needed",
       "size": "S",
-      "status": "fixed-on-branch",
-      "fixedOn": ["audit/parity-20261022@860404f"]
+      "status": "fixed",
+      "fixedOn": ["860404f", "bc27abc"]
     },
     {
       "id": "G-3",
@@ -278,8 +278,8 @@
       "severity": "P1",
       "owner": "none-needed",
       "size": "S",
-      "status": "fixed-on-branch",
-      "fixedOn": ["audit/parity-20261022@075f775"]
+      "status": "fixed",
+      "fixedOn": ["075f775"]
     },
     {
       "id": "G-4",
@@ -287,11 +287,8 @@
       "severity": "P1",
       "owner": "none-needed",
       "size": "S",
-      "status": "fixed-on-branch",
-      "fixedOn": [
-        "audit/parity-20261022@031972f",
-        "audit/parity-20261022@84cb423"
-      ]
+      "status": "fixed",
+      "fixedOn": ["031972f", "84cb423"]
     },
     {
       "id": "G-5",
@@ -299,8 +296,8 @@
       "severity": "P1",
       "owner": "none-needed",
       "size": "S",
-      "status": "fixed-on-branch",
-      "fixedOn": ["audit/parity-20261022@9e3c7a2"]
+      "status": "fixed",
+      "fixedOn": ["9e3c7a2"]
     },
     {
       "id": "G-6",
@@ -354,8 +351,8 @@
       "severity": "P1",
       "owner": "none-needed",
       "size": "S",
-      "status": "fixed-on-branch",
-      "fixedOn": ["audit/parity-20261022@7c19f0a"]
+      "status": "fixed",
+      "fixedOn": ["7c19f0a"]
     },
     {
       "id": "G-12",
