@@ -373,7 +373,8 @@
       "severity": "P1",
       "owner": "product+backend",
       "size": "A:L / B:S",
-      "status": "decision-needed",
+      "status": "deferred",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/04-gap-register.md#G-13",
       "fixedOn": []
     },
     {

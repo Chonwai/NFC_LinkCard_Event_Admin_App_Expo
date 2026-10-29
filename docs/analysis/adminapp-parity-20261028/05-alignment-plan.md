@@ -292,7 +292,16 @@ P2」都是被回答過的選項，而不是被漏掉的選項。
 前置條件：**你決定要不要現在做**。狀態：`待決策`（登記表 `status: decision-needed`
 維持不動）。
 
-## 5.5.1 階段 6：G-13 卡片生命週期（**後端 repo**，跨 repo，待決策）
+## 5.5.1 階段 6：G-13 卡片生命週期（**後端 repo**，跨 repo）— **已決：現階段不做（`deferred`，2026-10-29）**
+
+> **這一階段暫停，不是取消。** 2026-10-29 使用者對 G-13 的答案是「我們這一個階段
+> 不理會」，因此登記表由 `decision-needed` 轉 `deferred`，`G-13` 也不再出現在
+> §5.7 的待決清單上。重評條件（活動後若現場真的發生過壞卡／掉卡／發錯人且造成處理
+> 困擾）與延後期間仍存在的風險，都寫在 `04 §G-13` 的〈已決〉段。
+>
+> 下方全部保留作為**決策記錄**：它說明瞭為什麼這一項不能併進階段 3、為什麼順序
+> 只能是「後端端點 → App 解鎖」、以及風險一（遺失卡永久有效、公開端點仍回應）到底
+> 是什麼。**延後不等於那些事實消失**——若日後重評，這裡是起點，不必從頭掃一遍。
 
 > **編號說明。** 本節一律用「階段 6」指稱它；小節號寫成 `5.5.1` 而不是 `5.6`，是因為
 > `5.6`／`5.7` 已經被 `09-merge-impact-20261029.md` 引用（兩處，`:472`、`:497`），
@@ -344,7 +353,8 @@ P2」都是被回答過的選項，而不是被漏掉的選項。
 **它不阻擋階段 1–5。** 與 G-7／G-8 共用同一頁 `nfc-bind.tsx`，所以**若階段 3 與
 階段 6 同時排**，唯一要協調的是「誰先動那一頁」；功能上沒有依賴。
 
-前置條件：**你選 A 或 B**。狀態：`待決策`（`decision-needed`）。
+前置條件：**你選 A 或 B**。狀態：**`deferred`**（2026-10-29 已決「這一階段不做」，
+重評條件見 `04 §G-13`〈已決〉段；**不是 `by-design`**——沒人說它設計上不該存在）。
 
 ## 5.6 不要做的事
 
@@ -397,30 +407,43 @@ development`，feature 分支的 push 不在清單裡；這個分支也沒有 PR
    後端改路由要重跑 `--refresh`，否則它會驗一份過期的世界（見 `04 §G-11`）。
 
 2. **決策的**：**P0／P1 的缺口沒有一個懸空。** 這一條問的是「有沒有人欠一個決定」，
-   不是「有沒有做完」；判準用**允許清單**，只有四種 `status` 算已處置：
+   不是「有沒有做完」；判準用**允許清單**，只有五種 `status` 算已處置：
    `fixed`（已修，且修復 commit 已在本工作分支的 `HEAD` 上；驗證器要求 `fixedOn`
    非空）、
    `fixed-on-branch`（已修，但還停在分支上；驗證器同樣要求 `fixedOn` 非空）、
    `ready-to-implement`
    （已判定、非決策題、待實作；**與上面兩者一樣需要證據欄位**——驗證器
    要求 `decidedIn` 非空，值是一個可以回頭查的位置，例如
-   `docs/analysis/adminapp-parity-20261028/04-gap-register.md#G-10`）與
-   `by-design`（已判定**永遠不做**；同樣要求 `decidedIn` 非空）。其餘任何值——
+   `docs/analysis/adminapp-parity-20261028/04-gap-register.md#G-10`）、
+   `by-design`（已判定**永遠不做**；同樣要求 `decidedIn` 非空）與
+   `deferred`（已判定**這一階段不做、日後可重評**；同樣要求 `decidedIn` 非空）。
+   其餘任何值——
    `open`（沒人認領）、`decision-needed`
    （等人回答），以及日後新增的值——一律算懸空。用允許清單而不是排除清單，是為了讓
    新值預設落在「未處置」這一側，不會因為沒人更新判準就靜默變成「完成」。
+   **這五個值回答的是兩種不同的問題，讀的時候不要混在一起看：**
+   `fixed`／`fixed-on-branch` 回答「有沒有做完」（有 commit 為證）；
+   `ready-to-implement`／`by-design`／`deferred` 回答「決定了沒有」（有 `decidedIn`
+   為證），其中只有 `ready-to-implement` 還帶著「以後會做」的承諾，
+   `by-design` 是「永遠不做」，`deferred` 是「這一階段不做」。**判準把三者一律算
+   「已處置」是刻意的**——這條判準的題目是「有沒有人欠一個決定」，不是「事情有沒有
+   落地」。但它們三者不可互換：把 `deferred` 寫成 `by-design` 會把一個時間性的延後
+   偽裝成設計性的排除，下一個讀的人就不會再問「什麼時候該重評」。
    ** 「選 A、明確不做」是合格答案，但答案必須反映在登記表的 `status` 上。
    G-7（P1）是 `decision-needed`——`04 §G-7` 已經把「批次生命週期要不要上手機」
    寫成 A／B 兩個帶代價的選項，所以它缺的是「有人指一個」，不是「再多分析一輪」；
    允許清單照樣把它算成懸空，這是對的，因為決定還沒有人做。這條判準當初由排除清單
    改成允許清單，就是為了不讓「有值但沒人管」被算成完成（觸發點是 G-0，P0，
-   2026-10-29 已由 `fixed` 結案）。判準認得六種值：`open`、`decision-needed`、
-   `fixed`、`fixed-on-branch`、`ready-to-implement`、`by-design`
+   2026-10-29 已由 `fixed` 結案）。判準認得七種值：`open`、`decision-needed`、
+   `fixed`、`fixed-on-branch`、`ready-to-implement`、`by-design`、`deferred`
    （`scripts/check-parity-registry.mjs` 對 `fixed`／`fixed-on-branch` 要求
-   `fixedOn` 非空、對 `ready-to-implement` 與 `by-design` 要求 `decidedIn` 非空——
-   不是只檢查欄位存不存在；新增值時驗證器要一起改，不能只寫在會議紀錄裡）。
-   目前登記表實際落在五種：`decision-needed`（G-6～G-8、G-12、G-13）、`fixed`
+   `fixedOn` 非空、對 `ready-to-implement`、`by-design` 與 `deferred` 要求
+   `decidedIn` 非空——
+   不是只檢查欄位存不存在；新增值時驗證器要一起改，不能只寫在會議紀錄裡，
+   `tests/parity-registry.test.mjs` 也各有一對正／負向測試把這條要求釘住）。
+   目前登記表實際落在六種：`decision-needed`（G-6～G-8、G-12）、`fixed`
    （G-0～G-5、G-11）、`ready-to-implement`（G-10）、`by-design`（G-9）、
+   `deferred`（G-13）、
    `fixed-on-branch`（G-14）；`open` 現在沒有任何一項使用。
    `fixed-on-branch` 重新有了使用者：G-14 的修復在**另一個 repo** 的
    `development` 上（`800790cf`，未 push、未部署），既不在本工作分支的 `HEAD` 上，
@@ -443,11 +466,23 @@ development`，feature 分支的 push 不在清單裡；這個分支也沒有 PR
    `by-design` 因此是唯一語意準確的值；代價是它最不可逆——一旦用它結案，下一輪
    審計就不會再問同一個問題，所以驗證器對它要求 `decidedIn` 非空，跟
    `ready-to-implement` 同一條理由：**沒有證據的結案不是判定，是把缺口藏起來。**
+   第七個值 `deferred` 是為 G-13 加的：使用者對「換卡／補發／退卡」的答案是
+   「我們這一個階段不理會」，而這句話既不是「永遠不做」（`by-design`），也不是
+   「已排待實作」（`ready-to-implement`）。借用前者會把**時間性的延後**寫成
+   **設計性的排除**——下一個讀的人不會再問「活動結束後要不要重評」，那正是這個
+   決定最需要被記住的部分；借用後者則會讓它從待決清單消失，卻永遠不會被實作。
+   `deferred` 因此不是「比較寬鬆的 `by-design`」，它帶著兩個 `by-design` 沒有的
+   語義義務：① 它必須寫出**可判斷的重評條件**（`04 §G-13` 的觸發條件是「活動後
+   真的發生過壞卡／掉卡／發錯人，且造成處理困擾」）；② 延後期間的風險要留在原地
+   寫清楚，不能隨延後一起刪掉（同節記著 `DEACTIVATED`／`LOST` 無人寫入、
+   `GET /nfc/lookup` 仍公開，所以遺失的手環在系統裡永久有效）。驗證器對它與
+   `by-design` 同一條要求（`decidedIn` 非空），理由更強：`deferred` 讓缺口
+   **合理地**滑出清單，比 `by-design` 更容易被誤用，因為「先不做」聽起來永遠無害。
 
 第 2 條可以重跑，不必憑印象（`exit 1` 表示還有未處置項，可以直接進 CI）：
 
 ```
-node -e "const r=require('./parity/parity-registry.json');const settled=['fixed','fixed-on-branch','ready-to-implement','by-design'];const f=r.gaps.filter(g=>['P0','P1'].includes(g.severity)&&!settled.includes(g.status));if(f.length){console.log('✗ 仍有 P0/P1 未處置（既非 fixed、fixed-on-branch、ready-to-implement 也非 by-design）：');f.forEach(g=>console.log('  '+g.id+'  '+g.severity+'  '+g.status));process.exitCode=1}else{console.log('✓ 所有 P0/P1 缺口都已處置（已修、已判定待實作，或已判定不做）')}"
+node -e "const r=require('./parity/parity-registry.json');const settled=['fixed','fixed-on-branch','ready-to-implement','by-design','deferred'];const f=r.gaps.filter(g=>['P0','P1'].includes(g.severity)&&!settled.includes(g.status));if(f.length){console.log('✗ 仍有 P0/P1 未處置（既非 fixed、fixed-on-branch、ready-to-implement、by-design 也非 deferred）：');f.forEach(g=>console.log('  '+g.id+'  '+g.severity+'  '+g.status));process.exitCode=1}else{console.log('✓ 所有 P0/P1 缺口都已處置（已修、已判定待實作，或已判定不做／暫不做）')}"
 ```
 
 本次修正後的登記表跑出來（G-10 已不在清單裡，G-1～G-5／G-11 亦已由 `fixed` 結案，
@@ -488,6 +523,36 @@ merge 結案的 G-0。）
 會遇到、按鈕已畫好、後端不存在、而登記冊從未記過」的缺口，終於被算進「有人欠一個
 決定」的清單裡。它同時是 G-12 那一課的反面教材——同一個 `decision-needed`，`P1` 會
 被掃到、`P2` 不會，所以 `severity` 不是標籤，它決定這個缺口會不會被看見。）
+
+**2026-10-29（G-13 已決「現階段不做」後）重跑，`G-13` 消失，只剩三筆：**
+
+```
+✗ 仍有 P0/P1 未處置（既非 fixed、fixed-on-branch、ready-to-implement、by-design 也非 deferred）：
+  G-6  P1  decision-needed
+  G-7  P1  decision-needed
+  G-8  P1  decision-needed
+```
+
+（`exit 1`。`G-13` 由 `decision-needed` 轉 `deferred`，因此不再佔用「有人欠一個決定」
+的清單——**這是判準的語意正確，不是把它藏起來**：它欠的決定已經有人做了（「這一
+階段不理會」），只是決定本身還沒落地。剩下的三筆都還是 `decision-needed`，三筆都
+是「選項已寫在 `04`、只差有人選」。上面的歷史輸出**刻意保留**，因為它記錄了判準
+對同一個缺口的三種反應：先掃到（登記時）、再放過（延後時）——兩者都對，差別只在
+世界變了沒。）
+
+**注意這裡分不出「已決定不做」與「還沒決定」——那是這條命令的限制，不是它的判準。**
+命令只回答一個是非題（「還有人欠決定嗎」），它把 `by-design`〔永遠不做〕、
+`deferred`〔這一階段不做〕與 `ready-to-implement`〔會做、待實作〕一律算成「已處置」，
+因為三者都已經有人回答。要分辨是哪一種，得讀 `status` 本身：
+
+```
+node -e "const r=require('./parity/parity-registry.json');const ids=q=>r.gaps.filter(g=>q(g.status)).map(g=>g.id+(g.status==='by-design'||g.status==='deferred'?'('+g.status+')':'')).join(', ');console.log('還沒決定（等人回答）：',ids(s=>s==='decision-needed'));console.log('已決定暫不做：',ids(s=>s==='deferred'));console.log('已決定永遠不做：',ids(s=>s==='by-design'));console.log('已決定、待實作：',ids(s=>s==='ready-to-implement'))"
+```
+
+這一條是「判斷題」與「是非題」的差別：前者要人讀，後者可以進 CI。允許清單讓 CI
+只問是非題，代價就是它必須靠人回頭讀 `status` 才知道停在哪一種「已處置」——
+所以 `deferred` 的 `decidedIn` 特別重要，那是唯一能把「為什麼延後、何時重評」留下
+來的地方。
 
 這條命令只讀 `parity/parity-registry.json`，不依賴 Web 或後端 repo。
 

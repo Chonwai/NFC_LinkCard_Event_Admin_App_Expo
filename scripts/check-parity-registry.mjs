@@ -164,6 +164,32 @@ function checkRegistry(registry, errors) {
     ) {
       errors.push(`${gap.id}: 標記 by-design 但沒有記錄判定依據（decidedIn）`);
     }
+    // `deferred` 是 `by-design` 與 `ready-to-implement` 之間那個一直空著的格子：
+    // 前者說「永遠不做」，後者說「會做、只是還沒排」，而真實世界最常見的答案是
+    // 第三種——**「這一階段不理會，日後可重評」**。2026-10-29 就是這個情形：
+    // 「換卡／補發／退卡」被明確延後，但沒有人說它設計上不該存在。
+    //
+    // 為什麼不能借用既有兩個值（兩邊都會寫出假話）：
+    //   - 用 `by-design` ⇒ 登記冊声称「設計上不做」，而使用者說的是「這一階段不
+    //     理會」。下一個讀的人會以為這件事已永久結案，連「何時該重評」都不會問。
+    //   - 用 `ready-to-implement` ⇒ 聲稱「已排入、待實作」，但目前沒有人排它，
+    //     而且它的前置（作廢語意）根本還沒定。那會讓它從待決清單消失，卻又永遠
+    //     不會被實作——這正是把缺口藏起來。
+    //
+    // 它與 `by-design` 共用同一條證據要求（`decidedIn` 非空），理由卻更強：
+    // `deferred` 讓缺口**合理地**從 §5.7 的判準清單上消失，而它比 `by-design`
+    // 更容易被誤用（因為「先不做」聽起來永遠無害）。沒有 `decidedIn` 的
+    // `deferred`，等於任何人一行編輯就能把一個 P1 無聲地推遲到下一個永遠不會到的
+    // 階段。附帶一個語意義務：`deferred` 不是終點，寫它的地方必須同時寫出
+    // **可判斷的重評條件**，否則「延後」與「忘記」在檔案上長得一模一樣。
+    if (
+      gap.status === "deferred" &&
+      (typeof gap.decidedIn !== "string" || gap.decidedIn.trim().length === 0)
+    ) {
+      errors.push(
+        `${gap.id}: 標記 deferred 但沒有記錄判定依據（decidedIn）——延後也必須可回溯`,
+      );
+    }
   }
 
   for (const item of appOnly) {

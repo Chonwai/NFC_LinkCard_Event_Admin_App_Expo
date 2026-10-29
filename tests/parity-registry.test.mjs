@@ -367,6 +367,56 @@ test("by-design 有 decidedIn 時通過", () => {
   assert.match(result.stdout, /對等登記表一致/);
 });
 
+/**
+ * `deferred` 是「這一階段不理會、日後可重評」——`by-design`（永遠不做）與
+ * `ready-to-implement`（已排、待實作）之間那個空著的格子。
+ *
+ * 它比 `by-design` 更需要被鎖住：`by-design` 一旦誤用會讓缺口永久消失（至少有人
+ * 會覺得怪），而 `deferred` 誤用只會讓缺口**合理地**從 §5.7 的判準清單上滑走——
+ * 「先不做」聽起來永遠無害，於是沒有人會回頭看。所以這裡測的是同一條證據要求：
+ * 沒有 `decidedIn` 的延後，與忘記沒有分別。
+ */
+test("deferred 沒有 decidedIn 時失敗", () => {
+  const registry = baseRegistry({
+    gaps: [
+      {
+        id: "G-1",
+        title: "缺口一",
+        severity: "P2",
+        owner: "product",
+        size: "S",
+        status: "deferred",
+        fixedOn: [],
+      },
+    ],
+  });
+  const { root, webRoot } = makeFixture({ registry });
+  const result = run(root, ["--web", webRoot, "--require-web"]);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /deferred 但沒有記錄判定依據/);
+});
+
+test("deferred 有 decidedIn 時通過", () => {
+  const registry = baseRegistry({
+    gaps: [
+      {
+        id: "G-1",
+        title: "缺口一",
+        severity: "P2",
+        owner: "product",
+        size: "S",
+        status: "deferred",
+        decidedIn: `${DOC_DIR}/04-gap-register.md#G-1`,
+        fixedOn: [],
+      },
+    ],
+  });
+  const { root, webRoot } = makeFixture({ registry });
+  const result = run(root, ["--web", webRoot, "--require-web"]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /對等登記表一致/);
+});
+
 test("真實登記表在當前 repo 上是一致的", (t) => {
   const registry = JSON.parse(readFileSync(REAL_REGISTRY, "utf8"));
   const webRoot = findWebRoot(registry.webSurfaces.repo);
