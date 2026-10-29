@@ -150,20 +150,36 @@ App `registrations.tsx`：狀態篩選（5 種）、前端搜尋、排序（時�
 
 ### G-C Check-in：Web 現在是超集
 
-| 能力                    | Web                                  | App                              |
-| ----------------------- | ------------------------------------ | -------------------------------- |
-| QR 掃碼                 | ✅ `@yudiel/react-qr-scanner`        | ✅ `expo-camera`                 |
-| 手動輸入報名碼          | ✅                                   | ✅                               |
-| 防連掃門閂              | ✅ `scanInFlight`                    | ✅ `scanInFlight:100`            |
-| 成功後顯示 profile 路徑 | ✅                                   | ✅                               |
-| 不必離開報到頁即可寫卡  | ✅ `WriteCardPanel`（568 行）        | ❌ 要跳 `nfc-bind`               |
-| 寫完自動綁卡            | ✅ `bindWrittenBadge`                | ✅ 在 `nfc-bind` 內              |
-| 卡片上鎖（PWD_AUTH）    | ✅ `lib/nfc/globalPassword`          | ❌ 無對應層                      |
-| 讀卡機連線／重連        | ✅ `DeskReaderBar`                   | ❌ 不適用                        |
-| 失敗後的處置動作        | ✅ `retry/swap_card/skip/retry_bind` | ⚠️ 分散在文案                    |
-| 重複報到的處理          | 顯示錯誤字串                         | 錯誤＋**「申請主管覆核」死按鈕** |
+| 能力                    | Web                                  | App                                            |
+| ----------------------- | ------------------------------------ | ---------------------------------------------- |
+| QR 掃碼                 | ✅ `@yudiel/react-qr-scanner`        | ✅ `expo-camera`                               |
+| 手動輸入報名碼          | ✅                                   | ✅                                             |
+| 防連掃門閂              | ✅ `scanInFlight`                    | ✅ `scanInFlight:100`                          |
+| 成功後顯示 profile 路徑 | ✅                                   | ✅                                             |
+| 不必離開報到頁即可寫卡  | ✅ `WriteCardPanel`（568 行）        | ❌ 要跳 `nfc-bind`（**不是不能寫，是不同頁**） |
+| 寫完自動綁卡            | ✅ `bindWrittenBadge`                | ✅ 在 `nfc-bind` 內                            |
+| 卡片上鎖（PWD_AUTH）    | ✅ `lib/nfc/globalPassword`          | ❌ 無對應層                                    |
+| 讀卡機連線／重連        | ✅ `DeskReaderBar`                   | ❌ 不適用                                      |
+| 失敗後的處置動作        | ✅ `retry/swap_card/skip/retry_bind` | ⚠️ 分散在文案                                  |
+| 重複報到的處理          | 顯示錯誤字串                         | 錯誤＋**「申請主管覆核」死按鈕**               |
 
 最後一列是全份文件唯一的 P0，見 `04-gap-register.md` §G-1。
+
+> **2026-10-29 註：上面「寫卡」那一列的文字改了括號，末兩句沒有改。** 括號是為了
+> 阻止一種誤讀——「❌ 要跳 `nfc-bind`」講的是**步數**，不是**能力**：App 確實會寫卡
+> （`LinkCard_Event_Admin_App_Expo@src/app/(auth)/[eventId]/check-in.tsx:673-685`
+> 的 CTA + `tests/check-in-write-handoff.test.mjs`），只是
+> 在另一頁完成。這個區別在 `04 §G-8` 的〈2026-10-29 補充〉裡展開。
+>
+> 末兩句**已經過期，但本輪不動它**，只把它標示出來：① 提到的「申請主管覆核」死按鈕
+> 已經不存在（`04 §G-1` 為 `fixed`，`fixedOn: 5bcdb53`；現況是橫幅
+> 「重複報到無法在 App 內放行：後端目前沒有覆核端點。現場請人工放行並記錄。」
+> 加兩顆**可用**的按鈕：查看詳情 → 報名詳情頁、繼續掃碼，
+> `LinkCard_Event_Admin_App_Expo@src/app/(auth)/[eventId]/check-in.tsx:712-725`）。
+> ② 「全份文件唯一的 P0」也不再
+> 成立（`G-0` 也是 `P0`，同樣 `fixed`）。兩處都需要重寫這一列與下面那句，但那屬於
+> **另一件事**（本輪的範圍是 G-8／G-13 的決策記錄），所以在這裡留下座標而不是順手
+> 改掉——**表格不會自己過期，是有人看見了卻沒說**，這一行就是「說了」。
 
 ### G-D Sessions（**已移出 `APP_GAP`：`by-design`，2026-10-29**）：兩邊都沒有做「現場報到」，但 Web 至少有骸架
 
