@@ -127,7 +127,11 @@ URL 字面在第 50 行，因為泛型與參數跨了 3 行（`sed -n '44,52p'` 
 
 2026-10-29 先收成**單一固定值 20**，同一個 round 內又收回 **25**：裸檔名補上 repo
 前綴（`de0d291`、`4688c8f`）之後，單 repo 與三 repo 兩種環境的 `ambiguous` 都是 0，
-兩個分支（25／15）就沒有存在的理由。但把下限降到 20 是把門檻降到人工挑的數字之下，
+兩個分支（25／15）就沒有存在的理由。
+
+**（2026-10-29 重測更正：`ambiguous` 是 2，不是 0 —— 兩個都是裸檔名的 `package.json`（第 59 行；原樣保留，不替他修——要修就是補上 repo 前綴，例如 `LinkCard_Event_Admin_App_Expo@package.json:59`），
+分別在 `04-gap-register.md:666` 與 `05-alignment-plan.md:246`。見
+`08-cto-review-20261029.md` §8.4-5。下限 25 的結論不受影響，因為下限量的是 `checked`。）**但把下限降到 20 是把門檻降到人工挑的數字之下，
 而這個下限不是品質指標，是「比對器還活著」的偵測器——設得比 25 低只是讓閘門更晚才
 叫，調低門檻等於放寬自己的偵測器。所以現行值是 **25**，與
 `tests/parity-citations.test.mjs` 的 `const floor = 25` 是同一個數字。
@@ -145,8 +149,8 @@ node --test tests/parity-citations.test.mjs
 **歷史上確實紅過一次，而同一個 round 內就修掉了。** 上一輪記的「`ambiguous` 上限已
 滿、CI 會紅」不是誤判：`72dfb57` 時單 repo 環境是 `ambiguous=12 → RC=1`。
 `de0d291`（補完 gap register 的後端引用前綴）與 `4688c8f`（補完 method 與 README
-的最後幾支）之後，兩個環境都是 `ambiguous=0 → RC=0`。所以現在的待決問題不是「要不
-要修」，而是**「上限憑什麼是 3」**——兩個環境今天都是 0，收成 0 做得到，但那要明講。
+的最後幾支）之後，**當時**兩個環境都是 `ambiguous=0 → RC=0`（2026-10-29 重測是 2，見 `08-cto-review-20261029.md` §8.4-5）。所以現在的待決問題不是「要不
+要修」，而是**「上限憑什麼是 3」**——兩個環境今天都是 2（§8.4-5 重測），收成 0 之前得先把那兩個引用唯一化，否則 CI 立刻紅；收不收仍要明講。
 時間線與重跑命令在 `08-cto-review-20261029.md` §8.4-5。
 
 **2. `06 §6.3` 這種數字一定會過期。**
@@ -230,7 +234,7 @@ mkdir -p /tmp/ci-sim
 rsync -a --exclude node_modules --exclude .git --exclude ios --exclude .expo ./ /tmp/ci-sim/LinkCard_Event_Admin_App_Expo/
 cd /tmp/ci-sim/LinkCard_Event_Admin_App_Expo
 node scripts/check-parity-registry.mjs --web ../LinkCard_Frontend   # SKIPPED，exit 0
-node --test tests/parity-citations.test.mjs                          # 看 MEASURED 那行；現行 HEAD 是 ambiguous=0 → RC=0
+node --test tests/parity-citations.test.mjs                          # 看 MEASURED 那行；2026-10-29 實測是 ambiguous=2 → RC=0（上限 3，只剩一格）
 ```
 
 對照用：同一套複本手法在 `72dfb57` 上跑（`git archive 72dfb57 | tar -x -C /tmp/at-72dfb57/LinkCard_Event_Admin_App_Expo`）當時是 `ambiguous=12`、`RC=1`
