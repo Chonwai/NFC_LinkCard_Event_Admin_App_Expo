@@ -76,7 +76,8 @@ Web 把另一半補上了：掃碼成功後**不必離開報到頁**（同一個
 
 > **時點限定：上面兩段是 2026-10-28 的判斷，不是今天的。** 10-29 之後發生了三件
 > 事，但沒有推翻它：端點層回到 **15/15**（`check:contract` exit 0）、六個缺口
-> （G-1～G-5、G-11）已修、那批修復併入**本工作分支**（`1cb2b73`，尚未 push）。
+> （G-1～G-5、G-11）已修、那批修復併入**本工作分支**（`1cb2b73`）。**已 push，
+> 但 `origin/main` 仍是 `7d0fcf5`、而且 CI 沒跑過**——見 `04 §G-11` 的第二個邊界。
 > 能力層的四個 `APP_GAP` 仍未處理，所以「能力不對齊」今天依然成立；「差距擴大」
 > 只在 10-28 那一週成立，現在的正確說法是**差距停止擴大、但沒有回補**。
 
@@ -168,10 +169,12 @@ git log --oneline origin/audit/parity-20261028 -1        # 遠端到底有沒有
 `git merge-base --is-ancestor audit/parity-20261022 HEAD` 今天回 0），所以這個資料夾
 與 22 帶的 G-1..G-5 修復，現在都在工作分支的歷史裡、也直接開得到。
 
-**還沒成立的是「遠端上的主線」。** 22 在 `origin` 上仍沒有同名分支，本分支也還沒
-push（要看差多少跑 `git rev-list --count origin/main..HEAD`）。所以「合併」在拓樸
-上成立、「主線」在遠端上還沒成立——兩件事分開看，才不會把一個地方性的 merge 當
-成已經上線。
+**還沒成立的是「遠端上的主線」。** 22 在 `origin` 上仍沒有同名分支；**本分支則已
+經 push**（動工時 `origin/feat/nfc-gate1-reader-spike` = `81f8fa8`）。要看離主線多
+遠跑 `git rev-list --count origin/main..HEAD`——那條算的是**距離**，不是「有沒有
+push」，兩個問題不要用同一條命令回答。所以「合併」在拓樸上成立、「主線」在遠端上
+還沒成立——兩件事分開看，才不會把一個地方性的 merge 當成已經上線。**而「已 push」
+也不代表 CI 跑過**：這條分支不在 `ci.yml` 的 `on.push.branches` 裡，見 `04 §G-11`。
 
 **沒有 worktree。** 這條 repo 只有一個 checkout，`git worktree list` 只列
 `LinkCard_Event_Admin_App_Expo` 本身。本節早先的版本寫過一個

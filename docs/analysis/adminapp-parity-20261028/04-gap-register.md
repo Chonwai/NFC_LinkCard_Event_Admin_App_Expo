@@ -59,8 +59,11 @@ done
 # → 九個全部 yes
 ```
 
-同一組 hash 拿去比 `origin/main` 會全部 `NO`——那不是失效，是這批 commit 還沒 push。
-這是預期的，也是上面用詞段存在的理由。
+同一組 hash 拿去比 `origin/main` 會全部 `NO`——那不是失效，是這批 commit **不在
+主線上**。用詞要精確：它們**已經 push 到 `origin/feat/nfc-gate1-reader-spike`**（動
+工時該分支 = `81f8fa8`，`git rev-list --count origin/feat/nfc-gate1-reader-spike..HEAD`
+回 `0`），只是 `origin/main` 仍停在 `7d0fcf5`。所以「還沒 push」是錯的，「沒進主線」
+才是對的。這也是上面用詞段存在的理由。
 
 > **〔歷史說明〕下面這段寫於 2026-10-29 上午，同日下午 `1cb2b73` 合併後已失效。**
 > 保留它，是因為 `fixed-on-branch` 這個值曾經讓整份登記冊被誤讀，而誤讀的方式
@@ -90,8 +93,14 @@ done
 
 > **用詞**：本批文件說「已修」一律指「**在工作分支 `feat/nfc-gate1-reader-spike` 的
 > HEAD 上可驗證**」。它**不是**「已在 `origin/main` 上」——`origin/main` 仍是
-> `7d0fcf5`，這串 commit 尚未 push（差多少跑 `git rev-list --count
-origin/feat/nfc-gate1-reader-spike..HEAD`）。
+> `7d0fcf5`。
+>
+> **2026-10-29 更正：本段前版寫「這串 commit 尚未 push」，那句已經不成立。** 分支
+> 現在**已 push**（動工時 `origin/feat/nfc-gate1-reader-spike` = `81f8fa8`；
+> `git rev-list --count origin/feat/nfc-gate1-reader-spike..HEAD` 回 `0`）。正確的
+> 說法是兩句：**已 push，但沒有進主線**。而「已 push」也**不代表** CI 跑過——這條
+> 分支的 push 根本不會觸發 CI，見 `§G-11` 的第二個邊界。
+>
 > 驗證命令：`git merge-base --is-ancestor <commit> HEAD`（對 `origin/main` 會是
 > NO，那是預期的）。
 
@@ -687,6 +696,37 @@ npm run check:contract
 
 換句話說，G-11 修好的是「有沒有一個會叫的檢查」，不是「檢查永遠新鮮」。後者需要
 一個排程或 hook 去定期重跑 `--refresh`，本輪沒有做。
+
+**第二個邊界：這道閘門在 CI 上一次都沒有真的跑過（2026-10-29 實測）。**
+
+上面的「已修」證明的是「**`ci.yml` 裡有這個 step**」，不是「**它被觸發過**」。兩件
+事在這條分支上是分開的：
+
+- `ci.yml` 的觸發是 `on.push.branches: [main, master, develop, development]` ＋
+  `pull_request`。`develop`／`development` 在清單裡，**但 feature 分支不在**，所以
+  對 `feat/nfc-gate1-reader-spike` 的 push 不會產生任何 run。
+- 本分支**確實已經 push**：動工時 `origin/feat/nfc-gate1-reader-spike` = `81f8fa8`，
+  `git rev-list --count origin/feat/nfc-gate1-reader-spike..HEAD` 回 `0`（本次文件
+  修訂之後要重跑才準，不要沿用這個數字）。
+- 但 `gh run list --branch feat/nfc-gate1-reader-spike` **回空**，而且這個分支
+  **沒有 PR**（`gh pr list --head … --state all` 回 `[]`），所以 `pull_request`
+  那條觸發也從來沒亮過。
+
+「空」不是 `gh` 壞了。同一個 CLI 對整個 repo 問最近 5 次 run 會回得出 5 筆——全部是
+**`main` 上的 `push`**，最新一筆是 2026-10-16T02:45Z。CI 在這條 repo 上是活的，只是
+**這一整輪工作（含 G-11 的修法本身）沒有任何一筆 run 碰過它**。
+
+⇒ 所以 `check:contract` 與 `check:parity` 至今**一次都沒有被執行過**。要讓它們真的
+咬，只有兩條路：**開 PR**（走 `pull_request`）或**合併進 `main`**（走
+`push.branches`）。在那之前，「已修」的精確讀法是「**已經寫進 workflow**」，不是
+「已經擋過東西」——本項修的是檔案，不是行為。
+
+兩條可重跑的命令（都很便宜，不需要先有 PR）：
+
+```
+gh run list --branch feat/nfc-gate1-reader-spike --limit 3   # 空 ⇒ 從未觸發
+gh pr list --head feat/nfc-gate1-reader-spike --state all --json number   # [] ⇒ 沒有 PR
+```
 
 ### G-12 授權只在 controller 層，路由層無角色閘門（P2，缺陷）
 
