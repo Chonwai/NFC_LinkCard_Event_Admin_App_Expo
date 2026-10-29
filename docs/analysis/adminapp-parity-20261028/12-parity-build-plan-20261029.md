@@ -421,18 +421,29 @@ Web call sites: 79 | backend routes: 123
 「有報名者時的行為」**（409 或軟刪 `isPublished=false`）。這一點寫在這裡，是因為它
 會讓一個看起來 S 的東西變成 M。
 
-#### 發現二：`WEB-DEFECT` ×1 — `PATCH /:eventId/org-roles/accept` 打錯 method
+#### 發現二：`WEB-DEFECT` ×1（**潛伏**）— `PATCH /:eventId/org-roles/accept` 打錯 method
 
-| 項目         | 內容                                                                                                                                                      |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Web 打什麼   | `PATCH /:eventId/org-roles/accept`（`LinkCard_Frontend@lib/events/engagement.ts:157`）                                                                    |
-| 後端註冊什麼 | `router.post('/org-roles/accept', …)`（`LinkCard_ExpressJS_Backend@src/events/routes/engagement.routes.ts:45`）                                           |
-| 後果         | Web 的「接受邀請」是 405／404。**這一條不在 App 的對齊範圍**（它是被邀請者的動作，不是後台動作），但它是同一份「79 條裡對不上」的清單的一員，所以記在這裡 |
-| 建議         | 另一張單修 Web；**不要**在 App 裡複製這個錯誤                                                                                                             |
+| 項目         | 內容                                                                                                                                                                                                                                                                                                                                                     |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Web 打什麼   | `PATCH /:eventId/org-roles/accept`（`LinkCard_Frontend@lib/events/engagement.ts:157`）                                                                                                                                                                                                                                                                   |
+| 後端註冊什麼 | `router.post('/org-roles/accept', …)`（`LinkCard_ExpressJS_Backend@src/events/routes/engagement.routes.ts:45`）                                                                                                                                                                                                                                          |
+| 後果         | Web 的「接受邀請」目前**沒有活的失敗路徑**：`acceptEventAdminInvite` 在 Web 有 **0 個呼叫點**（全庫只有 `engagement.ts:153` 的定義，沒有第二個引用）⇒ method 不匹配是真的，但影響的是一段**潛伏**的程式碼，不是活的 405／404。**這一條不在 App 的對齊範圍**（它是被邀請者的動作，不是後台動作），但它是同一份「79 條裡對不上」的清單的一員，所以記在這裡 |
+| 建議         | 另一張單修 Web；**不要**在 App 裡複製這個錯誤                                                                                                                                                                                                                                                                                                            |
 
-**這一條的價值不在它自己，在它證明了「Web 也沒有測試這條呼叫」。** App 已經有
-`check:contract` 會把 15 條呼叫釘在後端快照上；Web 沒有對應的閘門。所以「Web 有的
-就是對的」這個假設不成立——**而整個對齊工作的前提正是這個假設。**
+**證據到哪裡，話就說到哪裡。** 本節前版寫「這證明了 Web 也沒有測試這條呼叫」——
+那句超出證據：一支**沒有任何呼叫點**的函式，任何測試或契約閘門都不會抓到它，因為
+它根本沒被執行過。這個缺陷能證明的是「Web 有一段與後端 method 不符的死碼」，**不**
+能證明 Web 有沒有契約閘門——那是另一件事，要有自己的證據。留著這條界線，是因為
+一旦用一句站不住的推論把「Web 有的就是對的」撐起來，後面所有對齊判斷都會跟著歪。
+
+覆核方式（兩條都是機械可驗的）：
+
+```
+grep -rn 'acceptEventAdminInvite' LinkCard_Frontend --include='*.ts' --include='*.tsx'
+# → 只有 lib/events/engagement.ts:153 一處（定義），零呼叫點
+sed -n '45p' LinkCard_ExpressJS_Backend/src/events/routes/engagement.routes.ts
+# → router.post('/org-roles/accept', …)
+```
 
 #### 發現三：契約快照落後，且落後的正好是 Wave 1 要用的兩條
 
