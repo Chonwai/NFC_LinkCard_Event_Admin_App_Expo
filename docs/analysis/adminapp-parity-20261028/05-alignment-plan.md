@@ -262,8 +262,9 @@ Cvent、zkipster、Swapcard、Bizzabo 六個產品都找不到對應物，是自
    （等人回答），以及日後新增的值——一律算懸空。用允許清單而不是排除清單，是為了讓
    新值預設落在「未處置」這一側，不會因為沒人更新判準就靜默變成「完成」。
    ** 「選 A、明確不做」是合格答案，但答案必須反映在登記表的 `status` 上。
-   G-0（P0）與 G-7（P1）是 `open`，只看 `decision-needed` 的舊判準會在它們懸空時
-   回報「完成」。登記表目前用到五種值：`open`、`decision-needed`、`fixed`、
+   G-7（P1）是 `open`——它和當初促使這條判準改用允許清單的 G-0（P0，2026-10-29
+   已由 `fixed` 結案）一樣，只看 `decision-needed` 的舊判準會在它懸空時回報
+   「完成」。登記表目前用到五種值：`open`、`decision-needed`、`fixed`、
    `fixed-on-branch`、`ready-to-implement`（`scripts/check-parity-registry.mjs` 對
    `fixed`／`fixed-on-branch` 要求 `fixedOn` 非空、對 `ready-to-implement` 要求
    `decidedIn` 非空——不是只檢查欄位存不存在；新增值時驗證器要一起改，不能只寫在
@@ -282,18 +283,18 @@ Cvent、zkipster、Swapcard、Bizzabo 六個產品都找不到對應物，是自
 node -e "const r=require('./parity/parity-registry.json');const settled=['fixed','fixed-on-branch','ready-to-implement'];const f=r.gaps.filter(g=>['P0','P1'].includes(g.severity)&&!settled.includes(g.status));if(f.length){console.log('✗ 仍有 P0/P1 未處置（既非 fixed、fixed-on-branch 也非 ready-to-implement）：');f.forEach(g=>console.log('  '+g.id+'  '+g.severity+'  '+g.status));process.exitCode=1}else{console.log('✓ 所有 P0/P1 缺口都已處置（已修或已判定待實作）')}"
 ```
 
-本次修正後的登記表跑出來（G-10 已不在清單裡，G-1～G-5／G-11 亦已由 `fixed` 結案）：
+本次修正後的登記表跑出來（G-10 已不在清單裡，G-1～G-5／G-11 亦已由 `fixed` 結案，
+G-0 在 `1cb2b73` 合併後由 `open` 轉 `fixed`）：
 
 ```
 ✗ 仍有 P0/P1 未處置（既非 fixed、fixed-on-branch 也非 ready-to-implement）：
-  G-0  P0  open
   G-6  P1  decision-needed
   G-7  P1  open
   G-8  P1  decision-needed
 ```
 
-（`exit 1`。這裡只剩四個真的還沒有人做決定的缺口；那四個的 `status` 都沒有變動，
-本輪改的只有已驗證修好的六個。）
+（`exit 1`。這裡只剩三個真的還沒有人做決定的缺口；那三個的 `status` 都沒有變動，
+本輪改的只有已驗證修好的六個，以及隨 merge 結案的 G-0。）
 
 在 G-10 還是 `open` 的座標上（`fa111a7`）會多一行 `G-10 P1 open`——那正是這條判準
 原本把一件沒有爭議的事算成「懸空」的地方。

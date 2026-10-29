@@ -251,8 +251,8 @@
       "severity": "P0",
       "owner": "product",
       "size": "S",
-      "status": "open",
-      "fixedOn": []
+      "status": "fixed",
+      "fixedOn": ["1cb2b73"]
     },
     {
       "id": "G-1",
