@@ -13,23 +13,25 @@
 
 ## 4.1 總表
 
-| ID   | 項目                                     | 類別 | 嚴重度 | 決策者                    | 工作量 |
-| ---- | ---------------------------------------- | ---- | ------ | ------------------------- | ------ |
-| G-0  | 上一輪的修復沒有進主線                   | 流程 | P0     | 你                        | S      |
-| G-1  | 「申請主管覆核」呼叫不存在的路由         | 缺陷 | P0     | —（無爭議）               | S      |
-| G-2  | Token 畫面連到不存在的 Web 路由          | 缺陷 | P1     | —（無爭議）               | S      |
-| G-3  | 錢包流水讀錯欄位且忽略分頁               | 缺陷 | P1     | —（無爭議）               | S      |
-| G-4  | 名單型別缺退款／稽核欄位與兩個篩選參數   | 缺陷 | P1     | —（無爭議）               | S      |
-| G-5  | 從不查 `/my-access`，角色只是裝飾        | 缺陷 | P1     | —（無爭議）               | S      |
-| G-6  | 名單的管理動作（撤銷報到、封存、退款）   | 能力 | P1     | 你＋財務（兩選項見 §G-6） | M      |
-| G-7  | Badge 批次生命週期（建立／回填／匯出）   | 能力 | P1     | 你（兩選項見 §G-7）       | M      |
-| G-8  | 報到桌：同畫面寫卡＋綁卡＋上鎖           | 能力 | P1     | 你＋現場負責人            | L      |
-| G-9  | 場次現場報到                             | 能力 | P2     | 你（兩選項見 §G-9）       | L      |
-| G-10 | 總覽對 OPERATOR 失效，且多打一次請求     | 缺陷 | P1     | —（無爭議，非決策題）     | S      |
-| G-11 | 契約閘門不在 CI 上                       | 流程 | P1     | —（無爭議）               | S      |
-| G-12 | 授權只在 controller 層，路由層無角色閘門 | 缺陷 | P2     | 需決策（後端）            | M      |
+| ID   | 項目                                     | 類別 | 嚴重度 | 決策者                     | 工作量       |
+| ---- | ---------------------------------------- | ---- | ------ | -------------------------- | ------------ |
+| G-0  | 上一輪的修復沒有進主線                   | 流程 | P0     | 你                         | S            |
+| G-1  | 「申請主管覆核」呼叫不存在的路由         | 缺陷 | P0     | —（無爭議）                | S            |
+| G-2  | Token 畫面連到不存在的 Web 路由          | 缺陷 | P1     | —（無爭議）                | S            |
+| G-3  | 錢包流水讀錯欄位且忽略分頁               | 缺陷 | P1     | —（無爭議）                | S            |
+| G-4  | 名單型別缺退款／稽核欄位與兩個篩選參數   | 缺陷 | P1     | —（無爭議）                | S            |
+| G-5  | 從不查 `/my-access`，角色只是裝飾        | 缺陷 | P1     | —（無爭議）                | S            |
+| G-6  | 名單的管理動作（撤銷報到、封存、退款）   | 能力 | P1     | 你＋財務（兩選項見 §G-6）  | M            |
+| G-7  | Badge 批次生命週期（建立／回填／匯出）   | 能力 | P1     | 你（兩選項見 §G-7）        | M            |
+| G-8  | 報到桌：同畫面寫卡＋綁卡＋上鎖           | 能力 | P1     | 你＋現場負責人             | L            |
+| G-9  | 場次現場報到                             | 能力 | P2     | 你（兩選項見 §G-9）        | L            |
+| G-10 | 總覽對 OPERATOR 失效，且多打一次請求     | 缺陷 | P1     | —（無爭議，非決策題）      | S            |
+| G-11 | 契約閘門不在 CI 上                       | 流程 | P1     | —（無爭議）                | S            |
+| G-12 | 授權只在 controller 層，路由層無角色閘門 | 缺陷 | P2     | 需決策（後端）             | M            |
+| G-13 | 換卡／補發／退卡沒有後端作廢端點         | 能力 | P1     | 你＋後端（兩選項見 §G-13） | A `L`／B `S` |
 
-`S` ≦ 半天、`M` ≦ 兩天、`L` 需要設計與驗收。
+`S` ≦ 半天、`M` ≦ 兩天、`L` 需要設計與驗收。G-13 的工時欄刻意不是單一字母：
+選項還沒有人選，寫一個值就是替未來猜答案（理由見 `§G-13` 的四問第三項）。
 
 ### 2026-10-29 更新：八項的去向
 
@@ -912,6 +914,189 @@ helper：`CompanyPageController`、`ExhibitorInviteController`、
 的資源」三類**本來就不該有活動角色檢查**，所以 grep 不到不等於有缺口。要斷言其中
 任何一條有問題，必須逐支讀端點語意與其路由的 auth 形態，那個動作不在本輪。寫在這裡
 是為了讓下一個人不必從零重新猜，而不是預先定罪。
+
+### G-13 換卡／補發／退卡：App 有三顆按鈕，後端沒有作廢端點（P1，能力，需要決策）
+
+**這一項不在上一輪的清單裡，而它每天都可能發生。** 前面十二項多半是「某個畫面少
+一個欄位」或「某個判斷寫錯」；這一項的來源不同——它來自現場流程本身：
+
+> 「他們進來的時候過來簽到的時候，就會直接幫她進行簽到，然後派發他一個 NFC 手帶
+> 以及掛牌，之後他有掛牌的話，就可以隨便出入會場」
+
+也就是 **報到 → 發手環／掛牌 → 掛牌即通行**。這條流程有一個必然的失敗面：
+**手環斷了、掛牌掉了、發錯人**。三種情況需要的是同一個動作——**讓舊的失效、把新的
+給同一個人**。App 把這個動作畫成了三顆按鈕，然後把它們停用。
+
+**現況實測（2026-10-29，在本工作分支 `HEAD` 上先跑命令再寫）。**
+
+App 側，三顆按鈕存在但被擋：
+
+```
+grep -n 'nfc-replace-blocked' -A 30 'src/app/(auth)/[eventId]/nfc-bind.tsx' | head -40
+# → :100 testID="nfc-replace-blocked"
+#   :108 <InlineBanner compact tone="warning" message={copy.nfc.replaceBlocked} />
+#   :115 / :124 / :133 三顆 <Button> 都帶 disabled，onPress 都是 () => undefined
+```
+
+```
+grep -n 'replaceBlocked\|replaceCard\|reissueCard\|returnCard' src/constants/copy.zh-TW.ts
+# → :409 replaceTitle: "換卡 / 補發 / 退卡"
+#   :410 replaceBlocked: "等待後端 WP-N2。作廢舊卡的端點尚未就緒，這些操作暫不可用"
+#   :411 replaceCard: "換卡"　:412 reissueCard: "補發"　:413 returnCard: "退卡"
+```
+
+三種卡型也都在（`src/constants/copy.zh-TW.ts:375-377`：手環／卡片／QR），所以「換卡」
+不是只對實體塑膠卡有意義的動作。
+
+後端側，**沒有任何作廢／補發／解綁端點**：
+
+```
+grep -rnE 'replace|reissue|revoke|unlink|void' ../LinkCard_ExpressJS_Backend/src/events/routes/*.ts | grep -iE 'nfc|badge'
+# → 無輸出，exit 1
+```
+
+把範圍講清楚：上面這條掃的是**後端 `src/events/routes/` 全部**，不是只掃 App 會呼叫
+的那些。`LinkCard_ExpressJS_Backend@src/events/routes/event-ops.routes.ts` 的 NFC 路由
+只有八條（`:77`、`:78`、`:80`、`:83`、`:84`、`:85`、`:86`、`:87`）：`lookup`、`bind`、
+`exchange`、`badges`、`badges/export`、`batch`、`batch/:batchId/complete`、
+`batch/claim`。沒有一條能改變一張**已經綁定**的卡。其中 `/nfc/exchange` 是參加者
+之間的聯絡資訊交換（`LinkCard_ExpressJS_Backend@src/events/services/EventNfcExchangeService.ts:10-12`
+的 `recordExchange`），不是換卡——名字像，功能不同，容易被誤記成「已經有換卡了」。
+
+**我原本的假設被實測推翻，這一節把它留著。** 這一項進登記冊時，風險描述是「同一個
+人被寫了兩張卡，兩張都能用」。**不成立**：
+
+```
+grep -n 'model EventNfcBadge' -A 24 ../LinkCard_ExpressJS_Backend/prisma/schema.prisma | grep registrationId
+# → LinkCard_ExpressJS_Backend@prisma/schema.prisma:899
+#     registrationId  String?  @unique @map("registration_id")
+```
+
+```
+grep -n 'event_nfc_badges_registration_id_key' \
+  ../LinkCard_ExpressJS_Backend/prisma/migrations/20260715060320_add_event_registration_and_nfc_badge/migration.sql
+# → :119 CREATE UNIQUE INDEX "event_nfc_badges_registration_id_key"
+#        ON "event_nfc_badges"("registration_id");
+```
+
+一個報名**最多只能有一張卡**，DB 層擋住了第二張。所以「兩張同時有效」不可能發生，
+用這條當理由會寫出一個查不到的现象。**真正的風險是反過來的那一半，而且更難察覺。**
+
+**風險一：舊卡永遠有效，而公開端點會回應它。** `NfcBadgeStatus` 有五態
+（`LinkCard_ExpressJS_Backend@prisma/schema.prisma:785-791`：`UNASSIGNED`／`BOUND`／
+`ACTIVE`／`DEACTIVATED`／`LOST`），但**整個後端沒有任何一行程式碼寫入 `DEACTIVATED`
+或 `LOST`**：
+
+```
+grep -rn 'DEACTIVATED' ../LinkCard_ExpressJS_Backend/src/
+# → 10 行，全部是「讀到就拋錯」與錯誤碼字串，沒有一處是寫入
+grep -rn 'NfcBadgeStatus.LOST' ../LinkCard_ExpressJS_Backend/src/   # → 無輸出，exit 1
+grep -rn 'eventNfcBadge\.\(update\|updateMany\|delete\|deleteMany\|upsert\)' ../LinkCard_ExpressJS_Backend/src/
+# → 2 處，都在 LinkCard_ExpressJS_Backend@src/events/services/EventNfcBatchService.ts
+#   :293 寫 {tagUid, writtenAt}、:373 寫 {assignedExhibitorId}
+```
+
+也就是說：**丟掉的手環仍然是 `BOUND`，而且沒有任何按鈕能把它變成「遺失」。** 而
+`GET /nfc/lookup` 是**公開端點**——沒有 `authMiddleware`，只有 IP 限流
+（`LinkCard_ExpressJS_Backend@src/events/routes/event-ops.routes.ts:77`；它同時也是
+`§G-12` 那 11 條公開路由之一）。撿到那張卡的人刷一下，拿到的是原持卡人的姓名、公司、
+職稱與 profile 連結（`LinkCard_ExpressJS_Backend@src/events/services/EventRegistrationService.ts:3753`
+的 `lookupNfcBadge`；`DEACTIVATED` 的檢查在 `:3796`，但那個狀態從來沒有人寫進去）。
+**這是這一項裡唯一真正嚴重的部分：它不限於活動當天，也不需要用到 App。**
+
+**風險二：想補發也補不了，而錯誤訊息指向錯的欄位。** 手環斷了、拿一張新的空白卡給
+同一個人 → `bindNfcBadge`（`LinkCard_ExpressJS_Backend@src/events/services/EventRegistrationService.ts:3708`）
+直接 `create({ registrationId })`（`:3738`）→ 撞上上面那條 UNIQUE → Prisma `P2002`
+→ controller 把所有 `P2002` **一律**映射成 `BADGE_ALREADY_BOUND`「**NFC badge UID
+已被使用**」（`LinkCard_ExpressJS_Backend@src/events/controllers/EventNfcController.ts:112-124`）。
+`:112` 那行註解自己寫著「Unique constraint violation on **tagUid**」——原先的假設是
+「唯一鍵只有 UID」，但 `registration_id` 也是唯一鍵。**UID 是全新的，訊息卻說 UID
+被用掉了。**
+
+App 端把 `BADGE_ALREADY_BOUND` 歸進 `DUPLICATE_CODES`（`src/utils/nfc-bind-errors.ts:28-34`，
+判定在 `:66`；`:75` 還有一條「任何 409 都算 `duplicate`」的退路），顯示
+「這張卡已經綁定過，請換一張空白卡」（`src/constants/copy.zh-TW.ts:387`）——**這正是
+那句會讓操作員一直換卡、一直失敗、最後放棄的指示。**
+
+而 App 其實**已經寫好了正確的文案**：`boundOther`「此報名已綁定其他卡片。換卡需等
+後端就緒，目前無法自動作廢舊卡」（`src/constants/copy.zh-TW.ts:388`）。它只在收到
+`REGISTRATION_ALREADY_BOUND`／`REGISTRATION_HAS_BADGE`／`BADGE_ALREADY_ASSIGNED`
+時觸發（`src/utils/nfc-bind-errors.ts:22-26`），而**這三個碼在 `bind` 路徑上一個都
+不會回來**：`BADGE_ALREADY_ASSIGNED` 確實存在，但它是「這張卡已指派給別的展商」用
+的（`LinkCard_ExpressJS_Backend@src/events/services/EventNfcBatchService.ts:367`），
+與換卡無關。結論是：**正確的話寫好了，卻永遠不會顯示。**
+
+順帶一個觀察（不是缺陷，不列入風險）：`classifyNfcBindError` 的函式註解寫著「先判斷
+『報名已有卡』，再判斷『這張 UID 已被佔用』」（`src/utils/nfc-bind-errors.ts:36-38`），
+顯示作者本來就知道這兩件事要分開；失效點不在 App 的分類順序，在**後端沒有把這兩個
+情況分開回報**。
+
+**四問。**
+
+- **多嚴重**：`P1`。照上面的定義逐條對，不是憑印象：
+  - **不是 `P0` 的第一個條件**（「現在就在產生錯誤結果」）：DB 的 UNIQUE 讓「兩張
+    同時有效」不可能發生，所以它不會產生錯誤的**資料**。
+  - **不是 `P0` 的第二個條件持續成立**（「讓操作員做不到本職工作」）：順利的情況
+    （新報到、發一張卡）完全正常；卡住只發生在壞卡／掉卡／發錯人。
+  - **兩條 `P1` 條件都成立**：它堵住一個會誤導人的顯示（錯誤訊息指錯欄位，而且
+    正確文案不可達），而做完能讓一件**現在做不到**的現場動作變成做得到。
+  - **升為 `P0` 的觸發條件寫在這裡，不靠感覺**：一旦「現場已經在發實體手環，而且
+    當天會有人來換卡」，第一條失敗就會落在活動日，那一刻它就是 `P0`。本輪沒有證據
+    顯示活動已經在發放實體手環，所以我停在 `P1`；**這是對「現場狀態」的不確定，
+    不是對嚴重度低估**。要推翻這個 `P1`，只需要一個事實：活動日有人在發手環。
+- **誰該決定**：`product + backend`。`product` 決定要不要在現場提供這個動作；
+  `backend` 決定「作廢」的語意（改狀態？解除綁定？還是換一張新卡並留稽核軌跡？）。
+  **App 端不能單方面解決**——沒有端點就沒有可呼叫的東西，這也是它與 `G-1`（呼叫
+  不存在的路由）的差別：`G-1` 是 App 打了空氣，這一項是 App 誠實地停用了按鈕。
+- **多少工**：**取決於選項，不寫死。** 選項 A 跨兩個 repo（後端端點 ＋ App 解鎖三顆
+  按鈕），且要先定語意，依上表屬 `L`（需要設計與驗收）；選項 B 屬 `S`（多半是文案
+  與文件，不改程式行為）。登記表的 `size` 欄只能放一個值，那裡寫成 `A:L / B:S`，
+  理由與 `§4.1` 的註記相同：**選項還沒有人選，寫單一值就是替未來猜答案。**
+- **卡在誰**：卡在**一個決定**，不是卡在技術。作廢語意至少有三種寫法都做得到，選哪
+  一種會改變資料模型與稽核要求，所以必須先有人回答，工程才有起點。
+
+**兩個選項（中性標籤，不代人選）。**
+
+**選項 A｜做完整的作廢／補發。** 後端新增端點（作廢舊卡 ＋ 建立新卡，同一個交易），
+明確定義「作廢」是改 `status` 還是解除 `registrationId`，並留下稽核軌跡（誰在什麼
+時候換掉了誰的卡）；App 解鎖三顆按鈕並接上它。
+
+- 好處：現場的壞卡／掉卡／發錯人第一次有系統解；`DEACTIVATED`／`LOST` 兩個已存在卻
+  從未使用的狀態終於有了寫入路徑；被作廢的卡立刻失效，公開的 `/nfc/lookup` 不再
+  回應它——風險一與風險二同時關掉。
+- 代價：`L`，跨兩個 repo；必須先定語意，而語意定錯要動資料。另外
+  **「作廢後同一個報名能不能再綁」與「作廢的卡 UID 能不能重用」是兩個獨立決定**，
+  選 A 的人要把兩個都答掉，否則實作時會被迫替決策者選一次。
+- **選它等於承認**：「掛牌即通行」這句話要靠**系統**保證，不能靠現場人員記得哪一張
+  卡是壞的。
+
+**選項 B｜維持停用，改由 Web 或人工處理。**
+
+- 好處：零程式風險、零決策成本，今天就是這樣運作，而橫幅也把原因寫出來了（
+  `copy.zh-TW.ts:410`）。
+- 代價：**Web 也沒有這個能力**——上面那條 grep 掃的是整個後端 `src/events/routes/`，
+  不是只掃 App 呼叫的端點，所以「改由 Web 處理」實際上等於「改由紙筆與口頭處理」：
+  壞卡用說的、掉卡靠信任。系統裡那張遺失的卡仍然是 `BOUND`、仍然有效、仍然會回應
+  公開的 `/nfc/lookup`；同一個人也不會拿到新卡（UNIQUE 擋住第二張），庫存與實際
+  發出的卡從此對不上。**這個代價沒有上限**——它不會隨活動結束而消失。
+- **選它等於承認**：遺失的卡在系統裡**無法被宣告失效**。這不是「先不做」，是接受
+  一個沒有到期日的安全暴露。
+
+**證據等級與誠實邊界。**
+
+- 上列 App／後端事實全部是 2026-10-29 在本工作分支 `HEAD` 與
+  `LinkCard_ExpressJS_Backend@development` 上**實跑**得來的，命令附在對應段落，
+  可以直接重跑。
+- **被推翻的假設一起留著**（「兩張卡同時有效」不成立）。留著的理由與 `§G-0` 的歷史
+  段落相同：下一個人會得到同一個直覺，這裡先給答案與命令，不必重猜一輪。
+- **未驗證、因此不斷言**：① 活動當天是否真的發放實體手環（決定上方的 `P1`／`P0`
+  觸發條件）。② 有沒有線下流程（紙本登記）已經在補這個洞。③ `GET /nfc/lookup` 的
+  回應是否還被其他環節（門禁、報到桌以外的工具）使用——若有，作廢的影響面比本節
+  描述的更大。這三項都不改變 A／B 的形狀，只改變 B 的代價估算。
+- **這一項不阻擋任何其他階段**：它與 `G-7`（批次）、`G-8`（報到桌寫卡）共用
+  `nfc-bind` 這一頁，但**不共用實作順序**——`G-7`／`G-8` 決定「怎麼發卡」，`G-13`
+  決定「怎麼收回」。兩者可以各自獨立進行，唯一的要求是：動 `nfc-bind.tsx` 的人
+  要知道另一邊也在動同一頁（這是 `G-8` 的三個前置之一已經提過的同一個風險）。
 
 ## 4.3 不在這裡的東西
 

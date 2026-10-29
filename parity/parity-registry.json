@@ -366,6 +366,15 @@
       "size": "M",
       "status": "decision-needed",
       "fixedOn": []
+    },
+    {
+      "id": "G-13",
+      "title": "換卡／補發／退卡沒有後端作廢端點",
+      "severity": "P1",
+      "owner": "product+backend",
+      "size": "A:L / B:S",
+      "status": "decision-needed",
+      "fixedOn": []
     }
   ]
 }
