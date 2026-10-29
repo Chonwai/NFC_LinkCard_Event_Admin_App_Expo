@@ -36,17 +36,17 @@
 上表沒有狀態欄，所以狀態補在這裡。只列 `1cb2b73` 合併前後有位移的七項；
 G-6／G-7／G-8／G-9／G-10／G-12 的嚴重度與工作量都沒有變動，不列。
 
-| ID   | 上一輪的狀態                  | 現在（2026-10-29） | 落在哪個 commit                                                                        |
-| ---- | ----------------------------- | ------------------ | -------------------------------------------------------------------------------------- |
-| G-0  | `open`（P0，等一個決定）      | **已決：合併**     | merge `1cb2b73`                                                                        |
-| G-1  | `fixed-on-branch`（在分支上） | `fixed`（在主線）  | `5bcdb53`                                                                              |
-| G-2  | `fixed-on-branch`             | `fixed`            | `860404f` ＋ `bc27abc`                                                                 |
-| G-3  | `fixed-on-branch`             | `fixed`            | `075f775`                                                                              |
-| G-4  | `fixed-on-branch`             | `fixed`            | `031972f` ＋ `84cb423`                                                                 |
-| G-5  | `fixed-on-branch`             | `fixed`            | `9e3c7a2`                                                                              |
-| G-11 | `fixed-on-branch`             | `fixed`            | `7c19f0a`（閘門本體）＋ `421ab7c`（補齊 8 條巢狀 `/import`，少了它閘門會誤報合法呼叫） |
+| ID   | 上一輪的狀態                  | 現在（2026-10-29）           | 落在哪個 commit                                                                        |
+| ---- | ----------------------------- | ---------------------------- | -------------------------------------------------------------------------------------- |
+| G-0  | `open`（P0，等一個決定）      | **已決：合併**               | merge `1cb2b73`                                                                        |
+| G-1  | `fixed-on-branch`（在分支上） | `fixed`（本工作分支 `HEAD`） | `5bcdb53`                                                                              |
+| G-2  | `fixed-on-branch`             | `fixed`                      | `860404f` ＋ `bc27abc`                                                                 |
+| G-3  | `fixed-on-branch`             | `fixed`                      | `075f775`                                                                              |
+| G-4  | `fixed-on-branch`             | `fixed`                      | `031972f` ＋ `84cb423`                                                                 |
+| G-5  | `fixed-on-branch`             | `fixed`                      | `9e3c7a2`                                                                              |
+| G-11 | `fixed-on-branch`             | `fixed`                      | `7c19f0a`（閘門本體）＋ `421ab7c`（補齊 8 條巢狀 `/import`，少了它閘門會誤報合法呼叫） |
 
-「在主線」是可驗證的，不是宣稱：
+「在工作分支 `HEAD` 上」是可驗證的，不是宣稱：
 
 ```
 for c in 5bcdb53 860404f bc27abc 075f775 031972f 84cb423 9e3c7a2 7c19f0a 421ab7c; do
@@ -54,6 +54,9 @@ for c in 5bcdb53 860404f bc27abc 075f775 031972f 84cb423 9e3c7a2 7c19f0a 421ab7c
 done
 # → 九個全部 yes
 ```
+
+同一組 hash 拿去比 `origin/main` 會全部 `NO`——那不是失效，是這批 commit 還沒 push。
+這是預期的，也是上面用詞段存在的理由。
 
 > **〔歷史說明〕下面這段寫於 2026-10-29 上午，同日下午 `1cb2b73` 合併後已失效。**
 > 保留它，是因為 `fixed-on-branch` 這個值曾經讓整份登記冊被誤讀，而誤讀的方式
@@ -80,6 +83,13 @@ done
 ## 4.2 逐項說明
 
 ### G-0 上一輪的修復沒有進主線（P0，流程）— **已決：合併**
+
+> **用詞**：本批文件說「已修」一律指「**在工作分支 `feat/nfc-gate1-reader-spike` 的
+> HEAD 上可驗證**」。它**不是**「已在 `origin/main` 上」——`origin/main` 仍是
+> `7d0fcf5`，這串 commit 尚未 push（差多少跑 `git rev-list --count
+origin/feat/nfc-gate1-reader-spike..HEAD`）。
+> 驗證命令：`git merge-base --is-ancestor <commit> HEAD`（對 `origin/main` 會是
+> NO，那是預期的）。
 
 **狀態（2026-10-29）**：已決並已執行。merge `1cb2b73`，parents 是 `8aeef71` ＋
 `b05744b`；`audit/parity-20261022` 現在是 HEAD 的 ancestor。
