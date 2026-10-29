@@ -51,6 +51,68 @@ git diff --stat origin/main..feat/nfc-gate1-reader-spike -- src/   # 9 files, +3
 「`src/` 零改」在那個時點的意義只到「執行期行為與 `main` 相同」，不包含 lint 規則
 集合相同。見 `06-verification.md` §6.2 的 A1。
 
+### 那條分支上有什麼、本批審計讀到哪裡
+
+上表把 `feat/onsite-scope-decisions` 寫成「53 commits／上述內容＋現場四項決策」。
+那句話是對的，但它**漏掉一個必要的事實：那條分支上有一份專門回答那四項決策的
+說明書，而本批審計從沒讀過它。** 這一小節補上，並記下代價。
+
+**一、25 個 commit 不在本分支的歷史裡。**
+
+```
+git rev-list --count HEAD..feat/onsite-scope-decisions   # 25
+```
+
+上表的 53 是 `origin/main..feat/onsite-scope-decisions` 的讀數。兩者的差（53 − 28）
+就是從 `audit/parity-20261022` 帶過來、**已經**併進本分支的那 28 顆。所以 **25**
+才是「這條分支獨有、本分支沒有」的部分；不要拿 53 去推論「還有 53 件事沒做」。
+
+**二、那 25 顆改了什麼：20 個檔，`src/` 零改動。**
+
+```
+git diff --name-only HEAD...feat/onsite-scope-decisions | wc -l            # 20
+git diff --name-only HEAD...feat/onsite-scope-decisions -- docs/ | wc -l   # 13
+git diff --name-only HEAD...feat/onsite-scope-decisions -- scripts/ | wc -l # 4
+git diff --name-only HEAD...feat/onsite-scope-decisions -- tests/ | wc -l  # 1
+git diff --stat HEAD...feat/onsite-scope-decisions -- src/                 # 空輸出
+```
+
+組成是 13 份文件、`scripts/` 4 檔（2 支 `.mjs` 閘門＋2 份 `.json` 資料）、`tests/`
+1 檔、`.github/workflows/ci.yml`、`package.json`，合計 +4,433/−9。
+**`src/` 是零改動** ⇒ 它不會改變 App 行為，是一支「決策與閘門」分支，不是一支
+「功能」分支。
+
+**三、裡面有一份 `05-decision-brief.md`，就是那四項決策的說明書。**
+`docs/analysis/onsite-scope-20261022/` 底下是 00–06 七份文件＋`README.md`＋4 份
+appendix；其中 05（343 行）是寫給決策者看的那一份。它主張的核心事實是：
+**場次報到「後端有、Web 和 App 都沒有」**，所以它是「接線」問題，不是「追平」問題。
+
+**四、它主張的那件事，本節獨立驗證成立——以下是驗證，不是轉抄。**
+
+```
+# Web 名冊頁只能顯示、不能改
+wc -l '…/sessions/[sessionId]/registrations/page.tsx'                # 242
+grep -nE '<button|post\(|patch\(|put\(' '…/page.tsx'                 # 218、226（都是分頁鈕）
+grep -rn 'sessions/.*checkin' app components lib hooks; echo "rc=$?" # rc=1，零命中
+
+# 後端已就緒，而且這條 role gate 是全 events 模組唯一一條
+grep -n 'checkin' '…/src/events/routes/sessions-polls.routes.ts'     # 40
+grep -rn 'eventAccessFactory.create' '…/src/' | wc -l                # 1
+grep -rhoE "router\.(get|post|patch|put|delete)\(" '…/src/events/routes/' | wc -l  # 124
+```
+
+展開的引用：名冊頁是
+`LinkCard_Frontend@app/(event)/manage/[eventId]/sessions/[sessionId]/registrations/page.tsx:218`
+（第二顆分頁鈕在 `:226`；它顯示 `ATTENDED`／`NO_SHOW` 卻沒有任何方法改），端點是
+`LinkCard_ExpressJS_Backend@src/events/routes/sessions-polls.routes.ts:39`。完整推論
+與「為什麼這會讓優先順序錯」寫在 `03-capability-matrix.md` §3.3 的 G-D 更正段。
+
+**五、誠實揭露：本批審計先前只在表格裡提過這條分支，沒有讀那份簡報。**
+代價已經發生一次：`03-capability-matrix.md` §3.3 的 G-D 原本寫成「Web 有、App 缺」，
+讀起來像「App 落後」；正確框架是「**兩個前端都落後於後端**」，該節已於 2026-10-29
+加上更正段。**簡報不是權威，上面的命令才是**——但它比本批審計早一週抵達同一個
+結論，這一點應該記下來。
+
 ## 2.2 端點層現況：15 個呼叫字面，15 條有效（那條死路已修）
 
 這是本輪唯一用機械方式重跑過的量測。做法是用上一輪留下的契約閘門
