@@ -62,8 +62,8 @@
       "verdict": "APP_GAP",
       "gapId": "G-15a",
       "status": "ready-to-implement",
-      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3",
-      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。原判如下——改活動名稱、時間、地點是活動前的工作，且需要同時看整份報名表單設計；手機不是合適的編輯裝置。若出現活動當天改時間的實際需求，此判定應重新檢視。",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3.1",
+      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。App 標的：在 App 上改活動的名稱／時間／地點與狀態，送出 updateEvent（§11.3.1 第 1 項）。原判如下——改活動名稱、時間、地點是活動前的工作，且需要同時看整份報名表單設計；手機不是合適的編輯裝置。若出現活動當天改時間的實際需求，此判定應重新檢視。",
       "evidence": ["Web: updateEvent／EventStatus／EventLandingPageMode"]
     },
     {
@@ -74,8 +74,8 @@
       "verdict": "APP_GAP",
       "gapId": "G-15a",
       "status": "ready-to-implement",
-      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3",
-      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。原判如下——文案與區塊編輯是長文本工作，需要大螢幕與並排預覽；現場不需要改文案。",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3.1",
+      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。App 標的：在 App 上對落地頁的 section 與 card 做增／改／刪（§11.3.1 第 2 項）。原判如下——文案與區塊編輯是長文本工作，需要大螢幕與並排預覽；現場不需要改文案。",
       "evidence": [
         "Web: createEventPageCard／createEventPageSection／update…／delete…"
       ]
@@ -88,8 +88,8 @@
       "verdict": "APP_GAP",
       "gapId": "G-15b",
       "status": "ready-to-implement",
-      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3",
-      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。原判如下——票種與語意綁定屬於設定層，App 只需在現場報名時讀取可用票種（已實作 listTicketTypes）。現場改價或改名額需要授權設計，目前沒有這個需求。",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3.1",
+      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。App 標的：在 App 上新增／修改／刪除票種並切換 capability 開關，且 formFieldsJson 通過語意綁定驗証（§11.3.1 第 5 項）。原判如下——票種與語意綁定屬於設定層，App 只需在現場報名時讀取可用票種（已實作 listTicketTypes）。現場改價或改名額需要授權設計，目前沒有這個需求。",
       "evidence": [
         "Web: 票種 CRUD＋語意綁定驗證",
         "App: eventService.listTicketTypes 供 walk-in 使用"
@@ -162,8 +162,8 @@
       "verdict": "APP_GAP",
       "gapId": "G-15b",
       "status": "ready-to-implement",
-      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3",
-      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。原判如下——廠商審核與名單匯入是批次工作，需要檔案上傳與逐列錯誤檢視；現場不做這件事。目前也沒有攤位報到需求。",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3.1",
+      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。App 標的：在 App 上把廠商狀態由待審改為通過／退回，並完成一次 CSV 匯入（含逐列錯誤檢視）（§11.3.1 第 4 項）。原判如下——廠商審核與名單匯入是批次工作，需要檔案上傳與逐列錯誤檢視；現場不做這件事。目前也沒有攤位報到需求。",
       "evidence": [
         "Web: listAllExhibitorsAdmin／updateExhibitorStatus／CSV import"
       ]
@@ -196,8 +196,8 @@
       "verdict": "APP_GAP",
       "gapId": "G-15b",
       "status": "ready-to-implement",
-      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3",
-      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。原判如下——投票的建立、啟用與計票是主持端工作，需要投影或大螢幕；操作員在門口不參與。",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3.1",
+      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。App 標的：在 App 上建立投票、啟用、關閉並讀取計票結果（§11.3.1 第 6 項）。原判如下——投票的建立、啟用與計票是主持端工作，需要投影或大螢幕；操作員在門口不參與。",
       "evidence": ["Web: createPoll／activatePoll／closePoll／getPollResults"]
     },
     {
@@ -208,8 +208,8 @@
       "verdict": "APP_GAP",
       "gapId": "G-15c",
       "status": "ready-to-implement",
-      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3",
-      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。原判如下——財務覆核需要稽核軌跡、雙人核可與完整匯款憑證比對，屬於辦公室職責；門口人員不應有放行款項的能力。",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3.1",
+      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。App 標的：在 App 上把一筆匯款由待核改為已核／退回，且按下之前有第二次確認（§11.3.1 第 7 項）。原判如下——財務覆核需要稽核軌跡、雙人核可與完整匯款憑證比對，屬於辦公室職責；門口人員不應有放行款項的能力。",
       "evidence": ["Web: listBankTransferApprovals／reviewBankTransfer"]
     },
     {
@@ -220,8 +220,8 @@
       "verdict": "APP_GAP",
       "gapId": "G-15c",
       "status": "ready-to-implement",
-      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3",
-      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。原判如下——授權他人是治理動作，應在有完整說明與稽核的環境完成；行動端只讀角色（透過 /my-access）即可。",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3.1",
+      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。App 標的：在 App 上邀請活動管理員，並移除既有的管理員（§11.3.1 第 8 項）。原判如下——授權他人是治理動作，應在有完整說明與稽核的環境完成；行動端只讀角色（透過 /my-access）即可。",
       "evidence": [
         "Web: getMyEventAccess／inviteEventAdmin／listEventOrgRoles／removeEventAdmin"
       ]
@@ -234,8 +234,8 @@
       "verdict": "APP_GAP",
       "gapId": "G-15a",
       "status": "ready-to-implement",
-      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3",
-      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。原判如下——活動整體設定（狀態、報名開關）屬於活動前準備。App 的 settings.tsx 是登入者偏好，不是活動設定，兩者同名但不同事。",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3.1",
+      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。App 標的：在 App 上改活動的收款帳戶資料與主題色並儲存——不是現有那頁「登入者偏好」（§11.3.1 第 3 項）。原判如下——活動整體設定（狀態、報名開關）屬於活動前準備。App 的 settings.tsx 是登入者偏好，不是活動設定，兩者同名但不同事。",
       "evidence": [
         "Web: updateEvent（狀態與報名開關）",
         "App: settings.tsx 為帳號與 App 偏好"
