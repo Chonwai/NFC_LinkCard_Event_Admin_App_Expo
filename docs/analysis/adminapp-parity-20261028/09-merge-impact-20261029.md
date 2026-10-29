@@ -383,10 +383,11 @@ G-6、G-7、G-8、G-9、G-12 每一節都寫了 A／B 兩個具體選項與各�
 
 > **G-7 的狀態在 `ffffbec` 變過，讀舊版的人要注意。** 它原本是 `open`（看起來像
 > 沒人看過），`ffffbec` 之後是 `decision-needed`（看過了、有 A／B、等人選）。
-> 這也是 `05-alignment-plan.md` §5.7 目前與登記表**不一致**的地方——那一節還寫著
-> 「G-7（P1）是 `open`」、引用的判準輸出也還是 `G-7  P1  open`。登記表是對的，
-> 文件那句是舊的；`ffffbec` 只改了 `parity/parity-registry.json`，沒同步 05。
-> 修法是把那一句與那段引文改成 `decision-needed`，本節不動它（那是另一件事）。
+> `ffffbec` 當時只改了 `parity/parity-registry.json`，`05-alignment-plan.md` §5.7
+> 沒跟上——那一節還寫著「G-7（P1）是 `open`」、引用的判準輸出也還是
+> `G-7  P1  open`。本輪已把那一句與那段引文同步成 `decision-needed`，引文也換成
+> 實跑輸出，因此登記表與計畫文件現在一致；上面那條歷史記述保留，是因為讀舊版
+> （`ffffbec` 之前）的人仍需要知道它為什麼看起來像「沒人認領」。
 
 ## 9.10 不開工也能先做的三件事（半天內）
 
