@@ -160,7 +160,7 @@
       "gapId": "G-15",
       "status": "ready-to-implement",
       "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3",
-      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。原判如下——廠商審核與名單匯入是批次工作，需要檔案上傳與逐列錯誤檢視；現場不做這件事。目前也沒有埔位報到需求。",
+      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。原判如下——廠商審核與名單匯入是批次工作，需要檔案上傳與逐列錯誤檢視；現場不做這件事。目前也沒有攤位報到需求。",
       "evidence": [
         "Web: listAllExhibitorsAdmin／updateExhibitorStatus／CSV import"
       ]
@@ -177,7 +177,7 @@
       "gapId": "G-9",
       "status": "ready-to-implement",
       "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3",
-      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊；營運事實（沒有場次）沒有變，但「做不做」改由一致性目標決定。原判如下——營運模型沒有場次這個單位：入場筽到時即派發 NFC 手環與掛牌，之後以掛牌人工目視進出會場，不需要逐場次的出席紀錄。若未來活動改為多場次制（同一張票要選場次、每場有獨立容量），此判定應重新評估。",
+      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊；營運事實（沒有場次）沒有變，但「做不做」改由一致性目標決定。原判如下——營運模型沒有場次這個單位：入場簽到時即派發 NFC 手環與掛牌，之後以掛牌人工目視進出會場，不需要逐場次的出席紀錄。若未來活動改為多場次制（同一張票要選場次、每場有獨立容量），此判定應重新評估。",
       "evidence": [
         "Web: session CRUD＋每場次名冊",
         "App 全庫無 session 概念",
