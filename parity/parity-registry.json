@@ -207,7 +207,7 @@
       "appFiles": [],
       "verdict": "APP_GAP",
       "gapId": "G-15c",
-      "status": "ready-to-implement",
+      "status": "decision-needed",
       "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3.1",
       "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。App 標的：在 App 上把一筆匯款由待核改為已核／退回，且按下之前有第二次確認（§11.3.1 第 7 項）。原判如下——財務覆核需要稽核軌跡、雙人核可與完整匯款憑證比對，屬於辦公室職責；門口人員不應有放行款項的能力。",
       "evidence": ["Web: listBankTransferApprovals／reviewBankTransfer"]
@@ -219,7 +219,7 @@
       "appFiles": [],
       "verdict": "APP_GAP",
       "gapId": "G-15c",
-      "status": "ready-to-implement",
+      "status": "decision-needed",
       "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3.1",
       "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。App 標的：在 App 上邀請活動管理員，並移除既有的管理員（§11.3.1 第 8 項）。原判如下——授權他人是治理動作，應在有完整說明與稽核的環境完成；行動端只讀角色（透過 /my-access）即可。",
       "evidence": [
