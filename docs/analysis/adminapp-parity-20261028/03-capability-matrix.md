@@ -33,13 +33,13 @@
 `BY_DESIGN` 的每一項都必須有一句可反駁的理由，見 §3.6。理由是判定的主體，
 表格只是索引。
 
-## 3.2 Overview：兩邊都有，App 對 OPERATOR 會壞
+## 3.2 Overview：兩邊都有，403 那半已修、兩次請求那半未修
 
 Web 現在每張入口卡都帶數字，全部來自一次 `GET /events/:eventId/manage-stats`
 （`hooks/events/useManageStats.ts`，頁面檔頭 `app/(event)/manage/[eventId]/page.tsx:8-24`）。
 
-App 的 `overview.tsx` 顯示報名數、已報到數、到場率（`overview.tsx:133-159`），
-但它拿數字的方式是：
+App 的 `overview.tsx` 顯示報名數、已報到數、到場率（`overview.tsx:122-147`；
+原引 `:133-159` 已漂），但它拿數字的方式是：
 
 ```ts
 const [totalRes, checkedInRes] = await Promise.all([
@@ -50,12 +50,31 @@ const [totalRes, checkedInRes] = await Promise.all([
 
 問題不在 `Promise.all`，在於 `GET /:eventId/registrations` 的閘門是
 `getEventWriteAccess`，角色集不含 OPERATOR。而 `my-managed` 對任何 ACTIVE org role
-都回傳，所以 OPERATOR 看得到活動、點得進來、然後兩個請求都 403。
+都回傳，所以 OPERATOR 看得到活動、也點得進來。
 
-更刺眼的是：這個數字**已經在手上**。`event.service.ts:38-48` 早就把
-`_meta.registrationCount` unwrap 成 `event.registrationCount` 了。
+**這個缺陷現在只修好一半（2026-10-29 深夜實測）。** 兩半要分開講——合成一句
+「App 對 OPERATOR 會壞」現在是錯的：
 
-判定 `ALIGNED_DEFECT`：能力存在，實作對一整個角色壞掉。
+- **403 那半已修**（`9e3c7a2`）。`overview.tsx:200-210` 先問 `getMyAccess`，
+  `if (!access.canManage)` 就早退：用本地已有的總數顯示，把已報到數與到場率
+  誠實標成「未取得」，不再去打一個必定 403 的端點。
+- **兩次請求那半未修。** `overview.tsx:212-218` 仍是 `Promise.all` 兩支
+  `getRegistrations`（`{limit:1}` 與 `{limit:1, status:"CHECKED_IN"}`），只為了取
+  兩個 `pagination.total`。
+
+```
+$ grep -n 'canManage\|getRegistrations' 'src/app/(auth)/[eventId]/overview.tsx'
+204:        if (!access.canManage) {
+213:          eventService.getRegistrations(eventId, { limit: 1 }),
+214:          eventService.getRegistrations(eventId, {
+```
+
+更刺眼的是：這個數字**已經在手上**。`event.service.ts:62` 早就把
+`_meta.registrationCount` unwrap 成 `event.registrationCount` 了（原引 `:38-48`
+已漂）。所以真正該做的不是「修 403」，是**根本不要問兩次**——這一點沒動。
+
+判定不變，仍是 `ALIGNED_DEFECT`：能力存在，實作偏離 Web 的做法（Web 一次
+`manage-stats` 就拿到全部數字）。修好的是「壞掉」，沒修好的是「不必要」。
 
 ## 3.3 四個 `APP_GAP`
 

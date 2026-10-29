@@ -44,10 +44,11 @@ git diff --stat origin/main..feat/nfc-gate1-reader-spike -- src/   # 空
 這句話的意義只到「執行期行為與 `main` 相同」，不包含 lint 規則集合相同。
 見 `06-verification.md` §6.2 的 A1。
 
-## 2.2 端點層現況：15 個呼叫字面，14 條有效，1 條死路
+## 2.2 端點層現況：15 個呼叫字面，15 條有效（那條死路已修）
 
 這是本輪唯一用機械方式重跑過的量測。做法是用上一輪留下的契約閘門
-（`scripts/check-backend-contract.mjs`）對今日的 App 原始碼跑一次：
+（`scripts/check-backend-contract.mjs`）對今日的 App 原始碼跑一次。
+**以下是 10-28 那輪的輸出，保留為歷史——今天再跑一次不是這樣，見本節末尾：**
 
 ```
 node scripts/check-backend-contract.mjs
@@ -64,11 +65,25 @@ exit=1
 
 引用慣例：指「這條呼叫」用 `:47`；指「哪條路由／哪個 URL」用 `:50`。兩者都對，
 只是指的東西不同。這一點由獨立複核發現（`06-verification.md` §6.2 的 A4）。
+（那條呼叫已被移除，所以 `:47`／`:50` 現在落在註解區間——上面的慣例只作為歷史
+引用規則保留，不要再拿它去定位現行呼叫。）
 
 也就是說：除了那一條死路，其餘 14 個呼叫在後端都存在。上一輪的 P0 診斷是對的，
-但它沒有生效，因為修它的 commit 停在那條分支上。
+但它當時沒有生效，因為修它的 commit 停在那條分支上。
 
-**這代表「端點層對等」目前是 14/15，而不是 README 上一輪寫的 15/15。**
+**那一條死路已經修好了。** 修它的 commit 是 `5bcdb53`（「stop calling a route that
+has never existed」），由 `1cb2b73` 併進本工作分支。修法不是讓後端補路由，而是
+讓 App 不再呼叫它：`registration.service.ts:42-54` 現在是一段「⛔ 已移除、不要加
+回來」的註解，不是呼叫。
+
+```
+node scripts/check-backend-contract.mjs
+✓ 15 條 App 呼叫全部對得上後端路由快照
+rc=0
+```
+
+**所以「端點層對等」現在是 15/15、exit 0。** 上面那段 14/15 是 10-28 那輪的量測，
+不是今天的現況——本節標題原本也跟著錯，已改。
 
 ## 2.3 後端：32 個 commit，路由只多一條
 

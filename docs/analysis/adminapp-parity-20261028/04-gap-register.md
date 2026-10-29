@@ -31,20 +31,24 @@
 
 `S` ≦ 半天、`M` ≦ 兩天、`L` 需要設計與驗收。
 
-### 2026-10-29 更新：七項的去向
+### 2026-10-29 更新：八項的去向
 
-上表沒有狀態欄，所以狀態補在這裡。只列 `1cb2b73` 合併前後有位移的七項；
-G-6／G-7／G-8／G-9／G-10／G-12 的嚴重度與工作量都沒有變動，不列。
+上表沒有狀態欄，所以狀態補在這裡。列 `1cb2b73` 合併前後有位移的七項；
+G-6／G-7／G-8／G-9／G-12 的嚴重度與工作量都沒有變動，不列。
 
-| ID   | 上一輪的狀態                  | 現在（2026-10-29）           | 落在哪個 commit                                                                        |
-| ---- | ----------------------------- | ---------------------------- | -------------------------------------------------------------------------------------- |
-| G-0  | `open`（P0，等一個決定）      | **已決：合併**               | merge `1cb2b73`                                                                        |
-| G-1  | `fixed-on-branch`（在分支上） | `fixed`（本工作分支 `HEAD`） | `5bcdb53`                                                                              |
-| G-2  | `fixed-on-branch`             | `fixed`                      | `860404f` ＋ `bc27abc`                                                                 |
-| G-3  | `fixed-on-branch`             | `fixed`                      | `075f775`                                                                              |
-| G-4  | `fixed-on-branch`             | `fixed`                      | `031972f` ＋ `84cb423`                                                                 |
-| G-5  | `fixed-on-branch`             | `fixed`                      | `9e3c7a2`                                                                              |
-| G-11 | `fixed-on-branch`             | `fixed`                      | `7c19f0a`（閘門本體）＋ `421ab7c`（補齊 8 條巢狀 `/import`，少了它閘門會誤報合法呼叫） |
+G-10 是例外：它的嚴重度與工作量同樣沒變，但**狀態**現在是全冊最混亂的一項
+（兩個獨立問題只修好一個）。不列會被誤讀成「沒有人動過它」，所以補一列。
+
+| ID   | 上一輪的狀態                  | 現在（2026-10-29）                     | 落在哪個 commit                                                                        |
+| ---- | ----------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------- |
+| G-0  | `open`（P0，等一個決定）      | **已決：合併**                         | merge `1cb2b73`                                                                        |
+| G-1  | `fixed-on-branch`（在分支上） | `fixed`（本工作分支 `HEAD`）           | `5bcdb53`                                                                              |
+| G-2  | `fixed-on-branch`             | `fixed`                                | `860404f` ＋ `bc27abc`                                                                 |
+| G-3  | `fixed-on-branch`             | `fixed`                                | `075f775`                                                                              |
+| G-4  | `fixed-on-branch`             | `fixed`                                | `031972f` ＋ `84cb423`                                                                 |
+| G-5  | `fixed-on-branch`             | `fixed`                                | `9e3c7a2`                                                                              |
+| G-10 | `open`（兩個獨立問題都還在）  | **部分修好**（403 已修、兩次請求未修） | `9e3c7a2` 只動了 403 那半（改問 `canManage` 後早退）；兩次請求未修                     |
+| G-11 | `fixed-on-branch`             | `fixed`                                | `7c19f0a`（閘門本體）＋ `421ab7c`（補齊 8 條巢狀 `/import`，少了它閘門會誤報合法呼叫） |
 
 「在工作分支 `HEAD` 上」是可驗證的，不是宣稱：
 
@@ -173,26 +177,36 @@ grep -rn 'requestOverride' src/
 
 以下是這個缺口為什麼存在的證據，不改寫：
 
-`src/services/registration.service.ts:42-57` 呼叫
-`POST /api/v1/events/:eventId/registrations/checkin/override`。
-後端 grep 零命中；`GET` 也一樣。
+`src/services/registration.service.ts:42-54` **曾經**呼叫
+`POST /api/v1/events/:eventId/registrations/checkin/override`——現在那一段是一份
+「⛔ 已移除、不要加回來」的註解（`5bcdb53`）。後端 grep 零命中；`GET` 也一樣。
 
-它不是單純的死路徑，是**誤導的死路徑**：畫面會顯示「覆核 API 尚未開放」的橫幅，
-操作員因此以為有人會處理。這個宣稱牽涉三個不同位置，先前併寫成
-`check-in.tsx:315,718-723` 是錯的引法——三件事分開引用：
+它不是單純的死路徑，是**誤導的死路徑**：畫面會顯示「重複報到無法在 App 內放行」
+的橫幅，操作員因此以為有人會處理。這個宣稱牽涉三個不同位置，先前併寫成
+`check-in.tsx:315,718-723` 是錯的引法——三件事分開引用。**以下行號是 2026-10-29
+深夜重新量的；原本那組行號已全部漂移，因為 `5bcdb53` 刪掉了其中兩件東西。**
 
-1. **文案字串**在 `src/constants/copy.zh-TW.ts:277-278`
-   （`overrideBlockedBanner`，字面為「覆核 API 尚未開放（BLOCKED／待後端 B-2）。
-   現場請人工放行並記錄。」），不在 `check-in.tsx` 裡。同檔 `:276` 是按鈕標籤
-   「申請主管覆核」；`:279` 的 `overrideBlockedToast` 全 repo 零引用，是死文案
-   （`grep -rn 'overrideBlockedToast' src/` 只回定義那一行）。
-2. **設定狀態**在 `check-in.tsx:315`
-   （`setOverrideBanner(copy.checkIn.overrideBlockedBanner)`）；失敗分支再設一次，
-   `check-in.tsx:330`。
-3. **渲染**在 `check-in.tsx:714-731` 的 `duplicate` 分支：橫幅 `:716-719`，
-   申請按鈕 `:720-724`。
+1. **文案字串**在 `src/constants/copy.zh-TW.ts:283-284`（`overrideBlockedBanner`，
+   現在的字面是「重複報到無法在 App 內放行：後端目前沒有覆核端點。現場請人工放行
+   並記錄。」），不在 `check-in.tsx` 裡。原引 `:277-278` 現在是
+   `invalidHeadline`／`continueScan`。
+2. **沒有設定狀態了。** 原引 `check-in.tsx:315`／`:330` 的
+   `setOverrideBanner(copy.checkIn.overrideBlockedBanner)` 已不存在
+   （`grep -rn 'setOverrideBanner' src/` 零命中）；橫幅改由 `duplicate` 分支直接
+   渲染，不是 state。
+3. **渲染**在 `check-in.tsx:711-727` 的 `duplicate` 分支：橫幅 `:713-716`，
+   按鈕 `:717-720`（`copy.roster.viewDetail` → 詳情頁，就是修法做的那件事）與
+   `:721-725`（繼續掃碼）。
+
+**`overrideBlockedToast` 這個函式已被移除，所以引用它的行號必然失效。** 原引
+「`:279` 的 `overrideBlockedToast` 全 repo 零引用，是死文案」——`5bcdb53` 直接把它
+刪了，現在 `grep -rn 'overrideBlockedToast' src/` 是**零命中（連定義都沒有）**，
+`:279` 現在是一件註解的開頭。同一個修法也刪掉了那顆按鈕：原引「`:276` 是按鈕標籤
+『申請主管覆核』」，但 `:276` 現在是 `duplicateHeadline`，而「主管覆核」四個字在
+`src/` 裡同樣零命中。
 
 先前寫的「覆核已送出／尚未就緒」也不精確：字面上沒有「已送出」，只有「尚未開放」。
+（現行字面已改寫成上面第 1 點那句。）
 
 修法（上一輪已做，`5bcdb53`）：移除按鈕，改指向詳情頁，那裡看得到實際報到時間。
 
