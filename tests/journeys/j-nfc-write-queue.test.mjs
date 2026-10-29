@@ -151,12 +151,13 @@ describe("J-NFC-WRITE-QUEUE 寫卡流程狀態機 [persona:staff-onsite]", () =>
     assert.ok(bind >= 0, "綁定呼叫不在 writeAndBind 內");
     assert.ok(write < bind, "綁定必須在寫入之後，否則寫失敗的卡仍會被綁定");
     // 綁定用的是「寫入時讀回驗證過的」那張卡＋讀回網址，不是另外再讀一次。
-    // `INC-3`：URL 以 builder 傳入（先讀 UID 才能組解析器網址），綁定帶 writtenUri。
+    // 卡面 URL 以 builder 傳入（感應讀到 UID 後才組；有公開名片時則不需要 UID），
+    // 綁定帶 writtenUri。
     assert.match(
       body,
       /const \{ tagUid, writtenUri \} = await writeUriToCard\(/,
     );
-    assert.match(body, /buildCardPayloadUrl\(eventId, uid\)/);
+    assert.match(body, /chooseCardPayloadUrl\(\{/);
     assert.match(body, /await bindOnly\(ctx, tagUid, writtenUri\)/);
 
     // 現場看到的字：寫卡失敗 → 自己的文案，不得是成功文案。
