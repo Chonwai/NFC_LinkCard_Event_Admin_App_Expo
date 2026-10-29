@@ -1,4 +1,8 @@
-import type { ApiResponse, Registration } from "@/types/api.types";
+import type {
+  ApiResponse,
+  Registration,
+  WalletTransactionList,
+} from "@/types/api.types";
 import { LOOKUP_TIMEOUT_MS } from "@/constants/config";
 
 import { apiClient } from "./api";
@@ -36,25 +40,18 @@ export const registrationService = {
   },
 
   /**
-   * WP-A7 / CHK-03：重複簽到覆核。
-   * B-2 未就緒時後端可能 404；呼叫端應顯示 BLOCKED 骨架，勿當成功。
+   * ⛔ 已移除：`POST …/registrations/checkin/override`
+   *
+   * 這條路由**不存在**。`src/events/routes/registrations.routes.ts` 只有
+   * `/checkin` 與 `/:registrationId/status`；打下去必定 404。
+   *
+   * 近似的 `/status` 不能頂替：它對已 `CHECKED_IN` 的紀錄回
+   * `409 REGISTRATION_STATUS_UNCHANGED`，而且需要 `registrationId` 與
+   * COORDINATOR 以上權限（見 parity 報告 §S-1）。
+   *
+   * 後端補上這個能力之前，UI 不再提供入口——不要加回來，除非
+   * `check-backend-contract` 這道閘門能證明路由存在。
    */
-  async checkInOverride(
-    eventId: string,
-    code: string,
-    reason?: string,
-  ): Promise<{ registration: Registration }> {
-    const res = await apiClient.post<
-      ApiResponse<{ registration: Registration }>
-    >(
-      `/api/v1/events/${encodeURIComponent(eventId)}/registrations/checkin/override`,
-      {
-        registrationCode: code,
-        reason: reason ?? "SUPERVISOR_OVERRIDE",
-      },
-    );
-    return res.data.data;
-  },
 
   /**
    * POST /v1/events/:eventId/registrations — 與線上報名同一端點。
@@ -94,33 +91,24 @@ export const registrationService = {
     return res.data.data;
   },
 
-  /** GET wallet transactions。無操作員欄位時 UI 顯示 —，不估算。 */
+  /**
+   * GET /v1/events/:eventId/wallet/:registrationId/transactions
+   *
+   * 後端分頁（預設 `page=1&limit=20`）且回傳 `pagination`。**必須轉發**——
+   * 不傳參數也不讀分頁，就只會看到前 20 筆，而且沒有任何提示。
+   *
+   * 回應欄位以 `EventWalletService.getTransactionHistory` 的 `select` 為準：
+   * `id / type / amount / balanceAfter / description / sourceType / createdAt`。
+   * **沒有 `approvedBy`**（舊版型別誤植，見 parity 報告 §S-2）。
+   */
   async getWalletTransactions(
     eventId: string,
     registrationId: string,
-  ): Promise<{
-    transactions: {
-      id: string;
-      type: string;
-      amount: number;
-      description?: string | null;
-      createdAt: string;
-      approvedBy?: string | null;
-    }[];
-  }> {
-    const res = await apiClient.get<
-      ApiResponse<{
-        transactions: {
-          id: string;
-          type: string;
-          amount: number;
-          description?: string | null;
-          createdAt: string;
-          approvedBy?: string | null;
-        }[];
-      }>
-    >(
+    params?: { page?: number; limit?: number },
+  ): Promise<WalletTransactionList> {
+    const res = await apiClient.get<ApiResponse<WalletTransactionList>>(
       `/api/v1/events/${encodeURIComponent(eventId)}/wallet/${encodeURIComponent(registrationId)}/transactions`,
+      { params },
     );
     return res.data.data;
   },

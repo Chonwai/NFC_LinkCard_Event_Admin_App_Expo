@@ -56,6 +56,7 @@
     "check:tokens": "node scripts/compare-tokens.mjs",
     "check:parity": "node scripts/check-parity-registry.mjs --web ../LinkCard_Frontend",
     "check:parity:full": "node scripts/check-parity-registry.mjs --web ../LinkCard_Frontend --require-web",
+    "check:contract": "node scripts/check-backend-contract.mjs",
     "typecheck": "tsc --noEmit",
     "regenerate:typed-routes": "expo customize tsconfig.json",
     "test": "node scripts/require-node-version.mjs && node --import ./tests/register-alias-loader.mjs --experimental-test-module-mocks --test tests/*.test.mjs tests/journeys/*.test.mjs"

@@ -22,6 +22,15 @@ import {
   maskPhone,
 } from "@/utils/registration-display";
 
+/**
+ * 流水一次抓多少筆。
+ *
+ * 後端 `limit` 上限是 100（`EventWalletController.getTransactions` 的
+ * `Math.min(100, …)`）。取上限而不是預設的 20，是因為這一頁是「查一個人的帳」，
+ * 分頁互動在這裡價值低；超過 100 筆時仍會以 `tokenPagingHint` 明說（S-2）。
+ */
+const WALLET_PAGE_SIZE = 100;
+
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <View style={styles.section}>
@@ -52,6 +61,8 @@ export default function RegistrantDetailScreen() {
   const [registration, setRegistration] = useState<Registration | null>(null);
   const [transactions, setTransactions] = useState<WalletTransactionItem[]>([]);
   const [tokenMissing, setTokenMissing] = useState(false);
+  /** 後端回報的總筆數（`pagination.total`）；大於已載入筆數時要明說（S-2）。 */
+  const [txTotal, setTxTotal] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -74,13 +85,17 @@ export default function RegistrantDetailScreen() {
           const wallet = await registrationService.getWalletTransactions(
             eventId,
             registrationId || next.id,
+            { page: 1, limit: WALLET_PAGE_SIZE },
           );
           if (!active) return;
-          setTransactions(wallet.transactions ?? []);
+          const rows = wallet.transactions ?? [];
+          setTransactions(rows);
+          setTxTotal(wallet.pagination?.total ?? rows.length);
           setTokenMissing(false);
         } catch {
           if (!active) return;
           setTransactions([]);
+          setTxTotal(0);
           setTokenMissing(true);
         }
       } catch {
@@ -180,13 +195,24 @@ export default function RegistrantDetailScreen() {
                   description={copy.roster.tokenEmptyHint}
                 />
               ) : (
-                transactions.map((tx) => (
-                  <Row
-                    key={tx.id}
-                    label={`${tx.type} · ${tx.approvedBy ?? copy.checkIn.dash}`}
-                    value={String(tx.amount)}
-                  />
-                ))
+                <>
+                  {transactions.map((tx) => (
+                    <Row
+                      key={tx.id}
+                      label={
+                        tx.sourceType
+                          ? `${tx.type} · ${tx.sourceType}`
+                          : tx.type
+                      }
+                      value={`${tx.amount} · ${copy.roster.tokenBalanceLabel} ${tx.balanceAfter}`}
+                    />
+                  ))}
+                  {txTotal > transactions.length ? (
+                    <Text style={[type.caption, styles.muted]}>
+                      {copy.roster.tokenPagingHint}
+                    </Text>
+                  ) : null}
+                </>
               )}
             </Section>
             <Section title={copy.roster.sectionNfc}>

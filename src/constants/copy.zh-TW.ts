@@ -109,11 +109,14 @@ export const copy = {
     badgesTitle: "Badge",
     backToOverview: "返回概覽",
     modulePlaceholderTitle: "功能建置中",
+    /**
+     * Token 沒有「活動層級櫃台」這個東西——後端只有 per-registration 的
+     * balance / transactions。Web 的錢包頁也是參加者視角。
+     * 這段文案之前說「完整櫃台在 Web」，但那個頁面不存在（§S-8）。
+     */
     tokenPlaceholderHint:
-      "Token 櫃台以 Web 為主（WP-A4）。App 只保留入口，不做完整櫃台。",
-    tokenOpenWeb: "在網頁打開櫃台",
-    registrationsPlaceholderHint:
-      "名單、搜尋與詳情將於 WP-A5 交付。目前僅保留入口。",
+      "Token 帳本以每位參加者為單位。請從名單進入任一報名，即可看到該人的交易流水。",
+    tokenOpenRoster: "從名單查看",
     /**
      * W-12：`eventId` 路由參數缺失（空字串 / `undefined`）時的空態文案。
      * 消費端：`overview.tsx` / `check-in.tsx` / `nfc-bind.tsx`。
@@ -273,10 +276,12 @@ export const copy = {
     duplicateHeadline: "重複簽到",
     invalidHeadline: "無效報名",
     continueScan: "繼續掃碼",
-    requestOverride: "申請主管覆核",
+    /**
+     * 重複報到只剩「說明」，沒有可執行的動作：後端沒有覆核端點（§S-1）。
+     * 文案刻意寫「尚無」，不寫「載入中」——不要讓操作者以為再試一次會成功。
+     */
     overrideBlockedBanner:
-      "覆核 API 尚未開放（BLOCKED／待後端 B-2）。現場請人工放行並記錄。",
-    overrideBlockedToast: "後端覆核端點尚未就緒，無法自動放行",
+      "重複報到無法在 App 內放行：後端目前沒有覆核端點。現場請人工放行並記錄。",
     walkInEntry: "現場補報名",
     walkInTitle: "現場補報名",
     walkInPlaceholderTitle: "補報名功能建置中",
@@ -346,6 +351,10 @@ export const copy = {
     orgEmptyHint: "沒有依使用者查社團的接口，這裡顯示 —。",
     tokenEmptyTitle: "沒有流水",
     tokenEmptyHint: "此報名還沒有 Token 交易，或目前帳號讀不到。",
+    /** 交易列的餘額標籤。後端一定有 `balanceAfter`，只是 App 先前沒讀（S-2）。 */
+    tokenBalanceLabel: "餘額",
+    /** 流水被分頁截斷時的說明；`N` 與 `M` 由呼叫端代入。 */
+    tokenPagingHint: "只顯示最近一頁。",
     phone: "電話",
     statusLabels: {
       PENDING_PAYMENT: "待付款",

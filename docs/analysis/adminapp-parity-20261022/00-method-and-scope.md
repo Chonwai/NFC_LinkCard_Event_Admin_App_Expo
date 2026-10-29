@@ -18,26 +18,26 @@
 
 取證時的 commit：
 
-| Repo                            | HEAD                       | 備註                                     |
-| ------------------------------- | -------------------------- | ---------------------------------------- |
-| `LinkCard_Event_Admin_App_Expo` | `7d0fcf5` (`main`)         | 審計分支 `audit/app-web-parity-20261022` |
-| `LinkCard_Frontend`             | `0a4ecab` (`staging`)      | 工作樹乾淨                               |
-| `LinkCard_ExpressJS_Backend`    | `206b1483` (`development`) | 工作樹乾淨                               |
+| Repo                            | HEAD                       | 備註                                                             |
+| ------------------------------- | -------------------------- | ---------------------------------------------------------------- |
+| `LinkCard_Event_Admin_App_Expo` | `7d0fcf5` (`main`)         | 審計分支 `audit/parity-20261022`（worktree `/tmp/lc-parity-wt`） |
+| `LinkCard_Frontend`             | `0a4ecab` (`staging`)      | 工作樹乾淨                                                       |
+| `LinkCard_ExpressJS_Backend`    | `206b1483` (`development`) | 工作樹乾淨                                                       |
 
 > ⚠️ 三個 repo 的預設分支不同（`main` / `staging` / `development`）。任何「兩邊不一致」的結論都必須先確認比較的是哪個分支——這是上一輪沒有寫清楚的地方。
 
 ## 規模
 
-| 面向                        | 數字                                 | 取法                                                                                      |
-| --------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------- |
-| Backend 事件路由            | **111** 條（92 種不同的 path shape） | 解析 `src/events/routes/*.ts` 的 `.get/.post/.patch/.put/.delete` + `index.ts` 的掛載前綴 |
-| Backend 事件路由檔          | 9 支領域路由 + `index.ts`            | `src/events/routes/`                                                                      |
-| Frontend 事件端點字面       | **78** 個（93 個呼叫點）             | `lib/events/**/*.ts` 的 `eventFetch*` 第一參數                                            |
-| Frontend 覆蓋的 route shape | **63 / 92 ≈ 68%**                    | 以 path shape 比對（param 一律視為 `*`）                                                  |
-| App 事件端點字面            | **13** 個（另有 2 個 auth）          | `src/services/*.ts` 的 `apiClient.<verb>(`                                                |
-| App **有效**端點            | **12 / 111 = 10.8%**                 | 扣除 1 條後端不存在的路由                                                                 |
-| App 頁面                    | 10 個事件頁 + 2 個外層頁             | `src/app/(auth)/**`                                                                       |
-| App 產品碼                  | 11,415 行                            | `src/**/*.ts(x)`                                                                          |
+| 面向                        | 數字                                  | 取法                                                                                                                            |
+| --------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Backend 事件路由            | **121** 條（102 種不同的 path shape） | 解析 `src/events/routes/*.ts` 的 `.get/.post/.patch/.put/.delete` + `index.ts` 的掛載前綴 + 兩層巢狀 `router.use('/import', …)` |
+| Backend 事件路由檔          | 11 支領域路由 + `index.ts`            | `src/events/routes/`                                                                                                            |
+| Frontend 事件端點字面       | **78** 個（93 個呼叫點）              | `lib/events/**/*.ts` 的 `eventFetch*` 第一參數                                                                                  |
+| Frontend 覆蓋的 route shape | **63 / 102 ≈ 62%**                    | 以 path shape 比對（param 一律視為 `*`）                                                                                        |
+| App 事件端點字面            | **13** 個（另有 2 個 auth）           | `src/services/*.ts` 的 `apiClient.<verb>(`                                                                                      |
+| App **有效**端點            | **13 / 121 = 10.7%**                  | 扣除 1 條後端不存在的路由（本輪已移除）                                                                                         |
+| App 頁面                    | 10 個事件頁 + 2 個外層頁              | `src/app/(auth)/**`                                                                                                             |
+| App 產品碼                  | 11,415 行                             | `src/**/*.ts(x)`                                                                                                                |
 
 ## 三種「一致」要分開講
 
@@ -55,7 +55,7 @@
 ## 取證方式（全部可重跑）
 
 ```bash
-# Backend route table（111 條）
+# Backend route table（121 條）
 python3 -B /tmp/parity/extract_be.py
 
 # Frontend endpoint literals（78 個）

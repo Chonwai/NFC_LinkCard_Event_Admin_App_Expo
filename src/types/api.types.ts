@@ -97,6 +97,27 @@ export interface Registration {
    * 公開端點（by-code）不會有此欄位。
    */
   isActivated?: boolean | null;
+
+  // ── 名單端點會回、但 App 先前沒有建模的欄位 ──────────────────────────────
+  // 來源：`EventRegistrationService.listRegistrations` 的 select。
+  // 前端 counterpart：`LinkCard_Frontend/lib/events/types.ts:521-542`。
+  //
+  // ⚠️ 範圍限制：**只有 `GET /:eventId/registrations` 會回這幾欄**。
+  // `GET …/registrations/by-code/:code` 的 select 沒有它們
+  // （`EventRegistrationService.getRegistrationByCode`），
+  // 所以在詳情頁（走 by-code）渲染這些欄位只會得到永遠的「—」——
+  // 那正是 `approvedBy` 已經犯過的錯。要顯示，先換資料來源。
+  /** 誰核銷／修正了報到（稽核軌跡）。 */
+  checkedInBy?: string | null;
+  /** 封存時間；非 null 表示已被主辦封存。 */
+  archivedAt?: string | null;
+  /** 保證金退款時間；非 null 即「已退」。 */
+  depositRefundedAt?: string | null;
+  depositRefundedBy?: string | null;
+  /** Decimal 以字串回傳（Prisma Decimal → JSON）。 */
+  depositRefundedAmount?: string | null;
+  depositRefundedReference?: string | null;
+  depositRefundedNote?: string | null;
 }
 
 export interface TicketTypeItem {
@@ -112,9 +133,40 @@ export interface WalletTransactionItem {
   id: string;
   type: string;
   amount: number;
+  /**
+   * 交易後餘額。後端 `EventWalletService.getTransactionHistory` 的 `select`
+   * 一定有這個欄位，App 先前漏接——於是畫面只能顯示異動量，看不到「剩下多少」。
+   */
+  balanceAfter: number;
   description?: string | null;
+  /**
+   * 交易來源別（`MANUAL` / `STRIPE` / …）。後端有 select，App 先前漏接。
+   *
+   * ⚠️ 這裡**沒有** `approvedBy`：後端的 select 從來沒有這個欄位。
+   * 舊版型別宣告了它、UI 也照著渲染，於是每一行都顯示「—」——
+   * 看起來像「沒有人員記錄」，實際上是「這個欄位不存在」。見
+   * `docs/analysis/adminapp-parity-20261022/03-semantic-drift.md` §S-2。
+   */
+  sourceType?: string | null;
   createdAt: string;
-  approvedBy?: string | null;
+}
+
+export interface WalletTransactionPagination {
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
+/**
+ * `GET /:eventId/wallet/:registrationId/transactions` 的完整回應。
+ *
+ * 後端預設 `page=1&limit=20`；不讀 `pagination` 的呼叫端會靜默只看得到
+ * 前 20 筆（S-2）。
+ */
+export interface WalletTransactionList {
+  transactions: WalletTransactionItem[];
+  pagination?: WalletTransactionPagination;
 }
 export interface CheckInResult {
   registration: Registration;

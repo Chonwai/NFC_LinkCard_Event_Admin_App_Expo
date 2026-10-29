@@ -20,6 +20,23 @@ export function listPageCount(pagination?: ListPagination): number {
   return pagination?.totalPages ?? pagination?.pages ?? 1;
 }
 
+/**
+ * 呼叫者在這場活動的實際權限（`GET /v1/events/:eventId/my-access`）。
+ *
+ * 後端是唯一權威（`EventController.getMyEventAccess` → `EventService`）：
+ * `canManage` 需要 owner / SUPER_ADMIN / COORDINATOR；`canOperate` 另外包含
+ * OPERATOR。
+ *
+ * ⚠️ 兩者是**不同**的能力，不要互相推導：
+ * 現場工作人員可以報到（canOperate）但讀不到名單（canManage=false）。
+ */
+export interface EventAccess {
+  canManage: boolean;
+  canOperate: boolean;
+  canInviteAdmins?: boolean;
+  role?: string | null;
+}
+
 /** GET /v1/events/my-managed — 登入者擁有或 org-role 授權的活動 */
 export const eventService = {
   /**
@@ -58,6 +75,20 @@ export const eventService = {
     return res.data.data;
   },
 
+  /**
+   * GET /v1/events/:eventId/my-access — 呼叫者在這場活動能做什麼。
+   *
+   * 這是「進去才撞牆」與「一開始就不顯示」的差別。前端自
+   * `manage/[eventId]/layout.tsx` 起就用它當閘門；App 直到 2026-10-22 都沒接
+   * （parity §S-6）。
+   */
+  async getMyAccess(eventId: string): Promise<EventAccess> {
+    const res = await apiClient.get<ApiResponse<EventAccess>>(
+      `/api/v1/events/${encodeURIComponent(eventId)}/my-access`,
+    );
+    return res.data.data;
+  },
+
   /** GET /v1/events/:eventId/registrations — 報名清單（寫入權限；OPERATOR 仍可能 403） */
   async getRegistrations(
     eventId: string,
@@ -67,6 +98,12 @@ export const eventService = {
       status?: string;
       ticketTypeId?: string;
       visibility?: string;
+      /**
+       * 保證金退款篩選。後端值域是 `all | refunded | not_refunded`
+       * （`EventRegistrationController.ts:130-146`）；其他值會回
+       * `400 INVALID_DEPOSIT_REFUND_FILTER`，所以型別收緊到同一個集合。
+       */
+      depositRefunded?: "all" | "refunded" | "not_refunded";
     },
   ): Promise<{ registrations: Registration[]; pagination?: ListPagination }> {
     const res = await apiClient.get<
