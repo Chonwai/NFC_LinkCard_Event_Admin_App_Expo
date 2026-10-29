@@ -65,9 +65,9 @@ export function buildRegistrationProfileUrl(slug: string): string {
  * `tagUid` 是實體卡晶片本體識別，解析端（FE `/t/` → BE `nfc/lookup`）
  * 以它動態查詢目前狀態 ⇒ 先綁卡後建檔／激活會自動升級。
  *
- * ── 這是**保底**，不是主路徑（2026-10-30 定案）────────────────────────────
- * 主路徑是 `chooseCardPayloadUrl()`：有公開名片就寫 `/p/{slug}?e={eventId}`
- * （感應即名片，且說得出哪一場）。這裡只在**真的沒有公開名片**時用到——那時
+ * ── 這是**保底**，不是主路徑（2026-10-30 二次定案）──────────────────────
+ * 主路徑是 `chooseCardPayloadUrl()`：有公開名片就寫 `${WEB_BASE_URL}/p/{slug}`
+ * （名片網址與他自己分享的逐字相同）。這裡只在**真的沒有公開名片**時用到——那時
  * 寫一張 `/p/` 只會 404，比多一跳更糟。
  */
 export function buildCardPayloadUrl(eventId: string, tagUid: string): string {
@@ -129,9 +129,10 @@ function safePathname(absoluteUrl: string): string | null {
  * 決定「寫進卡裡的那一個網址」——**唯一決策點**。
  *
  * 名片優先、解析器保底：
- * - 有公開名片 ⇒ `${WEB_BASE_URL}/p/{slug}?e={eventId}`
- *   感應即名片（不多一跳），而 `?e=` 讓這張卡說得出「這是哪一場發的」，交換聯絡也
- *   才有 eventId 可以歸屬。
+ * - 有公開名片 ⇒ `${WEB_BASE_URL}/p/{slug}`
+ *   卡片寫入後**無法遠端修改**，所以它只能依賴「只由這個人是誰決定」的東西。
+ *   加任何參數都會讓「卡片能不能開」多一個與訪客無關的失敗原因（活動被刪、
+ *   被改為不公開、eventId 打錯），而訪客要看的只是人。
  * - 沒有 ⇒ `/t/{eventId}/{tagUid}`，由 FE 動態解析（先綁卡後建檔也會自動升級）。
  *
  * 為什麼仍要保底：名片可能真的不存在（使用者把名片設為私人都算）。那時寫 `/p/`
@@ -144,12 +145,8 @@ export function chooseCardPayloadUrl(input: {
   profileUrl?: string | null;
 }): { url: string; family: CardPayloadFamily } {
   const slug = slugFromProfileUrl(input.profileUrl);
-  const event = String(input.eventId ?? "").trim();
-  if (slug && event) {
-    return {
-      url: `${buildRegistrationProfileUrl(slug)}?e=${encodeURIComponent(event)}`,
-      family: "profile",
-    };
+  if (slug) {
+    return { url: buildRegistrationProfileUrl(slug), family: "profile" };
   }
   return {
     url: buildCardPayloadUrl(input.eventId, input.tagUid),
@@ -171,10 +168,10 @@ export function previewCardPayloadUrl(input: {
   profileUrl?: string | null;
 }): string {
   const slug = slugFromProfileUrl(input.profileUrl);
-  const event = String(input.eventId ?? "").trim();
-  if (slug && event) {
-    return `${buildRegistrationProfileUrl(slug)}?e=${encodeURIComponent(event)}`;
+  if (slug) {
+    return buildRegistrationProfileUrl(slug);
   }
+  const event = String(input.eventId ?? "").trim();
   return `${WEB_BASE_URL}/t/${encodeURIComponent(event)}/…`;
 }
 

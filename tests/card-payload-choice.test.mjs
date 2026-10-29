@@ -1,12 +1,14 @@
 /**
  * 2026-10-30：`chooseCardPayloadUrl` ——「寫進卡裡的那一個網址」的唯一決策點。
  *
- * 定案形状：有公開名片 ⇒ `${WEB_BASE_URL}/p/{slug}?e={eventId}`（感應即名片，
- * 且說得出哪一場）；沒有 ⇒ `/t/{eventId}/{tagUid}`（保底，由 FE 動態解析）。
+ * 定案形狀：有公開名片 ⇒ `${WEB_BASE_URL}/p/{slug}`（一個參數都不帶）；
+ * 沒有 ⇒ `/t/{eventId}/{tagUid}`（保底，由 FE 動態解析）。
  *
- * 為什麼一定要有 `?e=`：手帶是依活動發的，同一人三場就是三條。若卡上只有
- * `/p/{slug}`，三條手帶會是**完全相同的網址**，於是「你在哪一場遇到他」無法回答，
- * 交換聯絡也少了 eventId 可以歸屬。
+ * 為什麼**不再**帶 `?e={eventId}`：卡片寫入後無法遠端修改，所以它只能依賴「只由
+ * 這個人是誰決定」的東西。加參數等於讓「卡片能不能開」多一個與訪客無關的失敗原因
+ * （活動被刪、被改為不公開、eventId 打錯）。而「交換聯絡」的定義是兩支手機實體
+ * 碰一下、打開名片——不需要 eventId。決策全文見
+ * `LinkCard_Frontend/docs/20261030_Card_Payload_Final.md`。
  *
  * 模組替身：`react-native`（Platform）——`nfc-utils` 為 web-safe 工具層，
  * 頂層依賴 Platform；NFC manager 不需 mock（這些函式不觸及）。
@@ -31,7 +33,7 @@ const { WEB_BASE_URL } = await import("@/constants/config");
 const PROFILE = `${WEB_BASE_URL}/p/chan-tai-man`;
 
 describe("chooseCardPayloadUrl 家族決策", () => {
-  it("有公開名片 ⇒ 寫 `/p/{slug}?e={eventId}`，family=profile", () => {
+  it("有公開名片 ⇒ 只寫 `/p/{slug}`，一個參數都不帶", () => {
     const chosen = chooseCardPayloadUrl({
       eventId: "evt-1",
       tagUid: "04A1B2C3",
@@ -39,11 +41,9 @@ describe("chooseCardPayloadUrl 家族決策", () => {
     });
 
     assert.equal(chosen.family, "profile");
-    assert.equal(
-      chosen.url,
-      `${buildRegistrationProfileUrl("chan-tai-man")}?e=evt-1`,
-    );
+    assert.equal(chosen.url, buildRegistrationProfileUrl("chan-tai-man"));
     assert.ok(!chosen.url.includes("/t/"), `不得寫解析器：${chosen.url}`);
+    assert.ok(!chosen.url.includes("?"), `不得帶參數：${chosen.url}`);
   });
 
   it("沒有名片（null／undefined／空字串）⇒ 退回解析器，family=event-tap", () => {
@@ -63,7 +63,7 @@ describe("chooseCardPayloadUrl 家族決策", () => {
     }
   });
 
-  it("兩場活動的同一人拿到不同網址（活動仍在卡面 URL 裡）", () => {
+  it("兩場活動的同一人拿到**同一條**網址（卡不是活動的附屬品）", () => {
     const a = chooseCardPayloadUrl({
       eventId: "evt-A",
       tagUid: "04AAAABBBB",
@@ -75,9 +75,10 @@ describe("chooseCardPayloadUrl 家族決策", () => {
       profileUrl: PROFILE,
     });
 
-    assert.notEqual(a.url, b.url);
-    assert.ok(a.url.endsWith("?e=evt-A"), a.url);
-    assert.ok(b.url.endsWith("?e=evt-B"), b.url);
+    // 兩條手帶碰到同一個人的手機，打開的是同一張名片。這正是「實體交換」的意思：
+    // 卡片代表那個人，不負責記住你在哪一場認識他。
+    assert.equal(a.url, b.url);
+    assert.equal(a.url, buildRegistrationProfileUrl("chan-tai-man"));
   });
 
   it("選到 profile 家族時不需要有效 UID（名片網址與卡片本身無關）", () => {
@@ -125,7 +126,7 @@ describe("chooseCardPayloadUrl 家族決策", () => {
       tagUid: "04A1B2C3",
       profileUrl: `${PROFILE}?utm=x#frag`,
     });
-    assert.equal(chosen.url, `${WEB_BASE_URL}/p/chan-tai-man?e=evt-1`);
+    assert.equal(chosen.url, `${WEB_BASE_URL}/p/chan-tai-man`);
   });
 
   it("相對路徑（BE 在 `/t/` lookup 回的就是相對路徑）也吃得下", () => {
@@ -138,10 +139,10 @@ describe("chooseCardPayloadUrl 家族決策", () => {
 });
 
 describe("previewCardPayloadUrl 確認畫面那一行字", () => {
-  it("有名片 ⇒ 直接給實際會寫進卡的完整網址（含 ?e=）", () => {
+  it("有名片 ⇒ 直接給實際會寫進卡的完整網址（沒有參數）", () => {
     assert.equal(
       previewCardPayloadUrl({ eventId: "evt-1", profileUrl: PROFILE }),
-      `${WEB_BASE_URL}/p/chan-tai-man?e=evt-1`,
+      `${WEB_BASE_URL}/p/chan-tai-man`,
     );
   });
 
