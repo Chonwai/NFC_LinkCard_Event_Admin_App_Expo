@@ -156,7 +156,7 @@ describe("J-NFC-WRITE-QUEUE 寫卡流程狀態機 [persona:staff-onsite]", () =>
       body,
       /const \{ tagUid, writtenUri \} = await writeUriToCard\(/,
     );
-    assert.match(body, /buildCardPayloadUrl\(eventId, uid\)/);
+    assert.match(body, /chooseCardPayloadUrl\(\{/);
     assert.match(body, /await bindOnly\(ctx, tagUid, writtenUri\)/);
 
     // 現場看到的字：寫卡失敗 → 自己的文案，不得是成功文案。

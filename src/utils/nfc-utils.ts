@@ -65,16 +65,10 @@ export function buildRegistrationProfileUrl(slug: string): string {
  * `tagUid` 是實體卡晶片本體識別，解析端（FE `/t/` → BE `nfc/lookup`）
  * 以它動態查詢目前狀態 ⇒ 先綁卡後建檔／激活會自動升級。
  *
- * ── 為什麼是 `/t/` 而不是 `/p/{slug}`（2026-10-29 定案）───────────────────
- * 卡是**依活動發的**：同一個人參加三場就有三條手帶。`/t/` 認的是**那張卡**，
- * 所以三場是三張不同的卡，卡面說得出「你在這一場遇到他」。
- *
- * 曾短暫改成「有公開名片就寫 `/p/{slug}`」（少一跳）。代價是**活動消失**：兩場
- * 的手帶指向同一個網址，歸屬無法回答。而且名片是使用者自己的頁面，他改名、改主題、
- * 刪掉都會改變一張已經發出去、現場沒有人員工具可以重寫的實體卡。
- *
- * `/p/{slug}` 仍然存在（`buildRegistrationProfileUrl`），但它是**個人名片**，
- * 不是卡面 URL；本 app 不再用它寫卡。
+ * ── 這是**保底**，不是主路徑（2026-10-30 定案）────────────────────────────
+ * 主路徑是 `chooseCardPayloadUrl()`：有公開名片就寫 `/p/{slug}?e={eventId}`
+ * （感應即名片，且說得出哪一場）。這裡只在**真的沒有公開名片**時用到——那時
+ * 寫一張 `/p/` 只會 404，比多一跳更糟。
  */
 export function buildCardPayloadUrl(eventId: string, tagUid: string): string {
   const event = String(eventId ?? "").trim();
@@ -83,6 +77,105 @@ export function buildCardPayloadUrl(eventId: string, tagUid: string): string {
     throw new NfcFlowError("write-failed", "missing eventId or tagUid");
   }
   return `${WEB_BASE_URL}/t/${encodeURIComponent(event)}/${encodeURIComponent(uid)}`;
+}
+
+/** 卡面 URL 的兩個家族——決定「這張卡什麼時候會壞」，不是實作細節。 */
+export type CardPayloadFamily = "profile" | "event-tap";
+
+/**
+ * 從 BE 給的 `profileUrl` 取出 `/p/{slug}` 的 slug。
+ *
+ * ⚠️ 這支是 `LinkCard_Frontend:lib/nfc/cardPayloadUrl.ts` 同名函式的**孿生實作**：
+ * 兩個 repo 沒有共用套件，所以同一條規則存在兩份。條件必須逐字一致——`tests/
+ * card-payload-choice.test.mjs` 用同一組真值表鎖住；改一邊就要改另一邊。
+ *
+ * 只接受**恰好** `/p/{單一段}`：多段路徑、空 slug、或根本不是 `/p/`（例如 `/t/…`）
+ * 一律回 `null`。寧可退回解析器，也不要把猜出來的路徑寫進一張實體卡——那張卡之後
+ * 只會 404，而現場沒人有工具改它。
+ *
+ * query 與 hash 會被**丟棄**（不是拒收）：回收的是 slug，不是整個網址，所以
+ * `?utm=…` 之類的東西不可能跟著進到卡片。相對路徑（`/p/{slug}`）也吃。
+ */
+export function slugFromProfileUrl(
+  profileUrl: string | null | undefined,
+): string | null {
+  const raw = String(profileUrl ?? "").trim();
+  if (raw === "") return null;
+
+  const path = /^[a-z][a-z0-9+.-]*:/i.test(raw) ? safePathname(raw) : raw;
+  if (path === null) return null;
+
+  const segments = path
+    .split("?")[0]
+    .split("#")[0]
+    .split("/")
+    .filter((part) => part !== "");
+  if (segments.length !== 2) return null;
+  if (segments[0] !== "p") return null;
+
+  return segments[1] || null;
+}
+
+/** 絕對網址取 pathname；不是合法網址回 `null`（不拋）。 */
+function safePathname(absoluteUrl: string): string | null {
+  try {
+    return new URL(absoluteUrl).pathname;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 決定「寫進卡裡的那一個網址」——**唯一決策點**。
+ *
+ * 名片優先、解析器保底：
+ * - 有公開名片 ⇒ `${WEB_BASE_URL}/p/{slug}?e={eventId}`
+ *   感應即名片（不多一跳），而 `?e=` 讓這張卡說得出「這是哪一場發的」，交換聯絡也
+ *   才有 eventId 可以歸屬。
+ * - 沒有 ⇒ `/t/{eventId}/{tagUid}`，由 FE 動態解析（先綁卡後建檔也會自動升級）。
+ *
+ * 為什麼仍要保底：名片可能真的不存在（使用者把名片設為私人都算）。那時寫 `/p/`
+ * 只會得到 404——比多一跳更糟。
+ */
+export function chooseCardPayloadUrl(input: {
+  eventId: string;
+  /** 感應當下讀到的 UID；選到 `profile` 家族時不會用到。 */
+  tagUid: string;
+  profileUrl?: string | null;
+}): { url: string; family: CardPayloadFamily } {
+  const slug = slugFromProfileUrl(input.profileUrl);
+  const event = String(input.eventId ?? "").trim();
+  if (slug && event) {
+    return {
+      url: `${buildRegistrationProfileUrl(slug)}?e=${encodeURIComponent(event)}`,
+      family: "profile",
+    };
+  }
+  return {
+    url: buildCardPayloadUrl(input.eventId, input.tagUid),
+    family: "event-tap",
+  };
+}
+
+/**
+ * 確認畫面上要給操作員看的那一行字。
+ *
+ * 有名片 ⇒ 完整網址此刻就已確定，直接顯示實際會寫進卡裡的字；沒有 ⇒ 解析器的
+ * tagUid 段要感應才讀得到，只能顯示模板（用 `…` 佔位，不要假裝知道）。
+ *
+ * 放在工具層而不是畫面裡：畫面一旦自己拼 origin，就會出現第二份「卡面 URL 長什麼
+ * 樣子」的真相（X-23）。
+ */
+export function previewCardPayloadUrl(input: {
+  eventId: string;
+  profileUrl?: string | null;
+}): string {
+  const slug = slugFromProfileUrl(input.profileUrl);
+  const event = String(input.eventId ?? "").trim();
+  if (slug && event) {
+    return `${buildRegistrationProfileUrl(slug)}?e=${encodeURIComponent(event)}`;
+  }
+  return `${WEB_BASE_URL}/t/${encodeURIComponent(event)}/…`;
 }
 
 function urlsMatch(expected: string, actual: string): boolean {

@@ -19,7 +19,6 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { InlineBanner } from "@/components/ui/InlineBanner";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import { WEB_BASE_URL } from "@/constants/config";
 import { copy } from "@/constants/copy.zh-TW";
 import { DEFAULT_BADGE_TYPE } from "@/constants/nfc";
 import {
@@ -38,8 +37,9 @@ import {
   type NfcBindFailureKind,
 } from "@/utils/nfc-bind-errors";
 import {
-  buildCardPayloadUrl,
+  chooseCardPayloadUrl,
   isNfcSupported,
+  previewCardPayloadUrl,
   startNfc,
   writeUriToCard,
 } from "@/utils/nfc-utils";
@@ -290,11 +290,16 @@ export default function NfcBindScreen() {
           return;
         }
         await startNfc();
-        // `INC-3`：卡面 URL 是解析器 `${WEB_BASE_URL}/t/{eventId}/{tagUid}`——
-        // 寫入前先讀 UID 再組 URL（builder），不再要求此人「當下有公開檔案」；
-        // 非 LinkCard 用戶也能寫卡，激活後同一張卡自動升級（FE `/t/` 動態解析）。
+        // 卡面 URL 由 `chooseCardPayloadUrl` 決定（名片優先、解析器保底）：
+        // 有公開名片 🔍 寫 `/p/{slug}?e={eventId}`（感應即名片，且說得出哪一場）；
+        // 沒有才退回 `/t/{eventId}/{tagUid}`，由 FE 動態解析。
         const { tagUid, writtenUri } = await writeUriToCard(
-          (uid) => buildCardPayloadUrl(eventId, uid),
+          (uid) =>
+            chooseCardPayloadUrl({
+              eventId,
+              tagUid: uid,
+              profileUrl: ctx.profileUrl,
+            }).url,
           { signal: controller.signal },
         );
         await bindOnly(ctx, tagUid, writtenUri);
@@ -438,10 +443,14 @@ export default function NfcBindScreen() {
               >
                 {copy.nfc.payloadPreview}
               </Text>
-              {/* `INC-3`：解析器 URL 的 tagUid 段要感應當下才讀得到，
-                  確認畫面只能顯示模板，不能先給完整網址。 */}
+              {/* 有公開名片 ⇒ 這一刻就知道完整網址（不需要 UID），直接把實際要寫
+                  的字給操作員看；沒有名片 ⇒ 退回解析器，tagUid 段要感應當下才讀得到，
+                  確認畫面只能顯示模板。 */}
               <Text style={styles.url} selectable>
-                {`${WEB_BASE_URL}/t/${eventId}/…`}
+                {previewCardPayloadUrl({
+                  eventId: String(eventId ?? ""),
+                  profileUrl: state.profileUrl,
+                })}
               </Text>
               <Text
                 style={styles.stepHint}
