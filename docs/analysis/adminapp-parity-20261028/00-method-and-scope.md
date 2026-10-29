@@ -23,41 +23,78 @@
 
 | Repo                            | 分支                          | 量測時的 HEAD |
 | ------------------------------- | ----------------------------- | ------------- |
-| `LinkCard_Event_Admin_App_Expo` | `feat/nfc-gate1-reader-spike` | `fa111a7`     |
+| `LinkCard_Event_Admin_App_Expo` | `feat/nfc-gate1-reader-spike` | `1cb2b73`     |
 | `LinkCard_Frontend`             | `development`                 | `c8508aa`     |
 | `LinkCard_ExpressJS_Backend`    | `development`                 | `7d08daff`    |
+
+> **合併前的量測座標是 `fa111a7`。** 本節（以及這批文件）所有數字都是在
+> `fa111a7` 上量到的；`1cb2b73` 是 2026-10-29 把 `audit/parity-20261022` 併進來的
+> merger，它比 `fa111a7` 只多那次合併——而那次合併**確實動了 `src/`**，見下方
+> 「合併之後」。
 
 產生上表的三條命令（互不相依，在 `LinkCard/` 這一層跑）：
 
 ```
-git -C LinkCard_Event_Admin_App_Expo rev-parse --short HEAD   # fa111a7
+git -C LinkCard_Event_Admin_App_Expo rev-parse --short HEAD   # 1cb2b73（量測當時是 fa111a7）
 git -C LinkCard_Frontend          rev-parse --short HEAD      # c8508aa
 git -C LinkCard_ExpressJS_Backend rev-parse --short HEAD      # 7d08daff
 ```
 
 **這三個 SHA 會前進；重測前請先確認你量的和文件量的是同一個 HEAD。** 本節每一個
-數字都是上表那三個 HEAD 上量到的。這批文件先前寫的 `6e58f0a`（Web）與 `5b39cbd4`
+數字都是在**量測當時**那三個 HEAD 上量到的——App 的「量測當時」是 `fa111a7`，
+不是上表的 `1cb2b73`。這批文件先前寫的 `6e58f0a`（Web）與 `5b39cbd4`
 （Backend）已不是那兩條分支的 HEAD。
 
 **App 的 SHA 會隨本分支每一個 commit 前進**——這批文件本身就在這條分支上，每改一
-次文件它就前進一次，所以上表的 `fa111a7` 只保證「量測當時」。Web 與 Backend 在本
-輪全程唯讀，`c8508aa`／`7d08daff` 不會因為本分支的任何動作而變。引用這個表時請先
+次文件它就前進一次，所以上表的 SHA 只保證「量測當時」。Web 與 Backend 在本輪全
+程唯讀，`c8508aa`／`7d08daff` 不會因為本分支的任何動作而變。引用這個表時請先
 確認你的 HEAD。
 
 **這是這批文件唯一的一份座標表。** 其他章節提到三方座標時一律指向本節，不再各自
 複寫一份會各自腐爛的副本。各章若自己標了 SHA，那是「那一節量測當時」的時點，不
 是本節的替代品。
 
-App 的 `fa111a7` 是研究與文件分支。它的 **`src/`** 與 `origin/main`（`7d0fcf5`）
-逐位元相同：
+**在本輪量測當時（`fa111a7`）**，App 這條研究與文件分支的 **`src/`** 與
+`origin/main`（`7d0fcf5`）逐位元相同：
 
 ```
+# 以下兩條讀數只在 fa111a7 上成立
 git diff --stat origin/main..HEAD -- src/
 # 空輸出
 
 git diff --name-only origin/main..HEAD -- src/ | wc -l
 # 0
 ```
+
+### 合併之後（2026-10-29）
+
+2026-10-29 把 `audit/parity-20261022` 併入本分支（merge `1cb2b73`）之後，同一條
+命令不再回空輸出：
+
+```
+$ git diff --stat origin/main..HEAD -- src/
+ src/app/(auth)/[eventId]/check-in.tsx              |  56 +++++----
+ src/app/(auth)/[eventId]/overview.tsx              | 125 +++++++++++++++------
+ .../[eventId]/registrant/[registrationId].tsx      |  42 +++++--
+ src/app/(auth)/[eventId]/token.tsx                 |  23 ++--
+ src/constants/copy.zh-TW.ts                        |  23 ++--
+ src/services/event.service.ts                      |  37 ++++++
+ src/services/nfc.service.ts                        |   3 +
+ src/services/registration.service.ts               |  72 +++++-------
+ src/types/api.types.ts                             |  54 ++++++++-
+ 9 files changed, 302 insertions(+), 133 deletions(-)
+
+$ git diff --name-only origin/main..HEAD -- src/ | wc -l
+9
+```
+
+那 9 個檔就是 G-1～G-5 的修復（不再呼叫不存在的路由、Token 不再連死路徑、錢包
+改讀後端真的送的欄位並轉發分頁、名單型別與篩選參數補齊、overview 先問
+`/my-access`）。它們在 `audit/parity-20261022` 上就修好了，只是當時**停在一條
+沒有合併的分支上**。
+
+所以「App 沒有產品碼改動」這句話**只對 `fa111a7` 成立**；對 `1cb2b73` 及之後的
+HEAD，App 的 `src/` 已經含有這五個修復。
 
 **這裡原本引用的命令已經失效，而原因值得留在文件裡。** 舊版寫的是
 `git diff --stat origin/main..<branch> -- src tests scripts .github package.json`
@@ -93,7 +130,8 @@ git diff --name-only origin/main..HEAD | awk -F/ '{print ($0 ~ /\// ? $1"/" : $0
 
 所以正確的說法是兩句，不能併成一句：
 
-1. **`src/`（App 的執行期產品碼）沒有變動。**
+1. **在量測當時（`fa111a7`），`src/`（App 的執行期產品碼）沒有變動。**
+   2026-10-29 的合併之後 `src/` 有 9 檔變動，見上方「合併之後」。
 2. 這條分支**不是**「只有文件」——它多了 19 個 `tools/` 檔、一套閘門與測試，以及
    一段只作用於 `tools/nfc-reader-spike/**` 的 lint 例外。
 
