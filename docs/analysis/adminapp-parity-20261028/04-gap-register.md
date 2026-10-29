@@ -29,6 +29,7 @@
 | G-11 | 契約閘門不在 CI 上                       | 流程 | P1     | —（無爭議）                | S            |
 | G-12 | 授權只在 controller 層，路由層無角色閘門 | 缺陷 | P2     | 需決策（後端）             | M            |
 | G-13 | 換卡／補發／退卡沒有後端作廢端點         | 能力 | P1     | 你＋後端（兩選項見 §G-13） | A `L`／B `S` |
+| G-14 | 綁卡失敗訊息指錯欄位（已修，後端分支）   | 缺陷 | P2     | —（無爭議）                | S            |
 
 `S` ≦ 半天、`M` ≦ 兩天、`L` 需要設計與驗收。G-13 的工時欄刻意不是單一字母：
 選項還沒有人選，寫一個值就是替未來猜答案（理由見 `§G-13` 的四問第三項）。
@@ -1026,6 +1027,12 @@ App 端把 `BADGE_ALREADY_BOUND` 歸進 `DUPLICATE_CODES`（`src/utils/nfc-bind-
 的（`LinkCard_ExpressJS_Backend@src/events/services/EventNfcBatchService.ts:367`），
 與換卡無關。結論是：**正確的話寫好了，卻永遠不會顯示。**
 
+> **2026-10-29 傍晚：這一半已獨立成 `§G-14`，並在後端分支修好**
+> （`LinkCard_ExpressJS_Backend@800790cf`，未 push、未部署）。
+> `G-13` 剩下的部分是**風險一**（沒有作廢端點、`DEACTIVATED`／`LOST` 無人寫入）
+> 與「作廢後同一個報名能不能再綁」的語意。上面那段的行號是**修復前**的座標；
+> 修復後該段為 `LinkCard_ExpressJS_Backend@src/events/controllers/EventNfcController.ts:112-141`。
+
 順帶一個觀察（不是缺陷，不列入風險）：`classifyNfcBindError` 的函式註解寫著「先判斷
 『報名已有卡』，再判斷『這張 UID 已被佔用』」（`src/utils/nfc-bind-errors.ts:36-38`），
 顯示作者本來就知道這兩件事要分開；失效點不在 App 的分類順序，在**後端沒有把這兩個
@@ -1097,6 +1104,112 @@ App 端把 `BADGE_ALREADY_BOUND` 歸進 `DUPLICATE_CODES`（`src/utils/nfc-bind-
   `nfc-bind` 這一頁，但**不共用實作順序**——`G-7`／`G-8` 決定「怎麼發卡」，`G-13`
   決定「怎麼收回」。兩者可以各自獨立進行，唯一的要求是：動 `nfc-bind.tsx` 的人
   要知道另一邊也在動同一頁（這是 `G-8` 的三個前置之一已經提過的同一個風險）。
+
+### G-14 綁卡失敗訊息指錯欄位（P2，缺陷）— **已修：後端分支 `800790cf`，未 push、未部署**
+
+**這一項原本住在 `§G-13` 的「風險二」裡**，現在獨立成一項。理由不是分類潔癖，而是
+**決定者不同**：`G-13` 卡在一個產品＋後端的語意決定（作廢到底是改狀態、解綁，還是
+換一張新卡並留稽核軌跡），而這一項卡在**零個決定**——把兩個唯一鍵分開回報就好。綁在
+一起的代價是：一個今天就能修的缺陷，被一個還沒有人回答的問題扣住。
+
+現場流程與 `§G-13` 是同一句：**簽到 → 派發手環／掛牌 → 有掛牌即可出入會場**。必然
+遇到「同一個人已經有卡、要換卡／補發」；而換卡／補發／退卡三顆按鈕是停用的
+（`§G-13`），操作員唯一的動作就是**再寫一張空白卡**——然後撞到這一項。
+
+**修復前的實況（2026-10-29 實跑，`LinkCard_ExpressJS_Backend@development`）。** 一個
+報名最多一張卡，DB 層擋住第二張：
+
+```
+grep -n 'model EventNfcBadge' -A 24 ../LinkCard_ExpressJS_Backend/prisma/schema.prisma | grep registrationId
+# → LinkCard_ExpressJS_Backend@prisma/schema.prisma:899
+#     registrationId  String?  @unique @map("registration_id")
+```
+
+`bindNfcBadge` 是一次 `eventNfcBadge.create`
+（`LinkCard_ExpressJS_Backend@src/events/services/EventRegistrationService.ts:3738`），
+所以**兩個**唯一鍵（`tag_uid`、`registration_id`）撞到的時候長得一模一樣：都是
+`P2002`。而 controller 把它們壓成同一個回應：
+
+```
+awk 'NR>=112 && NR<=124 {printf "%d: %s\n", NR, $0}' ../LinkCard_ExpressJS_Backend/src/events/controllers/EventNfcController.ts   # 修復前的行號
+# → :112  // Unique constraint violation on tagUid          ← 註解自己說只處理 tagUid
+#   :115  (error as any).code === 'P2002'
+#   :118  'NFC badge UID 已被使用'   →   'BADGE_ALREADY_BOUND'   409
+```
+
+⚠️ **行號陷阱（本輪實測，值得記下來）**：`LinkCard_ExpressJS_Backend@prisma/schema.prisma:628`
+的 `registrationId @unique` 是 **`EventExhibitor`**（`model EventExhibitor` 起於 `:624`），
+不是 badge。badge 的那條在 `:899`（`model EventNfcBadge` 起於 `:891`）。兩張表都有
+`registration_id @unique`，只憑行號會在錯的表上找證據——要用 `model` 名 grep。
+
+App 端因此顯示**錯的指示**：`BADGE_ALREADY_BOUND` 落在 `DUPLICATE_CODES`
+（`src/utils/nfc-bind-errors.ts:28-34`，判定在 `:66`；`:75` 還有一條「任何 409 都算
+`duplicate`」的退路）⇒「這張卡已經綁定過，請換一張空白卡」
+（`src/constants/copy.zh-TW.ts:387`）。而正確的文案 `boundOther` 早就寫好了
+（`src/constants/copy.zh-TW.ts:388`），只在收到 `REGISTRATION_ALREADY_BOUND`／
+`REGISTRATION_HAS_BADGE`／`BADGE_ALREADY_ASSIGNED` 時觸發
+（`src/utils/nfc-bind-errors.ts:22-26`，另有 `:60` 的 `REGISTRATION_ALREADY` 前綴退
+路）——**這三個碼在 bind 路徑上一個都不會回來**（`BADGE_ALREADY_ASSIGNED` 是「這張
+卡已指派給別的展商」，來源是
+`LinkCard_ExpressJS_Backend@src/events/services/EventNfcBatchService.ts:367`）。
+
+**所以操作員的行為是被文案決定的**：訊息說「換一張空白卡」，他就換一張；新卡的 UID
+當然沒被用過，於是他再一次撞上同一個 `registration_id`——同一個 409、同一句話。
+**這是一個沒有出口的迴圈，而它只在「這個人已經有卡」時觸發，也就是現場最常發生的
+那一刻。**
+
+**修法（已實施，後端 repo）。** 在原本的 catch 裡先分辨 `P2002` 的 target：
+
+- target 指向 `registration_id`（欄位清單 `['registration_id']` 與約束名
+  `event_nfc_badges_registration_id_key` **兩種形狀都接受**）⇒ 回
+  `REGISTRATION_ALREADY_BOUND`「此報名已綁定其他卡片」，`409`。
+- 其餘（`tag_uid`，或**無法判定**）⇒ 維持原行為 `BADGE_ALREADY_BOUND`。
+
+「無法判定時退回原行為」是刻意的方向，不是偷懶：只有新的 App 版本認得新碼，把一個
+來歷不明的 `P2002` 貼上新標籤，等於讓舊版 App 收到一個它不認得的 `409`。
+
+程式位置（修復後）：`LinkCard_ExpressJS_Backend@src/events/controllers/EventNfcController.ts:112-141`
+（分辨與兩個回應）、`:163`（`isRegistrationIdUniqueViolation`）、`:169`
+（`normalizeUniqueTarget`）。原本那句錯的註解「Unique constraint violation on
+tagUid」已改成描述實際的兩個唯一鍵。
+
+**App 端零改動**——這是這一項成本極低的原因：契約（`BOUND_OTHER_CODES`）與文案
+（`boundOther`）都已經在樹上，缺的只有後端吐出那個碼。
+
+**測試**（`LinkCard_ExpressJS_Backend@tests/events/unit/EventNfcController.unit.test.ts`，
+5 個案例）：同一報名第二次綁定、不同 UID → `REGISTRATION_ALREADY_BOUND`；同一 UID
+綁到別的報名 → 仍 `BADGE_ALREADY_BOUND`（原行為回歸保護）；約束名形狀 → 同新碼；
+target 缺失 → 退回舊碼。
+
+**四問。**
+
+- **多嚴重**：`P2`。它不產生錯誤**資料**（DB 的 UNIQUE 讓「兩張同時有效」不可能），
+  也不擋住順利的發卡；它錯的是**指示**，代價是操作員在「這個人已經有卡」時反覆換卡。
+  ⚠️ **與 `§4.1` 的定義有一個張力，寫出來不藏**：`P1` 的第二個條件是「堵住一個會
+  誤導人的顯示」，字面上這一項符合，而 `§G-13` 當初也是以 `P1` 計入（那時它與「沒有
+  作廢端點」綁成一項）。本項取 `P2` 的判準是：**單獨看，它是一句訊息的映射錯誤，
+  `S` 級、零決策、已在分支上修好**；使它具備 `P1` 重量的前提（現場真的有人在換卡）
+  仍然由 `§G-13` 的四問在追。若你認為一個缺口只能有一個嚴重度，請讀 `§G-13` 的
+  `P1`——它涵蓋同一條流程，本項不因取 `P2` 而消失。
+- **誰該決定**：`—（無爭議）`。沒有人要選邊：兩個唯一鍵分開回報是**契約本身的缺口**，
+  不是路線選擇。真正需要決定的事（作廢語意）留在 `§G-13`。
+- **多少工**：`S`（半天內）。實作約 30 行（含註解）＋一支新測試檔；**App 端 0 行**。
+- **卡在誰**：卡在**部署**，不卡在人也不卡在技術——commit 已在後端 repo 的
+  `development` 上（`800790cf`），沒有 push、沒有部署。所以 `status` 是
+  `fixed-on-branch` 而不是 `fixed`；本冊的 `fixed` 指「修復 commit 在本工作分支的
+  `HEAD` 上」（定義見 `§G-0`），而這個 commit **不在這個 repo**。
+
+**狀態與誠實邊界。** 那個後端 commit **只存在於 `LinkCard_ExpressJS_Backend` 本機的
+`development` 分支**：未 push、未部署、未進 App 這條分支的任何東西。在它被部署之前，
+現場行為與上面「修復前的實況」**完全一樣**。核對方式：在後端 repo 該分支上
+`git log --oneline -1` 應為 `800790cf`。`fixedOn` 因此寫成
+`LinkCard_ExpressJS_Backend@800790cf`——**跨 repo 的修復必須在登記表上看得出來**，
+否則讀者會去這個 repo 找不到那個 SHA。
+
+**不在本項範圍、仍完全未修（一句話指路，不重複整段）**：`§G-13` 的**風險一**——
+`NfcBadgeStatus.DEACTIVATED`／`LOST` 全庫無人寫入，而 `GET /nfc/lookup` 是公開端點
+（`LinkCard_ExpressJS_Backend@src/events/routes/event-ops.routes.ts:77`），撿到遺失的
+手環就能讀到原持卡人的姓名／公司／職稱。那一半屬於 `G-13`，本項的修法不影響它。
 
 ## 4.3 不在這裡的東西
 

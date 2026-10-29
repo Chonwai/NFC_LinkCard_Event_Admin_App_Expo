@@ -375,6 +375,16 @@
       "size": "A:L / B:S",
       "status": "decision-needed",
       "fixedOn": []
+    },
+    {
+      "id": "G-14",
+      "title": "綁卡失敗訊息指錯欄位（registration_id 的 P2002 被壓成 BADGE_ALREADY_BOUND）",
+      "severity": "P2",
+      "owner": "none-needed",
+      "size": "S",
+      "status": "fixed-on-branch",
+      "fixedOn": ["LinkCard_ExpressJS_Backend@800790cf"],
+      "note": "修復在另一個 repo：LinkCard_ExpressJS_Backend 的 development 分支，未 push、未部署。嚴重度與四問見 docs/analysis/adminapp-parity-20261028/04-gap-register.md#G-14。"
     }
   ]
 }

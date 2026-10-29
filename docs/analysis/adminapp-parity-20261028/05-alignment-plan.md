@@ -331,8 +331,12 @@ P2」都是被回答過的選項，而不是被漏掉的選項。
    （`LinkCard_ExpressJS_Backend@prisma/schema.prisma:899`），所以「同一個人兩張有效
    卡」不可能發生，第二次綁定一律 409。
 3. 那個 409 說「NFC badge UID 已被使用」，而 UID 其實是全新的
-   （`LinkCard_ExpressJS_Backend@src/events/controllers/EventNfcController.ts:112-124`）；
+   （修復前為 `LinkCard_ExpressJS_Backend@src/events/controllers/EventNfcController.ts:112-124`）；
    App 依此顯示「請換一張空白卡」，而正確的文案（`boundOther`）永遠不會觸發。
+   **這一半已於 2026-10-29 修好**（後端分支 `800790cf`，未 push、未部署），
+   獨立成 `04 §G-14`。它不需要任何決定，所以**不佔本階段的任何前置條件**，
+   也**不需要新增階段**：本階段仍然只等 G-13 的 A／B 選擇，`nfc-bind` 那一頁的
+   協調事項沒有變化。
 
 **這裡不替任何人選。** 選項 A（做完整的作廢／補發，`L`，跨兩個 repo）與選項 B
 （維持停用、改由人工處理，`S`，代價是遺失的卡在系統裡無法失效）都寫在 `04 §G-13`。
@@ -381,12 +385,13 @@ development`，feature 分支的 push 不在清單裡；這個分支也沒有 PR
    實跑（2026-10-29，App repo 根目錄）：
 
    ```
-   npm run check:parity    # → ✓ 對等登記表一致：15 個能力、14 個缺口
+   npm run check:parity    # → ✓ 對等登記表一致：15 個能力、15 個缺口
    npm run check:contract  # → ✓ 15 條 App 呼叫全部對得上後端路由快照
    ```
 
-   （缺口數在 2026-10-29 由 13 變成 14：`G-13` 登記。這一格以後會再變，**現值一律
-   看命令輸出**；寫在這裡的數字是「今天跑得出來」的證明，不是常數。）
+   （缺口數在 2026-10-29 由 13 變成 14：`G-13` 登記；同日晚間由 14 變成 15：
+   `G-14` 登記。這一格以後會再變，**現值一律看命令輸出**；寫在這裡的數字是「今天
+   跑得出來」的證明，不是常數。）
 
    誠實邊界沒變：`check:contract` 比的是**快照**（後端 `64be09e`），不是活的後端；
    後端改路由要重跑 `--refresh`，否則它會驗一份過期的世界（見 `04 §G-11`）。
@@ -414,10 +419,14 @@ development`，feature 分支的 push 不在清單裡；這個分支也沒有 PR
    （`scripts/check-parity-registry.mjs` 對 `fixed`／`fixed-on-branch` 要求
    `fixedOn` 非空、對 `ready-to-implement` 與 `by-design` 要求 `decidedIn` 非空——
    不是只檢查欄位存不存在；新增值時驗證器要一起改，不能只寫在會議紀錄裡）。
-   目前登記表實際落在四種：`decision-needed`（G-6～G-8、G-12、G-13）、`fixed`
-   （G-0～G-5、G-11）、`ready-to-implement`（G-10）、`by-design`（G-9）；`open`
-   與 `fixed-on-branch`
-   現在沒有任何一項使用。
+   目前登記表實際落在五種：`decision-needed`（G-6～G-8、G-12、G-13）、`fixed`
+   （G-0～G-5、G-11）、`ready-to-implement`（G-10）、`by-design`（G-9）、
+   `fixed-on-branch`（G-14）；`open` 現在沒有任何一項使用。
+   `fixed-on-branch` 重新有了使用者：G-14 的修復在**另一個 repo** 的
+   `development` 上（`800790cf`，未 push、未部署），既不在本工作分支的 `HEAD` 上，
+   也不在這個 repo 裡——用 `fixed` 會寫成一句假話（那是 G-1～G-5 的處境），用
+   `ready-to-implement` 更錯（没有任何東西待實作）。這也是那個值的原始語意，
+   在 `§G-0` 的歷史段落裡已經寫過一次教訓。
    第四個值是為 G-10 加的：它是缺陷、`owner` 是 `none-needed`（無爭議）、但當時只修好一半（403 那半已修、兩次請求那半未修，見 `03-capability-matrix.md` §3.2），
    用 `open` 會讓它長期被算成「等人認領」，而實際上沒有任何決定可做。
    第五個值 `fixed` 是為 G-1～G-5、G-11 加的：那些修復已於 2026-10-29 併入
