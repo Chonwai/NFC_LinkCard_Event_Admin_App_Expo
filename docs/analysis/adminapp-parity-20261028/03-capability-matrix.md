@@ -169,6 +169,59 @@ Web 有 session CRUD（`createSession`/`listEventSessions`/`updateSession`/
 行動端）。但它不是「把 Web 頁面搬過來」能解決的：App 需要新的資訊架構
 （活動 → 場次 → 名冊），成本是四個缺口裡最高的。
 
+#### 2026-10-29 更正：這一項的框架要改
+
+上面那段讀起來像「Web 有能力、App 缺」。**實際是「Web 也只能看，不能記出席」**
+——這是**產品缺一個功能**，不是 App 缺一個功能。三條實測：
+
+**一、Web 名冊頁只能顯示，不能改。**
+`LinkCard_Frontend@app/(event)/manage/[eventId]/sessions/[sessionId]/registrations/page.tsx`
+全長 242 行，裡面只有兩顆 `<button>`，在 `:218` 與 `:226`，兩顆都是上一頁／下一頁
+分頁（`onClick` 是 `setPage`）。全檔沒有 `post(`／`patch(`／`put(`。它能**顯示**
+`ATTENDED`／`NO_SHOW`（判定在 `:27`，渲染在 `:189`、`:193`），但**沒有任何方法改它**。
+
+```
+wc -l '…/registrations/page.tsx'                        # 242
+grep -nE '<button|post\(|patch\(|put\(' '…/page.tsx'    # 218、226（兩顆都在分頁列）
+grep -nE 'ATTENDED|NO_SHOW' '…/page.tsx'                # 27、189、193（全部是讀）
+```
+
+**二、Web 從來不呼叫那條端點。**
+
+```
+grep -rn 'sessions/.*checkin' app components lib hooks
+echo "rc=$?"        # rc=1，零命中
+```
+
+**三、後端已經做完了，而且權限是對的。**
+`LinkCard_ExpressJS_Backend@src/events/routes/sessions-polls.routes.ts:39` 就是
+`POST /sessions/:sessionId/checkin`（路徑字串在 `:40`），掛的 role gate 在 `:42`：
+`eventAccessFactory.create({ level: 'OPERATOR', eventIdSource: 'params' })`
+——門口工讀生的角色。這條 role gate 在 events 模組的 **124 條路由裡是唯一一條**：
+
+```
+grep -rhoE "router\.(get|post|patch|put|delete)\(" src/events/routes/ | wc -l  # 124
+grep -rn 'eventAccessFactory.create' src/ | wc -l                              # 1
+```
+
+⇒ **正確的敘述是「後端就緒、兩個前端都沒接」。** 把它當成「App 要追上 Web」會讓
+優先順序錯：做完 App 之後 **Web 還是缺**，等於同一件事要做兩次而只做了一次。
+
+**這一條的實作成本比本節原本暗示的低。** 端點存在、權限已正確、測試與 QA script
+都已經有人在用，所以剩下的不是「新的資訊架構」，而是**兩邊各一個頁面、各加一顆
+按鈕**。（本資料夾不估工時，這句是定性判斷。）
+
+這個框架不是本節首創。未合併分支 `feat/onsite-scope-decisions` 上有一份決策簡報
+把 D3 寫成「後端有、Web 和 App 都沒有」，用
+`git show feat/onsite-scope-decisions:docs/analysis/onsite-scope-20261022/05-decision-brief.md`
+可讀到那一節。它放在另一條分支上，所以這裡用 `git show` 的形式引用、不寫成
+`檔案:行號`（引用閘門解析不到那條分支）。上面三條命令是本節的**獨立驗證**，不是
+轉抄——本批審計先前從未讀過那份簡報，這件事記在 `02-delta-app-backend.md` §2.1。
+
+**判定不變：`APP_GAP`。** 這一格的穩定意思是「App 相對 Web 少了那個頁面」，那仍然
+成立——Web 有名冊頁、App 連場次概念都沒有。改變的是**它為什麼被列出來**：不是
+「App 落後」，而是「兩個前端都落後於後端」。
+
 ## 3.4 硬體分野：誰才是超集，取決於現場帶了什麼
 
 這一節存在的理由：如果不寫清楚，結論會被讀成「Web 比較強，App 要追」。
