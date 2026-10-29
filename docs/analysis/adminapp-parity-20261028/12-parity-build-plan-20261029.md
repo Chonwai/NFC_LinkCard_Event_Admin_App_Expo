@@ -37,9 +37,10 @@ $ npm run check:parity:full→ ✓ 15 個能力（ALIGNED=1 ALIGNED_DEFECT=1 APP
 
 另兩條基準事實（後面 §12.3 會用到）：
 
-- `scripts/backend-routes.snapshot.json` 的 `generatedFrom.commit` 是 `64be09e`，
-  而後端現在的 HEAD 是 `be5308ca`。**快照落後於後端，且落後的那兩條正好是本計劃
-  Wave 1 要用的。**
+- `scripts/backend-routes.snapshot.json` 的 `generatedFrom.commit` 是 `64be09e`
+  （快照自己記的，可直接驗）；**量測時點 2026-10-29 本輪**的後端 HEAD 是
+  `4c677c29`（同日稍早由獨立審查量到 `6e77a922`——**這個值會動，引用時一定要標
+  量測時點**）。**快照落後於後端，且落後的那兩條正好是本計劃 Wave 1 要用的。**
 - **registry 說 `overview` 是 `ALIGNED_DEFECT`，但那個 defect 在這個分支上已經修
   好了**（`9e3c7a2`，`LinkCard_Event_Admin_App_Expo@src/app/(auth)/[eventId]/overview.tsx:201`
   起：先問 `getMyAccess`，`!access.canManage` 時只用本地 `registrationCount`，
@@ -436,8 +437,10 @@ Web call sites: 79 | backend routes: 123
 #### 發現三：契約快照落後，且落後的正好是 Wave 1 要用的兩條
 
 ```
-snapshot.generatedFrom.commit = 64be09e   (2026-10-21)
-backend HEAD                 = be5308ca
+# 量測時點：2026-10-29 本輪。後端 HEAD 會動，這幾行是當時的輸出，不是常數。
+# 現值當場量：git -C ../LinkCard_ExpressJS_Backend rev-parse --short HEAD
+snapshot.generatedFrom.commit = 64be09e   (2026-10-21，快照自己記的)
+backend HEAD                 = 4c677c29   (同日稍早量到 6e77a922)
 $ git diff 64be09e..HEAD -- src/events/routes/ | grep '^+.*router\.'
 +router.get('/:eventId/manage-stats', authMiddleware, eventController.getManageStats);
 +router.get('/desk-lookup', authMiddleware, registrationController.deskLookup);
@@ -733,7 +736,7 @@ npm run format:check           # 只在動到 >5 個檔案的那一顆
 
 #### 前置（6 顆，Wave 0）
 
-`chore(contract): refresh the backend route snapshot to be5308ca` →
+`chore(contract): refresh the backend route snapshot to the backend HEAD` →
 `feat(nav): split the event stack into site and admin` →
 `feat(auth): publish the capability table` → `test: lock the capability table` →
 `chore: add EXPO_PUBLIC_ENABLE_ADMIN_MODULES` → `docs(parity): record the three

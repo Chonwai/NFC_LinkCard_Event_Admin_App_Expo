@@ -391,8 +391,7 @@ P2」都是被回答過的選項，而不是被漏掉的選項。
    且登記表裡沒有任何 `APP_GAP` 處於「已判定但沒有 gapId」的狀態。
 
    > **這一條今天還沒滿足。** 兩支閘門在工作分支的 `HEAD` 上都是綠的（見下方
-   > 實跑），分支**也已經 push**（`git rev-list --count
-origin/feat/nfc-gate1-reader-spike..HEAD` 回 `0`），但**CI 一次都沒有跑
+   > 實跑），分支**也已經 push 過**（但不是最新那顆），而**CI 一次都沒有跑
    > 過**：`ci.yml` 的 `on.push.branches` 只有 `main, master, develop,
 development`，feature 分支的 push 不在清單裡；這個分支也沒有 PR，所以
    > `pull_request` 那條同樣沒亮過（`gh run list --branch …` 回空）。因此「已
@@ -401,25 +400,39 @@ development`，feature 分支的 push 不在清單裡；這個分支也沒有 PR
    > push **且** CI 跑過」，就是為了不讓「我在本機跑過」冒充「CI 跑過」；現在
    > 它抓到的是第二種冒充。
 
-   兩支都在樹上，不再有待驗的那一半：`npm run check:contract` 在工作分支的
-   `HEAD` 上可跑（`package.json:59`：`"check:contract": "node scripts/check-backend-contract.mjs"`），
-   CI 也有這個 step（`.github/workflows/ci.yml:57` 的 `Backend contract`）。
-   本節前版寫的「`check:contract` 還不是 `package.json` 的 script、只活在
-   `audit/parity-20261022` 上」**已被推翻**——那個狀態在 `1cb2b73` 合併後結束。
+**「落後幾顆」不能寫成常數。** 上面那段引用原本寫「`git rev-list --count
+origin/feat/nfc-gate1-reader-spike..HEAD` 回 `0`」；本輪實測回 `30`，2026-10-29
+稍早的獨立審查實測回 `25`。同一個分支每多一顆 commit 這個數字就變，所以它只能
+當場量測：
 
-   實跑（2026-10-29，App repo 根目錄）：
+```
+git rev-list --left-right --count origin/feat/nfc-gate1-reader-spike...HEAD
+```
 
-   ```
-   npm run check:parity    # → ✓ 對等登記表一致：15 個能力、15 個缺口
-   npm run check:contract  # → ✓ 15 條 App 呼叫全部對得上後端路由快照
-   ```
+讀法：左邊是「遠端有、本機沒有」，右邊是「本機有、遠端沒有」。左邊 `0` 表示遠端
+是 HEAD 的祖先（沒有分叉）；右邊才是「還沒 push 的顆數」。判準真正要問的是「遠端
+有沒有這顆 commit」，那用 `git branch -r --contains HEAD` 更直接；而「CI 有沒有
+跑過」只能看 CI，不能從這個數字推。
 
-   （缺口數在 2026-10-29 由 13 變成 14：`G-13` 登記；同日晚間由 14 變成 15：
-   `G-14` 登記。這一格以後會再變，**現值一律看命令輸出**；寫在這裡的數字是「今天
-   跑得出來」的證明，不是常數。）
+兩支都在樹上，不再有待驗的那一半：`npm run check:contract` 在工作分支的
+`HEAD` 上可跑（`package.json:59`：`"check:contract": "node scripts/check-backend-contract.mjs"`），
+CI 也有這個 step（`.github/workflows/ci.yml:57` 的 `Backend contract`）。
+本節前版寫的「`check:contract` 還不是 `package.json` 的 script、只活在
+`audit/parity-20261022` 上」**已被推翻**——那個狀態在 `1cb2b73` 合併後結束。
 
-   誠實邊界沒變：`check:contract` 比的是**快照**（後端 `64be09e`），不是活的後端；
-   後端改路由要重跑 `--refresh`，否則它會驗一份過期的世界（見 `04 §G-11`）。
+實跑（2026-10-29，App repo 根目錄）：
+
+```
+npm run check:parity    # → ✓ 對等登記表一致：15 個能力、15 個缺口
+npm run check:contract  # → ✓ 15 條 App 呼叫全部對得上後端路由快照
+```
+
+（缺口數在 2026-10-29 由 13 變成 14：`G-13` 登記；同日晚間由 14 變成 15：
+`G-14` 登記。這一格以後會再變，**現值一律看命令輸出**；寫在這裡的數字是「今天
+跑得出來」的證明，不是常數。）
+
+誠實邊界沒變：`check:contract` 比的是**快照**（後端 `64be09e`），不是活的後端；
+後端改路由要重跑 `--refresh`，否則它會驗一份過期的世界（見 `04 §G-11`）。
 
 2. **決策的**：**P0／P1 的缺口沒有一個懸空。** 這一條問的是「有沒有人欠一個決定」，
    不是「有沒有做完」；判準用**允許清單**，只有五種 `status` 算已處置：
@@ -456,10 +469,13 @@ development`，feature 分支的 push 不在清單裡；這個分支也沒有 PR
    `decidedIn` 非空——
    不是只檢查欄位存不存在；新增值時驗證器要一起改，不能只寫在會議紀錄裡，
    `tests/parity-registry.test.mjs` 也各有一對正／負向測試把這條要求釘住）。
-   目前登記表實際落在六種：`decision-needed`（G-6～G-8、G-12）、`fixed`
-   （G-0～G-5、G-11）、`ready-to-implement`（G-10）、`by-design`（G-9）、
-   `deferred`（G-13）、
-   `fixed-on-branch`（G-14）；`open` 現在沒有任何一項使用。
+   目前登記表實際落在五種（`open` 與 `by-design` 現在都沒有任何一項使用）：
+   `decision-needed`（G-6～G-8、G-12、**G-15c**）、`fixed`（G-0～G-5、G-11）、
+   `ready-to-implement`（G-10、**G-9**、**G-15a**、**G-15b**）、`deferred`
+   （G-13）、`fixed-on-branch`（G-14）。前版這一段寫「六種」並把 `G-9` 記成
+   `by-design`——那句在 2026-10-29 稍晚就過期了：`G-9` 已改為
+   `ready-to-implement`（見 `11 §11.4`「同一個『不做』不可能同時成立」），
+   而 `G-15` 已拆成 `G-15a`／`G-15b`／`G-15c`（見 `04 §G-15`）。
    `fixed-on-branch` 重新有了使用者：G-14 的修復在**另一個 repo** 的
    `development` 上（`800790cf`，未 push、未部署），既不在本工作分支的 `HEAD` 上，
    也不在這個 repo 裡——用 `fixed` 會寫成一句假話（那是 G-1～G-5 的處境），用
@@ -573,3 +589,19 @@ node -e "const r=require('./parity/parity-registry.json');const ids=q=>r.gaps.fi
 
 這兩句話的意思不是「所有缺口都補完」，而是「所有缺口都有人認領或有人明確拒絕」。
 前者是進度問題，後者是治理問題；只有後者會讓下一輪審計不必從零開始。
+
+**2026-10-29（`G-15` 拆成 `G-15a`／`G-15b`／`G-15c` 之後）重跑，多一行 `G-15c`：**
+
+```
+✗ 仍有 P0/P1 未處置（既非 fixed、fixed-on-branch、ready-to-implement、by-design 也非 deferred）：
+  G-6   P1  decision-needed
+  G-7   P1  decision-needed
+  G-8   P1  decision-needed
+  G-15c P1  decision-needed
+```
+
+（`exit 1`。`G-15a`／`G-15b` 是 `P2`，不在這條判準的掃描範圍；`G-15c` 升 `P1` 就是
+為了讓它出現在這裡——它欠的決定是「手機上誰能按匯款覆核與組織角色」，而那個權限
+模型在 `03 §3.7.8` 是 `OPEN`。**這一筆與 `G-6`／`G-7`／`G-8` 同類**：問題已寫在
+`04 §G-15c`，只差有人回答。反之，`G-15c` 若留在 `P2`，不管 `status` 寫什麼都不會
+出現在這份清單上——那正是這次拆分的理由。）

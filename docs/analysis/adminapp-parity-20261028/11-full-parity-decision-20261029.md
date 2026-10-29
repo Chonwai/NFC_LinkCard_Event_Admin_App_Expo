@@ -226,9 +226,14 @@
    不涉及數量。所以「不要改成 `=== 0`」這條指令**沒有適用對象**；真正要處理的是
    `03 §3.1` 的統計行（`03-capability-matrix.md:28`、`:31`）與
    `07-briefing.md:79` 那張表——它們是同一事實的副本，不改就會與 registry 分岔。
-4. **`status`／`decidedIn` 在現行 schema 屬於 `gaps[]`，不屬於 `capabilities[]`；**
-   而驗證器要求**每一個 `APP_GAP` 都必須有存在的 `gapId`**
-   （`scripts/check-parity-registry.mjs:118`）。九筆改判後若沒有對應缺口，閘門會
-   直接紅。處理方式見 Commit 2（需要一個承接「全面對齊」的缺口條目）。
+4. **〔已失效，2026-10-29 稍晚〕`status`／`decidedIn` 原本只屬於 `gaps[]`，不屬於
+   `capabilities[]`。** 這句在寫下的當時成立，之後被本輪的
+   `test(parity): the validator now actually requires decidedIn and enumerates status`
+   那一顆改掉了：capability 現在也帶 `status` 與 `decidedIn`，而驗證器要求**每一個
+   `APP_GAP` 都要有非空的 `decidedIn`（缺就 `exit 1`）與存在的 `gapId`**，且
+   capability 與 gap 的 `status` 共用同一組詞彙（`scripts/check-parity-registry.mjs`
+   的 `STATUSES`）。原文保留是因為它記錄了當時真實的 schema 邊界；但**照它去讀現在
+   的登記表會讀錯**，現值一律以 `node scripts/check-parity-registry.mjs` 與
+   `node --test tests/parity-registry.test.mjs` 為準。
 
 model_used: OpenCode Go / Deepseek V4.1 Flash
