@@ -117,14 +117,32 @@ before spending requests`）落地，且 `9e3c7a2` 在這個分支上。**
 
 #### `profile` 活動資料
 
-| 類  | 動作         | 端點                                | 主模型欄位                        | App 現況 |
-| --- | ------------ | ----------------------------------- | --------------------------------- | -------- |
-| W   | 改名稱／描述 | `PATCH /api/v1/events/:eventId`     | `Event.name`、`Event.description` | ❌       |
-| R   | 讀活動       | `GET /api/v1/events/by-id/:eventId` | `Event`                           | ✅       |
+| 類  | 動作               | 端點                                | 主模型欄位                                                                                                                           | App 現況 |
+| --- | ------------------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------- |
+| W   | 改活動資料（9 欄） | `PATCH /api/v1/events/:eventId`     | `Event.name`／`description`／`eventType`／`status`／`venueName`／`venueAddress`／`isPublic`／`landingPageMode`／`externalLandingUrl` | ❌       |
+| R   | 讀活動             | `GET /api/v1/events/by-id/:eventId` | `Event`                                                                                                                              | ✅       |
 
-`LinkCard_Frontend@app/(event)/manage/[eventId]/profile/page.tsx:126` 的 payload
-只有 `name` 與 `description` 兩欄——**這就是 profile 的全部**，不是「活動設定的前
-半」。這條界線影響 §12.4.3 的導覽分層。
+`LinkCard_Frontend@app/(event)/manage/[eventId]/profile/page.tsx:126-136` 的
+`payload` 是 **9 個欄位**（`:36-46` 的 `FormState` 是同一組），送進 `:137` 的
+`updateEvent`。這 9 個就是 profile 的全部，不多也不少——本節前版寫「只有 `name`
+與 `description` 兩欄」是錯的，而且它引用的 `:126` 正好是那 9 個欄位的開頭。
+
+**不要把日期補進來，即使 `Event` 模型確實有這個欄位。** `Event.startDate`／
+`endDate` 在 `LinkCard_ExpressJS_Backend@prisma/schema.prisma` 的 `model Event`
+裡是必填，但那兩個欄位屬於**建立活動**，不屬於這一頁：`createEvent` 在
+`LinkCard_Frontend@app/(event)/manage/events/page.tsx:77-82`，日期輸入在 `:166-189`。
+也就是說，Web 後台**只在建立時寫日期，之後沒有任何地方改得到**
+（`grep -nE 'startAt|endAt|startDate|endDate|type="date|type="time'` 對 profile
+頁回 0）。
+
+⇒ 依 A1（狀態變更集合）與 A3（寫入欄位與 Web 一致），App 的 profile 標的**不含
+日期**。若有人以「DB 有這兩個欄位」為由在 App 補一個時間選擇器，那不是對齊，是替
+App 造一個 Web 沒有的入口（反向 scope drift），而且會寫進一個 Web 從未透過這支端點
+寫過的欄位，A3 立刻失守。
+
+（附帶觀察，不在本計劃範圍：**建立活動本身不在 §12.1.2 的模組清單裡**，registry
+也沒有一筆對應的 `APP_GAP`。若日後要在 App 開活動，那是新的一筆，不是把日期塞回
+profile。）
 
 #### `content` 落地頁內容
 
