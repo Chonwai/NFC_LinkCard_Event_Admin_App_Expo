@@ -31,66 +31,137 @@
 
 `S` ≦ 半天、`M` ≦ 兩天、`L` 需要設計與驗收。
 
-> **讀 `status` 欄位之前先讀這段（2026-10-29 實測）。**
-> `parity/parity-registry.json` 的 `fixed-on-branch` 意思是「**修法存在於某條
-> 未合併的分支**」，**不是**「已修好」。它回答的是「有沒有人做過」，不是「現在
-> 這棵樹上有沒有」。
+### 2026-10-29 更新：七項的去向
+
+上表沒有狀態欄，所以狀態補在這裡。只列 `1cb2b73` 合併前後有位移的七項；
+G-6／G-7／G-8／G-9／G-10／G-12 的嚴重度與工作量都沒有變動，不列。
+
+| ID   | 上一輪的狀態                  | 現在（2026-10-29） | 落在哪個 commit                                                                        |
+| ---- | ----------------------------- | ------------------ | -------------------------------------------------------------------------------------- |
+| G-0  | `open`（P0，等一個決定）      | **已決：合併**     | merge `1cb2b73`                                                                        |
+| G-1  | `fixed-on-branch`（在分支上） | `fixed`（在主線）  | `5bcdb53`                                                                              |
+| G-2  | `fixed-on-branch`             | `fixed`            | `860404f` ＋ `bc27abc`                                                                 |
+| G-3  | `fixed-on-branch`             | `fixed`            | `075f775`                                                                              |
+| G-4  | `fixed-on-branch`             | `fixed`            | `031972f` ＋ `84cb423`                                                                 |
+| G-5  | `fixed-on-branch`             | `fixed`            | `9e3c7a2`                                                                              |
+| G-11 | `fixed-on-branch`             | `fixed`            | `7c19f0a`（閘門本體）＋ `421ab7c`（補齊 8 條巢狀 `/import`，少了它閘門會誤報合法呼叫） |
+
+「在主線」是可驗證的，不是宣稱：
+
+```
+for c in 5bcdb53 860404f bc27abc 075f775 031972f 84cb423 9e3c7a2 7c19f0a 421ab7c; do
+  git merge-base --is-ancestor "$c" HEAD && echo "$c yes" || echo "$c NO"
+done
+# → 九個全部 yes
+```
+
+> **〔歷史說明〕下面這段寫於 2026-10-29 上午，同日下午 `1cb2b73` 合併後已失效。**
+> 保留它，是因為 `fixed-on-branch` 這個值曾經讓整份登記冊被誤讀，而誤讀的方式
+> 值得留一份記錄。
 >
-> 判定依據是 `audit/parity-20261022` **不是** HEAD 的 ancestor：
+> `fixed-on-branch` 的意思是「**修法存在於某條未合併的分支**」，**不是**「已修好」。
+> 它回答「有沒有人做過」，不是「現在這棵樹上有沒有」。當時的判定依據是
+> `audit/parity-20261022` **不是** HEAD 的 ancestor，所以標成這個值的六項在當時的
+> HEAD 上有效修復數是 0，六項全部仍然存在——連
+> `scripts/check-backend-contract.mjs` 都在 HEAD 上 `ls` 回 No such file。
+>
+> 那段時間裡還有一種誤讀值得單獨記下來，因為它**今天仍然成立**：
+> `.github/workflows/ci.yml` **一直**有 `npm run check:parity`。但那是**登記冊
+> 一致性**閘門，不是 G-11 講的**後端契約**閘門；後者指
+> `scripts/check-backend-contract.mjs`。CI 上已經有一個 check，不代表 G-11 已解。
+>
+> 判斷現況請用上面的小表與這條命令，不要靠這段的敘述：
 >
 > ```
 > git merge-base --is-ancestor audit/parity-20261022 HEAD && echo '22 MERGED' || echo '22 NOT merged'
-> # → 22 NOT merged
-> git rev-list --count origin/main..audit/parity-20261022
-> # → 28
+> node -e "const r=require('./parity/parity-registry.json');console.log(r.gaps.map(g=>g.id+':'+g.severity+':'+g.status).join('\n'))"
 > ```
->
-> 所以標成 `fixed-on-branch` 的六項——`G-1 G-2 G-3 G-4 G-5 G-11`——在
-> `feat/nfc-gate1-reader-spike`（本輪文件的 HEAD）上**有效修復數是 0**，六項
-> **全部仍然存在**。逐項在 HEAD 上重跑的證據：
->
-> - **G-1** — `src/services/registration.service.ts:50` 仍打
->   `…/registrations/checkin/override`。
-> - **G-2** — `src/app/(auth)/[eventId]/token.tsx:49` 仍開
->   `${WEB_BASE_URL}/manage/${eventId}/wallet`。
-> - **G-3** — 後端投影仍缺 `approvedBy`（見 §4.2 G-3）。
-> - **G-4** — `depositRefunded`／`archivedAt`／`checkedInBy`／`boundOnly` 四個
->   字串在 `src/` 各命中 **0 檔**。
-> - **G-5** — `grep -rn 'my-access' src/` 命中 **0**。
-> - **G-11** — `scripts/check-backend-contract.mjs` 在 HEAD 不存在
->   （`ls` 回 No such file）；該檔在 `audit/parity-20261022` 上才存在。
->
-> 一個容易誤讀的例外：`.github/workflows/ci.yml:46` **確實**有
-> `npm run check:parity`。但那是**登記冊一致性**閘門，不是 G-11 講的**後端契約**
-> 閘門；後者指 `scripts/check-backend-contract.mjs`。不要因為 CI 有一個 check
-> 就以為 G-11 已解。
->
-> 重跑（App repo 根目錄）：
->
-> ```
-> git merge-base --is-ancestor audit/parity-20261022 HEAD && echo '22 MERGED' || echo '22 NOT merged'
-> git rev-list --count origin/main..audit/parity-20261022
-> node -e "const r=require('./parity/parity-registry.json');console.log((r.gaps||[]).filter(g=>g.status==='fixed-on-branch').map(g=>g.id).join(' '))"
-> ```
->
-> 這不改變任何一項的 `status` 值——`fixed-on-branch` 本身是準確的，會誤導人的是
-> 讀者的預設解讀。
 
 ## 4.2 逐項說明
 
-### G-0 上一輪的修復沒有進主線（P0，流程）
+### G-0 上一輪的修復沒有進主線（P0，流程）— **已決：合併**
 
-`audit/parity-20261022` 有 28 個 commit，含 G-1 至 G-5 的修法，未合併、未 push。
-本輪重跑的契約閘門顯示 G-1 仍在 `main` 上。
+**狀態（2026-10-29）**：已決並已執行。merge `1cb2b73`，parents 是 `8aeef71` ＋
+`b05744b`；`audit/parity-20261022` 現在是 HEAD 的 ancestor。
 
+**為什麼當初列為 P0（歷史，不改寫）。** `audit/parity-20261022` 有 28 個 commit，
+含 G-1 至 G-5 的修法，未合併、未 push；本輪重跑的契約閘門顯示 G-1 仍在 `main` 上。
 這件事被列為 P0 而不是「家務事」的理由：G-1 至 G-5 都已經有人做過一次，重做的成本
 是兩倍，而沒做的成本是活動當天。**決策只有一個：合併或丟棄。** 不要讓它停在
 「等有空再看」的狀態，因為檔案會繼續漂移，越晚合併衝突越多。
 
-建議動作：先跑一次 `npm run check:contract` 與測試確認分支仍綠，再開 PR。
-若決定不合併，把分支砍掉並在文件標明「本輪不修」，讓下一個人不必重新判斷。
+**決策：合併。**
+
+併入的三類東西：
+
+| 併入什麼                | 具體內容                                                                                               |
+| ----------------------- | ------------------------------------------------------------------------------------------------------ |
+| G-1～G-5 的修復         | `5bcdb53`／`860404f`＋`bc27abc`／`075f775`／`031972f`＋`84cb423`／`9e3c7a2`                            |
+| 契約閘門                | `scripts/check-backend-contract.mjs` ＋ `scripts/backend-routes.snapshot.json`（`7c19f0a`、`421ab7c`） |
+| 2026-10-22 的審計資料夾 | `docs/analysis/adminapp-parity-20261022/`，作為歷史證據保留，理由見下面第二個地雷                      |
+
+#### 併入時處理的兩個地雷
+
+兩個都不是「注意一下」等級，是會讓下一個人真的卡住的東西。
+
+**① 那條分支把 `node_modules` 以 symlink 形式 commit 進去了。**
+
+`.gitignore` 寫的是 `node_modules/`（帶斜線），只匹配**目錄**；分支上被 commit 的
+是一個 **symlink**，不是目錄，所以完全沒被忽略。代價出現在合併 checkout 的時候：
+
+1. git 把工作區裡**真正的** `node_modules` 目錄換成那個 symlink；
+2. 那個 symlink 指向自己（`node_modules -> node_modules`），等於什麼都沒有；
+3. `npm test` 因此以 **exit 194** 失敗，而且**沒有任何 TAP 輸出**。
+
+第 3 點是最貴的部分：訊息長得像測試框架壞了，不像依賴壞了，所以第一反應會去查
+測試，而真正的問題在依賴。修法三步：
+
+```
+git rm --cached node_modules
+rm node_modules
+npm ci
+```
+
+**任何要合併這條分支的人都會踩到同一個坑**，所以寫在這裡而不是只寫在 commit
+message 裡。事後的驗收：`git ls-files node_modules | wc -l` 應為 `0`。
+
+**② 舊審計的文件沒有併進 `adminapp-parity-20261028/`，兩個資料夾並存。**
+
+這是刻意的，不是漏做。理由有兩個，第二個比較不容易想到：
+
+- 引用閘門的 `DOC_DIR` 只掃**一個**資料夾：
+  `scripts/check-parity-registry.mjs` 的 `checkDocs()` 取
+  `join(APP_ROOT, registry.audit.docPath)`，而登記表的 `docPath` 是
+  `docs/analysis/adminapp-parity-20261028`。放第二個資料夾進去，那份文件不會被
+  任何閘門檢查到。
+- 每一輪的行號只對**自己量測的那個 HEAD** 有意義。把兩輪的檔案混進同一個目錄，
+  等於讓行號互相污染——一份寫 `:49`、一份寫 `:48`，卻都宣稱指向同一個檔案的同一
+  件事。`04 §G-2` 那個「呼叫起點 vs 字面行」的矛盾就是這樣長出來的。
+
+可重跑的驗收：
+
+```
+git merge-base --is-ancestor audit/parity-20261022 HEAD && echo merged
+# → merged
+```
 
 ### G-1 「申請主管覆核」呼叫不存在的路由（P0，缺陷）
+
+**狀態（2026-10-29）**：已修，`5bcdb53`。按鈕已移除，`check-in.tsx` 的
+`duplicate` 分支現在只剩三件東西：`copy.checkIn.overrideBlockedBanner` 橫幅、
+`copy.roster.viewDetail`（指向詳情頁，那裡看得到實際報到時間）、
+`copy.checkIn.continueScan`。
+
+在 HEAD 上重跑什麼就看不到它了：
+
+```
+grep -rn 'checkin/override' src/
+# → 只剩兩行註解、都標著「已移除」：check-in.tsx:309、registration.service.ts:43
+grep -rn 'requestOverride' src/
+# → exit 1（0 命中）：按鈕與它的 handler 一起消失了
+```
+
+以下是這個缺口為什麼存在的證據，不改寫：
 
 `src/services/registration.service.ts:42-57` 呼叫
 `POST /api/v1/events/:eventId/registrations/checkin/override`。
@@ -140,6 +211,18 @@
 
 ### G-2 Token 畫面連到不存在的 Web 路由（P1，缺陷）
 
+**狀態（2026-10-29）**：已修，`860404f` ＋ `bc27abc`。次要動作改指向 App 自己的
+名單頁 `/(auth)/[eventId]/registrations`，不再把人送去 Web。
+
+在 HEAD 上重跑什麼就看不到它了：
+
+```
+grep -n 'wallet' 'src/app/(auth)/[eventId]/token.tsx'
+# → exit 1（0 命中）
+```
+
+以下是這個缺口為什麼存在的證據，不改寫：
+
 `src/app/(auth)/[eventId]/token.tsx:49` 開 `${WEB_BASE_URL}/manage/${eventId}/wallet`。
 Web 沒有這條路由（`find app -name '*wallet*'` 只有參加者視角的
 `my-tickets/[registrationId]/wallet`）。
@@ -157,6 +240,25 @@ Web 沒有這條路由（`find app -name '*wallet*'` 只有參加者視角的
 這件事在 App 內就查得到（參加者詳情頁），不需要把人送去 Web。
 
 ### G-3 錢包流水讀錯欄位且忽略分頁（P1，缺陷）
+
+**狀態（2026-10-29）**：已修，`075f775`。修法與下面那份成本分析**不同**：不是補
+後端投影的 `approvedBy`，而是**停止渲染一個後端從來沒有的欄位**。每一行現在顯示
+`type · sourceType`、`amount`、`balanceAfter`。
+
+在 HEAD 上重跑什麼就看不到它了：
+
+```
+grep -rn 'approvedBy' src/
+# → 三行，全部是「這裡沒有 approvedBy」的註解：
+#   src/types/api.types.ts:109,145、src/services/registration.service.ts:102
+```
+
+分頁那一半要說清楚，否則會高估：`getWalletTransactions` 現在**轉發**
+`page`／`limit`（`registration.service.ts:104-112`），但畫面**沒有翻頁器**——只有
+`txTotal > transactions.length` 時顯示一行 `copy.roster.tokenPagingHint`。也就是
+「不再無聲截斷」，不是「可以翻頁」。完整分頁仍是未做的工作。
+
+以下是這個缺口為什麼存在的證據，不改寫：
 
 `LinkCard_Event_Admin_App_Expo@src/app/(auth)/[eventId]/registrant/[registrationId].tsx:186`
 渲染 `tx.approvedBy`，後端投影沒有這個欄位
@@ -200,6 +302,17 @@ App 這端要改 **0 行**：`src/services/registration.service.ts:108` 已經�
 
 ### G-4 名單型別缺欄位與篩選（P1，缺陷）
 
+**狀態（2026-10-29）**：已修，`031972f`（型別）＋ `84cb423`（service 參數）。
+
+在 HEAD 上重跑什麼就看不到它了：
+
+```
+grep -rln 'depositRefunded\|archivedAt\|checkedInBy\|boundOnly' src/
+# → 3 檔：src/types/api.types.ts、src/services/event.service.ts、src/services/nfc.service.ts
+```
+
+以下是這個缺口為什麼存在的證據，不改寫：
+
 `Registration` 型別缺退款與稽核欄位（`depositRefunded*`、`archivedAt`、
 `checkedInBy`），`getRegistrations` 缺 `depositRefunded`、`boundOnly` 兩個後端已
 支援的參數。
@@ -208,6 +321,23 @@ App 這端要改 **0 行**：`src/services/registration.service.ts:108` 已經�
 欄位，只有名單端點會回。所以詳情頁不能渲染它們，除非改成從名單端點取。
 
 ### G-5 從不查 `/my-access`（P1，缺陷）
+
+**狀態（2026-10-29）**：已修，`9e3c7a2`。`eventService.getMyAccess()` 已存在，
+`overview.tsx:201` 是它的呼叫點。
+
+在 HEAD 上重跑什麼就看不到它了：
+
+```
+grep -rn 'my-access' src/
+# → src/services/event.service.ts:24,79,87
+grep -rn 'getMyAccess' src/
+# → src/services/event.service.ts:85（定義）、src/app/(auth)/[eventId]/overview.tsx:201（呼叫）
+```
+
+射程要說清楚：本輪只有**總覽**這一頁改成問 `/my-access`。`userRole` 仍出現在
+`home.tsx:115,123`，但那裡是顯示用的角色標籤，不是能力判斷。
+
+以下是這個缺口為什麼存在的證據，不改寫：
 
 App 目前用 `my-managed` 回傳的 `_meta.userRole` 當角色判斷來源。那是「你在這場
 活動有沒有角色」，不是「你能不能做這件事」。兩者在 OPERATOR 身上就會分岔。
@@ -498,11 +628,40 @@ Premium 商業包裝，不是能力差異。
 正確做法：先用 `event.registrationCount`（已 unwrap）當總數；已報到數若真的需要，
 再問後端要不要放寬一個 OPERATOR 可讀的計數端點。不要把兩件事綁成一個 PR。
 
-### G-11 契約閘門不在 CI 上（P1，流程）
+### G-11 契約閘門不在 CI 上（P1，流程）— **已修**
 
-`scripts/check-backend-contract.mjs` 只存在於 `audit/parity-20261022`。
-G-1 之所以能活這麼久，就是因為沒有任何自動檢查。這一項的最小版本是一個 CI step，
-加上一份帶 commit 戳記的快照。
+**狀態（2026-10-29）**：已修，`7c19f0a`（閘門本體）＋ `421ab7c`（補齊 8 條巢狀
+`/import` 路由）。原本的問題是 `scripts/check-backend-contract.mjs` 只存在於
+`audit/parity-20261022`，G-1 之所以能活這麼久就是因為沒有任何自動檢查。
+
+現在三件東西都在 HEAD 上，缺一項這個閘門就不成立：
+
+| 位置                                         | 內容                                                          | 怎麼確認                                            |
+| -------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------- |
+| `scripts/check-backend-contract.mjs` ＋ 快照 | 閘門本體與 `scripts/backend-routes.snapshot.json`             | `ls scripts/check-backend-contract.mjs`             |
+| `package.json:59`                            | `"check:contract": "node scripts/check-backend-contract.mjs"` | `grep -n 'check:contract' package.json`             |
+| `.github/workflows/ci.yml:57`                | `- name: Backend contract` → `run: npm run check:contract`    | `grep -n 'check:contract' .github/workflows/ci.yml` |
+
+在 HEAD 上實跑：
+
+```
+npm run check:contract
+# → ✓ 15 條 App 呼叫全部對得上後端路由快照（exit 0）
+```
+
+**誠實邊界：快照是後端某一個 commit 的複本，不是活的後端。**
+
+`scripts/backend-routes.snapshot.json` 的 `generatedFrom` 是
+`LinkCard_ExpressJS_Backend@64be09e`（`generatedAt` 2026-10-21T18:36:36Z）。所以：
+
+- 後端**改**了路由而快照沒重跑 ⇒ 閘門驗的是一份**過期的世界**。它會對一條已經
+  不存在的路由說「對得上」，同時對一條新加的路由說「後端沒有」。
+- 重跑方式：`node scripts/check-backend-contract.mjs --refresh --backend <後端路徑>`。
+- 這個閘門**不會**自己去後端 repo 拉新版本，CI 上尤其如此——CI 沒有 checkout
+  後端 repo。它守的是「App 與**快照**一致」，不是「App 與**今天的後端**一致」。
+
+換句話說，G-11 修好的是「有沒有一個會叫的檢查」，不是「檢查永遠新鮮」。後者需要
+一個排程或 hook 去定期重跑 `--refresh`，本輪沒有做。
 
 ### G-12 授權只在 controller 層，路由層無角色閘門（P2，缺陷）
 
