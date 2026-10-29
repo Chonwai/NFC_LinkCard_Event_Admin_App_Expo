@@ -291,7 +291,9 @@ export default function NfcBindScreen() {
         }
         await startNfc();
         // 卡面 URL 由 `chooseCardPayloadUrl` 決定（名片優先、解析器保底）：
-        // 有公開名片 🔍 寫 `/p/{slug}?e={eventId}`（感應即名片，且說得出哪一場）；
+        // 有公開名片 ⇒ 只寫 `/p/{slug}`，**一個參數都不帶**（2026-10-30 二次定案：
+        // 實體卡無法遠端修改，所以它只能依賴「只由這個人是誰」決定的位置；帶
+        // `?e={eventId}` 會讓「卡片能不能開」多出一個與訪客無關的失敗原因）。
         // 沒有才退回 `/t/{eventId}/{tagUid}`，由 FE 動態解析。
         const { tagUid, writtenUri } = await writeUriToCard(
           (uid) =>
