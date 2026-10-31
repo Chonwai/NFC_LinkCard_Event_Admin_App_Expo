@@ -2,8 +2,8 @@
   "_comment": "由 scripts/check-backend-contract.mjs --refresh 產生。不要手改；改後端就重跑。",
   "generatedFrom": {
     "repo": "LinkCard_ExpressJS_Backend",
-    "commit": "64be09e",
-    "generatedAt": "2026-10-21T18:36:36.684Z"
+    "commit": "6759bbf",
+    "generatedAt": "2026-10-31T20:03:06.216Z"
   },
   "eventRoutes": [
     {
@@ -223,6 +223,11 @@
     },
     {
       "method": "GET",
+      "path": "/:eventId/manage-stats",
+      "file": "events.routes.ts"
+    },
+    {
+      "method": "GET",
       "path": "/:eventId/matching/sessions",
       "file": "premium.routes.ts"
     },
@@ -299,6 +304,11 @@
     {
       "method": "POST",
       "path": "/:eventId/nfc/exchange",
+      "file": "event-ops.routes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/:eventId/nfc/exchanges",
       "file": "event-ops.routes.ts"
     },
     {
@@ -464,6 +474,11 @@
     {
       "method": "POST",
       "path": "/:eventId/registrations/checkin",
+      "file": "registrations.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/registrations/desk-lookup",
       "file": "registrations.routes.ts"
     },
     {
