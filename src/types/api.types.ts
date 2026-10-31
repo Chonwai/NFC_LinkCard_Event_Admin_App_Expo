@@ -622,3 +622,105 @@ export interface GuestImportNotifyResult {
   sent: string[];
   failed: { id: string; code: string }[];
 }
+
+// ---------------------------------------------------------------------------
+// 落地頁內容（Event Page Content CMS）— parity `content`
+//
+// 前端 counterpart：`LinkCard_Frontend/lib/events/types.ts` 的 `PageSection`
+// 系列，以及 `LinkCard_Frontend/lib/events/page-content.ts` 的事件層 7 支呼叫
+// （1 讀 6 寫）。型別逐字照 Web 建模，不多也不少。
+//
+// ⚠️ `PageSectionCard` 刻意保留 `badgeText` / `iconKey` / `imageUrl` 三個
+// **事件頁改不到**的欄位。它們不是多餘的：後端讀取時真的會回傳，而且
+// `UpdateEventPageCardDto` 用 `hasOwn(dto, ...)` 判斷「有沒有要改這一欄」，
+// 所以一旦有人「順手」把這三欄補進 PATCH body（`imageUrl: card.imageUrl ?? null`），
+// Web 上傳的卡片圖就會被清成 null。看得見它們，才防得住這件事。
+// ---------------------------------------------------------------------------
+
+/** 區塊欄數。後端 `EventPageContentService.normalizeGridColumns` 只接受 1／2／3。 */
+export type PageSectionGridColumns = 1 | 2 | 3;
+
+/** 卡片圖示。逐字對齊 Prisma `enum AssociationPageCardIcon`（32 值）。 */
+export type PageCardIconKey =
+  | "STAR"
+  | "USERS"
+  | "CALENDAR"
+  | "CROWN"
+  | "GLOBE"
+  | "MAIL"
+  | "BADGE"
+  | "SPARKLES"
+  | "BUILDING"
+  | "HEART"
+  | "TROPHY"
+  | "TARGET"
+  | "HANDSHAKE"
+  | "USER_CHECK"
+  | "BOOK_OPEN"
+  | "BRIEFCASE"
+  | "MAP_PIN"
+  | "MUSIC"
+  | "CAMERA"
+  | "VIDEO"
+  | "MIC"
+  | "TICKET"
+  | "CLOCK"
+  | "BELL"
+  | "LINK"
+  | "PHONE"
+  | "INFO"
+  | "HELP_CIRCLE"
+  | "FILE_TEXT"
+  | "DOWNLOAD"
+  | "EXTERNAL_LINK"
+  | "TAG";
+
+/** 讀取時的一張卡片（`sections[].cards[]`）。 */
+export interface PageSectionCard {
+  id: string;
+  title: string;
+  description?: string | null;
+  badgeText?: string | null;
+  iconKey?: PageCardIconKey | null;
+  imageUrl?: string | null;
+  actionLabel?: string | null;
+  actionUrl?: string | null;
+  isPublished: boolean;
+  displayOrder: number;
+}
+
+/** 讀取時的一個區塊（`GET …/page-sections` 的 `sections[]`）。 */
+export interface PageSection {
+  id: string;
+  title?: string | null;
+  description?: string | null;
+  gridColumns?: PageSectionGridColumns;
+  isPublished: boolean;
+  displayOrder: number;
+  cards: PageSectionCard[];
+}
+
+/**
+ * `POST`／`PATCH …/page-sections` 的 body。
+ *
+ * 四個欄位都是選填，因為後端是「有送才改」語意（`hasOwn`）；送 `null` 代表
+ * 清空，不送代表不動。
+ */
+export interface PageSectionPayload {
+  title?: string | null;
+  description?: string | null;
+  gridColumns?: PageSectionGridColumns;
+  isPublished?: boolean;
+}
+
+/** `POST`／`PATCH …/cards` 的 body。語意同上（有送才改）。 */
+export interface PageCardPayload {
+  title?: string;
+  description?: string | null;
+  badgeText?: string | null;
+  iconKey?: PageCardIconKey | null;
+  imageUrl?: string | null;
+  actionLabel?: string | null;
+  actionUrl?: string | null;
+  isPublished?: boolean;
+}
