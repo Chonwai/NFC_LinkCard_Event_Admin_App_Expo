@@ -100,6 +100,12 @@ export default function RegistrantDetailScreen() {
       }
 
       try {
+        /**
+         * 已經確定下來的 id。用區域變數而不是讀 `registration` state：
+         * state 在這個 effect 裡是**上一次 render** 的值，剛 `setRegistration`
+         * 不會立刻反映，拿它當備援等於在用一份落後的資料。
+         */
+        let resolvedId = remembered?.id ?? registrationId;
         if (!remembered) {
           // 退路：沒有快取（深連結／冷啟動）或根本沒有報名編號。
           // 沒有 code 就無從查起——那就只能說載入失敗，不能拿名單裡別人的資料充數。
@@ -111,10 +117,10 @@ export default function RegistrantDetailScreen() {
           if (!active) return;
           setRegistration(next);
           setSource("by-code");
+          resolvedId = next.id;
         }
 
-        const walletRegistrationId =
-          registrationId || remembered?.id || registration?.id;
+        const walletRegistrationId = resolvedId;
         if (!walletRegistrationId) {
           // 兩條路都拿不到 id 時，只影響「Token 流水」這一區。
           setTransactions([]);
@@ -156,8 +162,6 @@ export default function RegistrantDetailScreen() {
     return () => {
       active = false;
     };
-    // `registration` 只用作 wallet 的 id 備援，放進 deps 會造成重跑迴圈。
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code, eventId, registrationId]);
 
   return (
