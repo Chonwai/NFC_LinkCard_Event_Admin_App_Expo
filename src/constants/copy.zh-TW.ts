@@ -380,6 +380,56 @@ export const copy = {
         NOT_SENT: "未寄出",
       },
     },
+    /**
+     * 批次寄送 claim email（Web `registrations.batchClaim.*`）。
+     *
+     * 文案逐字照抄 `public/locales/zh-Hant/event_manage.json`。三段式面板
+     * （select → confirm → result）：**只有 confirm 的「確認寄送」會發請求**。
+     */
+    batchClaim: {
+      open: "批次寄送 claim email",
+      title: "批次寄送 claim email",
+      description:
+        "本頁每一筆都會先確認 claim 狀態；預設只勾選「已有帳號、尚未 claim、且沒有有效連結」的報名者。",
+      loading: "正在確認 claim 狀態…",
+      noEligible:
+        "目前沒有「已確認」狀態的報名者，因此無法批次寄送 claim email。",
+      recipientCount: (count: number) => `收件人數：${count}`,
+      next: "下一步",
+      back: "返回",
+      confirmTitle: "確認批次寄送",
+      confirmBody: (count: number) =>
+        `將對 ${count} 筆報名寄送 claim email。寄出後無法撤回，且不會自動重試。`,
+      /** 被操作員手動放寬（已 claim／已有 token／無帳號）的筆數。 */
+      confirmRelaxed: (count: number) =>
+        `其中 ${count} 筆為已 claim、仍持有有效連結、或尚未建立帳號者。`,
+      confirmSend: "確認寄送",
+      sending: "寄送中…",
+      resultTitle: "批次寄送結果",
+      resultSummary: (success: number, failed: number) =>
+        `成功 ${success} 筆 · 失敗 ${failed} 筆`,
+      close: "關閉",
+      selectRow: (name: string) => `選取 ${name}`,
+      noAccountHint:
+        "此報名者尚未建立 LinkCard 帳號。勾選後寄送時會自動建立帳號，再寄出 claim email；若建立失敗會標示為「無法建立帳號」並可重試。",
+      reason: {
+        pending_claim: "待 claim",
+        activated: "已 claim",
+        has_token: "已有有效連結",
+        no_account: "尚未建立帳號",
+      },
+      outcome: {
+        sent: "已寄出",
+        claimed: "此連結已使用",
+        forbidden: "無權限寄送 claim email",
+        not_found: "此筆報名沒有可寄送的帳號",
+        send_failed: "信件寄送失敗",
+        failed: "寄送失敗",
+        account_missing: "無法建立帳號",
+      },
+      selectAllSendable: (count: number) => `全選可寄送（${count}）`,
+      clearSelection: "清除選取",
+    },
     viewDetail: "查看詳情",
     sectionProfile: "基本資料",
     sectionRegistration: "報名",

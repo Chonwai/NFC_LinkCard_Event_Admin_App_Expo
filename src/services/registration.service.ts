@@ -1,8 +1,10 @@
 import type {
+  ActivationLinkInfo,
   ApiResponse,
   Registration,
   RegistrationStatusCorrectionResult,
   RegistrationStatusCorrectionTarget,
+  ResendActivationEmailResult,
   ResendConfirmationResult,
   WalletTransactionList,
 } from "@/types/api.types";
@@ -210,6 +212,68 @@ export const registrationService = {
     >(
       `/api/v1/events/${encodeURIComponent(eventId)}/registrations/${encodeURIComponent(registrationId)}/status`,
       payload,
+    );
+    return res.data.data;
+  },
+
+  /**
+   * GET /v1/events/:eventId/registrations/:registrationId/activation-link?readonly=1
+   *
+   * 讀單筆的 **claim 狀態**（批次寄送面板的探針）。
+   *
+   * ## ⚠️ 那個 `readonly=1` 不是可選項，這裡刻意把它寫死在 URL 上
+   * 同一條路由的**預設**行為是「當場簽發一顆 activation token 並回傳可轉傳的
+   * URL」（`BE:EventRegistrationController.getActivationLink`）。批次面板只是要
+   * **讀狀態**，但它會對整頁每一筆各打一次——少了 `readonly=1`，開一次面板就會把
+   * 每個 `pending_claim` 的人變成「已有有效連結」，於是面板的預設收件人
+   * （有帳號、未 claim、無有效 token）在第二次開啟時**歸零**（`AA-F-01`）。
+   *
+   * 而 `?readonly` **只認字串 `'1'`**：`true`、`1`（數字，經 `qs` 後仍是
+   * `'1'`但別名寫法不同）、`0`、`readonly[]=1` 全部落到**簽發**預設路徑
+   * （BE 註解 `Query-shape contract (CRA-002)`）。
+   *
+   * 所以這裡**不開放參數**：沒有參數，就沒有人能傳錯。呼叫端若真的需要「簽發
+   * 一顆可轉傳的連結」，那是另一個能力，必須另外開方法並另外想權限與誤用防護，
+   * 不是在這裡加一個 boolean。
+   *
+   * 唯讀探針下 `activationToken`／`activationUrl` 仍是**既有**那顆 token 的值
+   * （未過期、未 claim 才有），因此 `has_token` 判定照樣成立。
+   */
+  async getActivationLinkStatus(
+    eventId: string,
+    registrationId: string,
+  ): Promise<ActivationLinkInfo> {
+    const res = await apiClient.get<ApiResponse<ActivationLinkInfo>>(
+      `/api/v1/events/${encodeURIComponent(eventId)}/registrations/${encodeURIComponent(registrationId)}/activation-link?readonly=1`,
+    );
+    return res.data.data;
+  },
+
+  /**
+   * POST /v1/events/:eventId/registrations/:registrationId/activation-link
+   *
+   * 重寄單筆的 **claim（領取）信**（BE-02）。批次面板的單筆單元。
+   *
+   * ## 與 `resendConfirmation` 的差別
+   * - 這條：對方**還沒有帳號**（或已有帳號但未啟用）⇒ 請他啟用。
+   * - 那條：帳號已驗證 ⇒ 告訴他已確認的場次資訊。
+   *
+   * ## 刻意不輪換 token（BE-02）
+   * 後端不 rotate，所以重寄同一人**不會**讓先前寄出的連結失效。這也是為什麼
+   * 批次寄送可以逐筆重試單一失敗，而不必整批重來。
+   *
+   * 失敗語意（`error.response.data.error.code`；呼叫端逐筆呈現，`S-4` 不得自動重試）：
+   * - `409 TOKEN_ALREADY_CLAIMED` — 已 claim
+   * - `422 REGISTRATION_ACCOUNT_MISSING` — 補建帳號失敗（可重試）
+   * - `502 ACTIVATION_EMAIL_SEND_FAILED` — SMTP 失敗
+   * - `403 INSUFFICIENT_PERMISSION` / `404 REGISTRATION_NOT_FOUND`
+   */
+  async resendActivationEmail(
+    eventId: string,
+    registrationId: string,
+  ): Promise<ResendActivationEmailResult> {
+    const res = await apiClient.post<ApiResponse<ResendActivationEmailResult>>(
+      `/api/v1/events/${encodeURIComponent(eventId)}/registrations/${encodeURIComponent(registrationId)}/activation-link`,
     );
     return res.data.data;
   },

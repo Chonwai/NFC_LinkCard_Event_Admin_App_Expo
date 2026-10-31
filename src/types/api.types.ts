@@ -222,6 +222,37 @@ export interface RegistrationStatusCorrectionResult {
 }
 
 /**
+ * `GET …/registrations/:id/activation-link` 的回應（單筆 claim 狀態）。
+ *
+ * 鏡射 `LinkCard_Frontend/lib/events/registrations.ts:392-403`。
+ *
+ * ⚠️ `activationToken`／`activationUrl` 只在「該人**已經**持有有效 token」時
+ * 有值。App 只走唯讀探針（`?readonly=1`，見
+ * `registrationService.getActivationLinkStatus`），所以那些值**永遠不會是本輪
+ * 新造的**——它們只反映原本就存在的事實。
+ */
+export interface ActivationLinkInfo {
+  email: string;
+  firstName: string;
+  lastName: string;
+  isActivated: boolean;
+  userId: string | null;
+  activationToken: string | null;
+  activationUrl: string | null;
+  /** 這一輪**是否**簽發了新 token。唯讀探針恆為 `false`。 */
+  issued?: boolean;
+}
+
+/**
+ * `POST …/registrations/:id/activation-link`（BE-02）的回應。
+ * `activationEmailSentAt` 由後端寫入後回傳——它是「這次寄信的證據」。
+ */
+export interface ResendActivationEmailResult {
+  email: string;
+  activationEmailSentAt: string;
+}
+
+/**
  * `POST …/registrations/:id/resend-confirmation` 的回應。
  *
  * 鏡射 `LinkCard_Frontend/lib/events/registrations.ts:477-481`。

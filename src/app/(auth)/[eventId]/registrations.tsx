@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
 import { router, useLocalSearchParams } from "expo-router";
 
+import { BatchSendClaimEmailModal } from "@/components/roster/BatchSendClaimEmailModal";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon, type IconName } from "@/components/ui/Icon";
@@ -374,6 +375,13 @@ export default function RegistrationsScreen() {
     undo?: { reg: Registration; reverse: ManageAction };
   } | null>(null);
   const [exporting, setExporting] = useState(false);
+  /**
+   * 批次寄送 claim email 面板（FE-08）。
+   *
+   * 點「開啟」**不寄任何信**（`S-5`／AC4）——面板本身只是把收件人選出來，
+   * 真正寄送發生在面板的「確認寄送」。
+   */
+  const [batchOpen, setBatchOpen] = useState(false);
 
   /**
    * 送給後端的查詢參數。三個載入路徑（首次／下拉更新／載入更多）共用這一份，
@@ -769,6 +777,27 @@ export default function RegistrationsScreen() {
             ) : null}
             {/* 匯出：對應 Web 標題列的「下載名單（CSV）」 */}
             <View style={styles.headerActions}>
+              <Pressable
+                onPress={() => setBatchOpen(true)}
+                style={({ pressed }) => [
+                  styles.headerAction,
+                  pressed && styles.rowPressed,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel={copy.roster.batchClaim.open}
+              >
+                <Icon
+                  name="information-circle"
+                  size="sm"
+                  color={semantic.text.secondary}
+                />
+                <Text
+                  style={styles.headerActionText}
+                  maxFontSizeMultiplier={layout.maxFontScaleFixed}
+                >
+                  {copy.roster.batchClaim.open}
+                </Text>
+              </Pressable>
               <Pressable
                 onPress={() => {
                   void handleExport();
@@ -1200,6 +1229,21 @@ export default function RegistrationsScreen() {
       />
 
       {/*
+        批次寄送 claim email（FE-08）：三段式面板，對應 Web
+        `BatchSendClaimEmailModal`。
+      */}
+      {batchOpen ? (
+        <BatchSendClaimEmailModal
+          eventId={eventId}
+          registrations={items}
+          onClose={() => setBatchOpen(false)}
+          onSent={() => {
+            void refresh();
+          }}
+        />
+      ) : null}
+
+      {/*
         名單管理面板（對應 Web 的 `RegistrationActionsMenu` + `RegistrationActionModal`）。
 
         為何用 RN 內建的 `Modal` 而不新增 overlay 套件：`expo-router` 的畫面堆疊
@@ -1384,6 +1428,8 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: "row",
     justifyContent: "flex-end",
+    gap: space[2],
+    flexWrap: "wrap",
   },
   headerAction: {
     flexDirection: "row",
