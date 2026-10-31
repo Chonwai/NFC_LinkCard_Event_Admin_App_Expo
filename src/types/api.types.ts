@@ -210,6 +210,38 @@ export interface Registration {
 }
 
 /**
+ * `GET …/registrations/desk-lookup?code=…` 的回應（簽到台「已報到者的唯讀查詢」）。
+ *
+ * 鏡射 `LinkCard_Frontend/lib/events/registrations.ts:167`，欄位逐字對齊後端
+ * `EventRegistrationService.lookupRegistrationForDesk` 的 `select`。
+ *
+ * ⚠️ **刻意不是 `Registration` 的子型別，也不是它的別名。**
+ * 兩份回應的欄位不同，照 `Registration` 建模會把「查不到」與「後端沒回」混成
+ * 同一個 `undefined`：
+ * - 沒有 `ticketType`／`tokenBalance`／`isActivated`（後端 select 就沒撈）——
+ *   畫面若照 `Registration` 讀，會把票種顯示成 `—`，看起來像資料不見了。
+ * - 沒有 `nfcBadge`：那會讓「這位是否已經有卡」變成第二份判別來源，而權威來源
+ *   是 `POST /nfc/bind` 的 409（`REGISTRATION_ALREADY_BOUND`）。
+ */
+export interface DeskLookupRegistration {
+  /** 報名 id（資料庫主鍵）。簽到台綁卡用它——`bindNfcBadge` 的 `registrationId`
+   * 是 FK，報名碼不能代替。 */
+  id: string;
+  registrationCode: string;
+  /** 報到後的狀態（`CHECKED_IN`）。後端回字串，這裡不窄化成 union。 */
+  status: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  company: string | null;
+  registrantType: string;
+  /** 報到時間（ISO）；現場核對用。 */
+  checkedInAt: string | null;
+  /** 公開檔案（`/p/{slug}`）的絕對 URL；`null` ＝ 這人沒有公開檔案（常態分支）。 */
+  profileUrl: string | null;
+}
+
+/**
  * 後台狀態修正可用的目標狀態。由後端轉移表決定，App 只鏡射值域、不自行判斷
  * 合法性（不合法會回 `409 STATUS_TRANSITION_NOT_ALLOWED`）。
  */

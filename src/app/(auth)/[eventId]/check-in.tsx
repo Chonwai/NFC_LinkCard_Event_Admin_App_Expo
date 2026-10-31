@@ -46,6 +46,7 @@ import {
 import { resolveCheckInErrorMessage } from "@/utils/check-in-errors";
 import { playCheckInFeedback } from "@/utils/check-in-feedback";
 import { mergeCheckInProfileUrl, profilePathLabel } from "@/utils/desk-handoff";
+import { resolveDuplicateOutcome } from "@/utils/desk-lookup";
 import {
   getRegistrationCheckedInAt,
   getRegistrationCode,
@@ -192,6 +193,40 @@ export default function CheckInScreen() {
     [resetToIdle],
   );
 
+  /**
+   * 「已入場」的單一收斂點。
+   *
+   * 兩條來路都在這裡結束：`by-code` 先行判定、以及 `checkIn` 回
+   * `ALREADY_CHECKED_IN`（後到的重複掃描、或另一位櫃台同時報到）。
+   *
+   * 判定成立後改打**唯讀**的 `desk-lookup`（`GET …/desk-lookup?code=…`，與 Web
+   * 同一條：`LinkCard_Frontend@app/check-in/[eventId]/page.tsx:608`），而不是再
+   * 打一次 `checkIn`——後者對已報到者只回 400 且不帶任何資料，畫面上的「首次報到
+   * 時間」與「公開檔案」會因此退回前一條路徑碰巧帶到的欄位。
+   *
+   * 查詢失敗不翻轉判定（見 `resolveDuplicateOutcome` 的降級說明）。
+   */
+  const showAlreadyCheckedIn = useCallback(
+    async (code: string, registration?: Registration) => {
+      const resolved = await resolveDuplicateOutcome(
+        eventId,
+        code,
+        registration,
+        (id, lookupCode) =>
+          registrationService.lookupRegistrationForDesk(id, lookupCode),
+      );
+      await showOutcome({
+        phase: "outcome",
+        kind: "duplicate",
+        code,
+        message: copy.checkIn.alreadyCheckedIn,
+        registration: resolved.registration,
+        checkedInAt: resolved.checkedInAt,
+      });
+    },
+    [eventId, showOutcome],
+  );
+
   const doLookupThenCheckIn = useCallback(
     async (rawCode: string) => {
       if (!eventId || !rawCode.trim()) return;
@@ -216,14 +251,7 @@ export default function CheckInScreen() {
       }
 
       if (isAlreadyCheckedIn(registration)) {
-        await showOutcome({
-          phase: "outcome",
-          kind: "duplicate",
-          code,
-          message: copy.checkIn.alreadyCheckedIn,
-          registration,
-          checkedInAt: getRegistrationCheckedInAt(registration),
-        });
+        await showAlreadyCheckedIn(code, registration);
         return;
       }
 
@@ -267,14 +295,7 @@ export default function CheckInScreen() {
       } catch (err) {
         const codeKey = getApiErrorCode(err);
         if (codeKey === "ALREADY_CHECKED_IN") {
-          await showOutcome({
-            phase: "outcome",
-            kind: "duplicate",
-            code,
-            message: copy.checkIn.alreadyCheckedIn,
-            registration,
-            checkedInAt: getRegistrationCheckedInAt(registration),
-          });
+          await showAlreadyCheckedIn(code, registration);
           return;
         }
         await showOutcome({
@@ -286,7 +307,7 @@ export default function CheckInScreen() {
         });
       }
     },
-    [eventId, refreshCounter, showOutcome],
+    [eventId, refreshCounter, showAlreadyCheckedIn, showOutcome],
   );
 
   const onBarcodeScanned = useCallback(

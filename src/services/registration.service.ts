@@ -1,6 +1,7 @@
 import type {
   ActivationLinkInfo,
   ApiResponse,
+  DeskLookupRegistration,
   GuestImportConfirmResult,
   GuestImportMode,
   GuestImportNotifyResult,
@@ -45,6 +46,36 @@ export const registrationService = {
     >(`/api/v1/events/${encodeURIComponent(eventId)}/registrations/checkin`, {
       registrationCode: code,
     });
+    return res.data.data;
+  },
+
+  /**
+   * GET /v1/events/:eventId/registrations/desk-lookup?code=… — 簽到台唯讀查詢
+   *（需 OPERATOR+，與 `checkIn` 同級）。
+   *
+   * 參數與 query **逐字照 Web**（`LinkCard_Frontend/lib/events/registrations.ts:193`
+   * `lookupRegistrationForDesk`）：`?code=<encodeURIComponent(code)>`，回
+   * `{ registration: DeskLookupRegistration }`。
+   *
+   * 為什麼不能重用 `checkIn()`：它對已報到者是終局 400
+   *（`ALREADY_CHECKED_IN`）且**不回任何資料**——拿不到 `id` 就綁不了卡。
+   * 為什麼不是 `getByCode()`：那是**公開**端點、回整包 PII（phone／formData…），
+   * 為了一個 id 去開一條 PII 通道不值得（後端 docblock 同一取捨）。
+   *
+   * 失敗語意（`error.response.data.error.code`）：
+   * - `403 INSUFFICIENT_PERMISSION` — 需 OPERATOR 以上
+   * - `404 REGISTRATION_NOT_FOUND` — 無此報名或不屬於此活動
+   */
+  async lookupRegistrationForDesk(
+    eventId: string,
+    code: string,
+  ): Promise<{ registration: DeskLookupRegistration }> {
+    const res = await apiClient.get<
+      ApiResponse<{ registration: DeskLookupRegistration }>
+    >(
+      `/api/v1/events/${encodeURIComponent(eventId)}/registrations/desk-lookup?code=${encodeURIComponent(code)}`,
+      { timeout: LOOKUP_TIMEOUT_MS },
+    );
     return res.data.data;
   },
 
