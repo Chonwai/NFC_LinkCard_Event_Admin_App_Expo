@@ -4,8 +4,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useLocalSearchParams } from "expo-router";
 
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Icon } from "@/components/ui/Icon";
 import { InlineBanner } from "@/components/ui/InlineBanner";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -20,6 +22,16 @@ import {
 } from "@/constants/theme";
 import { contentService } from "@/services/content.service";
 import type { PageSection, PageSectionCard } from "@/types/api.types";
+import { getApiErrorMessage } from "@/utils/api-error";
+
+/**
+ * 區塊數上限。
+ *
+ * 這個 6 **只存在於 Web 的畫面**（`content/page.tsx:22` 的 `MAX_SECTIONS`），
+ * 後端 `createSection` 沒有這條限制。照抄的理由是「不增不減」：Web 的使用者
+ * 最多就是建 6 個，App 不該多給。少了它，手機反而變成一個 Web 沒有的後門。
+ */
+const MAX_SECTIONS = 6;
 
 /**
  * 落地頁內容（parity `content`）。
@@ -53,6 +65,10 @@ export default function EventContentScreen() {
   const [sections, setSections] = useState<PageSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  /** 新增／儲存／刪除進行中（同一時間只會有一個動作在跑） */
+  const [busy, setBusy] = useState(false);
+  /** 寫入失敗的橫幅。Web 的寫入路徑沒有 catch，App 多這一條（見檔頭）。 */
+  const [actionError, setActionError] = useState<string | null>(null);
   /**
    * 重新載入的觸發計數器。
    *
@@ -86,6 +102,34 @@ export default function EventContentScreen() {
   }, [eventId, reloadKey]);
 
   const showSkeleton = loading && sections.length === 0;
+  const maxed = sections.length >= MAX_SECTIONS;
+
+  /**
+   * 新增區塊。
+   *
+   * 與 Web 完全相同的一步：先建一個空區塊，再就地編輯。標題預設「新區塊」、
+   * 2 欄、不發布——三個值逐字對齊 `content/page.tsx:71-75`。不先跳一張「請輸入
+   * 標題」的表單：那會在 Web 的流程上多插一步。
+   */
+  async function addSection() {
+    if (!eventId) return;
+    setBusy(true);
+    setActionError(null);
+    try {
+      await contentService.createSection(eventId, {
+        title: copy.content.newSection,
+        gridColumns: 2,
+        isPublished: false,
+      });
+      // 建完重新載入整份清單（Web 也是 `onUpdate()` → `loadSections()`），
+      // 不自行把新區塊拼進本地陣列：`displayOrder` 由後端決定。
+      setReloadKey((key) => key + 1);
+    } catch (error) {
+      setActionError(getApiErrorMessage(error, copy.content.addFailed));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <View style={styles.screen}>
@@ -108,6 +152,32 @@ export default function EventContentScreen() {
             compact
             tone="danger"
             message={copy.content.loadError}
+          />
+        ) : null}
+
+        {actionError ? (
+          <InlineBanner
+            compact
+            tone="danger"
+            message={actionError}
+            dismissible
+            onDismiss={() => setActionError(null)}
+          />
+        ) : null}
+
+        {!showSkeleton ? (
+          <Button
+            label={
+              maxed
+                ? `${copy.content.addSection}${copy.content.maxReached}`
+                : copy.content.addSection
+            }
+            variant="secondary"
+            icon={<Icon name="plus" size="sm" color={semantic.icon.default} />}
+            onPress={() => void addSection()}
+            loading={busy}
+            disabled={maxed}
+            testID="content-add-section"
           />
         ) : null}
 

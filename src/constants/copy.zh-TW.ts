@@ -878,6 +878,10 @@ export const copy = {
     columns: (count: number) => `${count} 欄`,
     published: "已發布",
     draft: "草稿",
+    newSection: "新區塊",
+    addSection: "新增區塊",
+    maxReached: "（已達上限）",
+    addFailed: "新增失敗，請稍後再試",
   },
   /**
    * 活動設定（`app/(auth)/[eventId]/settings.tsx`）。
