@@ -85,6 +85,12 @@ export default function EventPollsScreen() {
   } | null>(null);
 
   /**
+   * 正在啟用／關閉的那一筆。同 Web 的 `actingPollId`：
+   * 只有被按下去的那一張卡的按鈕進 loading，其他卡片照常可按。
+   */
+  const [actingPollId, setActingPollId] = useState<string | null>(null);
+
+  /**
    * 重新載入的觸發計數器（見檔頭）。
    *
    * 寫入成功後把它加一：與 Web 的 `await loadPolls()` 同義，
@@ -153,6 +159,31 @@ export default function EventPollsScreen() {
     setOptions((current) =>
       current.map((option, i) => (i === index ? text : option)),
     );
+  }
+
+  /**
+   * 啟用一筆投票。
+   *
+   * 後端 `PATCH …/polls/:pollId/activate` 只認路徑上的 pollId，不帶 body。
+   * 成功後重新載入整份清單（Web 的 `await loadPolls()`），不自己改本地
+   * `isActive`：`startedAt` 也是後端寫的，本地改一半只會對不上。
+   */
+  async function activate(poll: EventPoll) {
+    if (!eventId) return;
+    setActingPollId(poll.id);
+    setFeedback(null);
+    try {
+      await pollService.activatePoll(eventId, poll.id);
+      setFeedback({ tone: "success", message: copy.polls.activateSuccess });
+      setReloadKey((key) => key + 1);
+    } catch (error) {
+      setFeedback({
+        tone: "danger",
+        message: getApiErrorMessage(error, copy.polls.actionError),
+      });
+    } finally {
+      setActingPollId(null);
+    }
   }
 
   function removeOption(index: number) {
@@ -284,7 +315,12 @@ export default function EventPollsScreen() {
         {!showSkeleton && polls.length > 0 ? (
           <View style={styles.list}>
             {polls.map((poll) => (
-              <PollCard key={poll.id} poll={poll} />
+              <PollCard
+                key={poll.id}
+                poll={poll}
+                busy={actingPollId === poll.id}
+                onActivate={() => void activate(poll)}
+              />
             ))}
           </View>
         ) : null}
@@ -307,8 +343,24 @@ export default function EventPollsScreen() {
  * 而且灰字讀起來像「停用」而不是「已結束」。App 走既有的 `semantic.status`
  * （`success` / `neutral`），與其他畫面的狀態徽章同一套 token、同一組對比保證
  * （`theme.ts` 已凍結，不新增色票）。
+ *
+ * ## 開關按鈕是**二選一**，不是並排兩顆
+ *
+ * Web 的邏輯是 `!poll.isActive ? 「啟動」: 「關閉」`——同一時間只會出現一顆。
+ * 這不是版面妥協：兩個方向同時可按會讓人「先按錯再按回來」，
+ * 而啟動一個已結束的投票在後端是合法的（它只改 `isActive`），
+ * 錯按就會真的重開一場已經結算的投票。App 照抄二選一。
  */
-function PollCard({ poll }: { poll: EventPoll }) {
+function PollCard({
+  poll,
+  busy,
+  onActivate,
+}: {
+  poll: EventPoll;
+  /** 這一張卡正在送出啟用／關閉請求 */
+  busy: boolean;
+  onActivate: () => void;
+}) {
   const tone = statusTone(poll.isActive);
   return (
     <Card testID={`poll-card-${poll.id}`}>
@@ -327,6 +379,19 @@ function PollCard({ poll }: { poll: EventPoll }) {
             {poll.isActive ? copy.polls.statusActive : copy.polls.statusClosed}
           </Text>
         </View>
+      </View>
+
+      <View style={styles.cardActions}>
+        {!poll.isActive ? (
+          <Button
+            label={copy.polls.activate}
+            variant="secondary"
+            onPress={onActivate}
+            loading={busy}
+            fullWidth={false}
+            testID={`poll-activate-${poll.id}`}
+          />
+        ) : null}
       </View>
     </Card>
   );
@@ -386,5 +451,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: space[2],
     paddingVertical: 2,
+  },
+  /**
+   * 卡片內動作列。
+   *
+   * 靠右、`flex-start`：與 Web 的 `flex shrink-0 gap-1.5` 同一個視覺結果，
+   * 但留了一條上分隔線——手機上題目與按鈕之間沒有卡片邊界，
+   * 不加線會看起來像按鈕屬於題目本身。
+   */
+  cardActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: space[2],
+    marginTop: space[3],
+    paddingTop: space[3],
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: semantic.border.decorative,
   },
 });

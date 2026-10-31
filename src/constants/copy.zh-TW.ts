@@ -997,6 +997,9 @@ export const copy = {
      * App 補上中文，並在這裡註記它是 Web 沒有的字串（不是漏抄）。
      */
     removeOption: "移除選項",
+    /** Web `polls.activate` / `polls.activate_success` */
+    activate: "啟動",
+    activateSuccess: "投票已啟動",
     /** Web `polls.list_heading` */
     listHeading: "投票列表",
     /** Web `polls.status_active` / `polls.status_closed` */
