@@ -975,6 +975,28 @@ export const copy = {
     subtitle: "活動現場的即時投票",
     loading: "讀取中…",
     loadError: "載入投票列表失敗，請稍後再試",
+    /** Web `polls.create_heading` */
+    createHeading: "建立投票",
+    /** Web `polls.question_label` / `polls.options_label` */
+    questionLabel: "問題",
+    optionsLabel: "選項",
+    /** Web `polls.add_option` */
+    addOption: "+ 新增選項",
+    /** Web `polls.create_button` */
+    createButton: "建立",
+    /** Web `polls.option_placeholder`（i18next `{{number}}` → 函式） */
+    optionPlaceholder: (number: number) => `選項 ${number}`,
+    /** Web `polls.create_success` */
+    createSuccess: "投票已建立",
+    /** Web `polls.action_error` */
+    actionError: "操作失敗，請重試",
+    /**
+     * 移除選項鈕的讀屏標籤。
+     *
+     * Web 這一顆是 `aria-label="Remove option"`——**硬寫的英文，沒有進 i18n**。
+     * App 補上中文，並在這裡註記它是 Web 沒有的字串（不是漏抄）。
+     */
+    removeOption: "移除選項",
     /** Web `polls.list_heading` */
     listHeading: "投票列表",
     /** Web `polls.status_active` / `polls.status_closed` */
