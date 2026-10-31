@@ -377,6 +377,11 @@ export const copy = {
       unhideDone: "已取消隱藏",
       archiveDone: "已封存這筆報名",
       unarchiveDone: "已取消封存",
+      /** 狀態修正（Web `RegistrationActionsMenu` 的最上方項目） */
+      markCheckedIn: "標記為已報到",
+      undoCheckIn: "撤銷報到",
+      markCheckedInDone: "已標記為已報到",
+      undoCheckInDone: "已撤銷報到",
       undo: "復原",
       /** 復原時寫入稽核的原因（使用者看不到，屬於操作軌跡） */
       undoReason: "復原上一次隱藏或封存操作",

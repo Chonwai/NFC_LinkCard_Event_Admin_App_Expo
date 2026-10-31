@@ -132,3 +132,55 @@ test("unarchive POST 到 /registrations/:id/unarchive，且不帶 body", async (
   );
   assert.equal(calls[0].body, undefined);
 });
+
+test("updateStatus POST 到 /registrations/:id/status，body 為 { targetStatus, reason }", async () => {
+  calls.length = 0;
+  nextPost = () => ({
+    data: { data: { registration: { id: "reg-1", status: "CHECKED_IN" } } },
+  });
+
+  await registrationService.updateStatus("evt-1", "reg-1", {
+    targetStatus: "CHECKED_IN",
+    reason: "現場人工報到",
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url, "/api/v1/events/evt-1/registrations/reg-1/status");
+  assert.deepEqual(calls[0].body, {
+    targetStatus: "CHECKED_IN",
+    reason: "現場人工報到",
+  });
+});
+
+test("updateStatus 回傳的是白名單 6 欄，不是整筆 registration", async () => {
+  calls.length = 0;
+  nextPost = () => ({
+    data: {
+      data: {
+        registration: {
+          id: "reg-1",
+          registrationCode: "ABC123",
+          status: "CONFIRMED",
+          checkedInAt: null,
+          checkedInBy: null,
+          updatedAt: "2026-11-01T00:00:00.000Z",
+        },
+      },
+    },
+  });
+
+  const { registration } = await registrationService.updateStatus(
+    "evt-1",
+    "reg-1",
+    { targetStatus: "CONFIRMED", reason: "撤銷誤掃" },
+  );
+
+  assert.deepEqual(Object.keys(registration).sort(), [
+    "checkedInAt",
+    "checkedInBy",
+    "id",
+    "registrationCode",
+    "status",
+    "updatedAt",
+  ]);
+});

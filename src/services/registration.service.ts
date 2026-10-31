@@ -1,6 +1,8 @@
 import type {
   ApiResponse,
   Registration,
+  RegistrationStatusCorrectionResult,
+  RegistrationStatusCorrectionTarget,
   WalletTransactionList,
 } from "@/types/api.types";
 import { LOOKUP_TIMEOUT_MS } from "@/constants/config";
@@ -172,6 +174,41 @@ export const registrationService = {
       ApiResponse<{ registration: Registration }>
     >(
       `/api/v1/events/${encodeURIComponent(eventId)}/registrations/${encodeURIComponent(registrationId)}/unarchive`,
+    );
+    return res.data.data;
+  },
+
+  /**
+   * POST /v1/events/:eventId/registrations/:registrationId/status
+   *
+   * 後台狀態修正（`NEW-34`）：撤銷報到（`CHECKED_IN → CONFIRMED`）或人工報到
+   * （`CONFIRMED → CHECKED_IN`）。對應 Web `updateRegistrationStatus`。
+   *
+   * 與 `checkIn()` 的差別：以 `registrationId`（不是報名碼）定位，需要 `reason`
+   * （後端 trim 後寫入稽核），且權限較嚴（`getEventWriteAccess`，**不是**現場
+   * 掃碼的 OPERATOR 層級）。呼叫端拿到 403 應提示「需要主管權限」。
+   *
+   * 失敗語意（`error.response.data.error.code`）：
+   * - `409 REGISTRATION_STATUS_UNCHANGED` — 已是該狀態 ⇒ 畫面過期，應重新載入
+   * - `409 STATUS_TRANSITION_NOT_ALLOWED` — 不在轉移表內
+   * - `409 REGISTRATION_STATUS_CONFLICT` — 並行競態，本次為輸家
+   * - `404 REGISTRATION_NOT_FOUND` — 找不到／非本活動
+   * - `403 INSUFFICIENT_PERMISSION` — 權限不足（需 COORDINATOR+）
+   * - `422` — `reason` 空白或 `targetStatus` 不在值域
+   */
+  async updateStatus(
+    eventId: string,
+    registrationId: string,
+    payload: {
+      targetStatus: RegistrationStatusCorrectionTarget;
+      reason: string;
+    },
+  ): Promise<{ registration: RegistrationStatusCorrectionResult }> {
+    const res = await apiClient.post<
+      ApiResponse<{ registration: RegistrationStatusCorrectionResult }>
+    >(
+      `/api/v1/events/${encodeURIComponent(eventId)}/registrations/${encodeURIComponent(registrationId)}/status`,
+      payload,
     );
     return res.data.data;
   },

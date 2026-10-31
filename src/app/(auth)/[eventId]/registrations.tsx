@@ -28,6 +28,12 @@ import { registrationService } from "@/services/registration.service";
 import type { Registration } from "@/types/api.types";
 import { getApiErrorStatus } from "@/utils/api-error";
 import {
+  REVERSE_ACTION,
+  type ManageAction,
+  correctionTargetFor,
+  manageActionsFor,
+} from "@/utils/registration-actions";
+import {
   getRegistrationCompany,
   getRegistrationDisplayName,
   maskEmail,
@@ -36,22 +42,11 @@ import {
 const PAGE_SIZE = 20;
 const COPY_FEEDBACK_MS = 1800;
 
-/**
- * 名單管理可執行的動作。對應 Web `registrations/page.tsx` 的
- * `RegistrationActionsMenu`：狀態修正、隱藏／取消隱藏、封存／取消封存。
- */
-type ManageAction = "hide" | "unhide" | "archive" | "unarchive";
-
-/** 各動作的反向動作（供「復原」横幅使用）。 */
-const REVERSE_ACTION: Record<ManageAction, ManageAction> = {
-  hide: "unhide",
-  unhide: "hide",
-  archive: "unarchive",
-  unarchive: "archive",
-};
-
-/** 動作 → 按钮文案 / 完成文案。集中一處，避免二分三元式長成一棵樹。 */
-const ACTION_COPY: Record<ManageAction, { label: string; done: string }> = {
+/** 可見性／封存四項的按钮文案與完成文案。狀態修正的文案依目前狀態變，見 `actionCopyFor`。 */
+const VISIBILITY_COPY: Record<
+  Exclude<ManageAction, "correct">,
+  { label: string; done: string }
+> = {
   hide: { label: copy.roster.manage.hide, done: copy.roster.manage.hideDone },
   unhide: {
     label: copy.roster.manage.unhide,
@@ -73,7 +68,27 @@ const ACTION_ICON: Record<ManageAction, IconName> = {
   unhide: "eye",
   archive: "archive",
   unarchive: "refresh",
+  correct: "check-circle",
 };
+
+/** 動作 → 按鈕文案 / 完成文案。 */
+function actionCopyFor(
+  reg: Registration,
+  action: ManageAction,
+): { label: string; done: string } {
+  if (action === "correct") {
+    return correctionTargetFor(reg) === "CHECKED_IN"
+      ? {
+          label: copy.roster.manage.markCheckedIn,
+          done: copy.roster.manage.markCheckedInDone,
+        }
+      : {
+          label: copy.roster.manage.undoCheckIn,
+          done: copy.roster.manage.undoCheckInDone,
+        };
+  }
+  return VISIBILITY_COPY[action];
+}
 
 /**
  * 依動作呼叫對應端點。
@@ -101,6 +116,17 @@ async function performManageAction(
     case "unarchive":
       await registrationService.unarchive(eventId, reg.id);
       return;
+    case "correct": {
+      const target = correctionTargetFor(reg);
+      // 依建構方式不可能為 null（按鈕只在有 target 時出現）；若真的走到這裡，
+      // 寧可什麼都不做，也不要瞎猜一個目標狀態送出去。
+      if (target === null) return;
+      await registrationService.updateStatus(eventId, reg.id, {
+        targetStatus: target,
+        reason: reason.trim(),
+      });
+      return;
+    }
   }
 }
 
@@ -190,7 +216,8 @@ export default function RegistrationsScreen() {
   /** 上一次成功的操作；有值才顯示「復原」橫幅（對應 Web 的 undo toast）。 */
   const [undo, setUndo] = useState<{
     reg: Registration;
-    reverse: ManageAction;
+    /** `null`＝這次操作沒有復原路徑（狀態修正）；橫幅只顯示文字。 */
+    reverse: ManageAction | null;
     message: string;
   } | null>(null);
 
@@ -312,10 +339,18 @@ export default function RegistrationsScreen() {
     return rows;
   }, [items, query, sort]);
 
-  /** 「原因」是否必填（`hide`／`archive` 要，取消類不要）。 */
-  const needsReason = pendingAction === "hide" || pendingAction === "archive";
+  /** 「原因」是否必填（`hide`／`archive`／狀態修正要，取消類不要）。 */
+  const needsReason =
+    pendingAction === "hide" ||
+    pendingAction === "archive" ||
+    pendingAction === "correct";
   /** 必填而未填。 */
   const reasonMissing = needsReason && reason.trim() === "";
+  /**
+   * 確認鈕的語意色：只有**破壞性**的 hide／archive 用紅色；取消類與狀態修正
+   * 用主色（修正不是在刪資料）。
+   */
+  const confirmIsDanger = pendingAction === "hide" || pendingAction === "archive";
 
   /** 打開某一筆的管理選單。 */
   const openManage = useCallback((reg: Registration) => {
@@ -349,8 +384,8 @@ export default function RegistrationsScreen() {
         await performManageAction(eventId, reg, action, reasonText);
         setUndo({
           reg,
-          reverse: REVERSE_ACTION[action],
-          message: ACTION_COPY[action].done,
+          reverse: REVERSE_ACTION[action] ?? null,
+          message: actionCopyFor(reg, action).done,
         });
         setManage(null);
         setPendingAction(null);
@@ -369,9 +404,15 @@ export default function RegistrationsScreen() {
     [eventId, refresh],
   );
 
-  /** 「復原」＝呼叫相反端點。失敗只改提示，不覆蓋清單。 */
+  /**
+   * 「復原」＝呼叫相反端點。失敗只改提示，不覆蓋清單。
+   *
+   * 狀態修正**沒有**復原：它的「反向」是把剛才的修正再修正回去，而那一樣需要
+   * 理由（後端稽核）。Web 的狀態修正 toast 同樣只有確認文字、沒有 undo，
+   * 這裡對齊。
+   */
   const runUndo = useCallback(async () => {
-    if (!eventId || !undo) return;
+    if (!eventId || !undo || undo.reverse === null) return;
     const { reg, reverse } = undo;
     setUndo(null);
     try {
@@ -446,10 +487,16 @@ export default function RegistrationsScreen() {
               <InlineBanner
                 tone="success"
                 message={undo.message}
-                actionLabel={copy.roster.manage.undo}
-                onAction={() => {
-                  void runUndo();
-                }}
+                actionLabel={
+                  undo.reverse === null ? undefined : copy.roster.manage.undo
+                }
+                onAction={
+                  undo.reverse === null
+                    ? undefined
+                    : () => {
+                        void runUndo();
+                      }
+                }
                 dismissible
                 onDismiss={() => setUndo(null)}
               />
@@ -719,39 +766,40 @@ export default function RegistrationsScreen() {
 
               {pendingAction === null ? (
                 <View style={styles.actionList}>
-                  {(manage
-                    ? ([
-                        manage.isHidden ? "unhide" : "hide",
-                        manage.status === "ARCHIVED" ? "unarchive" : "archive",
-                      ] as ManageAction[])
-                    : []
-                  ).map((action) => (
-                    <Pressable
-                      key={action}
-                      onPress={() => {
-                        setPendingAction(action);
-                        setReason("");
-                        setActionError(null);
-                      }}
-                      style={({ pressed }) => [
-                        styles.actionItem,
-                        pressed && styles.rowPressed,
-                      ]}
-                      accessibilityRole="button"
-                    >
-                      <Icon
-                        name={ACTION_ICON[action]}
-                        size="md"
-                        color={semantic.icon.muted}
-                      />
-                      <Text style={styles.actionLabel}>
-                        {ACTION_COPY[action].label}
-                      </Text>
-                    </Pressable>
-                  ))}
+                  {manage === null
+                    ? null
+                    : manageActionsFor(manage).map((action) => (
+                        <Pressable
+                          key={action}
+                          onPress={() => {
+                            setPendingAction(action);
+                            setReason("");
+                            setActionError(null);
+                          }}
+                          style={({ pressed }) => [
+                            styles.actionItem,
+                            pressed && styles.rowPressed,
+                          ]}
+                          accessibilityRole="button"
+                        >
+                          <Icon
+                            name={ACTION_ICON[action]}
+                            size="md"
+                            color={semantic.icon.muted}
+                          />
+                          <Text style={styles.actionLabel}>
+                            {actionCopyFor(manage, action).label}
+                          </Text>
+                        </Pressable>
+                      ))}
                 </View>
               ) : (
                 <View style={styles.confirmBlock}>
+                  <Text style={styles.confirmTitle}>
+                    {manage === null
+                      ? null
+                      : actionCopyFor(manage, pendingAction).label}
+                  </Text>
                   {needsReason ? (
                     <>
                       <Text style={styles.fieldLabel}>
@@ -799,7 +847,7 @@ export default function RegistrationsScreen() {
                         ? copy.roster.manage.processing
                         : copy.roster.manage.confirm
                     }
-                    variant={needsReason ? "dangerSolid" : "primary"}
+                    variant={confirmIsDanger ? "dangerSolid" : "primary"}
                     loading={busy}
                     disabled={reasonMissing}
                     onPress={() => {
@@ -1027,6 +1075,11 @@ const styles = StyleSheet.create({
   },
   confirmBlock: {
     gap: space[2],
+  },
+  confirmTitle: {
+    ...type.body,
+    fontWeight: "600",
+    color: semantic.text.primary,
   },
   fieldLabel: {
     ...type.caption,

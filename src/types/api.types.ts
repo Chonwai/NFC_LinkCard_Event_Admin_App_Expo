@@ -132,6 +132,27 @@ export interface Registration {
   depositRefundedNote?: string | null;
 }
 
+/**
+ * 後台狀態修正可用的目標狀態。由後端轉移表決定，App 只鏡射值域、不自行判斷
+ * 合法性（不合法會回 `409 STATUS_TRANSITION_NOT_ALLOWED`）。
+ */
+export type RegistrationStatusCorrectionTarget = "CONFIRMED" | "CHECKED_IN";
+
+/**
+ * `POST …/registrations/:id/status` 的回應。
+ *
+ * ⚠️ 這**不是**整筆 registration：後端只回白名單 6 欄。呼叫端要用它同步畫面時
+ * 只能改這幾欄，其他欄位（`isHidden`、`depositRefundedAt`…）必須重新載入名單。
+ */
+export interface RegistrationStatusCorrectionResult {
+  id: string;
+  registrationCode: string;
+  status: string;
+  checkedInAt: string | null;
+  checkedInBy: string | null;
+  updatedAt: string;
+}
+
 export interface TicketTypeItem {
   id: string;
   name?: string;
