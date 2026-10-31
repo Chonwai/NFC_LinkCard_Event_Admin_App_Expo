@@ -783,6 +783,59 @@ export const copy = {
     backToEvents: "返回活動列表",
   },
   /**
+   * 活動資料（`app/(auth)/[eventId]/profile.tsx`）。
+   *
+   * 前端 counterpart：`LinkCard_Frontend/app/(event)/manage/[eventId]/profile/page.tsx`。
+   * 可編輯欄位**九個**，與 Web 的 `FormState` 一一對應，不多不少：
+   * `name / description / eventType / status / venueName / venueAddress /
+   * isPublic / landingPageMode / externalLandingUrl`。
+   *
+   * ⚠️ Web 這頁**沒有**開始／結束時間欄位（`Event.startDate/endDate` 只在
+   * 「建立活動」時寫一次）。App 也不加——加了就是承諾一個 Web 沒有的功能。
+   *
+   * 狀態標籤不放在這裡：走 `src/utils/event-status.ts` 的單一映射，
+   * 否則同一狀態會有兩份中文。
+   */
+  profile: {
+    title: "活動資料",
+    subtitle: "修改活動的名稱、地點與狀態",
+    loading: "讀取中…",
+    loadFailed: "讀取活動資料失敗，請稍後再試",
+    slugLabel: "Slug",
+    slugReadOnly: "建立後不可修改",
+    nameLabel: "活動名稱",
+    descriptionLabel: "活動說明",
+    descriptionPlaceholder: "一段話說明這場活動",
+    eventTypeLabel: "活動類型",
+    statusLabel: "活動狀態",
+    venueNameLabel: "場地名稱",
+    venueNamePlaceholder: "例如：香港會議展覽中心",
+    venueAddressLabel: "場地地址",
+    venueAddressPlaceholder: "例如：香港灣仔博覽道 1 號",
+    landingModeLabel: "落地頁模式",
+    externalUrlLabel: "外部落地頁網址",
+    externalUrlPlaceholder: "https://...",
+    isPublicLabel: "公開活動（會出現在公開活動列表）",
+    save: "儲存",
+    saving: "儲存中…",
+    saved: "已儲存",
+    saveFailed: "儲存失敗，請稍後再試",
+    /** 活動類型（Prisma `enum EventType`） */
+    eventType: {
+      EXHIBITION: "展覽",
+      CONFERENCE: "會議",
+      WORKSHOP_SERIES: "系列工作坊",
+      MEETUP: "聚會",
+      OTHER: "其他",
+    },
+    /** 落地頁模式（Prisma `enum EventLandingPageMode`） */
+    landingMode: {
+      BUILT_IN: "站內落地頁",
+      EXTERNAL: "外部連結",
+      NONE: "不使用落地頁",
+    },
+  },
+  /**
    * 未匹配路由（`app/+not-found.tsx`）。
    * W-12：先前不存在此檔，無法解析的深連結會落到 expo-router 的預設畫面。
    * 「返回活動列表」沿用 `settings.backToEvents`，不另立重複字串。

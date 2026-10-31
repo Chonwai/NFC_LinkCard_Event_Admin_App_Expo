@@ -20,6 +20,7 @@ export default function EventLayout() {
       <Stack.Screen name="nfc-read" />
       <Stack.Screen name="nfc-exchange" />
       <Stack.Screen name="badges" />
+      <Stack.Screen name="profile" />
     </Stack>
   );
 }

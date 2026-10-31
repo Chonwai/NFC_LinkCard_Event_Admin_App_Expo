@@ -71,8 +71,8 @@ export const eventService = {
   },
 
   /** GET /v1/events/by-id/:eventId — 單一活動（slug 或 id 皆可） */
-  async getEventById(eventId: string): Promise<{ event: ManagedEventItem }> {
-    const res = await apiClient.get<ApiResponse<{ event: ManagedEventItem }>>(
+  async getEventById(eventId: string): Promise<{ event: EventDetail }> {
+    const res = await apiClient.get<ApiResponse<{ event: EventDetail }>>(
       `/api/v1/events/by-id/${encodeURIComponent(eventId)}`,
     );
     return res.data.data;

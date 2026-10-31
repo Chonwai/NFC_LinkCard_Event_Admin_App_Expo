@@ -48,7 +48,8 @@ type EventRoute =
   | "nfc-bind"
   | "nfc-read"
   | "nfc-exchange"
-  | "badges";
+  | "badges"
+  | "profile";
 
 interface QuickAction {
   key: string;
@@ -97,6 +98,12 @@ const QUICK_ACTIONS: QuickAction[] = [
     label: copy.event.badgesTitle,
     icon: "clipboard-check",
     route: "badges",
+  },
+  {
+    key: "profile",
+    label: copy.profile.title,
+    icon: "pencil",
+    route: "profile",
   },
 ];
 
