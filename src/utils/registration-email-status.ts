@@ -126,3 +126,90 @@ export function isConfirmationNotDelivered(
     notifications.some((item) => item.status === "FAILED")
   );
 }
+
+/* ────────────────────────────────────────────────────────────────────────
+ * 篩選（client-side，作用於**已載入**的名單）
+ *
+ * 以下四個匯出**逐字鏡射** Web `lib/events/emailStatus.ts` 的同名函式／常數。
+ * 它們不是查詢參數——後端 `GET /registrations` 沒有 email 狀態這個維度，
+ * Web 也是拿回整頁後在前端篩。所以這裡刻意不進 `registration-filters.ts`：
+ * 那個檔處理的是「畫面值域 → 查詢參數」，而這裡篩的是已經在手上的列。
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * 需要操作員介入的狀態（與 BE `ACTIONABLE_EMAIL_STATES` 逐字對齊）。
+ *
+ * 用途：名單「待處理」篩選、批次補發的預設選取。三者共通點是「這封信應該
+ * 要能送出去，但目前沒送成」——`AWAITING_PAYMENT` 依設計不寄、
+ * `NOT_REQUIRED` 走確認信、`SENT_NOT_OPENED`／`CLAIMED` 已經寄出，都不算。
+ */
+export const ACTIONABLE_EMAIL_STATES: readonly RegistrationEmailState[] = [
+  "NO_ACCOUNT",
+  "SEND_FAILED",
+  "NOT_SENT",
+] as const;
+
+export function isActionableEmailState(state: RegistrationEmailState): boolean {
+  return ACTIONABLE_EMAIL_STATES.includes(state);
+}
+
+/**
+ * 確認信（outbox 通知）是否有投遞問題：
+ * - `FAILED`：relay 已放棄（超過重試上限）
+ * - `PENDING` 且 `attempts > 0`：曾失敗、正在重試中（值得關注但不必然失敗）
+ *
+ * 與 `isConfirmationNotDelivered` 的差別：那條判斷「要不要提供重寄按鈕」，
+ * 只看 `NOT_REQUIRED` 且只看 `FAILED`；這條是「寄送失敗」篩選的判準，涵蓋
+ * 所有狀態，且把「重試中」也算進來——操作員想找的就是「有問題的信」。
+ */
+export function hasNotificationDeliveryIssue(
+  status: RegistrationEmailStatus | null | undefined,
+): boolean {
+  if (!status) return false;
+  return status.notifications.some(
+    (n) => n.status === "FAILED" || (n.status === "PENDING" && n.attempts > 0),
+  );
+}
+
+/** 名單上「待處理」的列數（供篩選 chip 顯示計數）。 */
+export function countActionable(
+  registrations: { emailStatus?: RegistrationEmailStatus | null }[],
+): number {
+  return registrations.filter(
+    (reg) => reg.emailStatus && isActionableEmailState(reg.emailStatus.state),
+  ).length;
+}
+
+/**
+ * 名單 email 狀態篩選值域（與 Web `EmailStatusFilter` 同一個集合）。
+ * `all` ＝ 不篩。
+ */
+export type EmailStatusFilter = "all" | "actionable" | "claimed" | "failed";
+
+/**
+ * 名單篩選（client-side）。
+ *
+ * `null`／缺失的狀態**只在 `all` 時通過**：`emailStatus` 為 `null` 代表後端
+ * 湊不出狀態（＝不知道），把它塞進「待處理」會讓操作員去追一封可能根本沒問題
+ * 的信，塞進「已領取」則是憑空斷言。與 Web 同一個判斷。
+ */
+export function matchesEmailStatusFilter(
+  status: RegistrationEmailStatus | null | undefined,
+  filter: EmailStatusFilter,
+): boolean {
+  if (filter === "all") return true;
+  if (!status) return false;
+
+  switch (filter) {
+    case "actionable":
+      return isActionableEmailState(status.state);
+    case "claimed":
+      return status.state === "CLAIMED";
+    case "failed":
+      return (
+        status.state === "SEND_FAILED" || hasNotificationDeliveryIssue(status)
+      );
+    default:
+      return true;
+  }
+}

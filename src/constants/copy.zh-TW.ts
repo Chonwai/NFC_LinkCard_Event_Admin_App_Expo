@@ -370,6 +370,24 @@ export const copy = {
       label: "Email 狀態",
       /** `emailStatus` 缺失或為 `null`＝**不知道**，不是「沒寄」。 */
       unknown: "未知",
+      /** 篩選 chip 列的前導標籤（Web `registrations.emailStatus.filterLabel`）。 */
+      filterLabel: "Email 狀態篩選",
+      /** 篩選值域，逐字照抄 Web `registrations.emailStatus.filters.*`。 */
+      filters: {
+        all: "全部",
+        actionable: "待處理",
+        failed: "寄送失敗",
+        claimed: "已領取",
+      },
+      /**
+       * 篩選範圍說明。
+       *
+       * 後端沒有 email 狀態這個查詢維度，Web 與 App 都只能在**已載入**的列上
+       * 篩。差別是 App 是無限捲動、`items` 會累積多頁，所以「已載入」不等於
+       * 「第一頁」——若不講清楚，操作員會以為「待處理 0」代表整份名單沒問題。
+       */
+      filterScopeHint: (loaded: number) =>
+        `此篩選只作用於已載入的 ${loaded} 筆，未載入的不在此列`,
       states: {
         AWAITING_PAYMENT: "待付款",
         NO_ACCOUNT: "無帳號",

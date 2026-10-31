@@ -48,10 +48,13 @@ import {
   maskEmail,
 } from "@/utils/registration-display";
 import {
+  type EmailStatusFilter,
   type EmailStatusTone,
+  countActionable,
   emailStatusDetail,
   emailStatusLabel,
   emailStatusTone,
+  matchesEmailStatusFilter,
 } from "@/utils/registration-email-status";
 
 const PAGE_SIZE = 20;
@@ -331,6 +334,15 @@ export default function RegistrationsScreen() {
   const [ticketTypeId, setTicketTypeId] = useState("all");
   const [depositRefunded, setDepositRefunded] =
     useState<DepositRefundFilter>("all");
+  /**
+   * Email 狀態篩選（Web `page.tsx:435-450`）。
+   *
+   * **不進 `listQuery`**：後端 `GET /registrations` 沒有這個查詢維度，Web 也
+   * 是拿回整頁後在前端篩。所以它只作用於**已載入**的列，畫面上另有說明
+   * （`filterScopeHint`），不假裝是全域篩選。
+   */
+  const [emailStatusFilter, setEmailStatusFilter] =
+    useState<EmailStatusFilter>("all");
   const [ticketTypes, setTicketTypes] = useState<TicketTypeItem[]>([]);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<"server" | "name" | "recent">("server");
@@ -544,6 +556,13 @@ export default function RegistrationsScreen() {
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     let rows = q ? items.filter((item) => matchesQuery(item, q)) : items;
+    // Email 狀態篩選（client-side，同 Web）。放在關鍵字之後、排序之前：
+    // 先縮小集合再排，排序成本才不會白花在會被篩掉的列上。
+    if (emailStatusFilter !== "all") {
+      rows = rows.filter((item) =>
+        matchesEmailStatusFilter(item.emailStatus, emailStatusFilter),
+      );
+    }
     if (sort === "name") {
       rows = [...rows].sort((a, b) =>
         getRegistrationDisplayName(a).localeCompare(
@@ -556,7 +575,10 @@ export default function RegistrationsScreen() {
       );
     }
     return rows;
-  }, [items, query, sort]);
+  }, [items, query, sort, emailStatusFilter]);
+
+  /** 「待處理」chip 的計數（Web `page.tsx:85`）。算在**已載入**的列上。 */
+  const actionableCount = useMemo(() => countActionable(items), [items]);
 
   /** 「原因」是否必填（`hide`／`archive`／狀態修正要，取消類與退款不要）。 */
   const needsReason =
@@ -944,6 +966,48 @@ export default function RegistrationsScreen() {
                   },
                 ]}
               />
+              <View style={styles.hairline} />
+              {/*
+                Email 狀態篩選（Web `page.tsx:435-450`）。
+                「待處理」後面掛計數，與 Web 一致——沒有計數的話，操作員得先
+                點進去才知道這條篩選值不值得點。
+              */}
+              <ChipLine
+                icon="mail"
+                value={emailStatusFilter}
+                onChange={setEmailStatusFilter}
+                options={[
+                  { key: "all", label: copy.roster.emailStatus.filters.all },
+                  {
+                    key: "actionable",
+                    label:
+                      actionableCount > 0
+                        ? `${copy.roster.emailStatus.filters.actionable} (${actionableCount})`
+                        : copy.roster.emailStatus.filters.actionable,
+                  },
+                  {
+                    key: "failed",
+                    label: copy.roster.emailStatus.filters.failed,
+                  },
+                  {
+                    key: "claimed",
+                    label: copy.roster.emailStatus.filters.claimed,
+                  },
+                ]}
+              />
+              {/*
+                範圍說明：後端沒有 email 狀態這個查詢維度，所以這條篩選只作用
+                於**已載入**的列。App 是無限捲動，`items` 會累積多頁——若不講
+                清楚，「待處理 0」會被讀成「整份名單沒問題」。
+              */}
+              {emailStatusFilter !== "all" ? (
+                <Text
+                  style={styles.filterScopeHint}
+                  maxFontSizeMultiplier={layout.maxFontScaleFixed}
+                >
+                  {copy.roster.emailStatus.filterScopeHint(items.length)}
+                </Text>
+              ) : null}
             </View>
             {ticketTypes.length > 0 ? (
               <ScrollView
@@ -1512,6 +1576,18 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: semantic.border.decorative,
     marginLeft: space[6],
+  },
+  /**
+   * 篩選範圍說明（只在前端篩選啟用時出現）。
+   *
+   * 用 `type.caption` + muted，讓它讀起來是註解而不是另一條控制項——它不能
+   * 長得像 chip，否則會被誤認為可以點。
+   */
+  filterScopeHint: {
+    ...type.caption,
+    color: semantic.text.muted,
+    paddingHorizontal: space[3],
+    paddingBottom: space[1],
   },
   filterItem: {
     flex: 1,
