@@ -14,11 +14,26 @@ import * as DocumentPicker from "expo-document-picker";
 import { Button } from "@/components/ui/Button";
 import { InlineBanner } from "@/components/ui/InlineBanner";
 import { copy } from "@/constants/copy.zh-TW";
-import { layout, semantic, space, spacing, type } from "@/constants/theme";
-import { exhibitorService } from "@/services/exhibitor.service";
-import type { ExhibitorImportPreview } from "@/types/exhibitor.types";
-import { importErrorText, MAX_PREVIEW_ROWS } from "@/utils/exhibitor-import";
 import {
+  layout,
+  radius,
+  semantic,
+  space,
+  spacing,
+  type,
+} from "@/constants/theme";
+import { exhibitorService } from "@/services/exhibitor.service";
+import type {
+  ExhibitorImportConfirmResult,
+  ExhibitorImportPreview,
+} from "@/types/exhibitor.types";
+import {
+  canConfirmImport,
+  importErrorText,
+  MAX_PREVIEW_ROWS,
+} from "@/utils/exhibitor-import";
+import {
+  chunkSpreadsheetIds,
   type SpreadsheetFile,
   SPREADSHEET_MIME_TYPES,
 } from "@/utils/spreadsheet-upload";
@@ -50,16 +65,34 @@ import {
 export function ExhibitorImportModal({
   eventId,
   onClose,
+  onImported,
 }: {
   eventId: string;
   onClose: () => void;
+  /** 匯入成功後通知外層重新載入名單。 */
+  onImported?: () => void;
 }) {
-  const [step, setStep] = useState<"select" | "preview">("select");
+  const [step, setStep] = useState<"select" | "preview" | "done" | "notify">(
+    "select",
+  );
   const [file, setFile] = useState<SpreadsheetFile | null>(null);
   const [preview, setPreview] = useState<ExhibitorImportPreview | null>(null);
+  const [result, setResult] = useState<ExhibitorImportConfirmResult | null>(
+    null,
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  /** 寄邀請信的進度（分批序列呼叫，見 `runNotify`）。 */
+  const [notifyState, setNotifyState] = useState<{
+    total: number;
+    sent: number;
+    /** 失敗的 memberId。重試只重寄這些，不是重寄全部。 */
+    failedIds: string[];
+    running: boolean;
+    done: boolean;
+  } | null>(null);
 
   /** 選檔。取消不是錯誤——不設 `error`，畫面維持原狀。 */
   const pickFile = useCallback(async () => {
@@ -78,8 +111,10 @@ export function ExhibitorImportModal({
         name: asset.name,
         mimeType: asset.mimeType ?? null,
       });
-      // 換檔就作廢上一份預覽，否則下一步會對到舊檔案。
+      // 換檔就作廢上一份預覽與結果，否則下一步會對到舊檔案。
       setPreview(null);
+      setResult(null);
+      setNotifyState(null);
       setStep("select");
     } catch {
       setError(copy.exhibitors.import.step1.pickFailed);
@@ -119,6 +154,75 @@ export function ExhibitorImportModal({
       setBusy(false);
     }
   }, [eventId, file]);
+
+  /**
+   * 確認匯入（**寫入**）。後端是 per-row 交易、`skip_existing` 冪等，
+   * 所以同一份檔案重跑不會重複建立。
+   *
+   * 只有一件事會讓它不幂等：`mode` 傳錯。後端對「有送但不等於
+   * `skip_existing`」是明確拒絕（400）——不會靜默降級成其他行為，所以
+   * 那個字串寫死在 service 裡，這裡不傳。
+   */
+  const handleConfirm = useCallback(async () => {
+    if (!file) return;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const confirmed = await exhibitorService.confirmImport(eventId, file);
+      setResult(confirmed);
+      setStep("done");
+      // 即使 created 為空也要通知外層：skipped 也可能改變了名單的組成。
+      onImported?.();
+    } catch (err) {
+      setError(importErrorText(err));
+    } finally {
+      setBusy(false);
+    }
+  }, [eventId, file, onImported]);
+
+  /**
+   * 寄邀請信：**分批序列呼叫**（每批 ≤100，後端硬上限）。
+   *
+   * 為什麼不到 100 就整批不用送：後端對超量是**整批拒絕**，不是截斷。
+   * 為什麼序列而不是並行：進度條要能顯示「寄到第幾封」，並行呼叫的完成
+   * 順序不可預期，畫面只能跳來跳去；而且這是寄信，不是讀資料。
+   */
+  const runNotify = useCallback(
+    async (memberIds: string[]) => {
+      if (memberIds.length === 0) return;
+      setNotifyState((current) => ({
+        total: current?.total ?? memberIds.length,
+        sent: current?.sent ?? 0,
+        failedIds: [],
+        running: true,
+        done: false,
+      }));
+      let sent = 0;
+      const failedIds: string[] = [];
+      for (const batch of chunkSpreadsheetIds(memberIds)) {
+        try {
+          const outcome = await exhibitorService.notifyImport(eventId, batch);
+          sent += outcome.sent.length;
+          /*
+           * `skipped` 不是失敗：已接受／已撤銷／已寄過都在那裡，重寄也不會
+           * 變成寄出。把它算成失敗會讓操作員去追一個不存在的問題。
+           */
+          failedIds.push(...outcome.failed.map((item) => item.memberId));
+        } catch {
+          // 整批失敗時，這一批的每一個 id 都算沒寄出去。
+          failedIds.push(...batch);
+        }
+        setNotifyState((current) =>
+          current ? { ...current, sent, failedIds: [...failedIds] } : current,
+        );
+      }
+      setNotifyState((current) =>
+        current ? { ...current, running: false, done: true } : current,
+      );
+    },
+    [eventId],
+  );
 
   return (
     <Modal
@@ -160,6 +264,25 @@ export function ExhibitorImportModal({
                 preview={preview}
                 busy={busy}
                 onBack={() => setStep("select")}
+                onConfirm={() => void handleConfirm()}
+              />
+            ) : null}
+
+            {step === "done" && result ? (
+              <ResultStep
+                result={result}
+                onNotify={() => {
+                  if (notifyState?.running) return;
+                  setStep("notify");
+                  void runNotify(result.created.map((row) => row.memberId));
+                }}
+              />
+            ) : null}
+
+            {step === "notify" && notifyState ? (
+              <NotifyStep
+                state={notifyState}
+                onRetry={() => void runNotify(notifyState.failedIds)}
               />
             ) : null}
 
@@ -270,13 +393,16 @@ function PreviewStep({
   preview,
   busy,
   onBack,
+  onConfirm,
 }: {
   preview: ExhibitorImportPreview;
   busy: boolean;
   onBack: () => void;
+  onConfirm: () => void;
 }) {
   const overCap = preview.valid.length > MAX_PREVIEW_ROWS;
   const validRows = preview.valid.slice(0, MAX_PREVIEW_ROWS);
+  const confirmable = canConfirmImport(preview);
 
   return (
     <>
@@ -333,6 +459,28 @@ function PreviewStep({
         ) : null}
       </View>
 
+      {!confirmable && preview.summary.invalid > 0 ? (
+        <InlineBanner
+          compact
+          tone="danger"
+          message={copy.exhibitors.import.step2.blockingHint(
+            preview.summary.invalid,
+          )}
+        />
+      ) : null}
+
+      <Button
+        label={
+          busy
+            ? copy.exhibitors.import.step2.confirming
+            : copy.exhibitors.import.step2.confirm
+        }
+        disabled={!confirmable || busy}
+        loading={busy}
+        onPress={onConfirm}
+        testID="exhibitor-import-confirm"
+      />
+
       <Button
         label={copy.exhibitors.import.step2.back}
         variant="secondary"
@@ -341,6 +489,188 @@ function PreviewStep({
         testID="exhibitor-import-back"
       />
     </>
+  );
+}
+
+/**
+ * 第三步：確認匯入的結果。
+ *
+ * 三態互斥（後端保證）：`created` 交易提交、`skipped` 去重命中、`failed` 該列
+ * 交易回滾。三類都畫，因為「建了幾家」與「為什麼沒建」是同一個問題的兩半。
+ *
+ * 「寄送邀請信」只在 `created` 非空時出現——沒有新成員就沒有信可寄，一顆按了
+ * 什麼都不會發生的按鈕比沒有按鈕更糟。
+ */
+function ResultStep({
+  result,
+  onNotify,
+}: {
+  result: ExhibitorImportConfirmResult;
+  onNotify: () => void;
+}) {
+  return (
+    <>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>
+          {copy.exhibitors.import.step3.title}
+        </Text>
+        <View style={styles.statGrid}>
+          <Stat
+            label={copy.exhibitors.import.step3.created}
+            value={result.created.length}
+          />
+          <Stat
+            label={copy.exhibitors.import.step3.skipped}
+            value={result.skipped.length}
+          />
+          <Stat
+            label={copy.exhibitors.import.step3.failed}
+            value={result.failed.length}
+          />
+        </View>
+      </View>
+
+      {result.created.length > 0 ? (
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>
+            {copy.exhibitors.import.step3.createdTitle}
+          </Text>
+          {result.created.map((row) => (
+            <View key={row.memberId} style={styles.lineRow}>
+              <Text style={styles.lineIndex}>{row.row}</Text>
+              <View style={styles.lineBody}>
+                <Text style={styles.lineStrong}>{row.email}</Text>
+                <Text style={styles.lineMono}>{row.slug}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {result.skipped.length > 0 ? (
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>
+            {copy.exhibitors.import.step3.skippedTitle}
+          </Text>
+          {result.skipped.map((row) => (
+            <View key={`${row.row}-${row.reason}`} style={styles.lineRow}>
+              <Text style={styles.lineIndex}>{row.row}</Text>
+              {/* reason 是後端碼（EMAIL_EXISTS_IN_EVENT 等），照原樣顯示。 */}
+              <Text style={styles.lineMono}>{row.reason}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {result.failed.length > 0 ? (
+        <View style={[styles.card, styles.cardDanger]}>
+          <Text style={styles.cardTitleDanger}>
+            {copy.exhibitors.import.step3.failedTitle}
+          </Text>
+          {result.failed.map((row) => (
+            <View key={`${row.row}-${row.code ?? "?"}`} style={styles.lineRow}>
+              <Text style={styles.lineIndex}>{row.row}</Text>
+              <View style={styles.lineBody}>
+                <Text style={styles.lineDanger}>{row.reason}</Text>
+                {row.code ? (
+                  <Text style={styles.lineMono}>{row.code}</Text>
+                ) : null}
+              </View>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {result.created.length > 0 ? (
+        <>
+          <Text style={styles.hint}>
+            {copy.exhibitors.import.step3.notifyHint(result.created.length)}
+          </Text>
+          <Button
+            label={copy.exhibitors.import.step3.notify}
+            onPress={onNotify}
+            testID="exhibitor-import-notify"
+          />
+        </>
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * 第四步：寄送邀請信。
+ *
+ * 進度用「已寄出 / 總數」兩邊都顯示：只有一條進度條時，`sent` 停住不動與
+ * 整批卡住看起來完全一樣。失敗數用紅色區塊另外講，因為它需要一個動作
+ * （重試），不是一句狀態。
+ */
+function NotifyStep({
+  state,
+  onRetry,
+}: {
+  state: {
+    total: number;
+    sent: number;
+    failedIds: string[];
+    running: boolean;
+    done: boolean;
+  };
+  onRetry: () => void;
+}) {
+  const percent = state.total > 0 ? (state.sent / state.total) * 100 : 0;
+
+  return (
+    <View style={styles.card}>
+      <Text style={styles.cardTitle}>{copy.exhibitors.import.step4.title}</Text>
+
+      <Text style={styles.hint}>
+        {state.running
+          ? copy.exhibitors.import.step4.sending
+          : state.done
+            ? copy.exhibitors.import.step4.complete
+            : ""}
+      </Text>
+      <Text style={styles.lineMono}>
+        {copy.exhibitors.import.step4.progress(state.sent, state.total)}
+      </Text>
+
+      {/*
+       * RN 沒有百分比寬度，所以用 flex 權重表達同一件事（與 `polls.tsx` 的
+       * `PollBar` 同一個手法）。0% 走另一條分支：`flex: 0` 與 `flex: 1`
+       * 併存在 `overflow: hidden` 的容器裡，某些 RN 版本會把整條壓成 0。
+       */}
+      <View
+        style={styles.barTrack}
+        accessibilityRole="progressbar"
+        accessibilityValue={{
+          min: 0,
+          max: state.total,
+          now: state.sent,
+        }}
+      >
+        {percent > 0 ? (
+          <>
+            <View style={[styles.barFill, { flex: Math.round(percent) }]} />
+            <View style={{ flex: Math.max(1, 100 - Math.round(percent)) }} />
+          </>
+        ) : null}
+      </View>
+
+      {state.failedIds.length > 0 ? (
+        <>
+          <Text style={styles.lineDanger}>
+            {copy.exhibitors.import.step4.failedCount(state.failedIds.length)}
+          </Text>
+          <Button
+            label={copy.exhibitors.import.step4.retryFailed}
+            variant="secondary"
+            disabled={state.running}
+            onPress={onRetry}
+            testID="exhibitor-import-notify-retry"
+          />
+        </>
+      ) : null}
+    </View>
   );
 }
 
@@ -395,6 +725,13 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: semantic.text.primary,
   },
+  cardDanger: { borderColor: semantic.status.danger.fg },
+  cardTitleDanger: {
+    ...type.caption,
+    fontWeight: "600",
+    color: semantic.status.danger.fg,
+  },
+  lineDanger: { ...type.micro, color: semantic.status.danger.fg },
   statGrid: { flexDirection: "row", flexWrap: "wrap", gap: space[2] },
   stat: {
     flexGrow: 1,
@@ -424,4 +761,16 @@ const styles = StyleSheet.create({
   lineBody: { flex: 1, gap: 2 },
   lineStrong: { ...type.caption, color: semantic.text.primary },
   lineMono: { ...type.micro, color: semantic.text.muted },
+  barTrack: {
+    flexDirection: "row",
+    height: 8,
+    marginTop: space[1],
+    borderRadius: radius.full,
+    overflow: "hidden",
+    backgroundColor: semantic.bg.surfaceSunken,
+  },
+  barFill: {
+    backgroundColor: semantic.action.primary,
+    borderRadius: radius.full,
+  },
 });

@@ -1,4 +1,5 @@
 import { copy } from "@/constants/copy.zh-TW";
+import type { ExhibitorImportPreview } from "@/types/exhibitor.types";
 import { getApiErrorCode, getApiErrorMessage } from "@/utils/api-error";
 
 /**
@@ -40,4 +41,29 @@ export function importErrorText(error: unknown): string {
   return (
     known ?? getApiErrorMessage(error, copy.exhibitors.import.errors.UNKNOWN)
   );
+}
+
+/**
+ * 這份預覽能不能按「確認匯入」。
+ *
+ * **這是 App 與 Web 的刻意差異**，不是實作漏洞。
+ *
+ * Web 的 disable 條件只有 `preview.summary.valid === 0`
+ * （`exhibitors/import/page.tsx:481`），所以 500 列裡有 1 列錯時，按下去會
+ * **建立其餘 499 家**，而畫面上那句「有錯誤 1」不會阻止任何人。事後沒有任何
+ * 畫面能解釋「我匯了 500 筆，結果只有 499 家」。
+ *
+ * App 沿用 `registrations` 匯入已拍板的同一條規則
+ * （`utils/guest-import.ts` 的 `hasBlockingRows`）：**有一列無效就整批不給
+ * 匯入**。重跑是安全的——後端 `confirm` 是 per-row 交易且 `skip_existing`
+ * 冪等，同一份檔案再送一次不會重複建立。
+ *
+ * 還有一個條件：`summary.valid === 0` 時也不能按（與 Web 相同）。一列都建不
+ * 出來的匯入不是匯入，是同一個 `NO_VALID_ROWS` 錯誤的往返。
+ */
+export function canConfirmImport(
+  preview: ExhibitorImportPreview | null,
+): boolean {
+  if (!preview) return false;
+  return preview.summary.valid > 0 && preview.summary.invalid === 0;
 }

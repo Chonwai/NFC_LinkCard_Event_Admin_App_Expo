@@ -328,6 +328,7 @@ export default function EventExhibitorsScreen() {
         <ExhibitorImportModal
           eventId={eventId}
           onClose={() => setImportOpen(false)}
+          onImported={() => setReloadKey((key) => key + 1)}
         />
       ) : null}
     </View>

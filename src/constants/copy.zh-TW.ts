@@ -1089,6 +1089,47 @@ export const copy = {
         /** Web `exhibitors.import.step2.back` */
         back: "重新選擇檔案",
         previewFailed: "預覽失敗，請稍後重試",
+        /** Web `exhibitors.import.step2.confirm` / `confirming` */
+        confirm: "確認匯入",
+        confirming: "匯入中…",
+        /**
+         * 有無效列時「確認匯入」是停用的，這一句說明**為什麼**（App 專屬）。
+         *
+         * Web 不禁用（它只看 `summary.valid === 0`），所以沒有這條字串；
+         * 一顆停用卻不解釋的按鈕，在手機上跟壞掉沒有兩樣。
+         */
+        blockingHint: (count: number) =>
+          `有 ${count} 列錯誤，修正後重新上傳才能匯入`,
+      },
+      step3: {
+        /** Web `exhibitors.import.step3.title` */
+        title: "③ 匯入結果",
+        /** Web `exhibitors.import.step3.created` / `skipped` / `failed` */
+        created: "已建立",
+        skipped: "已跳過",
+        failed: "失敗",
+        /** Web `exhibitors.import.step3.createdTitle` / `skippedTitle` / `failedTitle` */
+        createdTitle: "已建立展商",
+        skippedTitle: "已跳過列",
+        failedTitle: "失敗列",
+        /** Web `exhibitors.import.step3.notify` / `notifyHint` / `done` */
+        notify: "寄送邀請信",
+        notifyHint: (count: number) =>
+          `將對 ${count} 位 owner 分批寄送邀請信（每批最多 100 封）。`,
+        done: "完成",
+        /** 確認匯入失敗（Web 沒有對應字串，它用 `errors.UNKNOWN`）。 */
+        confirmFailed: "匯入失敗，請稍後重試",
+      },
+      step4: {
+        /** Web `exhibitors.import.step4.*` */
+        title: "④ 寄送邀請信",
+        progress: (sent: number, total: number) => `已寄送 ${sent} / ${total}`,
+        sending: "寄送中…",
+        complete: "寄送完成",
+        failedCount: (count: number) => `${count} 筆寄送失敗`,
+        retryFailed: "重試失敗項",
+        done: "完成",
+        notifyFailed: "寄送邀請信失敗，請稍後重試",
       },
       /**
        * 後端錯誤碼 → 中文說明。逐條照抄 Web 的
