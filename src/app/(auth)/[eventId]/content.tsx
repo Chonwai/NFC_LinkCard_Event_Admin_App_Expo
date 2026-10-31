@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useLocalSearchParams } from "expo-router";
 
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { ChoiceChips } from "@/components/ui/ChoiceChips";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { FieldInput } from "@/components/ui/FieldInput";
 import { Icon } from "@/components/ui/Icon";
 import { InlineBanner } from "@/components/ui/InlineBanner";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
@@ -21,8 +23,20 @@ import {
   type,
 } from "@/constants/theme";
 import { contentService } from "@/services/content.service";
-import type { PageSection, PageSectionCard } from "@/types/api.types";
+import type {
+  PageSection,
+  PageSectionCard,
+  PageSectionGridColumns,
+} from "@/types/api.types";
 import { getApiErrorMessage } from "@/utils/api-error";
+import {
+  SECTION_DESCRIPTION_MAX,
+  SECTION_GRID_COLUMN_OPTIONS,
+  SECTION_TITLE_MAX,
+  type SectionFormState,
+  toSectionFormState,
+  toSectionPayload,
+} from "@/utils/page-content-payload";
 
 /**
  * 區塊數上限。
@@ -203,9 +217,16 @@ export default function EventContentScreen() {
           />
         ) : null}
 
-        {sections.map((section) => (
-          <SectionBlock key={section.id} section={section} />
-        ))}
+        {eventId
+          ? sections.map((section) => (
+              <SectionBlock
+                key={section.id}
+                eventId={eventId}
+                section={section}
+                onChanged={() => setReloadKey((key) => key + 1)}
+              />
+            ))
+          : null}
       </ScrollView>
     </View>
   );
@@ -253,47 +274,248 @@ function CardRow({ card }: { card: PageSectionCard }) {
   );
 }
 
-/** 一個區塊，含底下的卡片清單。 */
-function SectionBlock({ section }: { section: PageSection }) {
+/** `ChoiceChips` 是字串型別（`T extends string`），欄數在這裡只是它的選項值。 */
+type ColumnOption = "1" | "2" | "3";
+
+const COLUMN_OPTIONS: ColumnOption[] = SECTION_GRID_COLUMN_OPTIONS.map(
+  (value) => String(value) as ColumnOption,
+);
+
+/**
+ * 區塊。唯讀時是摘要列（標題／說明／欄數／發布狀態），按「編輯」展開成四個
+ * 欄位；儲存後重新載入整份清單。
+ *
+ * ## 為什麼每次進入編輯都重新初始化表單
+ * 外層在存檔後會重載（`onChanged`），所以 `section` prop 才是最滾的來源。
+ * 若沿用 mount 時的 state，第二次編輯看到的會是上次的舊值——這種 bug 不會
+ * 報錯，只會默默把舊資料存回去。`startEditing` 因此每次都重新取一次。
+ */
+function SectionBlock({
+  eventId,
+  section,
+  onChanged,
+}: {
+  eventId: string;
+  section: PageSection;
+  onChanged: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState<SectionFormState>(() =>
+    toSectionFormState(section),
+  );
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function startEditing() {
+    setForm(toSectionFormState(section));
+    setError(null);
+    setEditing(true);
+  }
+
+  function patch(next: Partial<SectionFormState>) {
+    setForm((current) => ({ ...current, ...next }));
+  }
+
+  async function save() {
+    setSaving(true);
+    setError(null);
+    try {
+      await contentService.updateSection(
+        eventId,
+        section.id,
+        toSectionPayload(form),
+      );
+      setEditing(false);
+      onChanged();
+    } catch (caught) {
+      setError(getApiErrorMessage(caught, copy.content.saveFailed));
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <Card padding={spacing.card} testID={`content-section-${section.id}`}>
-      <View style={styles.sectionHead}>
-        <Text
-          style={[type.h3, styles.grow, section.title ? null : styles.muted]}
-          numberOfLines={2}
-          maxFontSizeMultiplier={layout.maxFontScaleBody}
-        >
-          {section.title || copy.content.untitledSection}
-        </Text>
-        <PublishBadge isPublished={section.isPublished} />
+      <View style={styles.sectionBody}>
+        {editing ? (
+          <>
+            <FieldInput
+              label={copy.content.sectionTitle}
+              placeholder={copy.content.sectionTitle}
+              value={form.title}
+              onChangeText={(title) => patch({ title })}
+              maxLength={SECTION_TITLE_MAX}
+              testID="content-section-title"
+            />
+            <FieldInput
+              label={copy.content.sectionDescription}
+              value={form.description}
+              onChangeText={(description) => patch({ description })}
+              maxLength={SECTION_DESCRIPTION_MAX}
+              multiline
+              testID="content-section-description"
+            />
+            <ChoiceChips
+              label={copy.content.columnsLabel}
+              options={COLUMN_OPTIONS}
+              value={String(form.gridColumns) as ColumnOption}
+              labelFor={(value) => copy.content.columns(Number(value))}
+              onSelect={(value) =>
+                patch({ gridColumns: Number(value) as PageSectionGridColumns })
+              }
+              testID="content-section-columns"
+            />
+            <PublishCheckbox
+              value={form.isPublished}
+              onToggle={() => patch({ isPublished: !form.isPublished })}
+              testID="content-section-published"
+            />
+
+            {error ? (
+              <InlineBanner compact tone="danger" message={error} />
+            ) : null}
+
+            <Button
+              label={saving ? copy.content.saving : copy.content.save}
+              loading={saving}
+              onPress={() => void save()}
+              testID="content-section-save"
+            />
+            <Button
+              label={copy.content.cancel}
+              variant="secondary"
+              onPress={() => setEditing(false)}
+              disabled={saving}
+              testID="content-section-cancel"
+            />
+          </>
+        ) : (
+          <>
+            <View style={styles.sectionHead}>
+              <Text
+                style={[
+                  type.h3,
+                  styles.grow,
+                  section.title ? null : styles.muted,
+                ]}
+                numberOfLines={2}
+                maxFontSizeMultiplier={layout.maxFontScaleBody}
+              >
+                {section.title || copy.content.untitledSection}
+              </Text>
+              <PublishBadge isPublished={section.isPublished} />
+            </View>
+
+            {section.description ? (
+              <Text
+                style={[type.caption, styles.muted]}
+                maxFontSizeMultiplier={layout.maxFontScaleBody}
+              >
+                {section.description}
+              </Text>
+            ) : null}
+
+            <View style={styles.metaRow}>
+              <Text
+                style={[type.micro, styles.muted]}
+                maxFontSizeMultiplier={layout.maxFontScaleFixed}
+              >
+                {copy.content.columns(section.gridColumns ?? 2)}
+              </Text>
+              <TextButton
+                label={copy.content.edit}
+                onPress={startEditing}
+                testID={`content-section-edit-${section.id}`}
+              />
+            </View>
+          </>
+        )}
+
+        {/* 空區塊什麼都不顯示：Web 在沒有卡片時也只剩「新增卡片」按鈕，
+            而那個按鈕屬於後續 commit，這裡不先用文字填空。 */}
+        {section.cards.length > 0 ? (
+          <View style={styles.cardList}>
+            {section.cards.map((card) => (
+              <CardRow key={card.id} card={card} />
+            ))}
+          </View>
+        ) : null}
       </View>
+    </Card>
+  );
+}
 
-      {section.description ? (
-        <Text
-          style={[type.caption, styles.muted]}
-          maxFontSizeMultiplier={layout.maxFontScaleBody}
-        >
-          {section.description}
-        </Text>
-      ) : null}
-
+/**
+ * 發不發布的勾選框。
+ *
+ * 形狀照搬 `profile.tsx` 的「公開活動」勾選框（同樣是 `Pressable` +
+ * `accessibilityRole="checkbox"`），不另外做一個通用元件——目前就這兩頁在用。
+ */
+function PublishCheckbox({
+  value,
+  onToggle,
+  testID,
+}: {
+  value: boolean;
+  onToggle: () => void;
+  testID: string;
+}) {
+  return (
+    <Pressable
+      onPress={onToggle}
+      style={styles.checkboxRow}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: value }}
+      accessibilityLabel={copy.content.published}
+      testID={testID}
+    >
+      <View style={[styles.checkbox, value && styles.checkboxOn]}>
+        {value ? (
+          <Icon name="check" size={14} color={semantic.text.onPrimary} />
+        ) : null}
+      </View>
       <Text
-        style={[type.micro, styles.muted]}
+        style={[type.body, styles.checkboxLabel]}
+        maxFontSizeMultiplier={layout.maxFontScaleBody}
+      >
+        {copy.content.published}
+      </Text>
+    </Pressable>
+  );
+}
+
+/**
+ * 行內文字動作（編輯）。
+ *
+ * 不用 `Button`：`Button` 最小高度 48、全寬、帶底色，塞在卡片內會把區塊
+ * 撑成兩倍高。但觸控目標仍須 ≥ 48，所以用 `minHeight: layout.touchMin` +
+ * `hitSlop`，而不是只縮字。
+ */
+function TextButton({
+  label,
+  onPress,
+  testID,
+}: {
+  label: string;
+  onPress: () => void;
+  testID: string;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      testID={testID}
+      hitSlop={8}
+      style={({ pressed }) => [styles.textButton, pressed && styles.pressed]}
+    >
+      <Text
+        style={[type.label, styles.textButtonLabel]}
         maxFontSizeMultiplier={layout.maxFontScaleFixed}
       >
-        {copy.content.columns(section.gridColumns ?? 2)}
+        {label}
       </Text>
-
-      {/* 空區塊什麼都不顯示：Web 在沒有卡片時也只剩「新增卡片」按鈕，
-          而那個按鈕屬於後續 commit，這裡不先用文字填空。 */}
-      {section.cards.length > 0 ? (
-        <View style={styles.cardList}>
-          {section.cards.map((card) => (
-            <CardRow key={card.id} card={card} />
-          ))}
-        </View>
-      ) : null}
-    </Card>
+    </Pressable>
   );
 }
 
@@ -307,12 +529,19 @@ const styles = StyleSheet.create({
   skeletonGroup: { gap: space[3] },
   muted: { color: semantic.text.muted },
   grow: { flex: 1, minWidth: 0 },
+  sectionBody: { gap: space[2] },
   sectionHead: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: space[2],
   },
-  cardList: { gap: space[2], marginTop: space[2] },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: space[2],
+  },
+  cardList: { gap: space[2] },
   cardRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -327,5 +556,34 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: space[2],
     paddingVertical: 2,
+  },
+  textButton: {
+    minHeight: layout.touchMin,
+    justifyContent: "center",
+    paddingHorizontal: space[2],
+    borderRadius: radius.sm,
+  },
+  textButtonLabel: { color: semantic.text.link },
+  pressed: { opacity: 0.72 },
+  checkboxRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space[2],
+    minHeight: layout.touchMin,
+  },
+  checkboxLabel: { flex: 1 },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderWidth: 2,
+    borderColor: semantic.border.interactive,
+    borderRadius: 4,
+    backgroundColor: semantic.bg.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkboxOn: {
+    borderColor: semantic.action.primary,
+    backgroundColor: semantic.action.primary,
   },
 });

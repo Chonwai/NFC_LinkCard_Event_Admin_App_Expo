@@ -881,7 +881,16 @@ export const copy = {
     newSection: "新區塊",
     addSection: "新增區塊",
     maxReached: "（已達上限）",
+    sectionTitle: "區塊標題",
+    sectionDescription: "區塊說明（可選）",
+    /** Web 沒有這個標籤（它是個無 label 的 `<select>`）；App 的晶片列需要一個。 */
+    columnsLabel: "欄數",
+    edit: "編輯",
+    save: "儲存",
+    saving: "儲存中…",
+    cancel: "取消",
     addFailed: "新增失敗，請稍後再試",
+    saveFailed: "儲存失敗，請稍後再試",
   },
   /**
    * 活動設定（`app/(auth)/[eventId]/settings.tsx`）。
