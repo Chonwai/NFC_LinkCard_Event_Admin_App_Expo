@@ -75,6 +75,32 @@ done
 回 `0`），只是 `origin/main` 仍停在 `7d0fcf5`。所以「還沒 push」是錯的，「沒進主線」
 才是對的。這也是上面用詞段存在的理由。
 
+### 2026-11-01 更新：G-10 的後半也修好了
+
+上面那張表是 **2026-10-29 的現場**，不動它（改掉就是把當時的判定重寫成事後的正確
+答案）。G-10 在那之後又有一次變動，補在這裡：
+
+| ID   | 2026-10-29 的狀態                  | 現在（2026-11-01）        | 落在哪個 commit                                                                              |
+| ---- | ---------------------------------- | ------------------------- | -------------------------------------------------------------------------------------------- |
+| G-10 | 部分修好（403 已修、兩次請求未修） | **`fixed`**（兩半都修好） | `9e3c7a2`（403 那半，改問 `canManage` 後早退）＋ `25afd84`（兩次請求 → 單次 `manage-stats`） |
+
+收尾的三個可驗證事實：
+
+```
+grep -c 'getRegistrations' 'src/app/(auth)/[eventId]/overview.tsx'
+# → 0（動工前是 2：overview.tsx:213 與 :214 各一次）
+
+npm run check:contract
+# → ✓ 16 條 App 呼叫全部對得上後端路由快照（動工前是 15；新增的是 manage-stats）
+
+npm test
+# → # pass 255 / # fail 0（新增 tests/manage-stats-overview.test.mjs 7 條）
+```
+
+> 註：`check:contract` 的條數從 15 變 16，是因為 App 現在真的呼叫
+> `GET /:eventId/manage-stats` 了。那條路由能出現在快照裡，靠的是同一個 Wave 的
+> `199a67f`（`--refresh`，`generatedFrom` 由 `64be09e` 推到 `6759bbf`）。
+
 > **〔歷史說明〕下面這段寫於 2026-10-29 上午，同日下午 `1cb2b73` 合併後已失效。**
 > 保留它，是因為 `fixed-on-branch` 這個值曾經讓整份登記冊被誤讀，而誤讀的方式
 > 值得留一份記錄。
@@ -803,7 +829,7 @@ Web」就不成立——是**兩個前端都落後於後端**。
 > 所以 A 與 B 都沒有被選，**問題的前提先消失了**。這一節因此沒有留下任何待決項；
 > 它現在的價值只剩上面那個結構觀察。
 
-### G-10 總覽對 OPERATOR 失效（P1，缺陷）
+### G-10 總覽對 OPERATOR 失效（P1，缺陷）— **已修**
 
 見 `03-capability-matrix.md` §3.2。兩個獨立問題：
 
@@ -813,6 +839,34 @@ Web」就不成立——是**兩個前端都落後於後端**。
 
 正確做法：先用 `event.registrationCount`（已 unwrap）當總數；已報到數若真的需要，
 再問後端要不要放寬一個 OPERATOR 可讀的計數端點。不要把兩件事綁成一個 PR。
+
+**收尾（2026-11-01）**：兩半分兩個 commit 修完，正是上面那句「不要綁成一個 PR」的
+做法。
+
+| 半邊                | commit    | 內容                                                                                                                                                           |
+| ------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| (1) OPERATOR 讀不到 | `9e3c7a2` | `overview.tsx:205` 先問 `getMyAccess`；沒有 `canManage` 的人走本地 `registrationCount`（`:188`），已報到數顯示「未取得」而不是去換一個 403                     |
+| (2) 兩次請求        | `25afd84` | 一次 `getEventManageStats`（`overview.tsx:213`）取代原本兩次 `getRegistrations({limit: 1})`；推導規則抽到 `src/utils/manage-stats.ts:deriveRegistrationCounts` |
+
+驗收（`25afd84` 上實跑）：
+
+```
+grep -c 'getRegistrations' 'src/app/(auth)/[eventId]/overview.tsx'   # → 0（原 2）
+npm run check:contract                                               # → ✓ 16 條
+npm test                                                             # → pass 255 / fail 0
+```
+
+兩點值得記下來，因為它們不是「順手就對」的：
+
+- **不會多出一個 403。** `manage-stats` 的閘門是 `getEventWriteAccess === 'ALLOWED'`，
+  而 `my-access` 的 `canManage` 正是同一條式子的結果
+  （`LinkCard_ExpressJS_Backend@src/events/controllers/EventController.ts:148`）。兩者是同一個判定，不是兩個
+  相似但可能分岔的判斷——所以「`canManage` 為真、`manage-stats` 卻 403」不成立。
+- **`byStatus` 缺 key 不當成 0。** `deriveRegistrationCounts` 在缺
+  `byStatus.CHECKED_IN` 時回 `null`（畫破折號 ＋「未取得」），而不是 `0`。Web 那邊
+  用 `?? 0` 是對的，因為它的 `stats === null`（未載入／失敗）已經先被畫成 `—`；這裡
+  的輸入只有「已載入的回應」，缺 key 同時可能是「真的 0 筆」與「回應形狀不合預期」，
+  在這個位置分不出來。與 `count-display.ts` 的「未知 ≠ 零」同一條慣例。
 
 ### G-11 契約閘門不在 CI 上（P1，流程）— **已修**
 
@@ -832,13 +886,18 @@ Web」就不成立——是**兩個前端都落後於後端**。
 
 ```
 npm run check:contract
-# → ✓ 15 條 App 呼叫全部對得上後端路由快照（exit 0）
+# → ✓ 16 條 App 呼叫全部對得上後端路由快照（exit 0）
 ```
+
+> 這裡原本寫「15 條」。2026-11-01 的 `25afd84` 讓 App 真的呼叫
+> `GET /:eventId/manage-stats`，條數因此變 16。數字會跟著 App 的呼叫增加，不是閘門
+> 放寬。
 
 **誠實邊界：快照是後端某一個 commit 的複本，不是活的後端。**
 
 `scripts/backend-routes.snapshot.json` 的 `generatedFrom` 是
-`LinkCard_ExpressJS_Backend@64be09e`（`generatedAt` 2026-10-21T18:36:36Z）。所以：
+`LinkCard_ExpressJS_Backend@6759bbf`（`generatedAt` 2026-10-31T20:03:06Z，由同一個
+Wave 的 `199a67f` 重跑 `--refresh` 得到；在那之前是 `64be09e`）。所以：
 
 - 後端**改**了路由而快照沒重跑 ⇒ 閘門驗的是一份**過期的世界**。它會對一條已經
   不存在的路由說「對得上」，同時對一條新加的路由說「後端沒有」。
