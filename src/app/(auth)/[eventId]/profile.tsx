@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 
 import { Button } from "@/components/ui/Button";
+import { ChoiceChips } from "@/components/ui/ChoiceChips";
 import { FieldInput } from "@/components/ui/FieldInput";
 import { Icon } from "@/components/ui/Icon";
 import { InlineBanner } from "@/components/ui/InlineBanner";
@@ -141,68 +142,6 @@ function toPayload(form: ProfileForm): UpdateEventPayload {
     landingPageMode: form.landingPageMode,
     externalLandingUrl: form.externalLandingUrl || null,
   };
-}
-
-interface ChoiceChipsProps<T extends string> {
-  label: string;
-  options: readonly T[];
-  value: T;
-  labelFor: (value: T) => string;
-  onSelect: (value: T) => void;
-  testID: string;
-}
-
-/**
- * 單選晶片列（本頁三處使用：活動類型／狀態／落地頁模式）。
- *
- * 為什麼不用 `FieldInput`：那支是自由文字輸入，`keyboardType` 只有
- * email/phone/url/number 這些，選單沒有對應型別。Web 用 `<select>`，
- * 手機上等效且更易點的是晶片列（`walk-in.tsx` 的票種選法同一個模式）。
- *
- * 留在本檔而不升級為 `components/ui/`：目前只有這一頁用得到，
- * 先做成區域元件，等第二個畫面真的需要再抽。
- */
-function ChoiceChips<T extends string>({
-  label,
-  options,
-  value,
-  labelFor,
-  onSelect,
-  testID,
-}: ChoiceChipsProps<T>) {
-  return (
-    <View style={styles.chipsField}>
-      <Text
-        style={styles.fieldLabel}
-        maxFontSizeMultiplier={layout.maxFontScaleBody}
-      >
-        {label}
-      </Text>
-      <View style={styles.chips}>
-        {options.map((option) => {
-          const selected = option === value;
-          return (
-            <Pressable
-              key={option}
-              onPress={() => onSelect(option)}
-              style={[styles.chip, selected && styles.chipSelected]}
-              accessibilityRole="radio"
-              accessibilityState={{ selected }}
-              accessibilityLabel={labelFor(option)}
-              testID={`${testID}-${option}`}
-            >
-              <Text
-                style={[type.label, selected && styles.chipLabelSelected]}
-                maxFontSizeMultiplier={layout.maxFontScaleBody}
-              >
-                {labelFor(option)}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-    </View>
-  );
 }
 
 export default function EventProfileScreen() {
@@ -498,26 +437,6 @@ const styles = StyleSheet.create({
     paddingVertical: space[3],
   },
   slugValue: { color: semantic.text.secondary, fontWeight: "600" },
-  chipsField: { gap: space[1] },
-  fieldLabel: {
-    color: semantic.text.secondary,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: space[2] },
-  chip: {
-    borderWidth: 1,
-    borderColor: semantic.border.interactive,
-    borderRadius: radius.md,
-    paddingHorizontal: space[3],
-    paddingVertical: space[3],
-    backgroundColor: semantic.bg.surface,
-  },
-  chipSelected: {
-    borderColor: semantic.border.interactiveSelected,
-    backgroundColor: semantic.bg.brandSoft,
-  },
-  chipLabelSelected: { color: semantic.text.primary, fontWeight: "600" },
   checkboxRow: {
     flexDirection: "row",
     alignItems: "flex-start",

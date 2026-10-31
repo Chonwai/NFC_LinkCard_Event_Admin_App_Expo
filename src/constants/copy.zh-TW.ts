@@ -881,6 +881,25 @@ export const copy = {
     bankInstructionsEn: "付款指示（英文）",
     bankSaveSuccess: "銀行轉賬資料已更新。",
     bankSaveFailed: "更新失敗，請稍後重試。",
+    /** 品牌主題（Web `settings.themeTitle` 等，用語沿用） */
+    themeTitle: "品牌主題設定",
+    themeHint: "設定活動的品牌顏色，用於報名頁面及付款頁面的主要按鈕。",
+    primaryColorLabel: "主色 (Primary Color)",
+    /**
+     * 照抄 Web 的 `settings.primaryColorHint`：它解釋「票種表單外觀會蓋過這裡」
+     * 的優先序。少了這段，改顏色沒生效就會被當成 bug 回報（Web 的 QA EV-05）。
+     */
+    primaryColorHint:
+      "這裡是預設值。若某個票種在「票種設定 → 表單外觀」選了配色，該票種的報名頁會以票種的設定為準，不會跟這裡的主色。",
+    hoverColorLabel: "Hover 色 (Hover Color)",
+    darkModeLabel: "暗色模式",
+    darkModeOff: "關閉",
+    darkModeOn: "開啟",
+    colorPreviewLabel: "預覽色塊",
+    /** 色碼不是 #RRGGBB 時，色塊無法預覽；只提示、不阻止儲存（Web 也不擋）。 */
+    colorPreviewUnavailable: "格式不是 #RRGGBB，無法預覽",
+    themeSaveSuccess: "品牌主題已更新。",
+    themeSaveFailed: "更新失敗，請稍後重試。",
   },
   /**
    * 未匹配路由（`app/+not-found.tsx`）。

@@ -13,18 +13,30 @@ import { useLocalSearchParams } from "expo-router";
 
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { ChoiceChips } from "@/components/ui/ChoiceChips";
 import { FieldInput } from "@/components/ui/FieldInput";
 import { InlineBanner } from "@/components/ui/InlineBanner";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { copy } from "@/constants/copy.zh-TW";
-import { layout, semantic, space, spacing, type } from "@/constants/theme";
+import {
+  layout,
+  radius,
+  semantic,
+  space,
+  spacing,
+  type,
+} from "@/constants/theme";
 import { eventService } from "@/services/event.service";
 import type { EventDetail } from "@/types/api.types";
 import { getApiErrorMessage } from "@/utils/api-error";
 import {
   buildConfigWithBankDetails,
+  buildConfigWithTheme,
+  isValidHexColor,
   toBankDetailsForm,
+  toThemeForm,
   type BankDetailsForm,
+  type ThemeForm,
 } from "@/utils/event-settings-config";
 
 /**
@@ -45,6 +57,39 @@ import {
  * ⚠️ 後端 `configJson` 是**整包覆蓋**：只送 `{ bankDetails }` 會把 `theme`
  * 刪掉。合併邏輯在 `@/utils/event-settings-config`，那裡有測試釘住。
  */
+const DARK_MODE_OPTIONS = ["off", "on"] as const;
+
+/**
+ * 顏色預覽色塊。
+ *
+ * 只在 `#rgb` / `#rrggbb` 時上色——React Native 對它認不得的顏色字串會丟
+ * `Invalid color`，而使用者打的字是自由的。**這不是驗證閘門**：無法預覽
+ * 的值照樣存得下去（Web 也不擋），只是沒有色塊可看，並用一行字說明原因。
+ */
+function ColorPreview({ value }: { value: string }) {
+  const usable = isValidHexColor(value);
+  return (
+    <View style={styles.previewRow}>
+      <View
+        style={[
+          styles.swatch,
+          usable ? { backgroundColor: value.trim() } : styles.swatchUnavailable,
+        ]}
+        accessibilityLabel={copy.eventSettings.colorPreviewLabel}
+        testID="settings-theme-swatch"
+      />
+      {usable ? null : (
+        <Text
+          style={[type.body, styles.muted]}
+          maxFontSizeMultiplier={layout.maxFontScaleBody}
+        >
+          {copy.eventSettings.colorPreviewUnavailable}
+        </Text>
+      )}
+    </View>
+  );
+}
+
 export default function EventSettingsScreen() {
   const insets = useSafeAreaInsets();
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
@@ -55,6 +100,12 @@ export default function EventSettingsScreen() {
   const [loadError, setLoadError] = useState(false);
   const [bankSaving, setBankSaving] = useState(false);
   const [bankMessage, setBankMessage] = useState<{
+    tone: "success" | "danger";
+    text: string;
+  } | null>(null);
+  const [theme, setTheme] = useState<ThemeForm | null>(null);
+  const [themeSaving, setThemeSaving] = useState(false);
+  const [themeMessage, setThemeMessage] = useState<{
     tone: "success" | "danger";
     text: string;
   } | null>(null);
@@ -71,6 +122,7 @@ export default function EventSettingsScreen() {
         if (!active) return;
         setEvent(res.event);
         setBank(toBankDetailsForm(res.event.configJson));
+        setTheme(toThemeForm(res.event.configJson));
       } catch {
         if (!active) return;
         setLoadError(true);
@@ -88,6 +140,11 @@ export default function EventSettingsScreen() {
   function patchBank(next: Partial<BankDetailsForm>) {
     setBankMessage(null);
     setBank((current) => (current ? { ...current, ...next } : current));
+  }
+
+  function patchTheme(next: Partial<ThemeForm>) {
+    setThemeMessage(null);
+    setTheme((current) => (current ? { ...current, ...next } : current));
   }
 
   async function saveBank() {
@@ -110,6 +167,29 @@ export default function EventSettingsScreen() {
       });
     } finally {
       setBankSaving(false);
+    }
+  }
+
+  async function saveTheme() {
+    if (!eventId || !theme || !event) return;
+    setThemeSaving(true);
+    setThemeMessage(null);
+    try {
+      const configJson = buildConfigWithTheme(event.configJson, theme);
+      const res = await eventService.updateEvent(eventId, { configJson });
+      setEvent(res.event);
+      setTheme(toThemeForm(res.event.configJson));
+      setThemeMessage({
+        tone: "success",
+        text: copy.eventSettings.themeSaveSuccess,
+      });
+    } catch (error) {
+      setThemeMessage({
+        tone: "danger",
+        text: getApiErrorMessage(error, copy.eventSettings.themeSaveFailed),
+      });
+    } finally {
+      setThemeSaving(false);
     }
   }
 
@@ -283,6 +363,98 @@ export default function EventSettingsScreen() {
                   </>
                 ) : null}
               </Card>
+
+              {/* 品牌主題設定 */}
+              <Card padding={space[4]} testID="settings-theme">
+                <Text
+                  style={[type.h3, styles.sectionTitle]}
+                  maxFontSizeMultiplier={layout.maxFontScaleFixed}
+                >
+                  {copy.eventSettings.themeTitle}
+                </Text>
+                <Text
+                  style={[type.body, styles.muted]}
+                  maxFontSizeMultiplier={layout.maxFontScaleBody}
+                >
+                  {copy.eventSettings.themeHint}
+                </Text>
+
+                {themeMessage ? (
+                  <InlineBanner
+                    compact
+                    tone={themeMessage.tone}
+                    message={themeMessage.text}
+                  />
+                ) : null}
+
+                {theme ? (
+                  <>
+                    {/*
+                     * 顏色輸入不用 Web 的 `<input type="color">`：那是桌面瀏覽器
+                     * 的原生色票，React Native 沒有對應元件。改成「純 hex 輸入
+                     * ＋ 色塊預覽」，功能等價（打得進去的都能存），而且色塊讓
+                     * 使用者不必把色碼記在腦子裡。
+                     */}
+                    <FieldInput
+                      label={copy.eventSettings.primaryColorLabel}
+                      value={theme.primaryColor}
+                      onChangeText={(primaryColor) =>
+                        patchTheme({ primaryColor })
+                      }
+                      placeholder="#7c3aed"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      testID="settings-theme-primary"
+                    />
+                    <ColorPreview value={theme.primaryColor} />
+                    <Text
+                      style={[type.body, styles.muted]}
+                      maxFontSizeMultiplier={layout.maxFontScaleBody}
+                    >
+                      {copy.eventSettings.primaryColorHint}
+                    </Text>
+
+                    <FieldInput
+                      label={copy.eventSettings.hoverColorLabel}
+                      value={theme.primaryHoverColor}
+                      onChangeText={(primaryHoverColor) =>
+                        patchTheme({ primaryHoverColor })
+                      }
+                      placeholder="#6d28d9"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      testID="settings-theme-hover"
+                    />
+                    <ColorPreview value={theme.primaryHoverColor} />
+
+                    <ChoiceChips
+                      label={copy.eventSettings.darkModeLabel}
+                      options={DARK_MODE_OPTIONS}
+                      value={theme.darkMode ? "on" : "off"}
+                      labelFor={(option) =>
+                        option === "on"
+                          ? copy.eventSettings.darkModeOn
+                          : copy.eventSettings.darkModeOff
+                      }
+                      onSelect={(option) =>
+                        patchTheme({ darkMode: option === "on" })
+                      }
+                      testID="settings-theme-dark-mode"
+                    />
+
+                    <Button
+                      label={
+                        themeSaving
+                          ? copy.eventSettings.saving
+                          : copy.eventSettings.save
+                      }
+                      loading={themeSaving}
+                      onPress={() => void saveTheme()}
+                      testID="settings-theme-save"
+                    />
+                  </>
+                ) : null}
+              </Card>
             </>
           ) : null}
         </ScrollView>
@@ -310,5 +482,20 @@ const styles = StyleSheet.create({
     flex: 1,
     color: semantic.text.secondary,
     fontWeight: "600",
+  },
+  previewRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space[2],
+  },
+  swatch: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: semantic.border.decorative,
+  },
+  swatchUnavailable: {
+    backgroundColor: semantic.bg.surfaceSunken,
   },
 });

@@ -84,6 +84,21 @@ export interface EventBankDetails {
   instructions?: LocalizedText | null;
 }
 
+/** 活動主題色（`configJson.theme`）。 */
+export interface EventTheme {
+  primaryColor?: string;
+  primaryHoverColor?: string;
+  darkMode?: boolean;
+  /**
+   * 以下兩個鍵本 App 的設定頁**不編輯**，但 `EventThemeProvider`
+   * （`LinkCard_Frontend/components/event/EventThemeProvider.tsx:26,35`）
+   * 真的會讀它們（`--brand-bg`、品牌文字色）。儲存主題時必須原樣保留，
+   * 見 `buildConfigWithTheme`。
+   */
+  backgroundColor?: string;
+  textColor?: string;
+}
+
 /**
  * 活動 `configJson`。
  *
@@ -97,6 +112,7 @@ export interface EventBankDetails {
  */
 export interface EventConfig {
   bankDetails?: EventBankDetails | null;
+  theme?: EventTheme | null;
   [key: string]: unknown;
 }
 

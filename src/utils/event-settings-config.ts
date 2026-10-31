@@ -1,6 +1,7 @@
 import type {
   EventBankDetails,
   EventConfig,
+  EventTheme,
   LocalizedText,
 } from "@/types/api.types";
 
@@ -111,5 +112,84 @@ export function buildConfigWithBankDetails(
       accountNumber: form.accountNumber.trim() || null,
       instructions: zh || en ? { zh, en } : null,
     } satisfies EventBankDetails,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 品牌主題（configJson.theme）
+// ---------------------------------------------------------------------------
+
+/** Web `settings/page.tsx:39` 的預設主色。 */
+export const THEME_DEFAULT_PRIMARY = "#7c3aed";
+
+/** Web `settings/page.tsx:40` 的預設 hover 色。 */
+export const THEME_DEFAULT_HOVER = "#6d28d9";
+
+/** 主題表單的三個欄位（＝Web `ThemeFormState`）。 */
+export interface ThemeForm {
+  primaryColor: string;
+  primaryHoverColor: string;
+  darkMode: boolean;
+}
+
+/**
+ * 這個字串能不能安全地當 `backgroundColor` 用。
+ *
+ * 只認 `#rgb` / `#rrggbb`。用途是**預覽色塊的護欄**，不是存檔閘門：
+ * React Native 遇到它認不得的顏色字串會丟 `Invalid color`／開發期警告，
+ * 而使用者打的字是自由的。存檔一律不看這個判斷——Web 也不驗，後端
+ * `configJson` 只是 `@IsObject()`，`EventThemeProvider` 自己會用
+ * `isValidCssColor` 決定要不要套用。
+ */
+export function isValidHexColor(value: string): boolean {
+  return /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(value.trim());
+}
+
+/**
+ * `configJson` → 主題表單值。
+ *
+ * 沒有 `theme` 時填 Web 的預設值（`#7c3aed` / `#6d28d9` / 不開暗色），
+ * 而不是留空白——空白的主色在畫面上等於「沒設定」，但後端其實有預設。
+ */
+export function toThemeForm(config?: EventConfig | null): ThemeForm {
+  const theme: EventTheme | null | undefined = config?.theme;
+  return {
+    primaryColor: theme?.primaryColor ?? THEME_DEFAULT_PRIMARY,
+    primaryHoverColor: theme?.primaryHoverColor ?? THEME_DEFAULT_HOVER,
+    darkMode: theme?.darkMode ?? false,
+  };
+}
+
+/**
+ * 表單值 → 新的 `configJson`（保留其他區塊，並保留 `theme` 內本頁不編輯的鍵）。
+ *
+ * ⚠️ **第二處與 Web 的刻意差異**：Web `handleSaveTheme`
+ * （`settings/page.tsx:109-124`）是整個 `theme` 換掉——
+ *
+ * ```ts
+ * theme: { primaryColor, primaryHoverColor, darkMode }
+ * ```
+ *
+ * 但 `EventTheme` 還有 `backgroundColor` 與 `textColor`，而
+ * `EventThemeProvider.tsx:26,35` **真的在用**（`--brand-bg` 與品牌文字色，
+ * 直接影響公開報名頁的外觀）。Web 這樣寫等於「在設定頁按一次儲存，
+ * 這兩個值就沒了」。App 改成 `{ ...existingTheme, ... }`：不新增可編輯欄位，
+ * 只是不把已經存在的資料刪掉。
+ *
+ * `primaryColor || undefined` 維持 Web 的語意：清空欄位＝把該鍵移除，
+ * 讓 `EventThemeProvider` 回到推導值。
+ */
+export function buildConfigWithTheme(
+  config: EventConfig | null | undefined,
+  form: ThemeForm,
+): EventConfig {
+  return {
+    ...(config ?? {}),
+    theme: {
+      ...(config?.theme ?? {}),
+      primaryColor: form.primaryColor || undefined,
+      primaryHoverColor: form.primaryHoverColor || undefined,
+      darkMode: form.darkMode,
+    } satisfies EventTheme,
   };
 }
