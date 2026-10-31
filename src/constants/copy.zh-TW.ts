@@ -335,6 +335,22 @@ export const copy = {
     filterAll: "全部",
     sortRecent: "報名時間",
     sortName: "姓名",
+    /** 篩選列（對應 Web 的票種分頁籤 + 可見性 / 押金退款 select） */
+    filterTicketType: "票種",
+    filterAllTicketTypes: "全部票種",
+    filterVisibility: "可見性",
+    filterDepositRefund: "押金退款",
+    visibilityLabels: {
+      all: "全部",
+      active: "進行中",
+      hidden: "已隱藏",
+      archived: "已封存",
+    },
+    depositRefundLabels: {
+      all: "全部",
+      refunded: "已退",
+      not_refunded: "未退",
+    },
     registeredAt: "報名",
     copyCode: "複製報名編號",
     codeCopied: "已複製報名編號",

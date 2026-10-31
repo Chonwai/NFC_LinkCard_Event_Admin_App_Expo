@@ -26,8 +26,13 @@ import { copy } from "@/constants/copy.zh-TW";
 import { layout, semantic, space, spacing, type } from "@/constants/theme";
 import { eventService, listPageCount } from "@/services/event.service";
 import { registrationService } from "@/services/registration.service";
-import type { Registration } from "@/types/api.types";
+import type { Registration, TicketTypeItem } from "@/types/api.types";
 import { getApiErrorStatus } from "@/utils/api-error";
+import {
+  type DepositRefundFilter,
+  type RegistrationVisibility,
+  buildRegistrationListQuery,
+} from "@/utils/registration-filters";
 import {
   REVERSE_ACTION,
   type ManageAction,
@@ -217,6 +222,47 @@ function matchesQuery(item: Registration, query: string): boolean {
   return hay.includes(query);
 }
 
+/** 一列篩選選項（icon + 等寬 chip），給可見性與押金退款共用。 */
+function ChipLine<T extends string>({
+  icon,
+  options,
+  value,
+  onChange,
+}: {
+  icon: IconName;
+  options: { key: T; label: string }[];
+  value: T;
+  onChange: (next: T) => void;
+}) {
+  return (
+    <View style={styles.toolLine}>
+      <Icon name={icon} size="sm" color={semantic.icon.muted} />
+      <View style={styles.toolOptions}>
+        {options.map((item) => {
+          const selected = value === item.key;
+          return (
+            <Pressable
+              key={item.key}
+              onPress={() => onChange(item.key)}
+              style={[styles.filterItem, selected && styles.itemOn]}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+            >
+              <Text
+                style={[styles.optionText, selected && styles.optionOn]}
+                numberOfLines={1}
+                maxFontSizeMultiplier={layout.maxFontScaleFixed}
+              >
+                {item.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 export default function RegistrationsScreen() {
   const insets = useSafeAreaInsets();
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
@@ -224,6 +270,13 @@ export default function RegistrationsScreen() {
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(1);
   const [status, setStatus] = useState("");
+  // 其餘三個篩選（Web 的票種分頁籤、可見性、押金退款）。
+  const [visibility, setVisibility] =
+    useState<RegistrationVisibility>("active");
+  const [ticketTypeId, setTicketTypeId] = useState("all");
+  const [depositRefunded, setDepositRefunded] =
+    useState<DepositRefundFilter>("all");
+  const [ticketTypes, setTicketTypes] = useState<TicketTypeItem[]>([]);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<"server" | "name" | "recent">("server");
   const [loadingMore, setLoadingMore] = useState(false);
@@ -259,7 +312,22 @@ export default function RegistrationsScreen() {
   } | null>(null);
   const [exporting, setExporting] = useState(false);
 
-  const requestKey = `${eventId ?? ""}:${status}`;
+  /**
+   * 送給後端的查詢參數。三個載入路徑（首次／下拉更新／載入更多）共用這一份，
+   * 否則「篩選只在第一頁生效」這種經典錯誤遲早會出現。
+   */
+  const listQuery = useMemo(
+    () =>
+      buildRegistrationListQuery({
+        status,
+        ticketTypeId,
+        visibility,
+        depositRefunded,
+      }),
+    [status, ticketTypeId, visibility, depositRefunded],
+  );
+  const filterKey = `${status}|${ticketTypeId}|${visibility}|${depositRefunded}`;
+  const requestKey = `${eventId ?? ""}:${filterKey}`;
   const loading = Boolean(eventId) && loadedKey !== requestKey && !error;
 
   useEffect(() => {
@@ -286,8 +354,7 @@ export default function RegistrationsScreen() {
       .getRegistrations(eventId, {
         page: 1,
         limit: PAGE_SIZE,
-        status: status || undefined,
-        visibility: "active",
+        ...listQuery,
       })
       .then((res) => {
         if (!active) return;
@@ -295,7 +362,7 @@ export default function RegistrationsScreen() {
         setPage(1);
         setPageCount(listPageCount(res.pagination));
         setError(null);
-        setLoadedKey(`${eventId}:${status}`);
+        setLoadedKey(`${eventId}:${filterKey}`);
       })
       .catch((err: unknown) => {
         if (!active) return;
@@ -304,12 +371,34 @@ export default function RegistrationsScreen() {
           forbidden ? copy.roster.operatorForbidden : copy.roster.loadFailed,
         );
         setItems([]);
-        setLoadedKey(`${eventId}:${status}`);
+        setLoadedKey(`${eventId}:${filterKey}`);
       });
     return () => {
       active = false;
     };
-  }, [eventId, status]);
+  }, [eventId, listQuery, filterKey]);
+
+  /**
+   * 票種清單（給票種篩選用）。
+   *
+   * 失敗就**不顯示那一列**——票種篩選是加分項，不該讓它拖垮整頁；Web 也是
+   * `ticketTypes.length > 0` 才渲染。
+   */
+  useEffect(() => {
+    if (!eventId) return;
+    let active = true;
+    void eventService
+      .listTicketTypes(eventId)
+      .then((res) => {
+        if (active) setTicketTypes(res.ticketTypes ?? []);
+      })
+      .catch(() => {
+        if (active) setTicketTypes([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [eventId]);
 
   const refresh = useCallback(async () => {
     if (!eventId) return;
@@ -319,13 +408,12 @@ export default function RegistrationsScreen() {
       const res = await eventService.getRegistrations(eventId, {
         page: 1,
         limit: PAGE_SIZE,
-        status: status || undefined,
-        visibility: "active",
+        ...listQuery,
       });
       setItems(res.registrations ?? []);
       setPage(1);
       setPageCount(listPageCount(res.pagination));
-      setLoadedKey(`${eventId}:${status}`);
+      setLoadedKey(`${eventId}:${filterKey}`);
     } catch (err) {
       const forbidden = getApiErrorStatus(err) === 403;
       setError(
@@ -334,7 +422,7 @@ export default function RegistrationsScreen() {
     } finally {
       setRefreshing(false);
     }
-  }, [eventId, status]);
+  }, [eventId, listQuery, filterKey]);
 
   const loadMore = useCallback(async () => {
     if (!eventId || loading || loadingMore || page >= pageCount) return;
@@ -344,8 +432,7 @@ export default function RegistrationsScreen() {
       const res = await eventService.getRegistrations(eventId, {
         page: nextPage,
         limit: PAGE_SIZE,
-        status: status || undefined,
-        visibility: "active",
+        ...listQuery,
       });
       setItems((prev) => [...prev, ...(res.registrations ?? [])]);
       setPage(nextPage);
@@ -358,7 +445,7 @@ export default function RegistrationsScreen() {
     } finally {
       setLoadingMore(false);
     }
-  }, [eventId, loading, loadingMore, page, pageCount, status]);
+  }, [eventId, loading, loadingMore, page, pageCount, listQuery]);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -385,15 +472,15 @@ export default function RegistrationsScreen() {
   /** 必填而未填。 */
   const reasonMissing = needsReason && reason.trim() === "";
   /** 退款金額必須 > 0（對齊後端 `@Min(0.01)`）。 */
-  const amountMissing =
-    pendingAction === "refund" && !(Number(amount) > 0);
+  const amountMissing = pendingAction === "refund" && !(Number(amount) > 0);
   /** 確認鈕的 disabled 條件。 */
   const confirmBlocked = reasonMissing || amountMissing;
   /**
    * 確認鈕的語意色：只有**破壞性**的 hide／archive 用紅色；取消類、狀態修正
    * 與退款登記用主色（登記一筆已發生的事不是在刪資料）。
    */
-  const confirmIsDanger = pendingAction === "hide" || pendingAction === "archive";
+  const confirmIsDanger =
+    pendingAction === "hide" || pendingAction === "archive";
 
   /** 清空所有輸入（開動作、返回上一層、關閉面板都做同一件事）。 */
   const resetDraft = useCallback(() => {
@@ -599,9 +686,7 @@ export default function RegistrationsScreen() {
               <InlineBanner
                 tone={notice.tone}
                 message={notice.message}
-                actionLabel={
-                  notice.undo ? copy.roster.manage.undo : undefined
-                }
+                actionLabel={notice.undo ? copy.roster.manage.undo : undefined}
                 onAction={
                   notice.undo
                     ? () => {
@@ -716,7 +801,78 @@ export default function RegistrationsScreen() {
                   })}
                 </View>
               </View>
+              <View style={styles.hairline} />
+              <ChipLine
+                icon="eye"
+                value={visibility}
+                onChange={setVisibility}
+                options={[
+                  { key: "all", label: copy.roster.visibilityLabels.all },
+                  { key: "active", label: copy.roster.visibilityLabels.active },
+                  { key: "hidden", label: copy.roster.visibilityLabels.hidden },
+                  {
+                    key: "archived",
+                    label: copy.roster.visibilityLabels.archived,
+                  },
+                ]}
+              />
+              <View style={styles.hairline} />
+              <ChipLine
+                icon="clipboard-check"
+                value={depositRefunded}
+                onChange={setDepositRefunded}
+                options={[
+                  { key: "all", label: copy.roster.depositRefundLabels.all },
+                  {
+                    key: "refunded",
+                    label: copy.roster.depositRefundLabels.refunded,
+                  },
+                  {
+                    key: "not_refunded",
+                    label: copy.roster.depositRefundLabels.not_refunded,
+                  },
+                ]}
+              />
             </View>
+            {ticketTypes.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.ticketRow}
+                accessibilityLabel={copy.roster.filterTicketType}
+              >
+                {[
+                  { id: "all", label: copy.roster.filterAllTicketTypes },
+                  ...ticketTypes.map((tt) => ({
+                    id: tt.id,
+                    label: tt.displayName || tt.name || tt.id,
+                  })),
+                ].map((item) => {
+                  const selected = ticketTypeId === item.id;
+                  return (
+                    <Pressable
+                      key={item.id}
+                      onPress={() => setTicketTypeId(item.id)}
+                      style={({ pressed }) => [
+                        styles.ticketChip,
+                        selected && styles.itemOn,
+                        pressed && styles.rowPressed,
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
+                    >
+                      <Text
+                        style={[styles.optionText, selected && styles.optionOn]}
+                        numberOfLines={1}
+                        maxFontSizeMultiplier={layout.maxFontScaleFixed}
+                      >
+                        {item.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            ) : null}
           </View>
         }
         ListEmptyComponent={
@@ -976,7 +1132,9 @@ export default function RegistrationsScreen() {
                         placeholderTextColor={semantic.text.muted}
                         keyboardType="numbers-and-punctuation"
                         style={styles.reasonInput}
-                        accessibilityLabel={copy.roster.manage.refundAmountLabel}
+                        accessibilityLabel={
+                          copy.roster.manage.refundAmountLabel
+                        }
                       />
                       {amountMissing ? (
                         <Text style={styles.fieldHint}>
@@ -1019,11 +1177,7 @@ export default function RegistrationsScreen() {
                 <Button
                   label={copy.roster.manage.cancel}
                   variant="secondary"
-                  onPress={
-                    pendingAction === null
-                      ? closeManage
-                      : resetDraft
-                  }
+                  onPress={pendingAction === null ? closeManage : resetDraft}
                   disabled={busy}
                 />
                 {pendingAction !== null ? (
@@ -1113,6 +1267,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: space[1],
+  },
+  /** 票種 chip 列（水平捲動，不換行以免把清單推太低） */
+  ticketRow: {
+    gap: space[2],
+    paddingVertical: space[1],
+  },
+  ticketChip: {
+    minHeight: layout.touchMin,
+    justifyContent: "center",
+    paddingHorizontal: space[3],
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: semantic.border.decorative,
+    backgroundColor: semantic.bg.surface,
   },
   hairline: {
     height: StyleSheet.hairlineWidth,
