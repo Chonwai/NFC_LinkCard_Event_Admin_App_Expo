@@ -48,6 +48,13 @@ export const copy = {
     /** 密碼欄位顯示／隱藏切換鈕的讀屏標籤。消費端：`components/ui/FieldInput` */
     revealPassword: "顯示密碼",
     hidePassword: "隱藏密碼",
+    /**
+     * 銀行帳號欄位的顯示／隱藏標籤（`FieldInput` 的 `revealLabel` /
+     * `hideLabel`）。不沿用密碼那兩個字串：讀屏會念「顯示密碼」，但這個欄位
+     * 是銀行帳號，不是密碼。
+     */
+    revealAccountNumber: "顯示銀行帳號",
+    hideAccountNumber: "隱藏銀行帳號",
   },
   auth: {
     emailLabel: "電子郵件",
@@ -842,6 +849,38 @@ export const copy = {
       EXTERNAL: "外部連結",
       NONE: "不使用落地頁",
     },
+  },
+  /**
+   * 活動設定（`app/(auth)/[eventId]/settings.tsx`）。
+   *
+   * 前端 counterpart：`LinkCard_Frontend/app/(event)/manage/[eventId]/settings/page.tsx`
+   * ＋ `public/locales/zh-Hant/event_manage.json` 的 `settings` 命名空間。
+   * **文字刻意沿用 Web 的 zh-Hant 用語**（「銀行轉賬資料」「收款人名稱」
+   * 「付款指示（中文）」），同一個功能在兩邊不該叫不同名字。
+   *
+   * ⚠️ 這裡是**活動**設定，與上面 `copy.settings`（登入者帳號與 App 偏好）
+   * 是兩件不同的事，只是中文都叫「設定」。不要合併。
+   */
+  eventSettings: {
+    title: "活動設定",
+    subtitle: "銀行轉賬資料與品牌主題",
+    loading: "讀取中…",
+    loadFailed: "讀取活動設定失敗，請稍後再試",
+    save: "儲存",
+    saving: "儲存中…",
+    basicInfoTitle: "基本資訊",
+    eventIdLabel: "活動 ID",
+    slugHint: "Slug 是活動的唯一 URL 識別符，如需修改請聯繫系統管理員。",
+    bankTitle: "銀行轉賬資料",
+    bankHint: "公開報名確認頁與付款截圖上傳頁會讀取這組資料。",
+    bankAccountName: "收款人名稱",
+    bankName: "銀行名稱",
+    bankAccountNumber: "銀行帳號",
+    bankAccountNumberHint: "預設隱藏，點右側眼睛可顯示",
+    bankInstructionsZh: "付款指示（中文）",
+    bankInstructionsEn: "付款指示（英文）",
+    bankSaveSuccess: "銀行轉賬資料已更新。",
+    bankSaveFailed: "更新失敗，請稍後重試。",
   },
   /**
    * 未匹配路由（`app/+not-found.tsx`）。

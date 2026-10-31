@@ -61,14 +61,42 @@ export type EventType =
 export type EventLandingPageMode = "BUILT_IN" | "EXTERNAL" | "NONE";
 
 /**
+ * 本地化文字：字串，或「語系 → 字串」的物件。
+ *
+ * 前端 counterpart：`LinkCard_Frontend/lib/events/types.ts` 的
+ * `LocalizedText`；後端 counterpart：`EventRegistrationService` 的
+ * `LocalizedCopy`。**兩種形式都要支援**：後端 `pickLocalizedCopy`
+ * （`EventRegistrationService.ts:3681`）自己就同時處理字串與物件。
+ */
+export type LocalizedText = string | Record<string, string>;
+
+/**
+ * 活動的收款帳戶（`configJson.bankDetails`）。
+ *
+ * 前端 counterpart：`LinkCard_Frontend/lib/events/types.ts` 的
+ * `EventBankDetails`；後端：`EventBankDetailsPayload`
+ * （`EventRegistrationService.ts:104`）。四個欄位都可以是 `null`（未填）。
+ */
+export interface EventBankDetails {
+  accountName?: string | null;
+  bankName?: string | null;
+  accountNumber?: string | null;
+  instructions?: LocalizedText | null;
+}
+
+/**
  * 活動 `configJson`。
  *
  * 前端 counterpart：`LinkCard_Frontend/lib/events/types.ts` 的 `EventConfig`。
  * 後端 `UpdateEventDto.configJson` 是 `@IsObject()`，不驗內部形狀，因此這裡
  * 只鎖住本 App 實際讀寫的子集合，其餘以 index signature 放行（後端還有
  * `formStyle` 等本 App 不碰的鍵，硬列會變成假契約）。
+ *
+ * ⚠️ 寫入時一律 `{ ...existingConfig, [section]: value }`——後端是**整包覆蓋**
+ * `configJson`，只送 `{ bankDetails }` 會把 `theme` 静默刪掉。
  */
 export interface EventConfig {
+  bankDetails?: EventBankDetails | null;
   [key: string]: unknown;
 }
 

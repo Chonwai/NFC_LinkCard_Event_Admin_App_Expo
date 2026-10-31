@@ -50,6 +50,16 @@ export interface FieldInputProps {
    * 只在 `secureTextEntry` 時有意義；切換鈕為 48×48 觸控區、`aria-pressed` 同步。
    */
   revealable?: boolean;
+  /**
+   * 顯示鈕的讀屏標籤（未提供時用密碼慣例文案）。
+   *
+   * 為什麼要可換：`revealable` 原本只服務密碼欄位，標籤寫死
+   * 「顯示密碼」；銀行帳號也接上同一顆眼睛時，讀屏會念錯東西。
+   * 預設值維持不變，既有呼叫端不受影響。
+   */
+  revealLabel?: string;
+  /** 隱藏鈕的讀屏標籤（未提供時用密碼慣例文案） */
+  hideLabel?: string;
   /** 自動校正；tagUid／Email 等機器輸入欄位應傳 `false` */
   autoCorrect?: boolean;
   style?: StyleProp<ViewStyle>;
@@ -90,6 +100,8 @@ export function FieldInput({
   inputRef,
   secureTextEntry = false,
   revealable = false,
+  revealLabel,
+  hideLabel,
   autoCorrect,
   style,
   testID,
@@ -191,7 +203,9 @@ export function FieldInput({
             {...revealRing.focusRingProps}
             accessibilityRole="button"
             accessibilityLabel={
-              revealed ? copy.common.hidePassword : copy.common.revealPassword
+              revealed
+                ? (hideLabel ?? copy.common.hidePassword)
+                : (revealLabel ?? copy.common.revealPassword)
             }
             /** RNW 0.21 不映射 `accessibilityState`，故同時給 aria-*（C6 H1 發現） */
             accessibilityState={{ disabled: isDisabled, selected: revealed }}
