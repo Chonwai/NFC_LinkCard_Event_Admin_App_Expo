@@ -1,5 +1,9 @@
 import { copy } from "@/constants/copy.zh-TW";
 import type { GuestImportPreview } from "@/types/api.types";
+import {
+  chunkSpreadsheetIds,
+  SPREADSHEET_NOTIFY_BATCH_SIZE,
+} from "@/utils/spreadsheet-upload";
 
 /**
  * 貴賓名單匯入的**純規則**（不碰畫面、不碰網路）。
@@ -17,16 +21,15 @@ import type { GuestImportPreview } from "@/types/api.types";
  *
  * 超過就要切批：BE 對超量的請求是**整批拒絕**，不是截斷。所以「剛好 100」
  * 與「101」的差別是「成功」與「全部失敗」。
+ *
+ * 值本體在 `@/utils/spreadsheet-upload`——展商名單匯入的 notify 用的是同一個
+ * 上限（後端也是同一個 `BATCH_MAX`）。這裡只是保留原本的名字給既有呼叫端。
  */
-export const GUEST_IMPORT_NOTIFY_BATCH_SIZE = 100;
+export const GUEST_IMPORT_NOTIFY_BATCH_SIZE = SPREADSHEET_NOTIFY_BATCH_SIZE;
 
 /** 依 `GUEST_IMPORT_NOTIFY_BATCH_SIZE` 切批（空陣列回空陣列，不造出 `[[]]`）。 */
 export function chunkRegistrationIds(ids: string[]): string[][] {
-  const batches: string[][] = [];
-  for (let i = 0; i < ids.length; i += GUEST_IMPORT_NOTIFY_BATCH_SIZE) {
-    batches.push(ids.slice(i, i + GUEST_IMPORT_NOTIFY_BATCH_SIZE));
-  }
-  return batches;
+  return chunkSpreadsheetIds(ids);
 }
 
 /**

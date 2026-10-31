@@ -14,6 +14,10 @@ import type {
   WalletTransactionList,
 } from "@/types/api.types";
 import { LOOKUP_TIMEOUT_MS } from "@/constants/config";
+import {
+  buildSpreadsheetFormData,
+  type SpreadsheetFile,
+} from "@/utils/spreadsheet-upload";
 
 import { apiClient } from "./api";
 
@@ -540,34 +544,24 @@ export const registrationService = {
  * 刻意不直接用 `DocumentPicker.DocumentPickerAsset`：那會讓 service 依賴
  * 一個 UI 層的套件，Node 測試就載不進來了。這裡只留 RN `FormData` 真正
  * 需要的三個欄位。
+ *
+ * 形狀已上移到 `@/utils/spreadsheet-upload`——展商名單匯入送的是同一個
+ * multipart 結構（同一個 `file` 欄位名、同一個 Android MIME 退回值）。
+ * 這裡保留 `GuestImportFile` 這個名字，是因為它出現在既有測試與畫面裡，
+ * 改名只會製造沒有價值的 diff。
  */
-export interface GuestImportFile {
-  /** 平台原生的 URI（iOS `file://…`、Android `content://…`）。 */
-  uri: string;
-  name: string;
-  mimeType: string | null;
-}
+export type GuestImportFile = SpreadsheetFile;
 
 /**
  * 組出 multipart body。
  *
- * `append` 的第二個參數在 React Native 是「帶 `uri` 的物件」，型別卻寫成
- * `Blob`（那是瀏覽器的定義）——所以這裡一定要轉型。這不是偷懶：RN 的
- * `FormData` 實作會讀 `uri`／`name`／`type` 去串出檔案區段，傳真的 `Blob`
- * 反而在 RN 上不能用。
+ * 實作在 `@/utils/spreadsheet-upload` 的 `buildSpreadsheetFormData`：
+ * 報名匯入與展商匯入共用同一份，兩邊各留一份一定會分岔（見該檔開頭）。
+ * 這裡只把 `mode` 這個報名專屬的欄位轉成 `extra`。
  */
 function buildGuestImportFormData(
   file: GuestImportFile,
   mode?: GuestImportMode,
 ): FormData {
-  const body = new FormData();
-  body.append("file", {
-    uri: file.uri,
-    name: file.name,
-    // 後端白名單接受 `application/octet-stream`，所以 Android 回報不出
-    // MIME 時退回它不會被擋；檔名本身仍帶著 `.csv`／`.xlsx`。
-    type: file.mimeType ?? "application/octet-stream",
-  } as unknown as Blob);
-  if (mode) body.append("mode", mode);
-  return body;
+  return buildSpreadsheetFormData(file, mode ? { mode } : undefined);
 }

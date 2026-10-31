@@ -33,6 +33,7 @@ import {
   previewCounts,
   suggestionNames,
 } from "@/utils/guest-import";
+import { SPREADSHEET_MIME_TYPES } from "@/utils/spreadsheet-upload";
 
 /**
  * 貴賓／VIP 名單匯入面板（對應 Web `RegistrationImportPanel`，gap G-6）。
@@ -95,15 +96,9 @@ export function GuestImportModal({
     setNotice(null);
     try {
       const picked = await DocumentPicker.getDocumentAsync({
-        // 放寬是刻意的，見檔頭 iOS／Android 差異說明。
-        type: [
-          "text/csv",
-          "text/comma-separated-values",
-          "application/csv",
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          "application/vnd.ms-excel",
-          "application/octet-stream",
-        ],
+        // 放寬是刻意的，見檔頭 iOS／Android 差異說明。清單本體已上移到
+        // `@/utils/spreadsheet-upload`（展商匯入用的是同一組）。
+        type: [...SPREADSHEET_MIME_TYPES],
         copyToCacheDirectory: true,
         multiple: false,
       });
