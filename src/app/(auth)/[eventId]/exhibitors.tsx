@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useLocalSearchParams } from "expo-router";
 
+import { ExhibitorImportModal } from "@/components/roster/ExhibitorImportModal";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -94,6 +95,9 @@ export default function EventExhibitorsScreen() {
    * 只有被按下去的那一顆按鈕進 loading，其他列照常可按。
    */
   const [actingId, setActingId] = useState<string | null>(null);
+
+  /** 匯入面板。Web 是獨立路由；App 是同一頁上的面板（理由見該檔頭）。 */
+  const [importOpen, setImportOpen] = useState(false);
 
   /**
    * 重新載入的觸發計數器（見檔頭）。
@@ -220,6 +224,18 @@ export default function EventExhibitorsScreen() {
           />
         ) : null}
 
+        {/*
+         * 匯入入口。Web 把它放在標題列的右側（`exhibitors.import.entry`），
+         * App 放在分頁籤上方——`ScreenHeader` 的右側已經被「重新整理」佔住，
+         * 再塞一顆會擠成兩行。位置不同，能力相同。
+         */}
+        <Button
+          label={copy.exhibitors.import.entry}
+          variant="secondary"
+          onPress={() => setImportOpen(true)}
+          testID="exhibitors-import-entry"
+        />
+
         {/* 分頁籤：順序照 Web 的 STATUS_TABS，數字取自後端 pagination.total */}
         <View style={styles.tabs}>
           {EXHIBITOR_TABS.map((value) => {
@@ -307,6 +323,13 @@ export default function EventExhibitorsScreen() {
           </View>
         ) : null}
       </ScrollView>
+
+      {importOpen && eventId ? (
+        <ExhibitorImportModal
+          eventId={eventId}
+          onClose={() => setImportOpen(false)}
+        />
+      ) : null}
     </View>
   );
 }

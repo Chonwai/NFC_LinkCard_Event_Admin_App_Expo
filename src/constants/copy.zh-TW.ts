@@ -1019,6 +1019,101 @@ export const copy = {
     /** Web `exhibitors` 命名空間沒有錯誤字串；與 `polls.actionError` 同語。 */
     actionError: "操作失敗，請重試",
     /**
+     * 匯入名單（`components/roster/ExhibitorImportModal.tsx`）。
+     *
+     * 前端 counterpart：`LinkCard_Frontend/app/(event)/manage/[eventId]/exhibitors/import/page.tsx`
+     * ＋ zh-Hant `event_manage.json` 的 `exhibitors.import.*`。**文字逐條沿用
+     * Web**——同一個匯入流程在兩邊叫同一件事，操作員換裝置不用重學。
+     *
+     * 四步與後端四個端點一一對應（模板／預覽／確認／通知）。App 把它做成
+     * 面板（`Modal`）而不是獨立頁面：Web 的獨立頁是為了深連結（列表頁有一個
+     * 「匯入名單」入口帶過來），手機上一個面板就夠，而且不會讓「匯入到一半
+     * 按返回」變成一個沒有答案的問題。
+     */
+    import: {
+      /** Web `exhibitors.import.entry` */
+      entry: "匯入名單",
+      /** Web `exhibitors.import.title` */
+      title: "匯入參展商名單",
+      /** Web `exhibitors.import.subtitle` */
+      subtitle:
+        "上傳 CSV 或 XLSX 名單，先預覽驗證結果（不寫入資料），再確認建立展商與 owner 邀請。",
+      /** Web `exhibitors.import.backToList` */
+      close: "返回展商管理",
+      step1: {
+        /** Web `exhibitors.import.step1.title` */
+        title: "① 上傳名單檔案",
+        /** Web `exhibitors.import.step1.description` */
+        description:
+          "支援 CSV 與 XLSX（僅第一張工作表、首列為表頭）；上限 5MB、500 列資料。",
+        /** Web `exhibitors.import.step1.downloadTemplate` */
+        downloadTemplate: "下載 CSV 模板",
+        downloadingTemplate: "下載中…",
+        /** Web `exhibitors.import.step1.templateHint` */
+        templateHint:
+          "XLSX 使用者請依相同欄序自建：companyName, email, slug, website, phone, description, boothNumber, boothLocation, exhibitorType",
+        /** Web `exhibitors.import.step1.chooseFile` */
+        chooseFile: "選擇檔案",
+        changeFile: (name: string) => `已選擇：${name}`,
+        /** Web `exhibitors.import.step1.noFile` */
+        noFile: "尚未選擇檔案",
+        /** Web `exhibitors.import.step1.preview` / `previewing` */
+        preview: "上傳並預覽",
+        previewing: "解析中…",
+        /**
+         * 模板下載完成（App 專屬）。
+         *
+         * Web 是 `<a download>`，按下去就進下載資料夾。App 沒有那個語意，
+         * 只能把 CSV 文字交給系統分享面板——所以要說一句「拿到了，只是沒存到
+         * 資料夾」，否則使用者會以為按鈕壞了。
+         */
+        templateReady: "模板已備妥，請在分享面板選擇儲存位置",
+        templateFailed: "取得模板失敗，請稍後重試",
+        /** 選檔器拋錯（權限、來源已被回收）。取消不算錯，不會走到這裡。 */
+        pickFailed: "無法讀取這個檔案，請換一個再試",
+      },
+      step2: {
+        /** Web `exhibitors.import.step2.title` */
+        title: "② 預覽驗證結果（尚未寫入任何資料）",
+        /** Web `exhibitors.import.step2.summary*` */
+        summaryTotal: "總列數",
+        summaryValid: "可匯入",
+        summaryInvalid: "有錯誤",
+        summaryDuplicate: "重複",
+        /** Web `exhibitors.import.step2.validTitle` */
+        validTitle: "可匯入列",
+        /** Web `exhibitors.import.step2.showingFirst` */
+        showingFirst: (count: number) => `僅顯示前 ${count} 列`,
+        /** Web `exhibitors.import.step2.noValid` */
+        noValid: "沒有可匯入的列，請修正錯誤後重新上傳。",
+        /** Web `exhibitors.import.step2.back` */
+        back: "重新選擇檔案",
+        previewFailed: "預覽失敗，請稍後重試",
+      },
+      /**
+       * 後端錯誤碼 → 中文說明。逐條照抄 Web 的
+       * `exhibitors.import.errors.*`（zh-Hant `event_manage.json`）。
+       *
+       * ⚠️ 這張表**不是**翻譯層，是**介面契約**：後端改一個 code，這裡就會
+       * 落到 `UNKNOWN`，而 `UNKNOWN` 看起來永遠像「網路有問題」。新增後端錯誤
+       * 碼時要一起補這裡（`tests/exhibitor-import.test.mjs` 會列出所有已知碼）。
+       */
+      errors: {
+        NO_FILE: "請先選擇檔案。",
+        EMPTY_FILE: "檔案是空的，請確認內容後重試。",
+        TOO_MANY_ROWS: "資料列超過 500 列上限，請拆分後分批匯入。",
+        CSV_PARSE_ERROR: "CSV 解析失敗，請確認編碼為 UTF-8 且格式正確。",
+        XLSX_PARSE_ERROR: "XLSX 解析失敗，請確認檔案未損壞且無密碼保護。",
+        XLS_LEGACY_UNSUPPORTED:
+          "不支援舊版 .xls，請於 Excel「另存新檔 → .xlsx」後重新上傳。",
+        INVALID_FILE_TYPE: "不支援的檔案類型，請上傳 .csv 或 .xlsx。",
+        FILE_TOO_LARGE: "檔案超過 5MB 上限。",
+        FORBIDDEN: "你沒有權限匯入此活動的展商名單。",
+        EVENT_NOT_FOUND: "找不到活動。",
+        UNKNOWN: "操作失敗，請稍後重試。",
+      },
+    },
+    /**
      * 被單頁上限截斷時的說明（App 專屬）。
      *
      * Web 沒有這條字串，因為它連 `limit` 都沒送——它**永遠**只顯示 20 筆，
