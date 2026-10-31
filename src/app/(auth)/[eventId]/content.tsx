@@ -314,6 +314,8 @@ function SectionBlock({
   const [error, setError] = useState<string | null>(null);
   /** 刪除前的二次確認。Web 用 `confirm()`，App 用同語意的 Modal。 */
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  /** 新增卡片中。與 `saving` 分開，免得「新增卡片」把「儲存」的四字換成「儲存中…」。 */
+  const [addingCard, setAddingCard] = useState(false);
 
   function startEditing() {
     setForm(toSectionFormState(section));
@@ -359,6 +361,30 @@ function SectionBlock({
       setError(getApiErrorMessage(caught, copy.content.deleteFailed));
     } finally {
       setSaving(false);
+    }
+  }
+
+  /**
+   * 新增卡片。
+   *
+   * 與 Web 同一招：先建一張只有標題的卡片（預設「新卡片」、已發布），再就地
+   * 編輯（`content/page.tsx:145-150`）。 `isPublished: true` 是 Web 的選擇，
+   * 不是後端預設——後端 `createCard` 的 `isPublished ?? true` 剛好也是 true，
+   * 但送出來才是兩邊一致。
+   */
+  async function addCard() {
+    setAddingCard(true);
+    setError(null);
+    try {
+      await contentService.createCard(eventId, section.id, {
+        title: copy.content.newCard,
+        isPublished: true,
+      });
+      onChanged();
+    } catch (caught) {
+      setError(getApiErrorMessage(caught, copy.content.addFailed));
+    } finally {
+      setAddingCard(false);
     }
   }
 
@@ -467,8 +493,8 @@ function SectionBlock({
           </>
         )}
 
-        {/* 空區塊什麼都不顯示：Web 在沒有卡片時也只剩「新增卡片」按鈕，
-            而那個按鈕屬於後續 commit，這裡不先用文字填空。 */}
+        {/* 沒有卡片時不畫任何佔位文字：Web 的空區塊也只剩「新增卡片」按鈕，
+            用一句「尚無卡片」反而會讓空區塊看起來像壞掉。 */}
         {section.cards.length > 0 ? (
           <View style={styles.cardList}>
             {section.cards.map((card) => (
@@ -476,6 +502,16 @@ function SectionBlock({
             ))}
           </View>
         ) : null}
+
+        <Button
+          label={copy.content.addCard}
+          variant="secondary"
+          icon={<Icon name="plus" size="sm" color={semantic.icon.default} />}
+          onPress={() => void addCard()}
+          loading={addingCard}
+          disabled={addingCard || saving}
+          testID={`content-card-add-${section.id}`}
+        />
       </View>
 
       <ConfirmDialog

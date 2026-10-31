@@ -891,6 +891,8 @@ export const copy = {
     cancel: "取消",
     delete: "刪除",
     deleteSectionConfirm: "確定刪除此區塊？所有卡片也會被刪除。",
+    newCard: "新卡片",
+    addCard: "+ 新增卡片",
     addFailed: "新增失敗，請稍後再試",
     saveFailed: "儲存失敗，請稍後再試",
     deleteFailed: "刪除失敗，請稍後再試",
