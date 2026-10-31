@@ -59,6 +59,62 @@ export interface ManagedEventItem {
   exhibitorCount?: number;
 }
 
+/**
+ * 報名的「email 狀態」七態。
+ *
+ * 來源：BE `src/events/services/registrationEmailStatus.ts` 的
+ * `RegistrationEmailState`；前端 counterpart：`LinkCard_Frontend/lib/events/types.ts:479-487`。
+ * 語意（照抄 Web 的註解，避免兩邊對同一態有不同解釋）：
+ * - `AWAITING_PAYMENT` 銀行轉帳未審批 → **依設計不寄**（審批通過才寄）
+ * - `NO_ACCOUNT`       報名無帳號連結 → 需先建檔才會有 claim 信
+ * - `CLAIMED`          已 claim（帳號已啟用）
+ * - `NOT_REQUIRED`     帳號已驗證 → 走確認信，不需 claim
+ * - `SEND_FAILED`      有錯誤痕跡 → 可重試
+ * - `SENT_NOT_OPENED`  已寄出、尚未 claim
+ * - `NOT_SENT`         應寄但從未寄、也無錯誤痕跡（歷史事故特徵）
+ */
+export type RegistrationEmailState =
+  | "AWAITING_PAYMENT"
+  | "NO_ACCOUNT"
+  | "CLAIMED"
+  | "NOT_REQUIRED"
+  | "SEND_FAILED"
+  | "SENT_NOT_OPENED"
+  | "NOT_SENT";
+
+/**
+ * 管理名單每列附掛的 email 狀態。
+ *
+ * 鏡射 `LinkCard_Frontend/lib/events/types.ts:487-514`，逐欄同構：BE 的
+ * `deriveRegistrationEmailStatus` 產出什麼，這裡就收什麼，**不多也不猜**。
+ */
+export interface RegistrationEmailStatus {
+  state: RegistrationEmailState;
+  claimEmail: {
+    sentAt: string | null;
+    error: string | null;
+    hasActiveToken: boolean;
+  };
+  claim: { claimedAt: string | null };
+  /** outbox 通知（確認信／受理信…）的投遞狀態與重試次數。 */
+  notifications: {
+    eventType: string;
+    status: "PENDING" | "PROCESSED" | "FAILED";
+    attempts: number;
+    lastError: string | null;
+    processedAt: string | null;
+  }[];
+  /**
+   * provider 回報的**送達證明**（webhook 落地的最新一筆）。
+   * `null` ＝ 沒有證據——**不是**「沒送達」。
+   */
+  delivery?: {
+    lastEventType: "DELIVERED" | "BOUNCED" | "COMPLAINED" | "OPENED" | "OTHER";
+    occurredAt: string;
+    provider: string;
+  } | null;
+}
+
 /** 報名基本欄位（by-code / checkin 實測為 flat 欄位） */
 export interface Registration {
   id: string;
@@ -130,6 +186,18 @@ export interface Registration {
   depositRefundedAmount?: string | null;
   depositRefundedReference?: string | null;
   depositRefundedNote?: string | null;
+  /**
+   * 這一筆的 email 狀態（claim 信／確認信的投遞實況）。
+   *
+   * ⚠️ **只有 `GET /:eventId/registrations` 會回這一欄**
+   * （`EventRegistrationService.listRegistrations:1987`）。`by-code` 的 select
+   * 沒有它，所以詳情頁（走 by-code）渲染它只會得到永遠的「未知」。
+   *
+   * 也可能合法地是 `null`：BE 是 `emailStatusByRegistration.get(id) ?? null`，
+   * 帳號與 outbox 資料都湊不出狀態時就是 `null`。呼叫端**不得**把 `null`
+   * 當成任何一種狀態顯示——那是「不知道」，不是「沒寄」。
+   */
+  emailStatus?: RegistrationEmailStatus | null;
 }
 
 /**

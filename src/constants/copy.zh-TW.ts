@@ -354,6 +354,26 @@ export const copy = {
     registeredAt: "報名",
     copyCode: "複製報名編號",
     codeCopied: "已複製報名編號",
+    /**
+     * 名單列的 email 狀態徽章。
+     *
+     * 文案逐字照抄 Web `public/locales/zh-Hant/event_manage.json` 的
+     * `registrations.emailStatus.*`：同一個狀態在兩個端上不能叫兩個名字。
+     */
+    emailStatus: {
+      label: "Email 狀態",
+      /** `emailStatus` 缺失或為 `null`＝**不知道**，不是「沒寄」。 */
+      unknown: "未知",
+      states: {
+        AWAITING_PAYMENT: "待付款",
+        NO_ACCOUNT: "無帳號",
+        CLAIMED: "已領取",
+        NOT_REQUIRED: "免啟用",
+        SEND_FAILED: "寄送失敗",
+        SENT_NOT_OPENED: "已寄出未領取",
+        NOT_SENT: "未寄出",
+      },
+    },
     viewDetail: "查看詳情",
     sectionProfile: "基本資料",
     sectionRegistration: "報名",

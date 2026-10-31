@@ -44,9 +44,30 @@ import {
   getRegistrationDisplayName,
   maskEmail,
 } from "@/utils/registration-display";
+import {
+  type EmailStatusTone,
+  emailStatusDetail,
+  emailStatusLabel,
+  emailStatusTone,
+} from "@/utils/registration-email-status";
 
 const PAGE_SIZE = 20;
 const COPY_FEEDBACK_MS = 1800;
+
+/**
+ * 語意 tone → 實際顏色。
+ *
+ * App 的 `semantic.status` 沒有 `info` 這一格；Web 把 `SENT_NOT_OPENED`
+ * （已寄出、尚未領取）標成 `info`。這裡落到 `pending`（紫）——也就是「進行中、
+ * 等對方動作」，與既有紫色標籤同一語意家族，而不是自己造一組顏色。
+ */
+const EMAIL_TONE: Record<EmailStatusTone, { fg: string; bg: string }> = {
+  success: semantic.status.success,
+  info: semantic.status.pending,
+  neutral: semantic.status.neutral,
+  warning: semantic.status.warning,
+  danger: semantic.status.danger,
+};
 
 /** 可見性／封存四項的按钮文案與完成文案。狀態修正的文案依目前狀態變，見 `actionCopyFor`。 */
 const VISIBILITY_COPY: Record<
@@ -898,6 +919,20 @@ export default function RegistrationsScreen() {
           const company = getRegistrationCompany(item);
           const registeredAt = formatRegisteredAt(item.createdAt);
           const copied = copiedId === item.id;
+          /*
+           * email 狀態：`emailStatus` **不在**每一種回應裡。名單端點會附，
+           * `by-code`／`my-tickets` 不會；資料湊不出來時 BE 也合法地回 `null`。
+           * 兩種情況都走 `emailStatusLabel(undefined)` ⇒ 「未知」——把那格畫成
+           * 「未寄出」會讓操作員去重寄一封其實已經寄出的信。
+           */
+          const emailLabel = emailStatusLabel(item.emailStatus);
+          const emailTone =
+            EMAIL_TONE[
+              item.emailStatus
+                ? emailStatusTone(item.emailStatus.state)
+                : "neutral"
+            ];
+          const emailDetail = emailStatusDetail(item.emailStatus);
           const openDetail = () => {
             router.push({
               pathname:
@@ -951,38 +986,66 @@ export default function RegistrationsScreen() {
                 </View>
               </Pressable>
               <View style={styles.metaRow}>
-                <Pressable
-                  onPress={() => {
-                    copyRegistrationCode(item.id, item.registrationCode);
-                  }}
-                  style={({ pressed }) => [
-                    styles.codeRow,
-                    copied && styles.codeRowCopied,
-                    pressed && !copied && styles.codeRowPressed,
-                  ]}
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    copied
-                      ? copy.roster.codeCopied
-                      : `${copy.roster.copyCode} ${item.registrationCode}`
-                  }
-                  hitSlop={6}
-                >
-                  <Text
-                    style={[styles.code, copied && styles.codeCopied]}
-                    numberOfLines={1}
-                    maxFontSizeMultiplier={layout.maxFontScaleFixed}
-                  >
-                    {item.registrationCode}
-                  </Text>
-                  <Icon
-                    name={copied ? "clipboard-check" : "copy"}
-                    size="sm"
-                    color={
-                      copied ? semantic.status.success.fg : semantic.icon.muted
+                <View style={styles.metaLeft}>
+                  <Pressable
+                    onPress={() => {
+                      copyRegistrationCode(item.id, item.registrationCode);
+                    }}
+                    style={({ pressed }) => [
+                      styles.codeRow,
+                      copied && styles.codeRowCopied,
+                      pressed && !copied && styles.codeRowPressed,
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      copied
+                        ? copy.roster.codeCopied
+                        : `${copy.roster.copyCode} ${item.registrationCode}`
                     }
-                  />
-                </Pressable>
+                    hitSlop={6}
+                  >
+                    <Text
+                      style={[styles.code, copied && styles.codeCopied]}
+                      numberOfLines={1}
+                      maxFontSizeMultiplier={layout.maxFontScaleFixed}
+                    >
+                      {item.registrationCode}
+                    </Text>
+                    <Icon
+                      name={copied ? "clipboard-check" : "copy"}
+                      size="sm"
+                      color={
+                        copied ? semantic.status.success.fg : semantic.icon.muted
+                      }
+                    />
+                  </Pressable>
+                  {/*
+                    email 狀態徽章（對應 Web 名單表格的「Email 狀態」欄）。
+                    Web 把 claim／outbox 的錯誤字串放在 `title`；手機沒有 hover，
+                    所以同一段資訊改掛在無障礙標籤上——內容相同，呈現方式跟著平台走。
+                  */}
+                  <View
+                    style={[
+                      styles.emailPill,
+                      { backgroundColor: emailTone.bg },
+                    ]}
+                    accessible
+                    accessibilityRole="text"
+                    accessibilityLabel={
+                      emailDetail
+                        ? `${copy.roster.emailStatus.label}：${emailLabel}。${emailDetail}`
+                        : `${copy.roster.emailStatus.label}：${emailLabel}`
+                    }
+                  >
+                    <Text
+                      style={[styles.emailPillText, { color: emailTone.fg }]}
+                      numberOfLines={1}
+                      maxFontSizeMultiplier={layout.maxFontScaleFixed}
+                    >
+                      {emailLabel}
+                    </Text>
+                  </View>
+                </View>
                 {/* 管理入口：對應 Web 列表列的「⋯」。文字用「⋯」（非中文），
                     讀屏標籤走 copy 模組。 */}
                 <Pressable
@@ -1404,6 +1467,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: space[2],
+  },
+  /** 左半：報名編號 + email 狀態徽章（兩者都可能很長，所以整組可壓縮） */
+  metaLeft: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space[2],
+  },
+  emailPill: {
+    flexShrink: 1,
+    minWidth: 0,
+    borderRadius: 999,
+    paddingHorizontal: space[2],
+    paddingVertical: space[1],
+  },
+  emailPillText: {
+    ...type.badge,
   },
   manageButton: {
     minWidth: layout.touchMin,
