@@ -51,6 +51,7 @@ type EventRoute =
   | "badges"
   | "profile"
   | "content"
+  | "polls"
   | "settings";
 
 interface QuickAction {
@@ -119,6 +120,19 @@ const QUICK_ACTIONS: QuickAction[] = [
     label: copy.content.title,
     icon: "eye",
     route: "content",
+  },
+  /**
+   * 投票（parity `polls`）。
+   *
+   * 圖示用 `clipboard-check`：`Icon.tsx` 沒有 ballot／chart 類圖形，而 Web 這頁
+   * 的 `lucide-react` 圖示是 `Vote`（一個打勾的票箱）——`clipboard-check` 是
+   * 現有圖示集裡最接近的語意，硬加一個新 path 就要動 `Icon.tsx` 的路徑表。
+   */
+  {
+    key: "polls",
+    label: copy.polls.title,
+    icon: "clipboard-check",
+    route: "polls",
   },
   {
     key: "settings",

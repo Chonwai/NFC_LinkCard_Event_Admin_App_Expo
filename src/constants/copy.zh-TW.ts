@@ -954,6 +954,36 @@ export const copy = {
     themeSaveFailed: "更新失敗，請稍後重試。",
   },
   /**
+   * 投票（`app/(auth)/[eventId]/polls.tsx`）。
+   *
+   * 前端 counterpart：`LinkCard_Frontend/app/(event)/manage/[eventId]/polls/page.tsx`
+   * ＋ `public/locales/zh-Hant/event_manage.json` 的 `polls` 命名空間。
+   * **文字逐條沿用 Web 的 zh-Hant 用語**（「投票管理」「進行中」「已關閉」
+   * 「尚未建立任何投票」），同一個功能在兩邊不該叫不同名字。
+   *
+   * 三條是 App 專屬，Web 沒有對應字串：
+   * - `loading`／`loadError`：Web 的 `loadPolls` 是 `catch { setPolls([]) }`，
+   *   失敗時畫面就是一個空清單，沒有訊息。App 多一條橫幅（見畫面檔頭）。
+   * - `subtitle`：Web 用 `ScreenHeader` 等價物，標題下沒有副標。
+   *
+   * ⚠️ Web 的 `polls.results_unavailable`（「暫時無法載入投票統計」）**刻意不移植**：
+   * 那一頁從頭到尾沒有呼叫結果端點（計票是在 client 端數 `votes[]`），
+   * 這條字串在 Web 已經沒有任何使用者。抄過來只會是一條永遠不會亮的分支。
+   */
+  polls: {
+    title: "投票管理",
+    subtitle: "活動現場的即時投票",
+    loading: "讀取中…",
+    loadError: "載入投票列表失敗，請稍後再試",
+    /** Web `polls.list_heading` */
+    listHeading: "投票列表",
+    /** Web `polls.status_active` / `polls.status_closed` */
+    statusActive: "進行中",
+    statusClosed: "已關閉",
+    /** Web `polls.empty` */
+    empty: "尚未建立任何投票",
+  },
+  /**
    * 未匹配路由（`app/+not-found.tsx`）。
    * W-12：先前不存在此檔，無法解析的深連結會落到 expo-router 的預設畫面。
    * 「返回活動列表」沿用 `settings.backToEvents`，不另立重複字串。

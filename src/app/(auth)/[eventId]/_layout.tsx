@@ -22,6 +22,7 @@ export default function EventLayout() {
       <Stack.Screen name="badges" />
       <Stack.Screen name="profile" />
       <Stack.Screen name="content" />
+      <Stack.Screen name="polls" />
       <Stack.Screen name="settings" />
     </Stack>
   );
