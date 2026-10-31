@@ -34,7 +34,15 @@ import type {
   EventType,
   UpdateEventPayload,
 } from "@/types/api.types";
+import {
+  hasEventProfileErrors,
+  PROFILE_DESCRIPTION_MAX,
+  PROFILE_NAME_MAX,
+  validateEventProfile,
+  type EventProfileErrors,
+} from "@/utils/event-profile-validation";
 import { EVENT_STATUS_LABEL } from "@/utils/event-status";
+import { getApiErrorMessage } from "@/utils/api-error";
 
 /**
  * 活動資料（parity `profile`）。
@@ -207,6 +215,7 @@ export default function EventProfileScreen() {
   const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<EventProfileErrors>({});
   const [saved, setSaved] = useState(false);
   /**
    * 重新載入的觸發計數器。
@@ -241,14 +250,41 @@ export default function EventProfileScreen() {
     };
   }, [eventId, reloadKey]);
 
-  /** 任何一次編輯都要清掉「已儲存」提示，否則使用者會以為新改動也存好了。 */
+  /**
+   * 任何一次編輯都要清掉「已儲存」提示，否則使用者會以為新改動也存好了。
+   *
+   * 不清 `saveError`：Web 的 `message` 也只在送出時才更新，停在原地不動。
+   * 但**要清該欄位的錯誤**——使用者正在修的那一格不該繼續紅著，那不是
+   * Web 的行為（瀏覽器會在 `input` 事件後重新驗證該欄位）。
+   */
   function patch(next: Partial<ProfileForm>) {
     setSaved(false);
+    setFieldErrors((current) => {
+      const keys = Object.keys(next) as (keyof EventProfileErrors)[];
+      if (!keys.some((key) => current[key] != null)) return current;
+      const nextErrors = { ...current };
+      for (const key of keys) delete nextErrors[key];
+      return nextErrors;
+    });
     setForm((current) => (current ? { ...current, ...next } : current));
   }
 
   async function save() {
     if (!eventId || !form) return;
+
+    /**
+     * 先跑與 Web 相同的三個規則；有任何一格沒過就不送出。
+     * Web 靠瀏覽器原生的 `required` / `maxLength` / `type=url` 在送出前就擋，
+     * 這裡只是把那道閘門搬到 App。
+     */
+    const errors = validateEventProfile(form);
+    setFieldErrors(errors);
+    if (hasEventProfileErrors(errors)) {
+      setSaveError(null);
+      setSaved(false);
+      return;
+    }
+
     setSaving(true);
     setSaveError(null);
     setSaved(false);
@@ -258,8 +294,12 @@ export default function EventProfileScreen() {
       setEvent(res.event);
       setForm(toFormState(res.event));
       setSaved(true);
-    } catch {
-      setSaveError(copy.profile.saveFailed);
+    } catch (error) {
+      /**
+       * 與 Web 一致：伺服器訊息優先。後端會回中文（例如
+       * `活動名稱不能超過 120 個字符`），照樣端給使用者；沒有訊息才用泛用文案。
+       */
+      setSaveError(getApiErrorMessage(error, copy.profile.saveFailed));
     } finally {
       setSaving(false);
     }
@@ -325,6 +365,8 @@ export default function EventProfileScreen() {
                 label={copy.profile.nameLabel}
                 value={form.name}
                 onChangeText={(name) => patch({ name })}
+                error={fieldErrors.name}
+                maxLength={PROFILE_NAME_MAX}
                 required
                 testID="profile-name"
               />
@@ -334,6 +376,8 @@ export default function EventProfileScreen() {
                 value={form.description}
                 onChangeText={(description) => patch({ description })}
                 placeholder={copy.profile.descriptionPlaceholder}
+                error={fieldErrors.description}
+                maxLength={PROFILE_DESCRIPTION_MAX}
                 multiline
                 testID="profile-description"
               />
@@ -390,6 +434,7 @@ export default function EventProfileScreen() {
                     patch({ externalLandingUrl })
                   }
                   placeholder={copy.profile.externalUrlPlaceholder}
+                  error={fieldErrors.externalLandingUrl}
                   keyboardType="url"
                   autoCapitalize="none"
                   autoCorrect={false}

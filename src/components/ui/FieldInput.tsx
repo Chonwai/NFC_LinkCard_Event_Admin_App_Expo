@@ -31,6 +31,14 @@ export interface FieldInputProps {
   required?: boolean;
   /** 多行輸入（如 AddCardsModal 的 tagUid 批次輸入） */
   multiline?: boolean;
+  /**
+   * 最大字元數，對齊 HTML `maxlength`。
+   *
+   * 為什麼需要它：Web 端的「活動說明」用 `<textarea maxLength={500}>`
+   * 擋在輸入層，超出的字**根本打不進去**。App 沒有這個 prop 就只能靠送出時
+   * 驗證，使用者會先看到一段「存不進去」的錯誤。傳 `undefined` 表示不限。
+   */
+  maxLength?: number;
   /** 由父層帶入，用於鍵盤遮擋時的捲動修正 */
   onFocus?: TextInputProps["onFocus"];
   /** 讓父層可捲動至該欄位（錯誤跳轉用） */
@@ -77,6 +85,7 @@ export function FieldInput({
   editable = true,
   required = false,
   multiline = false,
+  maxLength,
   onFocus,
   inputRef,
   secureTextEntry = false,
@@ -163,6 +172,7 @@ export function FieldInput({
           autoCorrect={autoCorrect}
           editable={editable}
           multiline={multiline}
+          maxLength={maxLength}
           secureTextEntry={secureTextEntry && !revealed}
           testID={testID}
           accessibilityLabel={

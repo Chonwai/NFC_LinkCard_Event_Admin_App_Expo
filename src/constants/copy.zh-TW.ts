@@ -820,6 +820,14 @@ export const copy = {
     saving: "儲存中…",
     saved: "已儲存",
     saveFailed: "儲存失敗，請稍後再試",
+    /**
+     * 驗證訊息。前兩條刻意與後端 `UpdateEventDto` 的中文訊息**一字不差**
+     * ——使用者在 Web 上看到的就是這句，App 不該換句話說。
+     */
+    nameRequired: "請輸入活動名稱",
+    nameTooLong: "活動名稱不能超過 120 個字符",
+    descriptionTooLong: "活動說明不能超過 500 個字",
+    externalUrlInvalid: "請輸入完整網址（含 https://）",
     /** 活動類型（Prisma `enum EventType`） */
     eventType: {
       EXHIBITION: "展覽",
