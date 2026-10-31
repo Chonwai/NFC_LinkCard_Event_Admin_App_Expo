@@ -53,6 +53,7 @@ type EventRoute =
   | "content"
   | "exhibitors"
   | "polls"
+  | "ticket-types"
   | "settings";
 
 interface QuickAction {
@@ -147,6 +148,19 @@ const QUICK_ACTIONS: QuickAction[] = [
     label: copy.polls.title,
     icon: "clipboard-check",
     route: "polls",
+  },
+  /**
+   * 票種管理（parity `ticket-types`）。
+   *
+   * 圖示用 `archive`：`Icon.tsx` 沒有 ticket／tag 類圖形，而 Web 這一頁在
+   * 側欄的圖示是 `Ticket`。「票券」在既有圖示集裡最接近的語意是 `archive`
+   * （一疊堆起來的東西），硬加一個新 path 就要動 `Icon.tsx` 的路徑表。
+   */
+  {
+    key: "ticket-types",
+    label: copy.ticketTypes.title,
+    icon: "archive",
+    route: "ticket-types",
   },
   {
     key: "settings",

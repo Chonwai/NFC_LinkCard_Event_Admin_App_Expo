@@ -1242,6 +1242,70 @@ export const copy = {
     empty: "尚未建立任何投票",
   },
   /**
+   * 票種管理（parity `ticket-types`）。
+   *
+   * Web 的 i18n 在 `public/locales/zh-Hant/event_manage.json` 的
+   * `ticketTypes` 命名空間。這裡只收本輪用得到的鍵；每一條都註記對應的
+   * Web 鍵名，讓下一個人能一眼比對，不必猜「這句是不是自己編的」。
+   *
+   * ⚠️ 刻意**沒有**搬過來的 Web 字串（不是漏抄）：
+   * - `formEditor.*`（整套動態表單建構器）：App 沒有建構器，改以 JSON 文字
+   *   入口編輯同一份 `formFieldsJson`（見 `ticket-types.tsx` 檔頭）。
+   * - `appearance.*`（報名表外觀）：同上，App 不編輯外觀。
+   * - `previewForm` / `previewRequiresSave`：綁在建構器上。
+   * - `sold`：Web 兩個分支都走 `soldWithCapacity`，這條是死字串。
+   */
+  ticketTypes: {
+    /** Web `ticketTypes.title` */
+    title: "票種管理",
+    subtitle: "設定現場報名可選的票種",
+    /** Web `ticketTypes.add` */
+    add: "新增票種",
+    /** Web `ticketTypes.edit` */
+    edit: "編輯票種",
+    /** Web `ticketTypes.copyLink` / `ticketTypes.copied` */
+    copyLink: "複製報名連結",
+    copied: "已複製",
+    copyFailed: "無法複製連結，請稍後再試",
+    /** Web `ticketTypes.empty` */
+    empty: "尚未設置任何票種",
+    /** Web `ticketTypes.inactive` / `ticketTypes.hidden` */
+    inactive: "已停用",
+    hidden: "隱藏",
+    /** Web `ticketTypes.editAction` / `ticketTypes.deactivate` */
+    editAction: "編輯",
+    deactivate: "停用",
+    /** Web `ticketTypes.soldWithCapacity`（`unlimited` 取代 `{{capacity}}`） */
+    soldWithCapacity: (sold: number, capacity: number | null) =>
+      capacity == null ? `已售 ${sold} / 無限制` : `已售 ${sold} / ${capacity}`,
+    /** Web `ticketTypes.unlimited` */
+    unlimited: "無限制",
+    /** Web `ticketTypes.code` */
+    code: (code: string) => `碼：${code}`,
+    /** Web `ticketTypes.registrantType` */
+    registrantType: "報名者類型",
+    /**
+     * 報名者類型顯示名稱。
+     *
+     * **不沿用** `event.registrantTypeLabels`：那一組的鍵是
+     * `EXHIBITOR` / `STAFF` / `VIP`，後端 `enum RegistrantType` 裡
+     * **沒有這三個值**，卻缺了 `SPONSOR` / `GUEST` / `VOLUNTEER`。
+     * 票種畫面會遍歷整個 enum，用那一組會有值顯示成原始英文。
+     */
+    registrantTypeLabels: {
+      ATTENDEE: "參加者",
+      EXHIBITOR_REP: "參展代表",
+      SPEAKER: "講者",
+      SPONSOR: "贊助商",
+      MEDIA: "媒體",
+      GUEST: "貴賓",
+      VOLUNTEER: "志工",
+    } satisfies Record<string, string>,
+    /** Web `ticketTypes.loadError`（Web 沒有；Web 是靜默清空，見檔頭） */
+    loadError: "載入票種失敗，請稍後再試",
+    loading: "讀取中…",
+  },
+  /**
    * 未匹配路由（`app/+not-found.tsx`）。
    * W-12：先前不存在此檔，無法解析的深連結會落到 expo-router 的預設畫面。
    * 「返回活動列表」沿用 `settings.backToEvents`，不另立重複字串。
