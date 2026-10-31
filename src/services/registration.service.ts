@@ -137,6 +137,46 @@ export const registrationService = {
   },
 
   /**
+   * POST /v1/events/:eventId/registrations/:registrationId/archive
+   *
+   * 封存：欄位轉為 `ARCHIVED` 並把封存前的狀態記在 `archivedFromStatus`，
+   * 因此 `unarchive` 能回到原本那一格。與 `hide` 是**不同層級**的操作——
+   * 隱藏只是不顯示，封存是狀態轉移。Web 的 row menu 也把両者分開放。
+   *
+   * `reason` **必填**（後端 trim 後寫入 `archivedReason`）。
+   */
+  async archive(
+    eventId: string,
+    registrationId: string,
+    reason: string,
+  ): Promise<{ registration: Registration }> {
+    const res = await apiClient.post<
+      ApiResponse<{ registration: Registration }>
+    >(
+      `/api/v1/events/${encodeURIComponent(eventId)}/registrations/${encodeURIComponent(registrationId)}/archive`,
+      { reason },
+    );
+    return res.data.data;
+  },
+
+  /**
+   * POST /v1/events/:eventId/registrations/:registrationId/unarchive
+   *
+   * `archive` 的反向操作。**不帶 body**（與 `unhide` 同一理由）。
+   */
+  async unarchive(
+    eventId: string,
+    registrationId: string,
+  ): Promise<{ registration: Registration }> {
+    const res = await apiClient.post<
+      ApiResponse<{ registration: Registration }>
+    >(
+      `/api/v1/events/${encodeURIComponent(eventId)}/registrations/${encodeURIComponent(registrationId)}/unarchive`,
+    );
+    return res.data.data;
+  },
+
+  /**
    * GET /v1/events/:eventId/wallet/:registrationId/transactions
    *
    * 後端分頁（預設 `page=1&limit=20`）且回傳 `pagination`。**必須轉發**——

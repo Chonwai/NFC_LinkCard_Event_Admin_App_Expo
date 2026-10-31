@@ -17,7 +17,7 @@ import { router, useLocalSearchParams } from "expo-router";
 
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Icon } from "@/components/ui/Icon";
+import { Icon, type IconName } from "@/components/ui/Icon";
 import { InlineBanner } from "@/components/ui/InlineBanner";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -35,6 +35,74 @@ import {
 
 const PAGE_SIZE = 20;
 const COPY_FEEDBACK_MS = 1800;
+
+/**
+ * 名單管理可執行的動作。對應 Web `registrations/page.tsx` 的
+ * `RegistrationActionsMenu`：狀態修正、隱藏／取消隱藏、封存／取消封存。
+ */
+type ManageAction = "hide" | "unhide" | "archive" | "unarchive";
+
+/** 各動作的反向動作（供「復原」横幅使用）。 */
+const REVERSE_ACTION: Record<ManageAction, ManageAction> = {
+  hide: "unhide",
+  unhide: "hide",
+  archive: "unarchive",
+  unarchive: "archive",
+};
+
+/** 動作 → 按钮文案 / 完成文案。集中一處，避免二分三元式長成一棵樹。 */
+const ACTION_COPY: Record<ManageAction, { label: string; done: string }> = {
+  hide: { label: copy.roster.manage.hide, done: copy.roster.manage.hideDone },
+  unhide: {
+    label: copy.roster.manage.unhide,
+    done: copy.roster.manage.unhideDone,
+  },
+  archive: {
+    label: copy.roster.manage.archive,
+    done: copy.roster.manage.archiveDone,
+  },
+  unarchive: {
+    label: copy.roster.manage.unarchive,
+    done: copy.roster.manage.unarchiveDone,
+  },
+};
+
+/** 動作 → icon。只影響按鈕圖示，不影響行為。 */
+const ACTION_ICON: Record<ManageAction, IconName> = {
+  hide: "eye-off",
+  unhide: "eye",
+  archive: "archive",
+  unarchive: "refresh",
+};
+
+/**
+ * 依動作呼叫對應端點。
+ *
+ * `unhide`／`unarchive` **不吃原因**——不是「忽略了參數」，而是那兩條端點
+ * 的契約本來就沒有 body（見 `registrationService` 的註解）。這裡故意不分派
+ * 原因，讓「誰需要理由」只有一個地方在決定。
+ */
+async function performManageAction(
+  eventId: string,
+  reg: Registration,
+  action: ManageAction,
+  reason: string,
+): Promise<void> {
+  switch (action) {
+    case "hide":
+      await registrationService.hide(eventId, reg.id, reason.trim());
+      return;
+    case "archive":
+      await registrationService.archive(eventId, reg.id, reason.trim());
+      return;
+    case "unhide":
+      await registrationService.unhide(eventId, reg.id);
+      return;
+    case "unarchive":
+      await registrationService.unarchive(eventId, reg.id);
+      return;
+  }
+}
 
 const STATUS_FILTERS: { key: string; label: string }[] = [
   { key: "", label: copy.roster.filterAll },
@@ -115,16 +183,14 @@ export default function RegistrationsScreen() {
   // 兩個 state 分開，是因為「先選動作、再填原因」是兩步；把它們壓成一個 union
   // 會讓「只打開選單」與「已選動作」共用同一個 modal 而分不清楚。
   const [manage, setManage] = useState<Registration | null>(null);
-  const [pendingAction, setPendingAction] = useState<"hide" | "unhide" | null>(
-    null,
-  );
+  const [pendingAction, setPendingAction] = useState<ManageAction | null>(null);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   /** 上一次成功的操作；有值才顯示「復原」橫幅（對應 Web 的 undo toast）。 */
   const [undo, setUndo] = useState<{
     reg: Registration;
-    reverse: "hide" | "unhide";
+    reverse: ManageAction;
     message: string;
   } | null>(null);
 
@@ -246,8 +312,10 @@ export default function RegistrationsScreen() {
     return rows;
   }, [items, query, sort]);
 
-  /** 「原因」是否已填；`hide` 需要理由，`unhide` 不需要（與 Web 同一規則）。 */
-  const reasonMissing = pendingAction === "hide" && reason.trim() === "";
+  /** 「原因」是否必填（`hide`／`archive` 要，取消類不要）。 */
+  const needsReason = pendingAction === "hide" || pendingAction === "archive";
+  /** 必填而未填。 */
+  const reasonMissing = needsReason && reason.trim() === "";
 
   /** 打開某一筆的管理選單。 */
   const openManage = useCallback((reg: Registration) => {
@@ -266,34 +334,23 @@ export default function RegistrationsScreen() {
   }, [busy]);
 
   /**
-   * 執行隱藏／取消隱藏。
+   * 執行一項名單管理動作，成功後**重載第一頁**。
    *
-   * 成功後**重載第一頁**而不是就地改那一列：後端會回整筆 registration，但
-   * `visibility: "active"` 的篩選是後端做的，就地改狀態會讓一筆已隱藏的資料
-   * 繼續留在畫面上，看起來像沒生效。
+   * 為何不就地改那一列：後端會回整筆 registration，但 `visibility: "active"`
+   * 的篩選是後端做的，就地改狀態會讓一筆已隱藏的資料繼續留在畫面上，
+   * 看起來像沒生效。
    */
-  const runVisibilityAction = useCallback(
-    async (
-      reg: Registration,
-      action: "hide" | "unhide",
-      reasonText: string,
-    ) => {
+  const runManageAction = useCallback(
+    async (reg: Registration, action: ManageAction, reasonText: string) => {
       if (!eventId) return;
       setBusy(true);
       setActionError(null);
       try {
-        if (action === "hide") {
-          await registrationService.hide(eventId, reg.id, reasonText.trim());
-        } else {
-          await registrationService.unhide(eventId, reg.id);
-        }
+        await performManageAction(eventId, reg, action, reasonText);
         setUndo({
           reg,
-          reverse: action === "hide" ? "unhide" : "hide",
-          message:
-            action === "hide"
-              ? copy.roster.manage.hideDone
-              : copy.roster.manage.unhideDone,
+          reverse: REVERSE_ACTION[action],
+          message: ACTION_COPY[action].done,
         });
         setManage(null);
         setPendingAction(null);
@@ -318,15 +375,12 @@ export default function RegistrationsScreen() {
     const { reg, reverse } = undo;
     setUndo(null);
     try {
-      if (reverse === "hide") {
-        await registrationService.hide(
-          eventId,
-          reg.id,
-          copy.roster.manage.undoReason,
-        );
-      } else {
-        await registrationService.unhide(eventId, reg.id);
-      }
+      await performManageAction(
+        eventId,
+        reg,
+        reverse,
+        copy.roster.manage.undoReason,
+      );
       await refresh();
     } catch (err) {
       setError(
@@ -665,33 +719,40 @@ export default function RegistrationsScreen() {
 
               {pendingAction === null ? (
                 <View style={styles.actionList}>
-                  <Pressable
-                    onPress={() => {
-                      setPendingAction(manage?.isHidden ? "unhide" : "hide");
-                      setReason("");
-                      setActionError(null);
-                    }}
-                    style={({ pressed }) => [
-                      styles.actionItem,
-                      pressed && styles.rowPressed,
-                    ]}
-                    accessibilityRole="button"
-                  >
-                    <Icon
-                      name={manage?.isHidden ? "eye" : "eye-off"}
-                      size="md"
-                      color={semantic.icon.muted}
-                    />
-                    <Text style={styles.actionLabel}>
-                      {manage?.isHidden
-                        ? copy.roster.manage.unhide
-                        : copy.roster.manage.hide}
-                    </Text>
-                  </Pressable>
+                  {(manage
+                    ? ([
+                        manage.isHidden ? "unhide" : "hide",
+                        manage.status === "ARCHIVED" ? "unarchive" : "archive",
+                      ] as ManageAction[])
+                    : []
+                  ).map((action) => (
+                    <Pressable
+                      key={action}
+                      onPress={() => {
+                        setPendingAction(action);
+                        setReason("");
+                        setActionError(null);
+                      }}
+                      style={({ pressed }) => [
+                        styles.actionItem,
+                        pressed && styles.rowPressed,
+                      ]}
+                      accessibilityRole="button"
+                    >
+                      <Icon
+                        name={ACTION_ICON[action]}
+                        size="md"
+                        color={semantic.icon.muted}
+                      />
+                      <Text style={styles.actionLabel}>
+                        {ACTION_COPY[action].label}
+                      </Text>
+                    </Pressable>
+                  ))}
                 </View>
               ) : (
                 <View style={styles.confirmBlock}>
-                  {pendingAction === "hide" ? (
+                  {needsReason ? (
                     <>
                       <Text style={styles.fieldLabel}>
                         {copy.roster.manage.reasonLabel}
@@ -738,16 +799,12 @@ export default function RegistrationsScreen() {
                         ? copy.roster.manage.processing
                         : copy.roster.manage.confirm
                     }
-                    variant={pendingAction === "hide" ? "dangerSolid" : "primary"}
+                    variant={needsReason ? "dangerSolid" : "primary"}
                     loading={busy}
                     disabled={reasonMissing}
                     onPress={() => {
                       if (!manage || !pendingAction) return;
-                      void runVisibilityAction(
-                        manage,
-                        pendingAction,
-                        reason,
-                      );
+                      void runManageAction(manage, pendingAction, reason);
                     }}
                   />
                 ) : null}

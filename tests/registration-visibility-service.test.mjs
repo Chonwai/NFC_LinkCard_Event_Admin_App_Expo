@@ -104,3 +104,31 @@ test("後端錯誤往上拋（403 由呼叫端轉成權限文案，這裡不吞�
     (err) => err.response?.status === 403,
   );
 });
+
+test("archive POST 到 /registrations/:id/archive，body 為 { reason }", async () => {
+  calls.length = 0;
+  nextPost = () => ({ data: { data: { registration: { id: "reg-1" } } } });
+
+  await registrationService.archive("evt-1", "reg-1", "重複報名");
+
+  assert.equal(calls.length, 1);
+  assert.equal(
+    calls[0].url,
+    "/api/v1/events/evt-1/registrations/reg-1/archive",
+  );
+  assert.deepEqual(calls[0].body, { reason: "重複報名" });
+});
+
+test("unarchive POST 到 /registrations/:id/unarchive，且不帶 body", async () => {
+  calls.length = 0;
+  nextPost = () => ({ data: { data: { registration: { id: "reg-1" } } } });
+
+  await registrationService.unarchive("evt 1/2", "reg 3/4");
+
+  assert.equal(calls.length, 1);
+  assert.equal(
+    calls[0].url,
+    "/api/v1/events/evt%201%2F2/registrations/reg%203%2F4/unarchive",
+  );
+  assert.equal(calls[0].body, undefined);
+});
