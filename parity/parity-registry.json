@@ -57,13 +57,18 @@
       "id": "profile",
       "title": "活動資料",
       "webPages": ["app/(event)/manage/[eventId]/profile/page.tsx"],
-      "appFiles": [],
-      "verdict": "APP_GAP",
-      "gapId": "G-15a",
-      "status": "ready-to-implement",
+      "appFiles": ["src/app/(auth)/[eventId]/profile.tsx"],
+      "verdict": "ALIGNED",
       "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3.1",
-      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。App 標的：在 App 上改活動的名稱／時間／地點與狀態，送出 updateEvent（§11.3.1 第 1 項）。原判如下——改活動名稱、時間、地點是活動前的工作，且需要同時看整份報名表單設計；手機不是合適的編輯裝置。若出現活動當天改時間的實際需求，此判定應重新檢視。",
-      "evidence": ["Web: updateEvent／EventStatus／EventLandingPageMode"]
+      "rationale": "2026-11-01 實作完成。九個可編輯欄位與 Web 的 FormState 一一對應（name／description／eventType／status／venueName／venueAddress／isPublic／landingPageMode／externalLandingUrl），並刻意不含時間欄位——Web 後台同樣改不到 startDate/endDate，App 加時間欄位就等於多開一條 Web 沒有的寫入路徑。驗證規則逐條對齊 Web 的三個 HTML 屬性（required／maxLength=500／type=url），未自行加嚴：不 trim 名稱、不要求 TLD。唯一多出的一條是後端才有的 120 字上限，App 提早用後端原文『活動名稱不能超過 120 個字符』擋下，避免白跑一趟 400。",
+      "evidence": [
+        "App: src/app/(auth)/[eventId]/profile.tsx:133 toPayload（九欄；空字串轉 null）",
+        "App: src/app/(auth)/[eventId]/profile.tsx:211 save() → eventService.updateEvent",
+        "App: src/utils/event-profile-validation.ts:68 validateEventProfile（required／500 字／絕對 URL）",
+        "App: src/services/event.service.ts:163 updateEvent → PATCH /api/v1/events/{id}",
+        "Web: app/(event)/manage/[eventId]/profile/page.tsx:214 required、:230 maxLength=500、:343 type=url",
+        "Commit: eebd948（型別）、0d71d8b（畫面）、48004e8（驗證）、46ff046（契約鎖）"
+      ]
     },
     {
       "id": "content",
@@ -239,15 +244,17 @@
       "id": "settings",
       "title": "活動設定",
       "webPages": ["app/(event)/manage/[eventId]/settings/page.tsx"],
-      "appFiles": ["src/app/(auth)/settings.tsx"],
-      "verdict": "APP_GAP",
-      "gapId": "G-15a",
-      "status": "ready-to-implement",
+      "appFiles": ["src/app/(auth)/[eventId]/settings.tsx"],
+      "verdict": "ALIGNED",
       "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3.1",
-      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。App 標的：在 App 上改活動的收款帳戶資料與主題色並儲存——不是現有那頁「登入者偏好」（§11.3.1 第 3 項）。原判如下——活動整體設定（狀態、報名開關）屬於活動前準備。App 的 settings.tsx 是登入者偏好，不是活動設定，兩者同名但不同事。",
+      "rationale": "2026-11-01 實作完成。兩段式表單與 Web 一致：銀行轉賬資料（accountName／bankName／accountNumber／instructions 的 zh＋en 兩個輸入框）與品牌主題（primaryColor／primaryHoverColor／darkMode），各自一顆儲存鈕，都走 updateEvent({configJson})。appFiles 只列 [eventId]/settings.tsx：src/app/(auth)/settings.tsx 仍是登入者帳號與 App 偏好，兩者同名但不同事，故意不計入本能力。兩處刻意偏離 Web，都是修資料遺失、不是加功能（見 src/utils/event-settings-config.ts 註解）：① 純字串形式的 instructions 讀進中文欄，Web 讀成空字串後存檔寫成 null，按一次儲存就刪掉付款指示；② 存主題時合併既有 theme，Web 整個換掉，會連帶刪掉 EventThemeProvider 正在讀的 backgroundColor／textColor。",
       "evidence": [
-        "Web: updateEvent（狀態與報名開關）",
-        "App: settings.tsx 為帳號與 App 偏好"
+        "App: src/app/(auth)/[eventId]/settings.tsx:150 saveBank()、:173 saveTheme()",
+        "App: src/app/(auth)/[eventId]/settings.tsx:332 帳號欄位遮蔽（secureTextEntry＋revealable）",
+        "App: src/utils/event-settings-config.ts:101 buildConfigWithBankDetails（保留 theme）",
+        "App: src/utils/event-settings-config.ts:182 buildConfigWithTheme（保留 backgroundColor／textColor）",
+        "Web: settings/page.tsx:86-105 handleSaveBankDetails、:109-124 handleSaveTheme",
+        "Commit: 2116989（收款帳戶）、e76f541（主題色）、46ff046（契約鎖）"
       ]
     },
     {
@@ -447,7 +454,7 @@
       "status": "ready-to-implement",
       "decidedIn": "docs/analysis/adminapp-parity-20261028/04-gap-register.md#G-15a",
       "fixedOn": [],
-      "note": "原 G-15 拆分後的三分之一（2026-10-29 同日）。P2＝04 §4.1 原文「有價值的補強，可以排隊」；舊版把 P2 轉述成「無現行錯誤」，那不是 §4.1 的定義，已在 §G-15 開頭更正。sessions 不在此條（走 G-9）。驗收見 11 §11.3 的 A1-A4；動工前置見 03 §3.7.8（三項皆 OPEN）。size 的 XL 沿用原節「未逐項估工」的標記，不是新估算，也不是三個 XL 相加。"
+      "note": "原 G-15 拆分後的三分之一（2026-10-29 同日）。P2＝04 §4.1 原文「有價值的補強，可以排隊」；舊版把 P2 轉述成「無現行錯誤」，那不是 §4.1 的定義，已在 §G-15 開頭更正。sessions 不在此條（走 G-9）。驗收見 11 §11.3 的 A1-A4；動工前置見 03 §3.7.8（三項皆 OPEN）。size 的 XL 沿用原節「未逐項估工」的標記，不是新估算，也不是三個 XL 相加。 2026-11-01 局部收尾：profile 與 settings 兩個能力已轉 ALIGNED（commit eebd948、0d71d8b、48004e8、2116989、e76f541、46ff046），但 content（落地頁 section／card 的增改刪）尚未動工，因此本缺口**不標 fixed**——本條同時涵蓋三個能力，標了就等于宣稱 content 也做完了。"
     },
     {
       "id": "G-15b",

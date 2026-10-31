@@ -1474,6 +1474,38 @@ Bank Transfers、Org Roles、Settings——現在全部是建置目標。第九�
 - **卡在谁**：卡在共用前置裡的「發版節奏」與「產品定位」（`03 §3.7.8` 第二、三項，
   皆 `OPEN`）；不卡在權限設計。
 
+#### 收尾記錄（2026-11-01）：`profile` 與 `settings` 已對齊，`content` 未動工
+
+本條涵蓋三個能力，其中兩個已經進 App，第三個沒有。**缺口維持未關閉**——把 `G-15a`
+標成 `fixed` 就等於宣稱 `content` 也做完了，而它連動工都沒有。
+
+| 能力                 | 現況                       | App 落點                            | commit                        |
+| -------------------- | -------------------------- | ----------------------------------- | ----------------------------- |
+| `profile` 活動資料   | `ALIGNED`                  | `app/(auth)/[eventId]/profile.tsx`  | `eebd948` `0d71d8b` `48004e8` |
+| `settings` 活動設定  | `ALIGNED`                  | `app/(auth)/[eventId]/settings.tsx` | `2116989` `e76f541`           |
+| `content` 落地頁內容 | **未動工**（仍 `APP_GAP`） | —                                   | —                             |
+
+兩頁共用同一條寫入路徑 `PATCH /api/v1/events/:eventId`
+（`src/services/event.service.ts:163`），呼叫端的 method 與路徑由 `46ff046`
+釘住，避免未來「後端路由還在、呼叫端改壞了」這種只有活動當天才會炸的漂移。
+
+`profile` 刻意**不含時間欄位**：Web 後台的 `startDate`／`endDate` 只在建立活動時
+寫一次，之後改不到。App 補上等於多開一條 Web 沒有的寫入路徑。
+
+**兩處刻意偏離 Web**，都是修資料遺失、不是加功能，理由寫在
+`src/utils/event-settings-config.ts:101` 的檔頭註解：
+
+1. **純字串形式的 `instructions`** 讀進中文欄。Web 這一條讀成空字串，存檔時因為
+   「兩個指示都空」而寫成 `null`——使用者按一次儲存就刪掉自己的付款指示，而且沒有
+   任何提示。後端 `pickLocalizedCopy` 本來就同時支援字串與物件。
+2. **存主題時合併既有 `theme`**。Web 是把整個 `theme` 換掉，連帶刪掉
+   `EventThemeProvider` 正在讀的 `backgroundColor`／`textColor`（`--brand-bg` 與
+   品牌文字色，直接影響公開報名頁外觀）。
+
+`profile` 的驗證規則逐條對齊 Web 的三個 HTML 屬性（`required`／`maxLength=500`／
+`type=url`），**沒有自行加嚴**——不 trim 名稱、不要求 TLD。多加的只有後端才有的
+120 字上限，且用後端原文擋下。見 `src/utils/event-profile-validation.ts:68`。
+
 ### G-15b 批次與審核層：`exhibitors`／`ticket-types`／`polls`（P2，能力）
 
 - **多嚴重**：`P2`——`§4.1` 原文「有價值的補強，可以排隊」。這三項會改到既有的票種
