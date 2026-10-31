@@ -118,21 +118,25 @@
       "appFiles": [
         "src/app/(auth)/[eventId]/registrations.tsx",
         "src/app/(auth)/[eventId]/registrant/[registrationId].tsx",
-        "src/services/event.service.ts"
+        "src/services/event.service.ts",
+        "src/components/roster/GuestImportModal.tsx",
+        "src/utils/guest-import.ts",
+        "src/utils/registration-activation.ts"
       ],
-      "verdict": "APP_GAP",
-      "gapId": "G-6",
-      "status": "ready-to-implement",
+      "verdict": "ALIGNED",
+      "status": "fixed",
       "decidedIn": "docs/analysis/adminapp-parity-20261028/04-gap-register.md#G-6",
       "evidence": [
-        "已對齊（2026-11-01）：隱藏／取消隱藏／封存／取消封存／狀態更正／押金退款登記／匯出 CSV——service 逐條在 src/services/registration.service.ts:112/132/153/172/202/325/353，七條 method+path 由 tests/registration-admin-calls-contract.test.mjs 釘住；管理面板動作表在 registrations.tsx:103",
-        "已對齊（2026-11-01）：email 狀態徽章——型別 src/types/api.types.ts 的 RegistrationEmailStatus，呈現規則 src/utils/registration-email-status.ts，列表渲染 registrations.tsx:1020；缺失時顯示「未知」而不是假裝有",
-        "已對齊（2026-11-01）：複製付款連結（只在 PENDING_PAYMENT）——registrations.tsx:1198，路徑由 utils/registration-display.ts 的 buildRegistrationPaymentUrl 組裝（與 Web 同一條 /events/{id}/payment?code=）",
-        "已對齊（2026-11-01）：重寄確認信——service src/services/registration.service.ts:303；動作表 registrations.tsx:103，出現條件 utils/registration-email-status.ts 的 isConfirmationNotDelivered（逐字對齊 Web drawer）",
-        "已對齊（2026-11-01）：批次寄送 claim email——service registration.service.ts:242（唯讀探針，?readonly=1 寫死、沒有參數可以傳錯）與 :271（逐筆寄送）；面板 src/components/roster/BatchSendClaimEmailModal.tsx，入口 registrations.tsx:794",
-        "已對齊（2026-11-01）：詳情頁改以名單快取為資料來源——src/utils/registration-list-cache.ts；可見性／押金退款區塊在 src/app/(auth)/[eventId]/registrant/[registrationId].tsx:264/292，深連結退回 by-code 時以 roster.detailFallbackHint 明說缺什麼",
-        "仍未對齊（3 項，見 04 §G-6「剩下的三項」）：① VIP／貴賓名單批次匯入（Web page.tsx:307，App 無，需要新依賴）；② email 狀態篩選（Web page.tsx:435-450，App 只有徽章、沒有篩選）；③ 取得／複製 activation link（Web drawer:429-477；App 只做唯讀探針，簽發路徑刻意未開）",
-        "verdict 維持 APP_GAP 而不是 ALIGNED：ALIGNED 必須是全部對齊，上面 3 項還沒有"
+        "已對齊（2026-11-01，實測於 HEAD 49cea1b）：隱藏／取消隱藏／封存／取消封存／狀態更正／押金退款登記／匯出 CSV——service 逐條在 src/services/registration.service.ts:116/136/157/176/206/365/393，七條 method+path 由 tests/registration-admin-calls-contract.test.mjs 釘住；管理面板動作表在 registrations.tsx:103",
+        "已對齊（2026-11-01）：email 狀態徽章——型別 src/types/api.types.ts 的 RegistrationEmailStatus，呈現規則 src/utils/registration-email-status.ts，列表渲染 registrations.tsx:1109；缺失時顯示「未知」而不是假裝有",
+        "已對齊（2026-11-01）：複製付款連結（只在 PENDING_PAYMENT）——registrations.tsx:1324，路徑由 utils/registration-display.ts 的 buildRegistrationPaymentUrl 組裝（與 Web 同一條 /events/{id}/payment?code=）",
+        "已對齊（2026-11-01）：重寄確認信——service src/services/registration.service.ts:343；動作表 registrations.tsx:103，出現條件 utils/registration-email-status.ts 的 isConfirmationNotDelivered（逐字對齊 Web drawer）",
+        "已對齊（2026-11-01）：批次寄送 claim email——service registration.service.ts:246（唯讀探針，?readonly=1 寫死、沒有參數可以傳錯）與 :311（逐筆寄送）；面板 src/components/roster/BatchSendClaimEmailModal.tsx，入口 registrations.tsx:841",
+        "已對齊（2026-11-01）：詳情頁改以名單快取為資料來源——src/utils/registration-list-cache.ts；可見性／押金退款區塊在 src/app/(auth)/[eventId]/registrant/[registrationId].tsx:513/541，深連結退回 by-code 時以 roster.detailFallbackHint 明說缺什麼",
+        "已補齊（2026-11-01，dae56a2）：email 狀態篩選——純函式 src/utils/registration-email-status.ts:196 matchesEmailStatusFilter 與 :175 countActionable（ACTIONABLE_EMAIL_STATES 在 :146）；狀態 registrations.tsx:345、套用 :571、chip 列 :1002（待處理附計數）、範圍說明 :1028。選項與語意逐條對齊 Web page.tsx:435-450：全部／待處理／寄送失敗／已領取，且同樣只作用於已載入的列——App 是無限捲動，所以畫面上以 roster.emailStatus.filterScopeHint 明說範圍，不假裝是全域篩選",
+        "已補齊（2026-11-01，1fa0df8）：VIP／貴賓名單匯入——service registration.service.ts:441（preview）／458（confirm）／477（notify）／497（template）；面板 src/components/roster/GuestImportModal.tsx，入口 registrations.tsx:824；純規則 src/utils/guest-import.ts（切批上限 100 對齊 BE NOTIFY_MAX）。新依賴 expo-document-picker@~57.0.3 以 npx expo install 安裝，package-lock.json 僅新增 1 個套件（13 行）",
+        "已補齊（2026-11-01，49cea1b）：取得／複製 activation link——簽發 registration.service.ts:282 issueActivationLink（?issue=1，對應 Web drawer:429-477 的 { issue: true }）；唯讀探針 :246 保持 ?readonly=1 寫死；UI 在 registrant/[registrationId].tsx:396，「查看帳號狀態」與「簽發新的啟用連結」是兩顆按鈕，簽發前有二次確認（:496）。兩條路徑不可互換由 tests/registration-activation-link.test.mjs 釘住：簽發不得帶 readonly、唯讀必須帶 readonly=1",
+        "verdict 由 APP_GAP 改為 ALIGNED 的依據（2026-11-01）：04 §G-6 原列的三項已於 dae56a2／1fa0df8／49cea1b 全部落地；npm test（368 通過）、npx tsc --noEmit、npx eslint .、npm run format:check、npm run check:contract（31 條）、node scripts/check-parity-registry.mjs 全綠"
       ]
     },
     {
@@ -343,7 +347,7 @@
       "severity": "P1",
       "owner": "product+finance",
       "size": "M",
-      "status": "ready-to-implement",
+      "status": "fixed",
       "decidedIn": "docs/analysis/adminapp-parity-20261028/04-gap-register.md#G-6",
       "fixedOn": [
         "19b2579",
@@ -351,7 +355,10 @@
         "1cbe2f4",
         "a918f6a",
         "861b7ca",
-        "18e959f"
+        "18e959f",
+        "dae56a2",
+        "1fa0df8",
+        "49cea1b"
       ]
     },
     {

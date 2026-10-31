@@ -418,7 +418,7 @@ canInviteAdmins, role}`，Web 早就在用。App 打一次，把四個布林當�
 
 ### G-6 名單的管理動作（P1，能力，需要決策）
 
-#### 2026-11-01 收尾記錄：G-6 的範圍已交付，但 `registrations` **不是** ALIGNED
+#### 2026-11-01 收尾記錄：G-6 全部落地，`registrations` 已標 ALIGNED
 
 這一節原本的判準是「Web 能匯出 CSV、隱藏／封存、登記退款、更正狀態；App 只能查」。
 那個判準**已經沒有了**：以下七條呼叫與對應 UI 都已落在
@@ -442,28 +442,42 @@ canInviteAdmins, role}`，Web 早就在用。App 打一次，把四個布林當�
 `tests/registration-email-send-service.test.mjs` 釘住「URL 尾端必須剛好是
 `?readonly=1`」。
 
-**但 `registrations` 的 verdict 維持 `APP_GAP`。** ALIGNED 必須是全部對齊，
-而同一頁還有三項沒做：
+**`registrations` 的 verdict 已於同日改為 `ALIGNED`。** ALIGNED 必須是全部對齊，
+而同一頁原本還有三項沒做——這三項現在都已補齊，逐項 commit 如下：
 
-1. **VIP／貴賓名單批次匯入** —— Web
-   `LinkCard_Frontend@app/(event)/manage/[eventId]/registrations/page.tsx:307`
-   （`LC-TTE P0'`）。App 沒有，且**需要新依賴**才能做（批次匯入要檔案讀取與上傳
-   通道，App 目前沒有任何檔案系統依賴）。這是唯一「需要新依賴」的一項，不是
-   可以在這一輪順手補完的東西。
-2. **email 狀態篩選** —— Web
+1. **email 狀態篩選** —— `dae56a2`。Web
    `LinkCard_Frontend@app/(event)/manage/[eventId]/registrations/page.tsx:435-450`
-   有全部／待處理／寄送失敗／已領取四段篩選。App 這一輪只做到**顯示**徽章，
-   還沒有篩選（`matchesEmailStatusFilter` 沒有 counterpart）。
-3. **取得／複製 activation link** —— Web `RegistrationDetailDrawer.tsx:429-477`
-   （`getRegistrationActivationLink(..., { issue: true })`，管理員可取得一條可轉傳的
-   連結）。App 這一輪**刻意**只做唯讀探針，沒有開簽發路徑：簽發會鑄 token，
-   在手機上沒有對應的誤用防護設計。要做，得先決定「誰能看到／轉傳一條能啟用帳號的
-   連結」，那是政策問題，不是介面問題。
+   的全部／待處理／寄送失敗／已領取四段，對應到
+   `src/utils/registration-email-status.ts:196` 的 `matchesEmailStatusFilter`、
+   `:175` 的 `countActionable`（「待處理」chip 附計數，`registrations.tsx:1002`）。
+   **與 Web 同樣只作用於已載入的列**：App 是無限捲動，`items` 會累積多頁，所以
+   `registrations.tsx:1028` 以 `roster.emailStatus.filterScopeHint` 明說範圍，
+   不假裝是全域篩選——否則「待處理 0」會被讀成「整份名單沒問題」。
+2. **VIP／貴賓名單批次匯入** —— `1fa0df8`。Web `page.tsx:307`（`LC-TTE P0'`）的
+   四步全數對應：service `registration.service.ts:441`（preview）／`458`（confirm）／
+   `477`（notify）／`497`（template），面板
+   `src/components/roster/GuestImportModal.tsx`，入口 `registrations.tsx:824`。
+   新依賴 `expo-document-picker@~57.0.3` 以 `npx expo install` 安裝（版本對齊
+   SDK 57），`package-lock.json` 只多 1 個套件。**選檔的兩端差異寫在元件檔頭、
+   沒有假裝一致**：iOS 走 UTI（`text/csv` → `public.comma-separated-values-text`）、
+   Android 走 MIME 且部分供應商回 `application/octet-stream`——後端白名單放行該
+   MIME，真正的格式由 magic byte 判定。
+3. **取得／複製 activation link** —— `49cea1b`。Web
+   `RegistrationDetailDrawer.tsx:429-477`（`getRegistrationActivationLink(...,
+{ issue: true })`）對應到 `registration.service.ts:282` 的
+   `issueActivationLink`（`?issue=1`）；唯讀探針 `:246` 的 `?readonly=1` 維持
+   寫死。UI 在 `src/app/(auth)/[eventId]/registrant/[registrationId].tsx:396`：**「查看帳號狀態」與
+   「簽發新的啟用連結」是兩顆按鈕、兩條路徑**，簽發前另有二次確認（`:496`），
+   文案明說「任何拿到它的人都能設定該帳號的密碼」。
+   `tests/registration-activation-link.test.mjs` 釘住「簽發不得帶 `readonly`、
+   唯讀必須帶 `readonly=1`」——兩者互換會分別造成「開面板就把整頁變成
+   has_token」與「按了簽發卻什麼都沒發生」。
 
-因此 `parity-registry.json` 的 `G-6` 從 `decision-needed` 移出（政策已定：
-全面對齊），改為 `ready-to-implement` 並保留 `fixedOn` 六個 commit，
-`status` 不再宣稱「已修完」。要把 `registrations` 標成 `ALIGNED`，上面三項得先落地
-——**不要因為六個 commit 看起來很多就提前結案**。
+`parity-registry.json` 的 `G-6` 因此由 `ready-to-implement` 改為 `fixed`
+（`fixedOn` 九個 commit），`registrations` 的 `verdict` 改為 `ALIGNED`。
+這一輪的收尾驗證：`npm test`（368 通過）、`npx tsc --noEmit`、`npx eslint .`、
+`npm run format:check`、`npm run check:contract`（31 條呼叫全部對得上後端路由快照）、
+`node scripts/check-parity-registry.mjs` 全綠。
 
 ---
 
