@@ -39,14 +39,85 @@ export interface LoginResponse {
   user: AuthUser;
 }
 
-/** 活動狀態（源自 backend Event model） */
+/**
+ * 活動狀態（源自 backend Event model / Prisma `enum EventStatus`）。
+ *
+ * `2026-11-01` 修正：原本宣告 `REGISTRATION_OPEN` 與 `ENDED`，但
+ * `LinkCard_ExpressJS_Backend/prisma/schema.prisma:291` 只有下面六個值——
+ * 那兩個在本 repo 從未存在於後端。留著會讓「活動資料」的狀態下拉選出
+ * 後端 `@IsEnum(EventStatus)` 直接 400 的選項。
+ *
+ * 顯示映射仍容忍額外鍵（`src/utils/event-status.ts` 以 `Record<string, …>`
+ * 宣告），因此移除這兩個值不會讓任何既有畫面掉回原始英文 enum。
+ */
 export type EventStatus =
-  | "DRAFT"
-  | "PUBLISHED"
-  | "REGISTRATION_OPEN"
-  | "ONGOING"
-  | "ENDED"
-  | "CANCELLED";
+  "DRAFT" | "PUBLISHED" | "ONGOING" | "COMPLETED" | "CANCELLED" | "ARCHIVED";
+
+/** 活動類型（Prisma `enum EventType`） */
+export type EventType =
+  "EXHIBITION" | "CONFERENCE" | "WORKSHOP_SERIES" | "MEETUP" | "OTHER";
+
+/** 活動落地頁模式（Prisma `enum EventLandingPageMode`） */
+export type EventLandingPageMode = "BUILT_IN" | "EXTERNAL" | "NONE";
+
+/**
+ * 活動 `configJson`。
+ *
+ * 前端 counterpart：`LinkCard_Frontend/lib/events/types.ts` 的 `EventConfig`。
+ * 後端 `UpdateEventDto.configJson` 是 `@IsObject()`，不驗內部形狀，因此這裡
+ * 只鎖住本 App 實際讀寫的子集合，其餘以 index signature 放行（後端還有
+ * `formStyle` 等本 App 不碰的鍵，硬列會變成假契約）。
+ */
+export interface EventConfig {
+  [key: string]: unknown;
+}
+
+/**
+ * 單一活動本體（`GET /v1/events/by-id/:eventId`）。
+ *
+ * 前端 counterpart：`LinkCard_Frontend/lib/events/types.ts` 的 `EventBasic`。
+ * 只宣告本 App 會讀的欄位——多宣告一個沒人用的欄位，就多一個說謊的機會。
+ */
+export interface EventDetail {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string | null;
+  eventType: EventType;
+  status: EventStatus | string;
+  landingPageMode: EventLandingPageMode;
+  externalLandingUrl?: string | null;
+  startDate: string;
+  endDate: string;
+  timezone?: string;
+  venueName?: string | null;
+  venueAddress?: string | null;
+  isPublic: boolean;
+  configJson?: EventConfig | null;
+}
+
+/**
+ * `PATCH /v1/events/:eventId` 的請求 body（後端 `UpdateEventDto`）。
+ *
+ * 後端每個欄位都是 `@IsOptional()`，所以全部可省略；`null` 同樣會被
+ * `@IsOptional()` 跳過，因此「清空」以 `null` 表達——與 Web
+ * `manage/[eventId]/profile/page.tsx` 的 `form.x || null` 一致。
+ *
+ * ⚠️ `externalLandingUrl` 在後端是 `@IsUrl()`：**空字串會被拒**，必須送
+ * `null` 或合法 URL。
+ */
+export interface UpdateEventPayload {
+  name?: string;
+  description?: string | null;
+  eventType?: EventType;
+  status?: EventStatus;
+  landingPageMode?: EventLandingPageMode;
+  externalLandingUrl?: string | null;
+  venueName?: string | null;
+  venueAddress?: string | null;
+  isPublic?: boolean;
+  configJson?: EventConfig;
+}
 
 /** 我的活動清單項目（GET /v1/events/my-managed） */
 export interface ManagedEventItem {

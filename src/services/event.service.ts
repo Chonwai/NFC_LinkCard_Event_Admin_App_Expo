@@ -1,9 +1,11 @@
 import type {
   ApiResponse,
+  EventDetail,
   EventManageStats,
   ManagedEventItem,
   Registration,
   TicketTypeItem,
+  UpdateEventPayload,
 } from "@/types/api.types";
 
 import { apiClient } from "./api";
@@ -144,6 +146,28 @@ export const eventService = {
     const res = await apiClient.get<
       ApiResponse<{ ticketTypes: TicketTypeItem[] }>
     >(`/api/v1/events/${encodeURIComponent(eventId)}/ticket-types`);
+    return res.data.data;
+  },
+
+  /**
+   * PATCH /v1/events/:eventId — 更新活動本體與 `configJson`（活動資料／活動設定
+   * 兩頁共用同一條路由，Web 也是）。
+   *
+   * 後端 `EventController.updateEvent`：先過 `UpdateEventDto`
+   * （class-validator），再做 `getEventWriteAccess === 'ALLOWED'` 授權；
+   * OPERATOR 與非成員都會 403 `INSUFFICIENT_PERMISSION`。
+   *
+   * 回傳整筆更新後的活動，呼叫端可直接覆蓋本地狀態（與 Web
+   * `profile/page.tsx` 的 `setEvent(updated)` 相同），不必再補一次 GET。
+   */
+  async updateEvent(
+    eventId: string,
+    payload: UpdateEventPayload,
+  ): Promise<{ event: EventDetail }> {
+    const res = await apiClient.patch<ApiResponse<{ event: EventDetail }>>(
+      `/api/v1/events/${encodeURIComponent(eventId)}`,
+      payload,
+    );
     return res.data.data;
   },
 };

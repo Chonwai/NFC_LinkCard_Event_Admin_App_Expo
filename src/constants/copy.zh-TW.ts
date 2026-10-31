@@ -130,13 +130,15 @@ export const copy = {
    * 消費端：`src/utils/event-status.ts` 的 `EVENT_STATUS_LABEL`——這是唯一映射處，
    * 畫面不得各自再寫一份（活動列表先前就有一份重複的，`NEW-D2-04` 已收斂）。
    *
-   * 鍵集合刻意取 **repo 內兩個宣告的聯集**：`types/api.types.ts` 宣告
-   * `DRAFT / PUBLISHED / REGISTRATION_OPEN / ONGOING / ENDED / CANCELLED`，
-   * 本檔另依後端 `prisma` 宣告 `COMPLETED` / `ARCHIVED`。任一值漏掉，畫面就會
-   * 把原始 enum（英文）直接端給操作者。
+   * 鍵集合＝後端 `prisma` 的六個值 ＋ 一個歷史值。`2026-11-01` 起
+   * `types/api.types.ts` 的 `EventStatus` 已改為與 `prisma` 完全一致
+   * （`DRAFT / PUBLISHED / ONGOING / COMPLETED / CANCELLED / ARCHIVED`），
+   * 舊宣告裡的 `REGISTRATION_OPEN` / `ENDED` 從來不存在於後端，已移除。
    *
-   * 尚未有文案的是 `ENDED`（只在 `api.types.ts` 出現）；刻意不在此推測它的
-   * 顯示文字，遇未知值仍回退為原始字串。
+   * `registrationOpen` 這條文案**刻意保留**：`EVENT_STATUS_LABEL` 以
+   * `Record<string, string>` 宣告，保留它才能讓既有測試與任何殘留資料
+   * 仍顯示「報名中」而不是原始英文 enum。它不再是合法型別值，但不影響顯示。
+   * 遇未知值仍回退為原始字串。
    */
   eventStatus: {
     draft: "草稿",
