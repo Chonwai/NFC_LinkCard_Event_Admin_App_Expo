@@ -221,6 +221,20 @@ export interface RegistrationStatusCorrectionResult {
   updatedAt: string;
 }
 
+/**
+ * `POST …/registrations/:id/resend-confirmation` 的回應。
+ *
+ * 鏡射 `LinkCard_Frontend/lib/events/registrations.ts:477-481`。
+ *
+ * ⚠️ 回應只保證**已排入佇列**：真正寄出由 relay cron（每 5 分鐘一輪）接手。
+ * 畫面不得因此顯示「已寄出」——只能說「已排入佇列」。
+ */
+export interface ResendConfirmationResult {
+  outboxId: string;
+  created: boolean;
+  email: string;
+}
+
 export interface TicketTypeItem {
   id: string;
   name?: string;

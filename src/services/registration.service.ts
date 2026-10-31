@@ -3,6 +3,7 @@ import type {
   Registration,
   RegistrationStatusCorrectionResult,
   RegistrationStatusCorrectionTarget,
+  ResendConfirmationResult,
   WalletTransactionList,
 } from "@/types/api.types";
 import { LOOKUP_TIMEOUT_MS } from "@/constants/config";
@@ -209,6 +210,38 @@ export const registrationService = {
     >(
       `/api/v1/events/${encodeURIComponent(eventId)}/registrations/${encodeURIComponent(registrationId)}/status`,
       payload,
+    );
+    return res.data.data;
+  },
+
+  /**
+   * POST /v1/events/:eventId/registrations/:registrationId/resend-confirmation
+   *
+   * 重寄**確認信**（P2-3）。對應 Web `resendRegistrationConfirmation`
+   * （`LinkCard_Frontend/lib/events/registrations.ts:479`，呼叫端在
+   * `RegistrationDetailDrawer.tsx:143`）。
+   *
+   * ## 它做什麼、不做什麼
+   * 把該報名的 `REGISTRATION_CONFIRMED` outbox 意圖重置回 `PENDING`
+   * （BE `mode:'resend'`，同列不新增）。**不直接寄信**——relay cron 每 5 分鐘
+   * 接手。所以回應只保證「已排入佇列」，畫面不得寫「已寄出」。
+   *
+   * ## 這是確認信，不是領取信
+   * 領取（claim）信用的是另一條 `POST …/activation-link`（見 Commit 4 那條）。
+   * 兩者在 UI 上是兩個不同的問題：「告訴我已確認的人場次資訊」 vs「請他啟用帳號」。
+   *
+   * 失敗語意（`error.response.data.error.code`）：
+   * - `CONFIRMATION_EMAIL_NOT_APPLICABLE` — 沒有已驗證帳號 ⇒ 依設計走領取信
+   * - `REGISTRATION_NOT_FOUND_OR_NOT_CONFIRMED` — 狀態不是 CONFIRMED／CHECKED_IN
+   * - `REGISTRATION_NOT_FOUND` — 無此報名／非本活動
+   * - `403 INSUFFICIENT_PERMISSION` — 需活動寫入權限
+   */
+  async resendConfirmation(
+    eventId: string,
+    registrationId: string,
+  ): Promise<ResendConfirmationResult> {
+    const res = await apiClient.post<ApiResponse<ResendConfirmationResult>>(
+      `/api/v1/events/${encodeURIComponent(eventId)}/registrations/${encodeURIComponent(registrationId)}/resend-confirmation`,
     );
     return res.data.data;
   },

@@ -98,3 +98,31 @@ export function emailStatusDetail(
   )?.lastError;
   return notificationError ?? null;
 }
+
+/**
+ * 「確認信沒送出」—— 決定要不要提供「重寄確認信」。
+ *
+ * **逐字鏡射** Web `RegistrationDetailDrawer.tsx:133-139` 的
+ * `confirmationNotDelivered`：
+ *
+ * - 狀態必須是 `NOT_REQUIRED`（帳號已驗證，設計上走確認信而非領取信）；
+ * - 且 outbox 查無成功投遞：沒有任何意圖列，或**任一**列為 `FAILED`。
+ *
+ * `PENDING` **不算失敗**——relay 每 5 分鐘跑一輪，剛排入佇列的列本來就該是
+ * `PENDING`。把它當失敗，會讓操作員在等待視窗裡重複按重寄。
+ *
+ * 其餘狀態一概不提供：那代表當事人不走確認信這條路（`NO_ACCOUNT`／
+ * `SENT_NOT_OPENED` 走領取信），給一顆必定回
+ * `CONFIRMATION_EMAIL_NOT_APPLICABLE` 的按鈕比不給更糟。
+ */
+export function isConfirmationNotDelivered(
+  status: RegistrationEmailStatus | null | undefined,
+): boolean {
+  if (!status) return false;
+  if (status.state !== "NOT_REQUIRED") return false;
+  const notifications = status.notifications ?? [];
+  return (
+    notifications.length === 0 ||
+    notifications.some((item) => item.status === "FAILED")
+  );
+}

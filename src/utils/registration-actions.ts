@@ -2,13 +2,24 @@ import type {
   Registration,
   RegistrationStatusCorrectionTarget,
 } from "@/types/api.types";
+import { isConfirmationNotDelivered } from "@/utils/registration-email-status";
 
 /**
  * 名單管理可執行的動作。對應 Web `registrations/page.tsx` 的
  * `RegistrationActionsMenu`：狀態修正、隱藏／取消隱藏、封存／取消封存。
+ *
+ * 這裡比 Web 的 row menu **多一項** `resendConfirmation`：Web 把「重寄確認信」
+ * 放在詳情抽屜的 email 區塊（`RegistrationDetailDrawer.tsx:530`），App 沒有
+ * 那個抽屜，所以把它收進同一個管理面板——**能力相同，入口不同**。
  */
 export type ManageAction =
-  "hide" | "unhide" | "archive" | "unarchive" | "correct" | "refund";
+  | "hide"
+  | "unhide"
+  | "archive"
+  | "unarchive"
+  | "correct"
+  | "refund"
+  | "resendConfirmation";
 
 /** 只有可見性／封存四項有「呼叫相反端點」的復原路徑；狀態修正沒有。 */
 export const REVERSE_ACTION: Partial<Record<ManageAction, ManageAction>> = {
@@ -55,6 +66,13 @@ export function manageActionsFor(reg: Registration): ManageAction[] {
   // 退款只會在稽核裡留下一筆沒有對應收款的痕跡。
   if (reg.status === "CONFIRMED" || reg.status === "CHECKED_IN") {
     actions.push("refund");
+  }
+
+  // 重寄確認信：只在「確認信應該寄、而且沒寄成」時提供（見
+  // `isConfirmationNotDelivered` 的註解）。刻意排在可見性動作**之前**：
+  // 隱藏／封存改的是資料，這一項是寄信，兩者不是同一層級的動作。
+  if (isConfirmationNotDelivered(reg.emailStatus)) {
+    actions.push("resendConfirmation");
   }
 
   actions.push(reg.isHidden ? "unhide" : "hide");

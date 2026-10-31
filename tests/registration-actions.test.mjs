@@ -108,3 +108,65 @@ test("四項可見性/封存動作都有反向；狀態修正與退款刻意沒�
   assert.equal(REVERSE_ACTION.correct, undefined);
   assert.equal(REVERSE_ACTION.refund, undefined);
 });
+
+/**
+ * 「重寄確認信」的出現條件。
+ *
+ * Web 把它放在詳情抽屜（`RegistrationDetailDrawer.tsx:530`），App 收進管理面板。
+ * 入口不同，但**條件必須相同**：狀態是 `NOT_REQUIRED` 且 outbox 查無成功投遞。
+ * 條件放寬會讓操作員寄出後端必定回 `CONFIRMATION_EMAIL_NOT_APPLICABLE` 的信；
+ * 條件收緊則讓真的沒寄到的人無處可救。
+ */
+function withEmailStatus(state, notifications = []) {
+  return {
+    state,
+    claimEmail: { sentAt: null, error: null, hasActiveToken: false },
+    claim: { claimedAt: null },
+    notifications,
+  };
+}
+
+test("確認信沒送出 ⇒ 管理面板出現「重寄確認信」", () => {
+  const actions = manageActionsFor(
+    reg({ emailStatus: withEmailStatus("NOT_REQUIRED") }),
+  );
+  assert.ok(actions.includes("resendConfirmation"), actions.join(","));
+});
+
+test("確認信已投遞 ⇒ 不提供重寄", () => {
+  const actions = manageActionsFor(
+    reg({
+      emailStatus: withEmailStatus("NOT_REQUIRED", [
+        {
+          eventType: "X",
+          status: "PROCESSED",
+          attempts: 1,
+          lastError: null,
+          processedAt: null,
+        },
+      ]),
+    }),
+  );
+  assert.equal(actions.includes("resendConfirmation"), false);
+});
+
+test("沒有 emailStatus（by-code 詳情或缺欄）⇒ 不提供重寄", () => {
+  const actions = manageActionsFor(reg());
+  assert.equal(actions.includes("resendConfirmation"), false);
+});
+
+test("重寄確認信排在可見性動作之前（寄信與改資料不是同一層級）", () => {
+  const actions = manageActionsFor(
+    reg({ emailStatus: withEmailStatus("NOT_REQUIRED") }),
+  );
+  const resend = actions.indexOf("resendConfirmation");
+  const hide = actions.indexOf("hide");
+  const archive = actions.indexOf("archive");
+  assert.ok(resend >= 0 && hide >= 0 && archive >= 0, actions.join(","));
+  assert.ok(resend < hide, `resend=${resend} hide=${hide}`);
+  assert.ok(resend < archive, `resend=${resend} archive=${archive}`);
+});
+
+test("重寄確認信沒有 undo（outbox 已重置，沒有「取消重寄」這種端點）", () => {
+  assert.equal(REVERSE_ACTION.resendConfirmation, undefined);
+});

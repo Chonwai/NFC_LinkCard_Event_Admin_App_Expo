@@ -14,8 +14,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-const { emailStatusDetail, emailStatusLabel, emailStatusTone } =
-  await import("@/utils/registration-email-status");
+const {
+  emailStatusDetail,
+  emailStatusLabel,
+  emailStatusTone,
+  isConfirmationNotDelivered,
+} = await import("@/utils/registration-email-status");
 const { copy } = await import("@/constants/copy.zh-TW");
 
 /** 最小可用狀態；只帶規則會讀的欄位。 */
@@ -125,4 +129,97 @@ test("沒有任何錯誤 ⇒ null（不是空字串），呼叫端才分得出�
   assert.equal(emailStatusDetail(status("CLAIMED")), null);
   assert.equal(emailStatusDetail(null), null);
   assert.equal(emailStatusDetail(undefined), null);
+});
+
+/**
+ * `isConfirmationNotDelivered` —— 決定「重寄確認信」是否出現在管理面板。
+ *
+ * 這條述詞逐字鏡射 Web `RegistrationDetailDrawer.tsx:133-139`。兩邊若算出不同
+ * 答案，同一筆報名在網頁上能重寄、在 App 上不能（或反過來），操作者只會以為
+ * App 壞了。
+ */
+test("確認信未送出：NOT_REQUIRED + 完全沒有 outbox 意圖列", () => {
+  assert.equal(isConfirmationNotDelivered(status("NOT_REQUIRED")), true);
+});
+
+test("確認信未送出：NOT_REQUIRED + 有 FAILED 列", () => {
+  assert.equal(
+    isConfirmationNotDelivered(
+      status("NOT_REQUIRED", {
+        notifications: [
+          {
+            eventType: "X",
+            status: "PROCESSED",
+            attempts: 1,
+            lastError: null,
+            processedAt: null,
+          },
+          {
+            eventType: "Y",
+            status: "FAILED",
+            attempts: 5,
+            lastError: "boom",
+            processedAt: null,
+          },
+        ],
+      }),
+    ),
+    true,
+  );
+});
+
+test("PENDING 不算失敗：relay 每 5 分鐘才跑，剛排入的列本來就該是 PENDING", () => {
+  assert.equal(
+    isConfirmationNotDelivered(
+      status("NOT_REQUIRED", {
+        notifications: [
+          {
+            eventType: "X",
+            status: "PENDING",
+            attempts: 0,
+            lastError: null,
+            processedAt: null,
+          },
+        ],
+      }),
+    ),
+    false,
+  );
+});
+
+test("已成功投遞（PROCESSED）⇒ 不提供重寄", () => {
+  assert.equal(
+    isConfirmationNotDelivered(
+      status("NOT_REQUIRED", {
+        notifications: [
+          {
+            eventType: "X",
+            status: "PROCESSED",
+            attempts: 1,
+            lastError: null,
+            processedAt: null,
+          },
+        ],
+      }),
+    ),
+    false,
+  );
+});
+
+test("非 NOT_REQUIRED 的狀態一律不提供（那條路走的是領取信）", () => {
+  for (const state of [
+    "AWAITING_PAYMENT",
+    "NO_ACCOUNT",
+    "CLAIMED",
+    "SEND_FAILED",
+    "SENT_NOT_OPENED",
+    "NOT_SENT",
+  ]) {
+    assert.equal(isConfirmationNotDelivered(status(state)), false, state);
+  }
+});
+
+test("emailStatus 缺失 ⇒ 不提供（不能對「不知道」的狀態寄信）", () => {
+  assert.equal(isConfirmationNotDelivered(null), false);
+  assert.equal(isConfirmationNotDelivered(undefined), false);
 });

@@ -27,7 +27,7 @@ import { layout, semantic, space, spacing, type } from "@/constants/theme";
 import { eventService, listPageCount } from "@/services/event.service";
 import { registrationService } from "@/services/registration.service";
 import type { Registration, TicketTypeItem } from "@/types/api.types";
-import { getApiErrorStatus } from "@/utils/api-error";
+import { getApiErrorCode, getApiErrorStatus } from "@/utils/api-error";
 import {
   type DepositRefundFilter,
   type RegistrationVisibility,
@@ -72,7 +72,7 @@ const EMAIL_TONE: Record<EmailStatusTone, { fg: string; bg: string }> = {
 
 /** 可見性／封存四項的按钮文案與完成文案。狀態修正的文案依目前狀態變，見 `actionCopyFor`。 */
 const VISIBILITY_COPY: Record<
-  Exclude<ManageAction, "correct" | "refund">,
+  Exclude<ManageAction, "correct" | "refund" | "resendConfirmation">,
   { label: string; done: string }
 > = {
   hide: { label: copy.roster.manage.hide, done: copy.roster.manage.hideDone },
@@ -98,6 +98,7 @@ const ACTION_ICON: Record<ManageAction, IconName> = {
   unarchive: "refresh",
   correct: "check-circle",
   refund: "clipboard-check",
+  resendConfirmation: "copy",
 };
 
 /** 動作 → 按鈕文案 / 完成文案。 */
@@ -120,6 +121,13 @@ function actionCopyFor(
     return {
       label: copy.roster.manage.refund,
       done: copy.roster.manage.refundDone,
+    };
+  }
+  if (action === "resendConfirmation") {
+    // `done` 只能是「已排入佇列」——後端只重置 outbox 意圖，不是直接寄。
+    return {
+      label: copy.roster.manage.resendConfirmation,
+      done: copy.roster.manage.resendConfirmationQueued,
     };
   }
   return VISIBILITY_COPY[action];
@@ -183,6 +191,29 @@ async function performManageAction(
         note: draft.note.trim() || undefined,
       });
       return;
+    case "resendConfirmation":
+      // 重寄確認信不吃原因；它也不需要（後端把動作寫在 outbox 列上）。
+      await registrationService.resendConfirmation(eventId, reg.id);
+      return;
+  }
+}
+
+/**
+ * 管理動作失敗 → 使用者看得懂的文案。
+ *
+ * 為何不只分 403／其他：重寄確認信有兩條「再試也没用」的失敗（沒帳號、
+ * 狀態未確認），把它們歸到「請稍後再試」會讓操作員一直重試同一個確定會錯的
+ * 動作。後端錯誤碼逐一對應，剩下的才落到通用失敗。
+ */
+function manageActionError(err: unknown): string {
+  if (getApiErrorStatus(err) === 403) return copy.roster.manage.forbidden;
+  switch (getApiErrorCode(err)) {
+    case "CONFIRMATION_EMAIL_NOT_APPLICABLE":
+      return copy.roster.manage.resendConfirmationNotApplicable;
+    case "REGISTRATION_NOT_FOUND_OR_NOT_CONFIRMED":
+      return copy.roster.manage.resendConfirmationNotConfirmed;
+    default:
+      return copy.roster.manage.failed;
   }
 }
 
@@ -575,11 +606,7 @@ export default function RegistrationsScreen() {
         resetDraft();
         await refresh();
       } catch (err) {
-        setActionError(
-          getApiErrorStatus(err) === 403
-            ? copy.roster.manage.forbidden
-            : copy.roster.manage.failed,
-        );
+        setActionError(manageActionError(err));
       } finally {
         setBusy(false);
       }

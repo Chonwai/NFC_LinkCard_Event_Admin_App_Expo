@@ -433,6 +433,18 @@ export const copy = {
       refundAmountInvalid: "退款金額需大於 0",
       refundReferenceLabel: "匯款參考號（選填）",
       refundNoteLabel: "備註（選填）",
+      /**
+       * 重寄確認信（Web `RegistrationDetailDrawer` 的
+       * `registrations.detail.resend_confirmation*`）。
+       *
+       * ⚠️ 完成文案只說「已排入佇列」：後端只把 outbox 意圖重置回 `PENDING`，
+       * 真正寄出由 relay cron（每 5 分鐘）接手。寫「已寄出」就是在說謊。
+       */
+      resendConfirmation: "重寄確認信",
+      resendConfirmationQueued: "已排入佇列，確認信會由寄送排程送出",
+      resendConfirmationNotApplicable:
+        "這筆沒有可用的已驗證帳號，確認信不適用（應改用領取信）",
+      resendConfirmationNotConfirmed: "這筆報名尚未確認，沒有確認信可重寄",
       /** 匯出報名名單（Web `exportAttendeesCsv`）。App 沒有檔案系統，走分享／剪貼簿。 */
       exportAction: "匯出",
       exportOpen: "匯出報名名單",
