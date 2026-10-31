@@ -1304,6 +1304,109 @@ export const copy = {
     /** Web `ticketTypes.loadError`（Web 沒有；Web 是靜默清空，見檔頭） */
     loadError: "載入票種失敗，請稍後再試",
     loading: "讀取中…",
+
+    // ── 表單（Web `ticketTypes.{identifierName,displayName,price,…}`）──────
+    /** Web `ticketTypes.identifierName` / `identifierHint`（系統用） */
+    identifierName: "識別名稱",
+    identifierHint: "系統用，建立後不建議更動",
+    /** Web `ticketTypes.displayName` / `displayNamePlaceholder` */
+    displayName: "顯示名稱",
+    displayNamePlaceholder: "普通參加者",
+    /** Web `ticketTypes.price` / `currency` / `capacity` */
+    price: "價格",
+    currency: "幣種",
+    capacity: "容量上限",
+    capacityPlaceholder: "留空＝無限制",
+    description: "票種說明（可選）",
+    /** Web `ticketTypes.paymentMethod` */
+    paymentMethod: "付款方式",
+    /** Web `ticketTypes.initialTokens` */
+    initialTokens: "初始 Token 數量",
+    /** Web `ticketTypes.hiddenTicket` / `hiddenHint` / `accessCode` */
+    hiddenTicket: "隱藏票種",
+    hiddenHint: "（需要訪問碼才能報名）",
+    accessCode: "訪問碼",
+    accessCodePlaceholder: "VIP2026",
+    /**
+     * 付款方式顯示名稱。
+     *
+     * Web 直接渲染 `FREE` / `BANK_TRANSFER` 這兩個原始 enum 值（它的
+     * `<select>` 用 `m.value` 當文字）。App 顯示中文，並保留原始值在提示裡
+     * ——現場操作員與工程師對話時需要同一個字。
+     */
+    paymentMethodLabels: {
+      FREE: "免費",
+      BANK_TRANSFER: "銀行轉帳",
+    } satisfies Record<string, string>,
+    /** 表單動作 */
+    save: "儲存",
+    saving: "儲存中…",
+    cancel: "取消",
+    /** 成功訊息 */
+    createSuccess: "票種已建立",
+    updateSuccess: "票種已更新",
+    deactivateSuccess: "票種已停用",
+    /** 表單驗證錯誤（Web `ticketTypes.errors.*`，逐條對應） */
+    formErrors: {
+      /** Web `errors.nameRequired` */
+      nameRequired: "識別名稱為必填",
+      /** Web `errors.displayNameRequired` */
+      displayNameRequired: "顯示名稱為必填",
+      /** Web `errors.priceRequired` */
+      priceRequired: "價格為必填",
+      /** Web `errors.priceInvalid` */
+      priceInvalid: "請輸入有效價格",
+      /**
+       * Web 沒有這條：它的容量欄位允許 0，然後在後端 400。
+       * 這一條只在「打了非數字」時出現（`min=1` 的後端限制仍交給後端回）。
+       */
+      capacityInvalid: "容量上限請填整數，或留空表示無限制",
+      /** Web 沒有這條（它的 `Number('abc')` 會變 `NaN` 送到後端）。 */
+      tokensInvalid: "初始 Token 數量請填整數",
+      /** Web `errors.accessCodeRequired` */
+      accessCodeRequired: "隱藏票種必須設置訪問碼",
+      /** Web `errors.paymentMethodRequired` */
+      paymentMethodRequired: "請至少選一種付款方式",
+    },
+    /**
+     * 二次確認（**Web 沒有**，App 新增）。
+     *
+     * Web 的票種編輯器存檔是一次點擊直接寫入，包含改價格與改名額。
+     * 價格改了會立刻影響下一筆報名的收費；名額調小於已售數量，會讓公開頁
+     * 顯示「已售 12 / 10」而沒有任何錯誤。兩者都是「按下去就來不及」的操作，
+     * 所以 App 在送出前把它們攤開講一次。
+     *
+     * 只列實際變動的項目；沒改價格就不問價格。避免變成反射性按確定的儀式。
+     */
+    confirm: {
+      createTitle: "確認新增票種",
+      editTitle: "確認修改票種",
+      /** `priceTo` / `capacityTo` 已由呼叫端格式化成顯示字串。 */
+      priceLine: (from: string | null, to: string) =>
+        from == null ? `價格：${to}` : `價格：${from} → ${to}`,
+      capacityLine: (from: string | null, to: string | null) =>
+        `名額：${from ?? "無限制"} → ${to ?? "無限制"}`,
+      priceNote: "價格變更會立刻套用到下一筆報名。已完成的報名不受影響。",
+      capacityNote:
+        "名額調到低於已售數量不會擋下存檔，但公開頁會顯示超賣；需要的話請先停用票種。",
+      confirmCreate: "確認新增",
+      confirmSave: "確認儲存",
+      cancel: "再檢查一下",
+    },
+    /**
+     * 寫入失敗的分類文案。
+     *
+     * 刻意**不回顯後端 `error.message`**（見 `utils/ticket-type-errors.ts`）。
+     * 每一句都只說「哪一類失敗」與「可以怎麼辦」。
+     */
+    mutationErrors: {
+      forbidden: "你沒有權限管理此活動的票種",
+      notFound: "票種不存在，可能已被其他人刪除。請重新整理。",
+      accessCodeConflict: "這個訪問碼已被其他票種使用（跨活動唯一），請換一個",
+      invalidFormSchema: "報名表單設定無效，請檢查欄位設定後再試",
+      validation: "票種資料未通過後端驗證，請檢查價格、名額與 Token 數量",
+      failed: "操作失敗，請稍後再試",
+    },
   },
   /**
    * 未匹配路由（`app/+not-found.tsx`）。

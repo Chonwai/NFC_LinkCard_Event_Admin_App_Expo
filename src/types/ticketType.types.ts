@@ -84,10 +84,11 @@ export const EVENT_PAYMENT_METHODS = [
 export type EventPaymentMethod = (typeof EVENT_PAYMENT_METHODS)[number];
 
 /** Web 票種頁實際開放勾選的付款方式（`page.tsx:53`，逐字照抄）。 */
-export const ENABLED_PAYMENT_METHODS: readonly EventPaymentMethod[] = [
-  "FREE",
-  "BANK_TRANSFER",
-];
+export const ENABLED_PAYMENT_METHODS = ["FREE", "BANK_TRANSFER"] as const;
+
+/** 上面的元素型別。刻意保留字面型別：UI 的 `labelFor` 要用它去索引標籤表，
+ * 放寬成 `EventPaymentMethod` 就索引不到 `STRIPE` 等三個沒有中文名的值。 */
+export type EnabledPaymentMethod = (typeof ENABLED_PAYMENT_METHODS)[number];
 
 /**
  * 後端 `src/events/constants/ticketCapabilities.ts:28` 的 `TICKET_CAPABILITIES`。

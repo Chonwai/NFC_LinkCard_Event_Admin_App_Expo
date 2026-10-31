@@ -24,7 +24,19 @@ export interface FieldInputProps {
   /** 錯誤訊息；非 null 時邊框轉 danger 並顯示訊息 */
   error?: string | null;
   keyboardType?:
-    "default" | "email-address" | "phone-pad" | "url" | "number-pad";
+    | "default"
+    | "email-address"
+    | "phone-pad"
+    | "url"
+    | "number-pad"
+    /**
+     * 含小數點的數字鍵盤。
+     *
+     * `number-pad` 在 iOS 上**沒有小數點鍵**，所以需要小數的欄位
+     * （票種價格 `Decimal(10,2)`）用它就根本打不出 `1500.50`。
+     * 只是把鍵盤型別加進既有 union，不改任何既有呼叫端的行為。
+     */
+    | "decimal-pad";
   autoCapitalize?: "none" | "sentences" | "words";
   editable?: boolean;
   /** 必填欄位：label 後顯示 *，並在可存取名稱補「必填」 */
