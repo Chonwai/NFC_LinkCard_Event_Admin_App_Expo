@@ -897,6 +897,7 @@ export const copy = {
     cardDescription: "說明",
     buttonLabel: "按鈕文字",
     buttonUrl: "按鈕連結",
+    deleteCardConfirm: "確定刪除此卡片？",
     addFailed: "新增失敗，請稍後再試",
     saveFailed: "儲存失敗，請稍後再試",
     deleteFailed: "刪除失敗，請稍後再試",

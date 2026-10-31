@@ -299,6 +299,8 @@ function CardRow({
   const [form, setForm] = useState<CardFormState>(() => toCardFormState(card));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** 刪除前的二次確認（Web 是 `confirm(t('content.deleteCardConfirm'))`）。 */
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   function startEditing() {
     setForm(toCardFormState(card));
@@ -329,81 +331,123 @@ function CardRow({
     }
   }
 
-  if (!editing) {
-    return (
-      <View style={styles.cardRow} testID={`content-card-${card.id}`}>
-        <Text
-          style={[type.body, styles.grow]}
-          numberOfLines={2}
-          maxFontSizeMultiplier={layout.maxFontScaleBody}
-        >
-          {card.title}
-        </Text>
-        <PublishBadge isPublished={card.isPublished} />
-        <TextButton
-          label={copy.content.edit}
-          onPress={startEditing}
-          testID={`content-card-edit-${card.id}`}
-        />
-      </View>
-    );
+  async function remove() {
+    setSaving(true);
+    setError(null);
+    try {
+      await contentService.deleteCard(eventId, sectionId, card.id);
+      setConfirmingDelete(false);
+      onChanged();
+    } catch (caught) {
+      setConfirmingDelete(false);
+      setError(getApiErrorMessage(caught, copy.content.deleteFailed));
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
-    <View style={styles.cardEditor} testID={`content-card-editor-${card.id}`}>
-      <FieldInput
-        label={copy.content.cardTitle}
-        value={form.title}
-        onChangeText={(title) => patch({ title })}
-        maxLength={CARD_TITLE_MAX}
-        required
-        testID="content-card-title"
-      />
-      <FieldInput
-        label={copy.content.cardDescription}
-        value={form.description}
-        onChangeText={(description) => patch({ description })}
-        maxLength={CARD_DESCRIPTION_MAX}
-        multiline
-        testID="content-card-description"
-      />
-      <FieldInput
-        label={copy.content.buttonLabel}
-        value={form.actionLabel}
-        onChangeText={(actionLabel) => patch({ actionLabel })}
-        maxLength={CARD_ACTION_LABEL_MAX}
-        testID="content-card-action-label"
-      />
-      <FieldInput
-        label={copy.content.buttonUrl}
-        value={form.actionUrl}
-        onChangeText={(actionUrl) => patch({ actionUrl })}
-        keyboardType="url"
-        autoCapitalize="none"
-        testID="content-card-action-url"
-      />
-      <PublishCheckbox
-        value={form.isPublished}
-        onToggle={() => patch({ isPublished: !form.isPublished })}
-        testID="content-card-published"
-      />
+    <>
+      {editing ? (
+        <View
+          style={styles.cardEditor}
+          testID={`content-card-editor-${card.id}`}
+        >
+          <FieldInput
+            label={copy.content.cardTitle}
+            value={form.title}
+            onChangeText={(title) => patch({ title })}
+            maxLength={CARD_TITLE_MAX}
+            required
+            testID="content-card-title"
+          />
+          <FieldInput
+            label={copy.content.cardDescription}
+            value={form.description}
+            onChangeText={(description) => patch({ description })}
+            maxLength={CARD_DESCRIPTION_MAX}
+            multiline
+            testID="content-card-description"
+          />
+          <FieldInput
+            label={copy.content.buttonLabel}
+            value={form.actionLabel}
+            onChangeText={(actionLabel) => patch({ actionLabel })}
+            maxLength={CARD_ACTION_LABEL_MAX}
+            testID="content-card-action-label"
+          />
+          <FieldInput
+            label={copy.content.buttonUrl}
+            value={form.actionUrl}
+            onChangeText={(actionUrl) => patch({ actionUrl })}
+            keyboardType="url"
+            autoCapitalize="none"
+            testID="content-card-action-url"
+          />
+          <PublishCheckbox
+            value={form.isPublished}
+            onToggle={() => patch({ isPublished: !form.isPublished })}
+            testID="content-card-published"
+          />
 
-      {error ? <InlineBanner compact tone="danger" message={error} /> : null}
+          {error ? (
+            <InlineBanner compact tone="danger" message={error} />
+          ) : null}
 
-      <Button
-        label={saving ? copy.content.saving : copy.content.save}
-        loading={saving}
-        onPress={() => void save()}
-        testID="content-card-save"
+          <Button
+            label={saving ? copy.content.saving : copy.content.save}
+            loading={saving}
+            onPress={() => void save()}
+            testID="content-card-save"
+          />
+          <Button
+            label={copy.content.cancel}
+            variant="secondary"
+            onPress={() => setEditing(false)}
+            disabled={saving}
+            testID="content-card-cancel"
+          />
+        </View>
+      ) : (
+        <>
+          <View style={styles.cardRow} testID={`content-card-${card.id}`}>
+            <Text
+              style={[type.body, styles.grow]}
+              numberOfLines={2}
+              maxFontSizeMultiplier={layout.maxFontScaleBody}
+            >
+              {card.title}
+            </Text>
+            <PublishBadge isPublished={card.isPublished} />
+            <TextButton
+              label={copy.content.edit}
+              onPress={startEditing}
+              testID={`content-card-edit-${card.id}`}
+            />
+            <TextButton
+              label={copy.content.delete}
+              tone="danger"
+              onPress={() => setConfirmingDelete(true)}
+              testID={`content-card-delete-${card.id}`}
+            />
+          </View>
+          {error ? (
+            <InlineBanner compact tone="danger" message={error} />
+          ) : null}
+        </>
+      )}
+
+      <ConfirmDialog
+        visible={confirmingDelete}
+        title={copy.content.delete}
+        message={copy.content.deleteCardConfirm}
+        busy={saving}
+        tone="danger"
+        onConfirm={() => void remove()}
+        onCancel={() => setConfirmingDelete(false)}
+        testID={`content-card-delete-confirm-${card.id}`}
       />
-      <Button
-        label={copy.content.cancel}
-        variant="secondary"
-        onPress={() => setEditing(false)}
-        disabled={saving}
-        testID="content-card-cancel"
-      />
-    </View>
+    </>
   );
 }
 
