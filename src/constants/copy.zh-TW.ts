@@ -382,6 +382,15 @@ export const copy = {
       undoCheckIn: "撤銷報到",
       markCheckedInDone: "已標記為已報到",
       undoCheckInDone: "已撤銷報到",
+      /** 押金退款登記（Web `DepositRefundModal`） */
+      refund: "標記押金已退",
+      refundDone: "已記錄押金退款",
+      refundAmountLabel: "退款金額",
+      refundAmountPlaceholder: "例如 500",
+      /** 對齊後端 `@Min(0.01)`：金額必須 > 0，否則稽核自相矛盾 */
+      refundAmountInvalid: "退款金額需大於 0",
+      refundReferenceLabel: "匯款參考號（選填）",
+      refundNoteLabel: "備註（選填）",
       undo: "復原",
       /** 復原時寫入稽核的原因（使用者看不到，屬於操作軌跡） */
       undoReason: "復原上一次隱藏或封存操作",

@@ -184,3 +184,36 @@ test("updateStatus 回傳的是白名單 6 欄，不是整筆 registration", asy
     "updatedAt",
   ]);
 });
+
+test("markDepositRefund POST 到 /registrations/:id/deposit-refund，body 為 { amount, reference, note }", async () => {
+  calls.length = 0;
+  nextPost = () => ({ data: { data: { registration: { id: "reg-1" } } } });
+
+  await registrationService.markDepositRefund("evt-1", "reg-1", {
+    amount: 500,
+    reference: "TX-1",
+    note: "銀行轉賬退回",
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(
+    calls[0].url,
+    "/api/v1/events/evt-1/registrations/reg-1/deposit-refund",
+  );
+  assert.deepEqual(calls[0].body, {
+    amount: 500,
+    reference: "TX-1",
+    note: "銀行轉賬退回",
+  });
+});
+
+test("markDepositRefund 只帶 amount 時不硬塞空字串（BE 的 optional 欄位）", async () => {
+  calls.length = 0;
+  nextPost = () => ({ data: { data: { registration: { id: "reg-1" } } } });
+
+  await registrationService.markDepositRefund("evt-1", "reg-1", {
+    amount: 0.01,
+  });
+
+  assert.deepEqual(calls[0].body, { amount: 0.01 });
+});

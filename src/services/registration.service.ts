@@ -214,6 +214,32 @@ export const registrationService = {
   },
 
   /**
+   * POST /v1/events/:eventId/registrations/:registrationId/deposit-refund
+   *
+   * 押金退款追蹤（參展商押金，離線銀行轉賬退回）。對應 Web
+   * `markDepositRefund`。不是退款本身——是把「線下已退」這件事記進稽核。
+   *
+   * `amount` 必須 > 0：後端 DTO 是 `@Min(0.01)`，送 0 會被 422 擋下；
+   * 但即使後端擋得住，「已退但金額 0」本身就是一筆矛盾的稽核，所以畫面
+   * 也不該允許送出。
+   *
+   * 回應是**整筆** registration（含 `depositRefunded*`），與狀態修正不同。
+   */
+  async markDepositRefund(
+    eventId: string,
+    registrationId: string,
+    payload: { amount: number; reference?: string; note?: string },
+  ): Promise<{ registration: Registration }> {
+    const res = await apiClient.post<
+      ApiResponse<{ registration: Registration }>
+    >(
+      `/api/v1/events/${encodeURIComponent(eventId)}/registrations/${encodeURIComponent(registrationId)}/deposit-refund`,
+      payload,
+    );
+    return res.data.data;
+  },
+
+  /**
    * GET /v1/events/:eventId/wallet/:registrationId/transactions
    *
    * 後端分頁（預設 `page=1&limit=20`）且回傳 `pagination`。**必須轉發**——

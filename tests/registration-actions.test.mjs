@@ -47,18 +47,40 @@ test("其餘狀態不提供狀態修正（避免給出必定 409 的按鈕）", 
   }
 });
 
-test("CONFIRMED 未隱藏未封存 → 三個動作，順序為 修正 / 隱藏 / 封存", () => {
-  assert.deepEqual(manageActionsFor(reg()), ["correct", "hide", "archive"]);
-});
-
-test("已隱藏、已封存 → 兩軸各自翻面，且沒有狀態修正", () => {
+test("已隱藏、已封存 → 兩軸各自翻面，且沒有狀態修正與退款", () => {
   assert.deepEqual(
     manageActionsFor(reg({ status: "ARCHIVED", isHidden: true })),
     ["unhide", "unarchive"],
   );
 });
 
-test("已封存但未隱藏 → 修正消失，隱藏/封存各自獨立", () => {
+test("CONFIRMED 未隱藏未封存 → 四個動作，順序為 修正 / 退款 / 隱藏 / 封存", () => {
+  assert.deepEqual(manageActionsFor(reg()), [
+    "correct",
+    "refund",
+    "hide",
+    "archive",
+  ]);
+});
+
+test("CHECKED_IN 同樣提供退款登記（已入場仍可能要退押金）", () => {
+  assert.deepEqual(manageActionsFor(reg({ status: "CHECKED_IN" })), [
+    "correct",
+    "refund",
+    "hide",
+    "archive",
+  ]);
+});
+
+test("PENDING_PAYMENT 不提供退款登記（沒收到押金就沒有可退的）", () => {
+  const actions = manageActionsFor(reg({ status: "PENDING_PAYMENT" }));
+  assert.equal(actions.includes("refund"), false);
+  assert.equal(actions.includes("correct"), false);
+  assert.deepEqual(actions, ["hide", "archive"]);
+});
+
+/** 已封存但未隱藏 → 修正與退款消失，隱藏/封存各自獨立 */
+test("已封存但未隱藏 → 修正與退款消失，隱藏/封存各自獨立", () => {
   assert.deepEqual(manageActionsFor(reg({ status: "ARCHIVED" })), [
     "hide",
     "unarchive",
@@ -66,19 +88,17 @@ test("已封存但未隱藏 → 修正消失，隱藏/封存各自獨立", () =>
 });
 
 test("isHidden 為 null/undefined 時視為未隱藏（舊 BE 降級不誤判）", () => {
-  assert.deepEqual(manageActionsFor(reg({ isHidden: null })), [
-    "correct",
-    "hide",
-    "archive",
-  ]);
-  assert.deepEqual(manageActionsFor(reg({ isHidden: undefined })), [
-    "correct",
-    "hide",
-    "archive",
-  ]);
+  for (const isHidden of [null, undefined]) {
+    assert.deepEqual(manageActionsFor(reg({ isHidden })), [
+      "correct",
+      "refund",
+      "hide",
+      "archive",
+    ]);
+  }
 });
 
-test("四項可見性/封存動作都有反向；狀態修正刻意沒有", () => {
+test("四項可見性/封存動作都有反向；狀態修正與退款刻意沒有", () => {
   assert.deepEqual(REVERSE_ACTION, {
     hide: "unhide",
     unhide: "hide",
@@ -86,4 +106,5 @@ test("四項可見性/封存動作都有反向；狀態修正刻意沒有", () =
     unarchive: "archive",
   });
   assert.equal(REVERSE_ACTION.correct, undefined);
+  assert.equal(REVERSE_ACTION.refund, undefined);
 });

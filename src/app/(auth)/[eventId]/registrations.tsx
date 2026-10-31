@@ -44,7 +44,7 @@ const COPY_FEEDBACK_MS = 1800;
 
 /** 可見性／封存四項的按钮文案與完成文案。狀態修正的文案依目前狀態變，見 `actionCopyFor`。 */
 const VISIBILITY_COPY: Record<
-  Exclude<ManageAction, "correct">,
+  Exclude<ManageAction, "correct" | "refund">,
   { label: string; done: string }
 > = {
   hide: { label: copy.roster.manage.hide, done: copy.roster.manage.hideDone },
@@ -69,6 +69,7 @@ const ACTION_ICON: Record<ManageAction, IconName> = {
   archive: "archive",
   unarchive: "refresh",
   correct: "check-circle",
+  refund: "clipboard-check",
 };
 
 /** 動作 → 按鈕文案 / 完成文案。 */
@@ -87,7 +88,27 @@ function actionCopyFor(
           done: copy.roster.manage.undoCheckInDone,
         };
   }
+  if (action === "refund") {
+    return {
+      label: copy.roster.manage.refund,
+      done: copy.roster.manage.refundDone,
+    };
+  }
   return VISIBILITY_COPY[action];
+}
+
+/**
+ * 管理面板各動作需要的輸入。
+ *
+ * 用一個 draft 物件而不是一個 `reason` 字串：押金退款需要金額／匯款號／備註，
+ * 而它們必須跟其他動作**共用同一份送出脈絡**——否則等於為了一種動作再拉一條
+ * 平行的送出流程，兩條很快就會漂移。
+ */
+interface ManageDraft {
+  reason: string;
+  amount: string;
+  reference: string;
+  note: string;
 }
 
 /**
@@ -101,14 +122,14 @@ async function performManageAction(
   eventId: string,
   reg: Registration,
   action: ManageAction,
-  reason: string,
+  draft: ManageDraft,
 ): Promise<void> {
   switch (action) {
     case "hide":
-      await registrationService.hide(eventId, reg.id, reason.trim());
+      await registrationService.hide(eventId, reg.id, draft.reason.trim());
       return;
     case "archive":
-      await registrationService.archive(eventId, reg.id, reason.trim());
+      await registrationService.archive(eventId, reg.id, draft.reason.trim());
       return;
     case "unhide":
       await registrationService.unhide(eventId, reg.id);
@@ -123,10 +144,17 @@ async function performManageAction(
       if (target === null) return;
       await registrationService.updateStatus(eventId, reg.id, {
         targetStatus: target,
-        reason: reason.trim(),
+        reason: draft.reason.trim(),
       });
       return;
     }
+    case "refund":
+      await registrationService.markDepositRefund(eventId, reg.id, {
+        amount: Number(draft.amount),
+        reference: draft.reference.trim() || undefined,
+        note: draft.note.trim() || undefined,
+      });
+      return;
   }
 }
 
@@ -211,6 +239,10 @@ export default function RegistrationsScreen() {
   const [manage, setManage] = useState<Registration | null>(null);
   const [pendingAction, setPendingAction] = useState<ManageAction | null>(null);
   const [reason, setReason] = useState("");
+  // 押金退款的三個輸入（Web `DepositRefundModal`）：金額、匯款號、備註。
+  const [amount, setAmount] = useState("");
+  const [reference, setReference] = useState("");
+  const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   /** 上一次成功的操作；有值才顯示「復原」橫幅（對應 Web 的 undo toast）。 */
@@ -339,34 +371,49 @@ export default function RegistrationsScreen() {
     return rows;
   }, [items, query, sort]);
 
-  /** 「原因」是否必填（`hide`／`archive`／狀態修正要，取消類不要）。 */
+  /** 「原因」是否必填（`hide`／`archive`／狀態修正要，取消類與退款不要）。 */
   const needsReason =
     pendingAction === "hide" ||
     pendingAction === "archive" ||
     pendingAction === "correct";
   /** 必填而未填。 */
   const reasonMissing = needsReason && reason.trim() === "";
+  /** 退款金額必須 > 0（對齊後端 `@Min(0.01)`）。 */
+  const amountMissing =
+    pendingAction === "refund" && !(Number(amount) > 0);
+  /** 確認鈕的 disabled 條件。 */
+  const confirmBlocked = reasonMissing || amountMissing;
   /**
-   * 確認鈕的語意色：只有**破壞性**的 hide／archive 用紅色；取消類與狀態修正
-   * 用主色（修正不是在刪資料）。
+   * 確認鈕的語意色：只有**破壞性**的 hide／archive 用紅色；取消類、狀態修正
+   * 與退款登記用主色（登記一筆已發生的事不是在刪資料）。
    */
   const confirmIsDanger = pendingAction === "hide" || pendingAction === "archive";
 
-  /** 打開某一筆的管理選單。 */
-  const openManage = useCallback((reg: Registration) => {
-    setManage(reg);
-    setPendingAction(null);
+  /** 清空所有輸入（開動作、返回上一層、關閉面板都做同一件事）。 */
+  const resetDraft = useCallback(() => {
     setReason("");
+    setAmount("");
+    setReference("");
+    setNote("");
     setActionError(null);
   }, []);
+
+  /** 打開某一筆的管理選單。 */
+  const openManage = useCallback(
+    (reg: Registration) => {
+      setManage(reg);
+      setPendingAction(null);
+      resetDraft();
+    },
+    [resetDraft],
+  );
 
   const closeManage = useCallback(() => {
     if (busy) return;
     setManage(null);
     setPendingAction(null);
-    setReason("");
-    setActionError(null);
-  }, [busy]);
+    resetDraft();
+  }, [busy, resetDraft]);
 
   /**
    * 執行一項名單管理動作，成功後**重載第一頁**。
@@ -376,12 +423,12 @@ export default function RegistrationsScreen() {
    * 看起來像沒生效。
    */
   const runManageAction = useCallback(
-    async (reg: Registration, action: ManageAction, reasonText: string) => {
+    async (reg: Registration, action: ManageAction, draft: ManageDraft) => {
       if (!eventId) return;
       setBusy(true);
       setActionError(null);
       try {
-        await performManageAction(eventId, reg, action, reasonText);
+        await performManageAction(eventId, reg, action, draft);
         setUndo({
           reg,
           reverse: REVERSE_ACTION[action] ?? null,
@@ -389,7 +436,7 @@ export default function RegistrationsScreen() {
         });
         setManage(null);
         setPendingAction(null);
-        setReason("");
+        resetDraft();
         await refresh();
       } catch (err) {
         setActionError(
@@ -401,7 +448,7 @@ export default function RegistrationsScreen() {
         setBusy(false);
       }
     },
-    [eventId, refresh],
+    [eventId, refresh, resetDraft],
   );
 
   /**
@@ -416,12 +463,12 @@ export default function RegistrationsScreen() {
     const { reg, reverse } = undo;
     setUndo(null);
     try {
-      await performManageAction(
-        eventId,
-        reg,
-        reverse,
-        copy.roster.manage.undoReason,
-      );
+      await performManageAction(eventId, reg, reverse, {
+        reason: copy.roster.manage.undoReason,
+        amount: "",
+        reference: "",
+        note: "",
+      });
       await refresh();
     } catch (err) {
       setError(
@@ -773,8 +820,7 @@ export default function RegistrationsScreen() {
                           key={action}
                           onPress={() => {
                             setPendingAction(action);
-                            setReason("");
-                            setActionError(null);
+                            resetDraft();
                           }}
                           style={({ pressed }) => [
                             styles.actionItem,
@@ -822,6 +868,54 @@ export default function RegistrationsScreen() {
                       ) : null}
                     </>
                   ) : null}
+                  {pendingAction === "refund" ? (
+                    <>
+                      <Text style={styles.fieldLabel}>
+                        {copy.roster.manage.refundAmountLabel}
+                      </Text>
+                      <TextInput
+                        value={amount}
+                        onChangeText={setAmount}
+                        placeholder={copy.roster.manage.refundAmountPlaceholder}
+                        placeholderTextColor={semantic.text.muted}
+                        keyboardType="numbers-and-punctuation"
+                        style={styles.reasonInput}
+                        accessibilityLabel={copy.roster.manage.refundAmountLabel}
+                      />
+                      {amountMissing ? (
+                        <Text style={styles.fieldHint}>
+                          {copy.roster.manage.refundAmountInvalid}
+                        </Text>
+                      ) : null}
+                      <Text style={styles.fieldLabel}>
+                        {copy.roster.manage.refundReferenceLabel}
+                      </Text>
+                      <TextInput
+                        value={reference}
+                        onChangeText={setReference}
+                        maxLength={100}
+                        placeholder={copy.roster.manage.refundReferenceLabel}
+                        placeholderTextColor={semantic.text.muted}
+                        style={styles.reasonInput}
+                        accessibilityLabel={
+                          copy.roster.manage.refundReferenceLabel
+                        }
+                      />
+                      <Text style={styles.fieldLabel}>
+                        {copy.roster.manage.refundNoteLabel}
+                      </Text>
+                      <TextInput
+                        value={note}
+                        onChangeText={setNote}
+                        multiline
+                        maxLength={500}
+                        placeholder={copy.roster.manage.refundNoteLabel}
+                        placeholderTextColor={semantic.text.muted}
+                        style={styles.reasonInput}
+                        accessibilityLabel={copy.roster.manage.refundNoteLabel}
+                      />
+                    </>
+                  ) : null}
                 </View>
               )}
 
@@ -832,11 +926,7 @@ export default function RegistrationsScreen() {
                   onPress={
                     pendingAction === null
                       ? closeManage
-                      : () => {
-                          setPendingAction(null);
-                          setReason("");
-                          setActionError(null);
-                        }
+                      : resetDraft
                   }
                   disabled={busy}
                 />
@@ -849,10 +939,15 @@ export default function RegistrationsScreen() {
                     }
                     variant={confirmIsDanger ? "dangerSolid" : "primary"}
                     loading={busy}
-                    disabled={reasonMissing}
+                    disabled={confirmBlocked}
                     onPress={() => {
                       if (!manage || !pendingAction) return;
-                      void runManageAction(manage, pendingAction, reason);
+                      void runManageAction(manage, pendingAction, {
+                        reason,
+                        amount,
+                        reference,
+                        note,
+                      });
                     }}
                   />
                 ) : null}
