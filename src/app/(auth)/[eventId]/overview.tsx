@@ -51,6 +51,7 @@ type EventRoute =
   | "badges"
   | "profile"
   | "content"
+  | "exhibitors"
   | "polls"
   | "settings";
 
@@ -120,6 +121,19 @@ const QUICK_ACTIONS: QuickAction[] = [
     label: copy.content.title,
     icon: "eye",
     route: "content",
+  },
+  /**
+   * 參展廠商（parity `exhibitors`）。
+   *
+   * 圖示用 `users`：Web 這一頁在側欄的圖示是 `Building2`，`Icon.tsx` 沒有
+   * 建築物類的圖形，硬加一個新 path 就要動整張路徑表。`users` 已經是
+   * 「一群人／名單」的既有語意（名單頁也是它），與展商名單相符。
+   */
+  {
+    key: "exhibitors",
+    label: copy.exhibitors.title,
+    icon: "users",
+    route: "exhibitors",
   },
   /**
    * 投票（parity `polls`）。

@@ -954,6 +954,57 @@ export const copy = {
     themeSaveFailed: "更新失敗，請稍後重試。",
   },
   /**
+   * 參展廠商管理（`app/(auth)/[eventId]/exhibitors.tsx`）。
+   *
+   * 前端 counterpart：`LinkCard_Frontend/app/(event)/manage/[eventId]/exhibitors/page.tsx`
+   * ＋ `public/locales/zh-Hant/event_manage.json` 的 `exhibitors` /
+   * `exhibitorStatus` 命名空間。**文字逐條沿用 Web 的 zh-Hant 用語**
+   * （「展商管理」「批准」「停用」「恢復」「攤位 {{number}}」），同一個功能在
+   * 兩邊不該叫不同名字。
+   *
+   * 三條是 App 專屬，Web 沒有對應字串：
+   * - `loading`／`loadError`：Web 的 `load()` 把錯誤吞掉（空 catch），失敗時
+   *   畫面收成空清單，跟「真的沒有廠商」一模一樣。
+   * - `subtitle`：Web 標題下沒有副標。
+   *
+   * ⚠️ Web 的 `exhibitors.total`（「共 {{count}} 家」）在這裡變成
+   * `totalCount` 函式；`exhibitors.emptyFiltered`（「此狀態下無展商」）變成
+   * `emptyForStatus`。兩者語意相同，只是 i18next 的 `{{count}}` 語法在 App
+   * 是函式。
+   */
+  exhibitors: {
+    /** Web `exhibitors.title` */
+    title: "展商管理",
+    subtitle: "審核報名、管理參展廠商名單",
+    loading: "讀取中…",
+    loadError: "載入參展廠商失敗，請稍後再試",
+    /** Web `exhibitors.all` */
+    all: "全部",
+    /** Web `exhibitorStatus.*` */
+    status: {
+      PENDING_APPROVAL: "待審批",
+      ACTIVE: "已啟用",
+      SUSPENDED: "已停用",
+      COMPLETED: "已完成",
+    },
+    /** Web `exhibitors.total`（`{{count}}` → 函式） */
+    totalCount: (count: number) => `共 ${count} 家`,
+    /** Web `exhibitors.empty` */
+    empty: "尚無展商",
+    /** Web `exhibitors.emptyFiltered` */
+    emptyForStatus: "此狀態下無展商",
+    /** Web `exhibitors.booth`（`{{number}}` → 函式） */
+    booth: (number: string) => `攤位 ${number}`,
+    /**
+     * 被單頁上限截斷時的說明（App 專屬）。
+     *
+     * Web 沒有這條字串，因為它連 `limit` 都沒送——它**永遠**只顯示 20 筆，
+     * 而且從不說明。App 送滿 100 筆，超過時必須說出來：一個不講話的截斷，
+     * 會讓操作員以為名單只有這些。
+     */
+    truncated: "部分狀態超過 100 筆，下方只顯示前 100 筆",
+  },
+  /**
    * 投票（`app/(auth)/[eventId]/polls.tsx`）。
    *
    * 前端 counterpart：`LinkCard_Frontend/app/(event)/manage/[eventId]/polls/page.tsx`
