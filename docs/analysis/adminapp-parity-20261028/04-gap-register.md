@@ -1506,6 +1506,48 @@ Bank Transfers、Org Roles、Settings——現在全部是建置目標。第九�
 `type=url`），**沒有自行加嚴**——不 trim 名稱、不要求 TLD。多加的只有後端才有的
 120 字上限，且用後端原文擋下。見 `src/utils/event-profile-validation.ts:68`。
 
+#### 收尾記錄（2026-11-01，第二筆）：`content` 完成，`G-15a` 關閉
+
+上一筆把 `content` 留成 `APP_GAP`，理由是「本條同時涵蓋三個能力，標 `fixed` 就等於
+宣稱 `content` 也做完了」。現在第三個也做完了，所以本條**關閉**。
+
+| 能力                 | 現況      | App 落點                                                              | commit                                                                                    |
+| -------------------- | --------- | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `profile` 活動資料   | `ALIGNED` | `app/(auth)/[eventId]/profile.tsx`                                    | `eebd948` `0d71d8b` `48004e8`                                                             |
+| `settings` 活動設定  | `ALIGNED` | `app/(auth)/[eventId]/settings.tsx`                                   | `2116989` `e76f541`                                                                       |
+| `content` 落地頁內容 | `ALIGNED` | `app/(auth)/[eventId]/content.tsx`（service 在 `content.service.ts`） | `6e7e600` `3b8d09f` `50d35d5` `30c5c97` `934befb` `20ba26d` `cdf19de` `40451c2` `87d869c` |
+
+`content` 的七支呼叫（1 讀 6 寫）逐條對應 `lib/events/page-content.ts` 的事件層
+函式：`GET/POST …/page-sections`、`PATCH/DELETE …/page-sections/:sectionId`、
+`POST …/page-sections/:sectionId/cards`、`PATCH/DELETE …/page-sections/:sectionId/cards/:cardId`。
+method 與路徑由 `87d869c` 釘住，而且不只釘「沒打錯」，同時釘「沒有多打」——全域閘門
+`check:contract` 只會在呼叫不存在的東西時紅，不會在呼叫了一個存在但不屬於本能力的
+路由時紅（例如 `PATCH …/page-sections/reorder`，後端真的有，Web 這頁沒用）。
+
+**一處刻意偏離 Web，是為了避免資料遺失**：卡片的 PATCH 只送
+`title`／`description`／`actionLabel`／`actionUrl`／`isPublished` 五欄，
+**不含** `badgeText`／`iconKey`／`imageUrl`。後端
+`EventPageContentService.updateCard:203-226` 逐欄用 `hasOwn(dto, …)`：沒送＝不動，
+送 `null`＝清空。Web 的 `CardEditor` 也不送這三欄，所以照抄 Web 是安全的；危險的是
+「把型別上有的欄位補齊」——`imageUrl: card.imageUrl ?? null` 會把 Web 上傳的卡片圖
+靜默清成 null。規則寫在 `src/utils/page-content-payload.ts:142` 的 `toCardPayload`，
+並由 `tests/page-content-payload.test.mjs` 用「欄位集合恰好五個」釘住（測試 fixture
+刻意帶著非 null 的 `imageUrl`／`badgeText`／`iconKey`，否則是空轉）。
+
+另外三處差異不是能力差異，一併記在這裡免得日後被當成漂移：
+
+1. **呈現**：區塊用「摘要列＋就地展開」，Web 則是輸入框常開。欄位、儲存行為完全
+   相同，差別只在揭露方式（Web 的卡片編輯器本來就是這個模式）。
+2. **輸入層上限**：App 的輸入框帶 `maxLength`（區塊 80／240、卡片 60／200／24），
+   對齊後端 DTO。Web 沒有 `maxlength`，超過就吃一個**英文** 400
+   （`section title cannot exceed 80 characters`），對現場人員等於沒說。
+3. **失敗提示**：Web 的 `handleSave`／`handleDelete`／`handleAddCard` 都是
+   `try/finally`，**沒有 catch**——存檔失敗時畫面靜止不動。App 多一條橫幅顯示後端
+   訊息。
+
+`content` 的 6 個區塊上限（`content.tsx:61` 的 `MAX_SECTIONS`）也照抄 Web；後端
+`createSection` 沒有這條限制，少了它手機就成了 Web 沒有的後門。
+
 ### G-15b 批次與審核層：`exhibitors`／`ticket-types`／`polls`（P2，能力）
 
 - **多嚴重**：`P2`——`§4.1` 原文「有價值的補強，可以排隊」。這三項會改到既有的票種

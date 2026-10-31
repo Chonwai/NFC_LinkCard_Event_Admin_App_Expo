@@ -74,14 +74,18 @@
       "id": "content",
       "title": "落地頁內容",
       "webPages": ["app/(event)/manage/[eventId]/content/page.tsx"],
-      "appFiles": [],
-      "verdict": "APP_GAP",
-      "gapId": "G-15a",
-      "status": "ready-to-implement",
+      "appFiles": ["src/app/(auth)/[eventId]/content.tsx"],
+      "verdict": "ALIGNED",
       "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3.1",
-      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。App 標的：在 App 上對落地頁的 section 與 card 做增／改／刪（§11.3.1 第 2 項）。原判如下——文案與區塊編輯是長文本工作，需要大螢幕與並排預覽；現場不需要改文案。",
+      "rationale": "2026-11-01 實作完成。兩層結構（section → card）與 Web 一致，七支呼叫（1 讀 6 寫）逐字對應 lib/events/page-content.ts。刻意保留的一條線：卡片的 PATCH 只送 title／description／actionLabel／actionUrl／isPublished 五欄，不含 badgeText／iconKey／imageUrl——後端 updateCard 逐欄 hasOwn，送 null 就是清空，補齊型別會把 Web 上傳的卡片圖靜默刪掉。唯讀摘要列＋就地展開是本頁唯一的呈現差異（Web 的區塊輸入框常開）；能力面不變：同樣四個欄位、同樣的儲存。",
       "evidence": [
-        "Web: createEventPageCard／createEventPageSection／update…／delete…"
+        "App: src/services/content.service.ts:57 listSections（GET）、:65 createSection、:77 updateSection、:90 deleteSection、:97 createCard、:110 updateCard、:124 deleteCard",
+        "App: src/app/(auth)/[eventId]/content.tsx:115 讀取、:146 新增區塊、:504 改區塊、:526 刪區塊、:549 新增卡片、:319 改卡片、:338 刪卡片",
+        "App: src/app/(auth)/[eventId]/content.tsx:61 MAX_SECTIONS = 6（照抄 Web，後端無限）",
+        "App: src/utils/page-content-payload.ts:78 toSectionPayload（恰四欄）、:142 toCardPayload（恰五欄）",
+        "App: src/app/(auth)/[eventId]/content.tsx:715 ConfirmDialog（區塊與卡片刪除的二次確認，文案逐字取 Web 的 deleteSectionConfirm／deleteCardConfirm）",
+        "Web: app/(event)/manage/[eventId]/content/page.tsx:68-72 新增區塊的參數（新區塊／2 欄／不發布）、:126-131 區塊 payload、:139 刪區塊 confirm、:145-148 新增卡片、:254-260 卡片 payload（恰五欄）、:269 刪卡片 confirm",
+        "Commit: 6e7e600（型別＋service）、3b8d09f（唯讀列表）、50d35d5（新增區塊）、30c5c97（改區塊）、934befb（刪區塊）、20ba26d（新增卡片）、cdf19de（改卡片）、40451c2（刪卡片）、87d869c（契約鎖）"
       ]
     },
     {
@@ -451,10 +455,26 @@
       "severity": "P2",
       "owner": "product",
       "size": "XL",
-      "status": "ready-to-implement",
+      "status": "fixed",
       "decidedIn": "docs/analysis/adminapp-parity-20261028/04-gap-register.md#G-15a",
-      "fixedOn": [],
-      "note": "原 G-15 拆分後的三分之一（2026-10-29 同日）。P2＝04 §4.1 原文「有價值的補強，可以排隊」；舊版把 P2 轉述成「無現行錯誤」，那不是 §4.1 的定義，已在 §G-15 開頭更正。sessions 不在此條（走 G-9）。驗收見 11 §11.3 的 A1-A4；動工前置見 03 §3.7.8（三項皆 OPEN）。size 的 XL 沿用原節「未逐項估工」的標記，不是新估算，也不是三個 XL 相加。 2026-11-01 局部收尾：profile 與 settings 兩個能力已轉 ALIGNED（commit eebd948、0d71d8b、48004e8、2116989、e76f541、46ff046），但 content（落地頁 section／card 的增改刪）尚未動工，因此本缺口**不標 fixed**——本條同時涵蓋三個能力，標了就等于宣稱 content 也做完了。"
+      "fixedOn": [
+        "eebd948",
+        "0d71d8b",
+        "48004e8",
+        "2116989",
+        "e76f541",
+        "46ff046",
+        "6e7e600",
+        "3b8d09f",
+        "50d35d5",
+        "30c5c97",
+        "934befb",
+        "20ba26d",
+        "cdf19de",
+        "40451c2",
+        "87d869c"
+      ],
+      "note": "原 G-15 拆分後的三分之一（2026-10-29 同日）。P2＝04 §4.1 原文「有價值的補強，可以排隊」；舊版把 P2 轉述成「無現行錯誤」，那不是 §4.1 的定義，已在 §G-15 開頭更正。sessions 不在此條（走 G-9）。驗收見 11 §11.3 的 A1-A4；動工前置見 03 §3.7.8（三項皆 OPEN）。size 的 XL 沿用原節「未逐項估工」的標記，不是新估算，也不是三個 XL 相加。 2026-11-01 結案：三個能力全部轉 ALIGNED——profile（eebd948、0d71d8b、48004e8）、settings（2116989、e76f541）、content（6e7e600、3b8d09f、50d35d5、30c5c97、934befb、20ba26d、cdf19de、40451c2、87d869c）。contract 鎖 46ff046／87d869c 各釘一邊。標 fixed 的前提是「三條都做完」，逐條證據在 parity-registry.json 的 capabilities[content].evidence 與 04 §G-15a 的收尾記錄。"
     },
     {
       "id": "G-15b",
