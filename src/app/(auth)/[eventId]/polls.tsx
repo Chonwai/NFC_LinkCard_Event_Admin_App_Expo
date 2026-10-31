@@ -186,6 +186,32 @@ export default function EventPollsScreen() {
     }
   }
 
+  /**
+   * 關閉一筆投票。與 `activate` 對稱：不帶 body、成功後整份重載。
+   *
+   * 失敗時（例如後端回 `POLL_NOT_FOUND`，表示別人已經刪了這一筆）
+   * 一樣重載清單嗎？**不**。Web 也不重載——它只把錯誤訊息顯示出來。
+   * 這裡照抄：使用者看到「投票不存在」，按重新整理就會看到真相，
+   * 比自動把畫面換掉更能讓人看懂剛剛發生了什麼。
+   */
+  async function close(poll: EventPoll) {
+    if (!eventId) return;
+    setActingPollId(poll.id);
+    setFeedback(null);
+    try {
+      await pollService.closePoll(eventId, poll.id);
+      setFeedback({ tone: "success", message: copy.polls.closeSuccess });
+      setReloadKey((key) => key + 1);
+    } catch (error) {
+      setFeedback({
+        tone: "danger",
+        message: getApiErrorMessage(error, copy.polls.actionError),
+      });
+    } finally {
+      setActingPollId(null);
+    }
+  }
+
   function removeOption(index: number) {
     setOptions((current) => current.filter((_, i) => i !== index));
   }
@@ -320,6 +346,7 @@ export default function EventPollsScreen() {
                 poll={poll}
                 busy={actingPollId === poll.id}
                 onActivate={() => void activate(poll)}
+                onClose={() => void close(poll)}
               />
             ))}
           </View>
@@ -332,9 +359,8 @@ export default function EventPollsScreen() {
 /**
  * 一個投票。
  *
- * 現階段只有題目與狀態；開關按鈕與計票結果由後續 commit 補上，
- * 但**卡片外框在這裡就定案**——Web 也是一張卡包含題目、狀態、開關與統計，
- * 先分好容器，後面就不會為了塞按鈕而重排版面。
+ * 現階段是題目 + 狀態徽章 + 一顆開關按鈕；計票結果由後續 commit 補在最下面
+ * （Web 的卡片同樣是「上半：題目／狀態／開關，下半：統計」）。
  *
  * ## 顏色為什麼不是照 Web 的 `green-50/gray-100`
  *
@@ -355,11 +381,13 @@ function PollCard({
   poll,
   busy,
   onActivate,
+  onClose,
 }: {
   poll: EventPoll;
   /** 這一張卡正在送出啟用／關閉請求 */
   busy: boolean;
   onActivate: () => void;
+  onClose: () => void;
 }) {
   const tone = statusTone(poll.isActive);
   return (
@@ -391,7 +419,16 @@ function PollCard({
             fullWidth={false}
             testID={`poll-activate-${poll.id}`}
           />
-        ) : null}
+        ) : (
+          <Button
+            label={copy.polls.close}
+            variant="secondary"
+            onPress={onClose}
+            loading={busy}
+            fullWidth={false}
+            testID={`poll-close-${poll.id}`}
+          />
+        )}
       </View>
     </Card>
   );

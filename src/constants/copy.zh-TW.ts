@@ -1000,6 +1000,9 @@ export const copy = {
     /** Web `polls.activate` / `polls.activate_success` */
     activate: "啟動",
     activateSuccess: "投票已啟動",
+    /** Web `polls.close` / `polls.close_success` */
+    close: "關閉",
+    closeSuccess: "投票已關閉",
     /** Web `polls.list_heading` */
     listHeading: "投票列表",
     /** Web `polls.status_active` / `polls.status_closed` */
