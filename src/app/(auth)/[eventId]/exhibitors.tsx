@@ -4,9 +4,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useLocalSearchParams } from "expo-router";
 
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { InlineBanner } from "@/components/ui/InlineBanner";
+import {
+  InlineBanner,
+  type InlineBannerTone,
+} from "@/components/ui/InlineBanner";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { copy } from "@/constants/copy.zh-TW";
@@ -24,6 +28,7 @@ import {
   type Exhibitor,
   type ExhibitorStatus,
 } from "@/types/exhibitor.types";
+import { getApiErrorMessage } from "@/utils/api-error";
 import {
   countForTab,
   emptyMergedExhibitors,
@@ -31,7 +36,10 @@ import {
   EXHIBITOR_STATUSES,
   EXHIBITOR_TABS,
   mergeExhibitorBuckets,
+  transitionFor,
+  type ExhibitorAction,
   type ExhibitorTab,
+  type ExhibitorTransition,
 } from "@/utils/exhibitor-list";
 
 /**
@@ -74,6 +82,18 @@ export default function EventExhibitorsScreen() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [tab, setTab] = useState<ExhibitorTab>("ALL");
+
+  /** 寫入結果橫幅（批准／停用／恢復共用一條，同 `polls.tsx`）。 */
+  const [feedback, setFeedback] = useState<{
+    tone: InlineBannerTone;
+    message: string;
+  } | null>(null);
+
+  /**
+   * 正在覆核中的那一筆（同 Web 的 `actingExhibitorId` 語意）。
+   * 只有被按下去的那一顆按鈕進 loading，其他列照常可按。
+   */
+  const [actingId, setActingId] = useState<string | null>(null);
 
   /**
    * 重新載入的觸發計數器（見檔頭）。
@@ -125,6 +145,47 @@ export default function EventExhibitorsScreen() {
 
   const rows = exhibitorsForTab(data, tab);
 
+  /**
+   * 覆核一家廠商。
+   *
+   * 送出**只有一個鍵**的 body（後端 `ReviewExhibitorStatusDto` 就這麼一個
+   * 欄位），成功後整頁重載——不自己改本地狀態：狀態徽章與分頁籤的數字都來自
+   * 後端，本地改一半只會讓兩邊對不上（Web 也是 `await Promise.all([load(),
+   * reloadCounts()])`）。
+   *
+   * 失敗時**不重載**（與 `polls.tsx` 的 `close` 同一條）：後端回
+   * `403 INSUFFICIENT_PERMISSION` 時，重載只會得到一模一樣的清單，看不出
+   * 剛剛發生了什麼；訊息才是答案。
+   *
+   * 為什麼沒有二次確認：Web 沒有。三個轉移裡兩個是可逆的
+   * （`ACTIVE ↔ SUSPENDED`），唯一的單向是「批准」，而批准正是這一頁存在的
+   * 目的——在它前面加一道確認只是讓每次審批多點一次。
+   */
+  async function review(exhibitor: Exhibitor, transition: ExhibitorTransition) {
+    if (!eventId) return;
+    setActingId(exhibitor.id);
+    setFeedback(null);
+    try {
+      await exhibitorService.updateExhibitorStatus(
+        eventId,
+        exhibitor.id,
+        transition.nextStatus,
+      );
+      setFeedback({
+        tone: "success",
+        message: copy.exhibitors.reviewSuccess[transition.action],
+      });
+      setReloadKey((key) => key + 1);
+    } catch (error) {
+      setFeedback({
+        tone: "danger",
+        message: getApiErrorMessage(error, copy.exhibitors.actionError),
+      });
+    } finally {
+      setActingId(null);
+    }
+  }
+
   return (
     <View style={styles.screen}>
       <ScreenHeader
@@ -146,6 +207,16 @@ export default function EventExhibitorsScreen() {
             compact
             tone="danger"
             message={copy.exhibitors.loadError}
+          />
+        ) : null}
+
+        {feedback ? (
+          <InlineBanner
+            compact
+            tone={feedback.tone}
+            message={feedback.message}
+            dismissible
+            onDismiss={() => setFeedback(null)}
           />
         ) : null}
 
@@ -226,7 +297,12 @@ export default function EventExhibitorsScreen() {
         {!showSkeleton && rows.length > 0 ? (
           <View style={styles.list}>
             {rows.map((exhibitor) => (
-              <ExhibitorRow key={exhibitor.id} exhibitor={exhibitor} />
+              <ExhibitorRow
+                key={exhibitor.id}
+                exhibitor={exhibitor}
+                busy={actingId === exhibitor.id}
+                onReview={(transition) => void review(exhibitor, transition)}
+              />
             ))}
           </View>
         ) : null}
@@ -243,10 +319,17 @@ function tabLabel(tab: ExhibitorTab): string {
 /**
  * 一家廠商。
  *
- * 版面順序照 Web 的列表列：**名稱＋狀態徽章 → 類型＋攤位**。Web 最右側還有一排
- * 入口連結（編輯／公開頁／門戶），那些連到的是展商入口與公開頁——不是這個
- * 能力的一部分，App 這裡不放（見 `src/services/exhibitor.service.ts` 的
- * 「為什麼只有六支」）。
+ * 版面順序照 Web 的列表列：**名稱＋狀態徽章 → 類型＋攤位 → 覆核按鈕**。
+ * Web 最右側還有一排入口連結（編輯／公開頁／門戶），那些連到的是展商入口與
+ * 公開頁——不是這個能力的一部分，App 這裡不放（見
+ * `src/services/exhibitor.service.ts` 的「為什麼只有六支」）。
+ *
+ * ## 按鈕只有一顆，不是三顆並排
+ *
+ * 與 Web 相同：目前狀態決定**唯一**能做的那一件事
+ * （`PENDING_APPROVAL` → 批准、`ACTIVE` → 停用、`SUSPENDED` → 恢復、
+ * `COMPLETED` → 沒有按鈕）。三顆並排會讓人「先按錯再按回來」，而
+ * `ACTIVE → SUSPENDED` 是會真的影響展商公開頁的寫入。
  *
  * ## 顏色為什麼不是照 Web 的 tailwind 色票
  *
@@ -255,8 +338,18 @@ function tabLabel(tab: ExhibitorTab): string {
  * `danger` / `neutral`），與其他畫面的狀態徽章同一套 token、同一組已量測的
  * 對比（`theme.ts` 已凍結，不新增色票）。
  */
-function ExhibitorRow({ exhibitor }: { exhibitor: Exhibitor }) {
+function ExhibitorRow({
+  exhibitor,
+  busy,
+  onReview,
+}: {
+  exhibitor: Exhibitor;
+  /** 這一列正在送出覆核請求 */
+  busy: boolean;
+  onReview: (transition: ExhibitorTransition) => void;
+}) {
   const tone = statusTone(exhibitor.status);
+  const transition = transitionFor(exhibitor.status);
   const detail = [
     exhibitor.exhibitorType,
     exhibitor.boothNumber ? copy.exhibitors.booth(exhibitor.boothNumber) : null,
@@ -290,9 +383,41 @@ function ExhibitorRow({ exhibitor }: { exhibitor: Exhibitor }) {
           {detail}
         </Text>
       ) : null}
+
+      {transition ? (
+        <View style={styles.rowActions}>
+          <Button
+            label={copy.exhibitors[transition.action]}
+            /*
+             * 批准＝主要動作（Web 是實心綠）；停用＝破壞性（Web 是紅框）；
+             * 恢復＝次要（Web 是綠框）。三個視覺權重對應三種後果強度。
+             */
+            variant={REVIEW_VARIANT[transition.action]}
+            onPress={() => onReview(transition)}
+            loading={busy}
+            fullWidth={false}
+            testID={`exhibitor-review-${exhibitor.id}`}
+          />
+        </View>
+      ) : null}
     </Card>
   );
 }
+
+/**
+ * 覆核動作 → 按鈕 variant。
+ *
+ * 抽成常數而不是行內三元：三個動作的權重是一個**決策**（誰是主要、誰是
+ * 破壞性），散在 JSX 裡的三元會在下一次調整時只改到其中一個。
+ */
+const REVIEW_VARIANT: Record<
+  ExhibitorAction,
+  "primary" | "danger" | "secondary"
+> = {
+  approve: "primary",
+  suspend: "danger",
+  restore: "secondary",
+};
 
 /** 狀態 → `semantic.status` token。四態各自一個語意，不共用。 */
 function statusTone(status: ExhibitorStatus) {
@@ -358,5 +483,19 @@ const styles = StyleSheet.create({
     ...type.caption,
     color: semantic.text.muted,
     marginTop: space[2],
+  },
+  /**
+   * 覆核按鈕列。
+   *
+   * 靠右並與上方資訊隔一條細線：手機上卡片沒有內部分隔，不加線會讓人以為
+   * 按鈕屬於「攤位」那一行。與 `polls.tsx` 的 `cardActions` 同一組手法。
+   */
+  rowActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginTop: space[3],
+    paddingTop: space[3],
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: semantic.border.decorative,
   },
 });

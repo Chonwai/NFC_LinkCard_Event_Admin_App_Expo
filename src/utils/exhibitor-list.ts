@@ -135,3 +135,50 @@ export function countForTab(
 ): number {
   return tab === "ALL" ? merged.total : merged.counts[tab];
 }
+
+/** 覆核動作。三個值對應 Web 列表頁上的三顆按鈕，不多不少。 */
+export type ExhibitorAction = "approve" | "suspend" | "restore";
+
+/** 一個狀態可以做的下一件事（沒有就是 `null`）。 */
+export interface ExhibitorTransition {
+  action: ExhibitorAction;
+  /** 打進 `PATCH …/status` 的值。 */
+  nextStatus: ExhibitorStatus;
+}
+
+/**
+ * 某個狀態下能按的那一顆按鈕。
+ *
+ * **逐字照抄 Web（`exhibitors/page.tsx:260-287`）的三條轉移**：
+ *
+ * | 目前狀態 | 按鈕 | 送出的 status |
+ * | --- | --- | --- |
+ * | `PENDING_APPROVAL` | 批准 | `ACTIVE` |
+ * | `ACTIVE` | 停用 | `SUSPENDED` |
+ * | `SUSPENDED` | 恢復 | `ACTIVE` |
+ * | `COMPLETED` | （沒有按鈕） | — |
+ *
+ * ## 為什麼沒有「退回」
+ *
+ * 後端 `ExhibitorStatus` 只有四個值，沒有 `REJECTED`。Web 的列表頁也沒有
+ * 「退回」按鈕——它把「不讓它上線」表達成 `SUSPENDED`，而那要先批准一次。
+ * App 不自己發明第五種語意：多一顆 Web 沒有的按鈕，就是多一條 Web 沒有的
+ * 寫入路徑，而且那個值後端根本不接受。
+ *
+ * `COMPLETED` 同理——它是活動結束後的人為標記，不是流程上的下一步，Web 沒有
+ * 提供任何離開這個狀態的按鈕，App 也不提供。
+ */
+export function transitionFor(
+  status: ExhibitorStatus,
+): ExhibitorTransition | null {
+  switch (status) {
+    case "PENDING_APPROVAL":
+      return { action: "approve", nextStatus: "ACTIVE" };
+    case "ACTIVE":
+      return { action: "suspend", nextStatus: "SUSPENDED" };
+    case "SUSPENDED":
+      return { action: "restore", nextStatus: "ACTIVE" };
+    case "COMPLETED":
+      return null;
+  }
+}

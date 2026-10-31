@@ -25,6 +25,7 @@ const {
   EXHIBITOR_STATUSES,
   EXHIBITOR_TABS,
   mergeExhibitorBuckets,
+  transitionFor,
 } = await import("@/utils/exhibitor-list");
 
 /** 造一列。只有 `id` 與 `companyName` 對這裡的規則有意義。 */
@@ -139,4 +140,53 @@ test("exhibitorsForTab：ALL 給合併清單，其餘給單一狀態", () => {
     ["a1"],
   );
   assert.deepEqual(exhibitorsForTab(merged, "COMPLETED"), []);
+});
+
+// ---------------------------------------------------------------------------
+// 四、覆核轉移：恰好三條，沒有第四條
+// ---------------------------------------------------------------------------
+
+test("三個可控狀態各對應一個動作，目標狀態逐字等於 Web", () => {
+  assert.deepEqual(transitionFor("PENDING_APPROVAL"), {
+    action: "approve",
+    nextStatus: "ACTIVE",
+  });
+  assert.deepEqual(transitionFor("ACTIVE"), {
+    action: "suspend",
+    nextStatus: "SUSPENDED",
+  });
+  assert.deepEqual(transitionFor("SUSPENDED"), {
+    action: "restore",
+    nextStatus: "ACTIVE",
+  });
+});
+
+test("COMPLETED 沒有按鈕（Web 也沒有離開這個狀態的寫入）", () => {
+  assert.equal(transitionFor("COMPLETED"), null);
+});
+
+test("沒有任何動作會把狀態寫成 COMPLETED，也沒有 rejected 這個動作", () => {
+  for (const status of EXHIBITOR_STATUSES) {
+    const transition = transitionFor(status);
+    if (!transition) continue;
+    assert.notEqual(
+      transition.nextStatus,
+      "COMPLETED",
+      `${status} 的動作不該把廠商標成已完成——那是活動結束後的人為標記`,
+    );
+    assert.notEqual(
+      transition.action,
+      "reject",
+      "後端 ExhibitorStatus 沒有 REJECTED，Web 也沒有退回按鈕",
+    );
+  }
+});
+
+test("approve 與 restore 都指向 ACTIVE，但動作不同（文案才不會撞）", () => {
+  assert.equal(transitionFor("PENDING_APPROVAL").nextStatus, "ACTIVE");
+  assert.equal(transitionFor("SUSPENDED").nextStatus, "ACTIVE");
+  assert.notEqual(
+    transitionFor("PENDING_APPROVAL").action,
+    transitionFor("SUSPENDED").action,
+  );
 });

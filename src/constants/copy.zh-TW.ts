@@ -995,6 +995,29 @@ export const copy = {
     emptyForStatus: "此狀態下無展商",
     /** Web `exhibitors.booth`（`{{number}}` → 函式） */
     booth: (number: string) => `攤位 ${number}`,
+    /** Web `exhibitors.approve` / `exhibitors.suspend` / `exhibitors.restore` */
+    approve: "批准",
+    suspend: "停用",
+    restore: "恢復",
+    /**
+     * 三個動作的成功回饋（App 專屬）。
+     *
+     * Web 的 `handleStatusChange` **沒有任何回饋**：按下去、重新載入、徽章變色，
+     * 沒有別的了。在手機上那個徽章常常在螢幕外（清單很長），按了沒反應會讓人
+     * 重按——而重按在 `PENDING_APPROVAL → ACTIVE` 這條上是安全的，在
+     * `ACTIVE → SUSPENDED` 這條上就是真的把人家停兩次。所以補一條橫幅。
+     * 這與 `polls` 頁的 `createSuccess` 等字串同一個理由（見該區塊註解）。
+     *
+     * ⚠️ 用**動作**當鍵，不是用目標狀態：`approve` 與 `restore` 的目標狀態
+     * 都是 `ACTIVE`，用狀態當鍵會讓兩句文案撞在一起。
+     */
+    reviewSuccess: {
+      approve: "已批准，廠商狀態改為「已啟用」",
+      suspend: "已停用",
+      restore: "已恢復為「已啟用」",
+    },
+    /** Web `exhibitors` 命名空間沒有錯誤字串；與 `polls.actionError` 同語。 */
+    actionError: "操作失敗，請重試",
     /**
      * 被單頁上限截斷時的說明（App 專屬）。
      *
