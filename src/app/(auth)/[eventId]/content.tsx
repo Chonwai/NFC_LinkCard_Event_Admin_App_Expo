@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useLocalSearchParams } from "expo-router";
@@ -305,6 +312,8 @@ function SectionBlock({
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** 刪除前的二次確認。Web 用 `confirm()`，App 用同語意的 Modal。 */
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   function startEditing() {
     setForm(toSectionFormState(section));
@@ -329,6 +338,25 @@ function SectionBlock({
       onChanged();
     } catch (caught) {
       setError(getApiErrorMessage(caught, copy.content.saveFailed));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  /**
+   * 刪除區塊。後端 `deleteSection` 會連同底下的卡片一起刪（外鍵 cascade），
+   * 所以確認文案要先把後果講清楚——Web 的 `deleteSectionConfirm` 就是那句話。
+   */
+  async function remove() {
+    setSaving(true);
+    setError(null);
+    try {
+      await contentService.deleteSection(eventId, section.id);
+      setConfirmingDelete(false);
+      onChanged();
+    } catch (caught) {
+      setConfirmingDelete(false);
+      setError(getApiErrorMessage(caught, copy.content.deleteFailed));
     } finally {
       setSaving(false);
     }
@@ -422,11 +450,19 @@ function SectionBlock({
               >
                 {copy.content.columns(section.gridColumns ?? 2)}
               </Text>
-              <TextButton
-                label={copy.content.edit}
-                onPress={startEditing}
-                testID={`content-section-edit-${section.id}`}
-              />
+              <View style={styles.metaActions}>
+                <TextButton
+                  label={copy.content.edit}
+                  onPress={startEditing}
+                  testID={`content-section-edit-${section.id}`}
+                />
+                <TextButton
+                  label={copy.content.delete}
+                  tone="danger"
+                  onPress={() => setConfirmingDelete(true)}
+                  testID={`content-section-delete-${section.id}`}
+                />
+              </View>
             </View>
           </>
         )}
@@ -441,7 +477,83 @@ function SectionBlock({
           </View>
         ) : null}
       </View>
+
+      <ConfirmDialog
+        visible={confirmingDelete}
+        title={copy.content.delete}
+        message={copy.content.deleteSectionConfirm}
+        busy={saving}
+        tone="danger"
+        onConfirm={() => void remove()}
+        onCancel={() => setConfirmingDelete(false)}
+        testID={`content-section-delete-confirm-${section.id}`}
+      />
     </Card>
+  );
+}
+
+/**
+ * 二次確認框。
+ *
+ * 為什麼不用 RN 的 `Alert.alert`：這個 repo 全案沒有用過它（`src/` 搜不到
+ * 任何一處），既有的兩個確認面板（名單管理、批次寄信）都是自繪 `Modal`。
+ * Web 這邊用的是瀏覽器原生 `confirm()`，語意上就是「取消／確定」兩顆，
+ * 這裡把它搬成同形狀的 Modal，並把後果寫在訊息裡。
+ */
+function ConfirmDialog({
+  visible,
+  title,
+  message,
+  busy,
+  tone,
+  onConfirm,
+  onCancel,
+  testID,
+}: {
+  visible: boolean;
+  title: string;
+  message: string;
+  busy: boolean;
+  tone: "danger" | "primary";
+  onConfirm: () => void;
+  onCancel: () => void;
+  testID: string;
+}) {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={() => {
+        if (!busy) onCancel();
+      }}
+    >
+      <View style={styles.backdrop}>
+        <View style={styles.dialog} testID={testID}>
+          <Text style={type.h3}>{title}</Text>
+          <Text
+            style={[type.body, styles.muted]}
+            maxFontSizeMultiplier={layout.maxFontScaleBody}
+          >
+            {message}
+          </Text>
+          <Button
+            label={copy.content.delete}
+            variant={tone === "danger" ? "dangerSolid" : "primary"}
+            loading={busy}
+            onPress={onConfirm}
+            testID={`${testID}-confirm`}
+          />
+          <Button
+            label={copy.content.cancel}
+            variant="secondary"
+            disabled={busy}
+            onPress={onCancel}
+            testID={`${testID}-cancel`}
+          />
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -485,18 +597,20 @@ function PublishCheckbox({
 }
 
 /**
- * 行內文字動作（編輯）。
+ * 行內文字動作（編輯／刪除）。
  *
  * 不用 `Button`：`Button` 最小高度 48、全寬、帶底色，塞在卡片內會把區塊
- * 撑成兩倍高。但觸控目標仍須 ≥ 48，所以用 `minHeight: layout.touchMin` +
+ * 撐成兩倍高。但觸控目標仍須 ≥ 48，所以用 `minHeight: layout.touchMin` +
  * `hitSlop`，而不是只縮字。
  */
 function TextButton({
   label,
+  tone = "default",
   onPress,
   testID,
 }: {
   label: string;
+  tone?: "default" | "danger";
   onPress: () => void;
   testID: string;
 }) {
@@ -510,7 +624,10 @@ function TextButton({
       style={({ pressed }) => [styles.textButton, pressed && styles.pressed]}
     >
       <Text
-        style={[type.label, styles.textButtonLabel]}
+        style={[
+          type.label,
+          tone === "danger" ? styles.textButtonDanger : styles.textButtonLabel,
+        ]}
         maxFontSizeMultiplier={layout.maxFontScaleFixed}
       >
         {label}
@@ -541,6 +658,21 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: space[2],
   },
+  metaActions: { flexDirection: "row", alignItems: "center" },
+  backdrop: {
+    flex: 1,
+    backgroundColor: semantic.bg.overlay,
+    justifyContent: "center",
+    padding: spacing.screen,
+  },
+  dialog: {
+    backgroundColor: semantic.bg.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: semantic.border.decorative,
+    padding: spacing.card,
+    gap: space[3],
+  },
   cardList: { gap: space[2] },
   cardRow: {
     flexDirection: "row",
@@ -564,6 +696,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
   },
   textButtonLabel: { color: semantic.text.link },
+  textButtonDanger: { color: semantic.text.danger },
   pressed: { opacity: 0.72 },
   checkboxRow: {
     flexDirection: "row",
