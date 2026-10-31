@@ -32,6 +32,7 @@ import {
   canRemovePollOption,
   toPollPayload,
 } from "@/utils/poll-form";
+import { computePollResults, votePercent } from "@/utils/poll-results";
 
 /**
  * 投票管理（parity `polls`）。
@@ -390,6 +391,8 @@ function PollCard({
   onClose: () => void;
 }) {
   const tone = statusTone(poll.isActive);
+  const results = computePollResults(poll);
+
   return (
     <Card testID={`poll-card-${poll.id}`}>
       <View style={styles.cardHeader}>
@@ -408,6 +411,10 @@ function PollCard({
           </Text>
         </View>
       </View>
+
+      <Text style={styles.totalVotes}>
+        {copy.polls.totalVotes(results.totalVotes)}
+      </Text>
 
       <View style={styles.cardActions}>
         {!poll.isActive ? (
@@ -430,7 +437,66 @@ function PollCard({
           />
         )}
       </View>
+
+      <View style={styles.results}>
+        <Text style={styles.resultsHeading}>{copy.polls.resultsHeading}</Text>
+        {results.results.map((option) => {
+          const percent = votePercent(option.voteCount, results.totalVotes);
+          return (
+            <View
+              key={option.id}
+              testID={`poll-option-result-${poll.id}-${option.id}`}
+            >
+              <View style={styles.resultRow}>
+                <Text style={styles.resultLabel} numberOfLines={1}>
+                  {option.text}
+                </Text>
+                <Text
+                  style={styles.resultCount}
+                  maxFontSizeMultiplier={layout.maxFontScaleFixed}
+                >
+                  {copy.polls.optionVotes(option.voteCount, percent)}
+                </Text>
+              </View>
+              <PollBar percent={percent} />
+            </View>
+          );
+        })}
+      </View>
     </Card>
+  );
+}
+
+/**
+ * 一條結果的比例條。
+ *
+ * Web 是 `h-2 rounded-full bg-gray-100` 的外框 + `bg-purple-600` 的內條，
+ * 寬度寫 `style={{ width: `${pct}%` }}`。RN 沒有百分比寬度，
+ * 所以用 `flex` 權重表達同一件事：內條 `flex: percent`、剩餘空白
+ * `flex: 100 - percent`。
+ *
+ * ⚠️ **`percent` 為 0 時一定要走另一條分支**。`flex: 0` 的節點在 RN 上會被
+ * 壓成 0 寬、看起來是對的；但 `flex: 100` 的空白若與它並存在
+ * `overflow: hidden` 的容器裡，某些 RN 版本會把兩者都算成 0 而讓整條消失。
+ * 這裡直接回一個純空白軌道，語意也更清楚：0% 就是「沒有顏色」。
+ *
+ * 百分比本身來自 `votePercent`（四捨五入，與 Web 同一個數字），
+ * 不是用版面寬度反推——兩者不能混用。
+ */
+function PollBar({ percent }: { percent: number }) {
+  return (
+    <View
+      style={styles.barTrack}
+      accessibilityRole="progressbar"
+      accessibilityValue={{ min: 0, max: 100, now: percent }}
+    >
+      {percent > 0 ? (
+        <>
+          <View style={[styles.barFill, { flex: percent }]} />
+          <View style={{ flex: 100 - percent }} />
+        </>
+      ) : null}
+    </View>
   );
 }
 
@@ -504,5 +570,43 @@ const styles = StyleSheet.create({
     paddingTop: space[3],
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: semantic.border.decorative,
+  },
+  /**
+   * 總票數。Web 把它放在狀態徽章旁邊的小字；手機上一行放不下
+   * （「進行中」＋「共 12 票」會把題目擠成兩行），所以移到題目下方獨立一行。
+   * 資訊相同，位置不同。
+   */
+  totalVotes: {
+    ...type.caption,
+    color: semantic.text.muted,
+    marginTop: space[2],
+  },
+  results: {
+    marginTop: space[3],
+    paddingTop: space[3],
+    gap: space[3],
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: semantic.border.decorative,
+  },
+  resultsHeading: { ...type.caption, color: semantic.text.muted },
+  resultRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: space[3],
+  },
+  resultLabel: { ...type.body, flexShrink: 1, color: semantic.text.secondary },
+  resultCount: { ...type.caption, color: semantic.text.muted },
+  barTrack: {
+    flexDirection: "row",
+    height: 8,
+    marginTop: space[1],
+    borderRadius: radius.full,
+    overflow: "hidden",
+    backgroundColor: semantic.bg.surfaceSunken,
+  },
+  barFill: {
+    backgroundColor: semantic.action.primary,
+    borderRadius: radius.full,
   },
 });

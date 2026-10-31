@@ -1008,6 +1008,13 @@ export const copy = {
     /** Web `polls.status_active` / `polls.status_closed` */
     statusActive: "進行中",
     statusClosed: "已關閉",
+    /** Web `polls.results_heading` */
+    resultsHeading: "投票統計",
+    /** Web `polls.total_votes`（i18next `{{count}}` → 函式） */
+    totalVotes: (count: number) => `共 ${count} 票`,
+    /** Web `polls.option_votes`（`{{count}}` / `{{percent}}` → 函式） */
+    optionVotes: (count: number, percent: number) =>
+      `${count} 票 · ${percent}%`,
     /** Web `polls.empty` */
     empty: "尚未建立任何投票",
   },
