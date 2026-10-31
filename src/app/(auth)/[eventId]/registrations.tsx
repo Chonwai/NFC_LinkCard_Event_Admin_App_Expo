@@ -29,6 +29,7 @@ import { eventService, listPageCount } from "@/services/event.service";
 import { registrationService } from "@/services/registration.service";
 import type { Registration, TicketTypeItem } from "@/types/api.types";
 import { getApiErrorCode, getApiErrorStatus } from "@/utils/api-error";
+import { rememberRegistrationList } from "@/utils/registration-list-cache";
 import {
   type DepositRefundFilter,
   type RegistrationVisibility,
@@ -460,12 +461,24 @@ export default function RegistrationsScreen() {
   }, [eventId, listQuery, filterKey]);
 
   /**
+   * 把當前名單記進記憶體快取，供詳情頁取用。
+   *
+   * 詳情頁需要 `isHidden / archivedAt / depositRefunded* / emailStatus` 這些
+   * 欄位，而它們**只**在名單端點出現（後端沒有「用 id 取完整詳情」的端點）。
+   * 名單已經載入了，就不要再讓詳情頁去求一個拿不到的答案。
+   * 掛在 `items` 上而不是逐一修改三條載入路徑——三條路徑最後都會 setItems。
+   */
+  useEffect(() => {
+    if (!eventId) return;
+    rememberRegistrationList(eventId, items);
+  }, [eventId, items]);
+
+  /**
    * 票種清單（給票種篩選用）。
    *
    * 失敗就**不顯示那一列**——票種篩選是加分項，不該讓它拖垮整頁；Web 也是
    * `ticketTypes.length > 0` 才渲染。
-   */
-  useEffect(() => {
+   */ useEffect(() => {
     if (!eventId) return;
     let active = true;
     void eventService

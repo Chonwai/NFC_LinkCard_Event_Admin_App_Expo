@@ -31,10 +31,20 @@ export function getRegistrationCompany(reg: Registration): string {
   );
 }
 
-/** 票種／報名類型：優先 ticketType，否則 registrantType（含 ATTENDEE 中文化） */
+/**
+ * 票種／報名類型：優先票種名，否則 registrantType（含 ATTENDEE 中文化）。
+ *
+ * 順序上 `displayName` **必須排第一**：後端兩條會回票種的路徑
+ * （`listRegistrations` 與 `getRegistrationByCode` 的 select）都只選
+ * `displayName`，從來沒有 `name`／`title`。舊版型別宣告了不存在的欄位，於是
+ * 每一列都退到 `registrantType`（所有一般票都顯示「參加者」）——看起來像「沒有票種」，
+ * 實際上是「讀錯了欄位」。`name`／`title` 保留兼容舊資料。
+ */
 export function getRegistrationTicketType(reg: Registration): string {
   const ticket =
-    trimOrNull(reg.ticketType?.name) ?? trimOrNull(reg.ticketType?.title);
+    trimOrNull(reg.ticketType?.displayName) ??
+    trimOrNull(reg.ticketType?.name) ??
+    trimOrNull(reg.ticketType?.title);
   if (ticket) return ticket;
 
   const raw = trimOrNull(reg.registrantType ?? undefined);

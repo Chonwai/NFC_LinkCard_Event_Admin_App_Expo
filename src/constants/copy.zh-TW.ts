@@ -437,6 +437,29 @@ export const copy = {
     sectionToken: "Token 流水",
     sectionNfc: "綁定 NFC",
     sectionOrg: "所屬社團",
+    /** 資料品質管理（隱藏／封存）。只在名單快取可用時才有值。 */
+    sectionVisibility: "可見性",
+    /** 押金退款追蹤（離線退款登記）。只在名單快取可用時才有值。 */
+    sectionDeposit: "押金退款",
+    hiddenYes: "已隱藏",
+    hiddenNo: "未隱藏",
+    hiddenReason: "隱藏原因",
+    archivedAt: "封存時間",
+    archivedReason: "封存原因",
+    depositRefundedAt: "退款時間",
+    depositRefundedAmount: "退款金額",
+    depositRefundedReference: "匯款參考號",
+    depositRefundedNote: "備註",
+    checkedInBy: "報到人員",
+    /**
+     * 深連結／冷啟動時的說明。
+     *
+     * 後端沒有「用 id 取完整詳情」的端點，`by-code` 的 select 也沒有隱藏／
+     * 封存／押金退款／email 狀態這幾欄。與其把那些欄位畫成永遠的「—」
+     * （看起來像「沒有隱藏」，實際上是「查不到」），不如直說缺什麼、怎麼補。
+     */
+    detailFallbackHint:
+      "這頁是直接開啟的（沒經過名單），後端沒有「用 id 取完整詳情」的端點，因此隱藏／封存／押金退款／email 狀態暫時無法顯示。請從名單點進來即可看到完整資料。",
     nfcEmptyTitle: "查不到綁定卡",
     nfcEmptyHint: "後端還不能用報名編號反查 NFC，這裡顯示 —。",
     orgEmptyTitle: "沒有社團資料",

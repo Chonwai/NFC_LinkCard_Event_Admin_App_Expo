@@ -72,6 +72,10 @@ test("getRegistrationCompany / Email / Phone：缺值一律破折號", () => {
 
 test("getRegistrationTicketType：票種名 > 票種標題 > 報名類型中文化 > 原字串 > 破折號", () => {
   assert.equal(
+    getRegistrationTicketType({ ticketType: { displayName: "早鳥票" } }),
+    "早鳥票",
+  );
+  assert.equal(
     getRegistrationTicketType({ ticketType: { name: "VIP 票" } }),
     "VIP 票",
   );
@@ -187,4 +191,36 @@ test("buildRegistrationPaymentUrl：與 Web 同一條路徑（/events/{id}/payme
 test("buildRegistrationPaymentUrl：參數會編碼，不會把 query 切壞", () => {
   const url = buildRegistrationPaymentUrl("evt 1", "A&B");
   assert.ok(url.includes("/events/evt%201/payment?code=A%26B"), url);
+});
+
+/**
+ * `displayName` 優先——後端兩條會回票種的路徑（名單與 by-code）都只選這個欄位。
+ *
+ * 舊版型別宣告了 `name`／`title`（後端從來沒回過），於是每一列都退到
+ * `registrantType`：所有一般票都顯示「參加者」。那不是「沒有票種」，是讀錯欄位。
+ */
+test("getRegistrationTicketType：後端實際回的 displayName 優先於 name／title", () => {
+  assert.equal(
+    getRegistrationTicketType({
+      ticketType: { displayName: "後端回的", name: "舊型別", title: "也舊" },
+    }),
+    "後端回的",
+  );
+});
+
+test("getRegistrationTicketType：displayName 為 null／空字串時仍能退回 registrantType", () => {
+  assert.equal(
+    getRegistrationTicketType({
+      ticketType: { displayName: null },
+      registrantType: "EXHIBITOR",
+    }),
+    copy.checkIn.registrantTypeLabels.EXHIBITOR,
+  );
+  assert.equal(
+    getRegistrationTicketType({
+      ticketType: { displayName: "   " },
+      registrantType: "EXHIBITOR",
+    }),
+    copy.checkIn.registrantTypeLabels.EXHIBITOR,
+  );
 });

@@ -133,7 +133,16 @@ export interface Registration {
   registrantType?: string | null;
   tokenBalance?: number | null;
   checkedInAt?: string | null;
-  ticketType?: { name?: string; title?: string } | null;
+  /**
+   * 票種。後端兩條路徑（名單與 by-code）都只回 `displayName`——
+   * `name`／`title` 是舊版型別的誤植，留著只為了容忍快取裡的舊資料。
+   */
+  ticketType?: {
+    id?: string;
+    displayName?: string | null;
+    name?: string;
+    title?: string;
+  } | null;
   /** 舊/擴充形狀（可選） */
   profile?: {
     fullName?: string;
