@@ -1,6 +1,10 @@
 import type {
   ActivationLinkInfo,
   ApiResponse,
+  GuestImportConfirmResult,
+  GuestImportMode,
+  GuestImportNotifyResult,
+  GuestImportPreview,
   Registration,
   RegistrationStatusCorrectionResult,
   RegistrationStatusCorrectionTarget,
@@ -378,4 +382,125 @@ export const registrationService = {
     );
     return res.data.data;
   },
+
+  /* ──────────────────────────────────────────────────────────────────────
+   * 貴賓名單匯入（`/registrations/import/*`）
+   *
+   * 對應 Web `lib/events/registrationImport.ts`。四條呼叫與 BE
+   * `registration-import.routes.ts` 一一對應（同一組 rate limit、同一個
+   * `file` 欄位名、同一個 5MB 上限）。
+   *
+   * ## 為什麼這些要帶 FormData 而其他呼叫不用
+   * 這個 client 的全域預設是 `Content-Type: application/json`。multipart
+   * 請求必須逐次覆寫，否則後端 multer 收到的 body 是空的，錯誤會變成
+   * 「請上傳 CSV 或 XLSX 檔案」（`EMPTY_FILE`）——看起來像使用者沒選檔，
+   * 實際上是標頭錯了。
+   * ────────────────────────────────────────────────────────────────────── */
+
+  /**
+   * POST /v1/events/:eventId/registrations/import/preview
+   *
+   * dry-run：**零寫入**。回傳有效／無效／重複列與名額影響。
+   */
+  async previewGuestImport(
+    eventId: string,
+    file: GuestImportFile,
+  ): Promise<GuestImportPreview> {
+    const res = await apiClient.post<ApiResponse<GuestImportPreview>>(
+      `/api/v1/events/${encodeURIComponent(eventId)}/registrations/import/preview`,
+      buildGuestImportFormData(file),
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return res.data.data;
+  },
+
+  /**
+   * POST /v1/events/:eventId/registrations/import/confirm
+   *
+   * 建立報名（per-row 交易）。**冪等**：同一份檔案重跑不會重複建立。
+   */
+  async confirmGuestImport(
+    eventId: string,
+    file: GuestImportFile,
+    mode: GuestImportMode,
+  ): Promise<GuestImportConfirmResult> {
+    const res = await apiClient.post<ApiResponse<GuestImportConfirmResult>>(
+      `/api/v1/events/${encodeURIComponent(eventId)}/registrations/import/confirm`,
+      buildGuestImportFormData(file, mode),
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return res.data.data;
+  },
+
+  /**
+   * POST /v1/events/:eventId/registrations/import/notify
+   *
+   * 分批寄票。單請求上限 100 筆（BE `NOTIFY_MAX`），呼叫端要自己切批——
+   * 這裡**不**代為切批，因為「寄了幾批、哪一批失敗」是呼叫端要呈現的事實。
+   */
+  async notifyGuestImport(
+    eventId: string,
+    registrationIds: string[],
+  ): Promise<GuestImportNotifyResult> {
+    const res = await apiClient.post<ApiResponse<GuestImportNotifyResult>>(
+      `/api/v1/events/${encodeURIComponent(eventId)}/registrations/import/notify`,
+      { registrationIds },
+    );
+    return res.data.data;
+  },
+
+  /**
+   * GET /v1/events/:eventId/registrations/import/template
+   *
+   * 下載 CSV 模板（**文字**）。App 沒有檔案系統下載語意，所以回傳字串，
+   * 由畫面決定怎麼交給使用者（`Share`／剪貼簿）——與 `exportAttendeesCsv`
+   * 同一個理由。
+   *
+   * `responseType: "text"` 是必要的：預設會嘗試 JSON 解析，CSV 一解析就爆。
+   */
+  async downloadGuestImportTemplate(eventId: string): Promise<string> {
+    const res = await apiClient.get<string>(
+      `/api/v1/events/${encodeURIComponent(eventId)}/registrations/import/template`,
+      { responseType: "text" },
+    );
+    return res.data;
+  },
 };
+
+/**
+ * 選好的一個檔案（`expo-document-picker` 的 asset 去掉它自己的欄位）。
+ *
+ * 刻意不直接用 `DocumentPicker.DocumentPickerAsset`：那會讓 service 依賴
+ * 一個 UI 層的套件，Node 測試就載不進來了。這裡只留 RN `FormData` 真正
+ * 需要的三個欄位。
+ */
+export interface GuestImportFile {
+  /** 平台原生的 URI（iOS `file://…`、Android `content://…`）。 */
+  uri: string;
+  name: string;
+  mimeType: string | null;
+}
+
+/**
+ * 組出 multipart body。
+ *
+ * `append` 的第二個參數在 React Native 是「帶 `uri` 的物件」，型別卻寫成
+ * `Blob`（那是瀏覽器的定義）——所以這裡一定要轉型。這不是偷懶：RN 的
+ * `FormData` 實作會讀 `uri`／`name`／`type` 去串出檔案區段，傳真的 `Blob`
+ * 反而在 RN 上不能用。
+ */
+function buildGuestImportFormData(
+  file: GuestImportFile,
+  mode?: GuestImportMode,
+): FormData {
+  const body = new FormData();
+  body.append("file", {
+    uri: file.uri,
+    name: file.name,
+    // 後端白名單接受 `application/octet-stream`，所以 Android 回報不出
+    // MIME 時退回它不會被擋；檔名本身仍帶著 `.csv`／`.xlsx`。
+    type: file.mimeType ?? "application/octet-stream",
+  } as unknown as Blob);
+  if (mode) body.append("mode", mode);
+  return body;
+}

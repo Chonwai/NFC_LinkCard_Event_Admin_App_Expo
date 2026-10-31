@@ -17,6 +17,7 @@ import * as Clipboard from "expo-clipboard";
 import { router, useLocalSearchParams } from "expo-router";
 
 import { BatchSendClaimEmailModal } from "@/components/roster/BatchSendClaimEmailModal";
+import { GuestImportModal } from "@/components/roster/GuestImportModal";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon, type IconName } from "@/components/ui/Icon";
@@ -395,6 +396,13 @@ export default function RegistrationsScreen() {
    * 真正寄送發生在面板的「確認寄送」。
    */
   const [batchOpen, setBatchOpen] = useState(false);
+  /**
+   * 貴賓名單匯入面板（Web `RegistrationImportPanel`，gap G-6）。
+   *
+   * 匯入成功後要重新載入名單：面板建立的是「這一頁沒有的列」，不重載就會
+   * 看到一份「匯入了 12 筆、清單還是原本那些」的畫面。
+   */
+  const [guestImportOpen, setGuestImportOpen] = useState(false);
 
   /**
    * 送給後端的查詢參數。三個載入路徑（首次／下拉更新／載入更多）共用這一份，
@@ -812,6 +820,23 @@ export default function RegistrationsScreen() {
             ) : null}
             {/* 匯出：對應 Web 標題列的「下載名單（CSV）」 */}
             <View style={styles.headerActions}>
+              <Pressable
+                onPress={() => setGuestImportOpen(true)}
+                style={({ pressed }) => [
+                  styles.headerAction,
+                  pressed && styles.rowPressed,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel={copy.roster.guestImport.open}
+              >
+                <Icon name="plus" size="sm" color={semantic.text.secondary} />
+                <Text
+                  style={styles.headerActionText}
+                  maxFontSizeMultiplier={layout.maxFontScaleFixed}
+                >
+                  {copy.roster.guestImport.open}
+                </Text>
+              </Pressable>
               <Pressable
                 onPress={() => setBatchOpen(true)}
                 style={({ pressed }) => [
@@ -1315,6 +1340,21 @@ export default function RegistrationsScreen() {
           registrations={items}
           onClose={() => setBatchOpen(false)}
           onSent={() => {
+            void refresh();
+          }}
+        />
+      ) : null}
+
+      {/*
+        貴賓名單匯入（Web `RegistrationImportPanel`，gap G-6）。
+        四步：模板 → 預覽（零寫入）→ 確認 → 寄票。
+      */}
+      {guestImportOpen ? (
+        <GuestImportModal
+          eventId={eventId}
+          ticketTypes={ticketTypes}
+          onClose={() => setGuestImportOpen(false)}
+          onImported={() => {
             void refresh();
           }}
         />

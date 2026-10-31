@@ -86,7 +86,34 @@ const EXPECTED = [
     method: "GET",
     path: "{eventId}/export/attendees",
   },
+  {
+    name: "previewGuestImport",
+    method: "POST",
+    path: "{eventId}/registrations/import/preview",
+  },
+  {
+    name: "confirmGuestImport",
+    method: "POST",
+    path: "{eventId}/registrations/import/confirm",
+  },
+  {
+    name: "notifyGuestImport",
+    method: "POST",
+    path: "{eventId}/registrations/import/notify",
+  },
+  {
+    name: "downloadGuestImportTemplate",
+    method: "GET",
+    path: "{eventId}/registrations/import/template",
+  },
 ];
+
+/** 選檔在 service 層只收三個欄位；測試用一組固定值。 */
+const FILE = {
+  uri: "file:///tmp/guests.csv",
+  name: "guests.csv",
+  mimeType: "text/csv",
+};
 
 /** 依名字派出對應的呼叫（參數刻意填最小可用的值）。 */
 const invoke = {
@@ -102,6 +129,14 @@ const invoke = {
   markDepositRefund: () =>
     registrationService.markDepositRefund("evt-1", "reg-1", { amount: 500 }),
   exportAttendeesCsv: () => registrationService.exportAttendeesCsv("evt-1"),
+  previewGuestImport: () =>
+    registrationService.previewGuestImport("evt-1", FILE),
+  confirmGuestImport: () =>
+    registrationService.confirmGuestImport("evt-1", FILE, "create"),
+  notifyGuestImport: () =>
+    registrationService.notifyGuestImport("evt-1", ["reg-1"]),
+  downloadGuestImportTemplate: () =>
+    registrationService.downloadGuestImportTemplate("evt-1"),
 };
 
 for (const expected of EXPECTED) {
@@ -124,7 +159,7 @@ for (const expected of EXPECTED) {
   });
 }
 
-test("七條全部只落在 /api/v1/events/ 之下（沒有漏掉版本前綴或掉了 events 段）", async () => {
+test("十一條全部只落在 /api/v1/events/ 之下（沒有漏掉版本前綴或掉了 events 段）", async () => {
   for (const expected of EXPECTED) {
     calls.length = 0;
     await invoke[expected.name]();

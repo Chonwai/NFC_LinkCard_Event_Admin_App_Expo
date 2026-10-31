@@ -410,3 +410,68 @@ export interface EventManageStats {
   exhibitors: ResourceCounts;
   bankTransfers: ResourceCounts;
 }
+
+/* ────────────────────────────────────────────────────────────────────────
+ * 貴賓名單匯入（`/registrations/import/*`）
+ *
+ * 逐欄鏡射 BE `EventRegistrationImportService` 的
+ * `PreviewResult` / `ConfirmResult` / notify 回傳，以及 Web
+ * `lib/events/registrationImport.ts` 的同名型別。三邊同構是刻意的：
+ * 後端加欄位時，這裡會因為少一欄而在 code review 裡被看見。
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/** 匯入模式。`create` 已存在則跳過；`upsert` 只補空白欄位、不改狀態。 */
+export type GuestImportMode = "create" | "upsert";
+
+/** 票種識別碼 ↔ 顯示名稱（`ticketType` 欄要填前者）。 */
+export interface TicketTypeChoice {
+  name: string;
+  displayName: string;
+}
+
+/**
+ * 單一資料列的錯誤。
+ *
+ * `suggestions` 只在 `TICKET_TYPE_NOT_FOUND` / `AMBIGUOUS_TICKET_TYPE` 出現：
+ * 後端直接給出「本來可以填什麼」，畫面不必從自由文字訊息裡猜。
+ */
+export interface GuestImportRowError {
+  field: string;
+  code: string;
+  message: string;
+  suggestions?: TicketTypeChoice[];
+}
+
+/** `POST …/import/preview` 的回應（dry-run，零寫入）。 */
+export interface GuestImportPreview {
+  totalRows: number;
+  valid: {
+    row: number;
+    email: string;
+    ticketType: string;
+    firstName?: string;
+    lastName?: string;
+  }[];
+  invalid: { row: number; errors: GuestImportRowError[] }[];
+  duplicates: { row: number; email: string; reason: string }[];
+  capacityImpact: {
+    ticketType: string;
+    adding: number;
+    capacity: number | null;
+    soldCount: number;
+    wouldExceed: boolean;
+  }[];
+}
+
+/** `POST …/import/confirm` 的回應（per-row 交易，冪等可重跑）。 */
+export interface GuestImportConfirmResult {
+  created: { row: number; registrationId: string; email: string }[];
+  skipped: { row: number; email: string; reason: string }[];
+  failed: { row: number; email: string; code: string }[];
+}
+
+/** `POST …/import/notify` 的回應（分批寄票）。 */
+export interface GuestImportNotifyResult {
+  sent: string[];
+  failed: { id: string; code: string }[];
+}

@@ -448,6 +448,69 @@ export const copy = {
       selectAllSendable: (count: number) => `全選可寄送（${count}）`,
       clearSelection: "清除選取",
     },
+    /**
+     * 貴賓名單匯入（Web `registrations.registrationImport.*`／
+     * `RegistrationImportPanel`）。
+     *
+     * 文案逐字照抄 `public/locales/zh-Hant/event_manage.json` 的
+     * `registrationImport.*`：同一個流程在兩個端上不能叫兩個名字。
+     * 四步（template → preview → confirm → notify）與 BE 端點一一對應。
+     */
+    guestImport: {
+      open: "匯入貴賓名單",
+      title: "匯入貴賓／VIP 名單",
+      subtitle:
+        "以 CSV 或 XLSX 批次建立報名（不要求本人填表），並可批次寄出票券信。",
+      close: "關閉",
+      /** 合規告知（Web 標為「不可移除」）。 */
+      complianceNotice:
+        "匯入的資料將以「活動營運之正當利益」處理，用於名牌製作、現場報到與活動通知；系統不會為名單自動加入行銷同意，寄出的信件會附上隱私告知。",
+      downloadTemplate: "下載模板",
+      templateReady: "模板已備妥，請在分享面板選擇要存到哪裡。",
+      templateFailed: "模板下載失敗，請稍後再試。",
+      acceptedTicketTypes: "本活動可接受的票種",
+      ticketTypeColumnHint:
+        "ticketType 欄請填左邊的代碼（不是右邊顯示的名稱）。填顯示名稱也可以，但代碼最穩定。",
+      chooseFile: "選擇檔案",
+      changeFile: (name: string) => `已選：${name}`,
+      pickFailed: "無法讀取這個檔案，請改用 CSV 或 XLSX。",
+      preview: "預覽（不寫入）",
+      previewFailed: "預覽失敗，請確認檔案格式（CSV 或 XLSX，≤500 列）。",
+      confirm: (count: number) => `確認匯入 ${count} 筆`,
+      confirmFailed: "匯入失敗，請稍後再試。",
+      notify: (count: number) => `寄出票券信（${count} 筆）`,
+      notifyResult: (sent: number, failed: number) =>
+        `已寄出 ${sent} 筆，失敗 ${failed} 筆。`,
+      notifyFailed: "寄送失敗，請稍後再試。",
+      totalRows: "資料列",
+      validRows: "有效",
+      invalidRows: "無效",
+      duplicates: "已存在",
+      created: "已建立",
+      skipped: "已跳過",
+      failed: "失敗",
+      capacityHeading: "名額影響（免費票仍計入名額）",
+      capacityLine: (
+        ticketType: string,
+        adding: number,
+        sold: number,
+        capacity: number | null,
+      ) =>
+        `${ticketType}：新增 ${adding}，已售 ${sold}／上限 ${capacity ?? "∞"}`,
+      capacityExceeded: "（將超出上限）",
+      invalidHeading: "需修正的資料列",
+      /** 逐列錯誤：`#3：ticketType 找不到 general`（Web 以 ` / ` 串多條）。 */
+      invalidRow: (row: number, messages: string) => `#${row}：${messages}`,
+      fixInvalidFirst: "請先修正無效資料列，或在檔案中移除它們。",
+      modeLabel: "重複處理方式",
+      mode: {
+        create: "已存在則跳過",
+        upsert: "已存在則只補空白欄位（不改狀態）",
+      },
+      done: "完成",
+      /** 顯示前 N 列（Web `slice(0, 20)`）；其餘以一句話交代還有多少。 */
+      invalidMore: (remaining: number) => `另有 ${remaining} 列未列出`,
+    },
     viewDetail: "查看詳情",
     sectionProfile: "基本資料",
     sectionRegistration: "報名",
