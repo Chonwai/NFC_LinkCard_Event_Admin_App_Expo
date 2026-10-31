@@ -40,6 +40,7 @@ import {
   manageActionsFor,
 } from "@/utils/registration-actions";
 import {
+  buildRegistrationPaymentUrl,
   getRegistrationCompany,
   getRegistrationDisplayName,
   maskEmail,
@@ -304,7 +305,17 @@ export default function RegistrationsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadedKey, setLoadedKey] = useState("");
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  /**
+   * 剛才複製了哪一列的哪一樣東西（`code` / `payment`）。
+   *
+   * 用一組 `(id, kind)` 而不是兩個獨立的 state：兩者共用一個計時器與一份
+   * 「誰剛被複製」的事實，分開存就會出現「編號還是打勾、付款連結已經熄掉」
+   * 這種自相矛盾的畫面。
+   */
+  const [copied, setCopied] = useState<{
+    id: string;
+    kind: "code" | "payment";
+  } | null>(null);
   const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── 名單管理（隱藏／取消隱藏）────────────────────────────────────────
@@ -357,16 +368,26 @@ export default function RegistrationsScreen() {
     };
   }, []);
 
-  const copyRegistrationCode = useCallback((id: string, code: string) => {
-    void Clipboard.setStringAsync(code).then(() => {
-      setCopiedId(id);
-      if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
-      copyResetTimer.current = setTimeout(() => {
-        setCopiedId(null);
-        copyResetTimer.current = null;
-      }, COPY_FEEDBACK_MS);
-    });
-  }, []);
+  /**
+   * 複製一段文字到剪貼簿，並讓那一列顯示「已複製」。
+   *
+   * `kind` 不是為了美觀：同一列可能有兩個可複製的東西（報名編號、付款連結），
+   * 只記 `id` 會讓兩個按鈕同時變成打勾。沿用 App 既有的 `expo-clipboard`
+   * （`badges.tsx` 也在用），不新增依賴。
+   */
+  const copyValue = useCallback(
+    (id: string, kind: "code" | "payment", value: string) => {
+      void Clipboard.setStringAsync(value).then(() => {
+        setCopied({ id, kind });
+        if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
+        copyResetTimer.current = setTimeout(() => {
+          setCopied(null);
+          copyResetTimer.current = null;
+        }, COPY_FEEDBACK_MS);
+      });
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!eventId) return;
@@ -918,7 +939,9 @@ export default function RegistrationsScreen() {
           const email = maskEmail(item.email);
           const company = getRegistrationCompany(item);
           const registeredAt = formatRegisteredAt(item.createdAt);
-          const copied = copiedId === item.id;
+          const codeCopied = copied?.id === item.id && copied.kind === "code";
+          const paymentCopied =
+            copied?.id === item.id && copied.kind === "payment";
           /*
            * email 狀態：`emailStatus` **不在**每一種回應裡。名單端點會附，
            * `by-code`／`my-tickets` 不會；資料湊不出來時 BE 也合法地回 `null`。
@@ -989,33 +1012,35 @@ export default function RegistrationsScreen() {
                 <View style={styles.metaLeft}>
                   <Pressable
                     onPress={() => {
-                      copyRegistrationCode(item.id, item.registrationCode);
+                      copyValue(item.id, "code", item.registrationCode);
                     }}
                     style={({ pressed }) => [
                       styles.codeRow,
-                      copied && styles.codeRowCopied,
-                      pressed && !copied && styles.codeRowPressed,
+                      codeCopied && styles.codeRowCopied,
+                      pressed && !codeCopied && styles.codeRowPressed,
                     ]}
                     accessibilityRole="button"
                     accessibilityLabel={
-                      copied
+                      codeCopied
                         ? copy.roster.codeCopied
                         : `${copy.roster.copyCode} ${item.registrationCode}`
                     }
                     hitSlop={6}
                   >
                     <Text
-                      style={[styles.code, copied && styles.codeCopied]}
+                      style={[styles.code, codeCopied && styles.codeCopied]}
                       numberOfLines={1}
                       maxFontSizeMultiplier={layout.maxFontScaleFixed}
                     >
                       {item.registrationCode}
                     </Text>
                     <Icon
-                      name={copied ? "clipboard-check" : "copy"}
+                      name={codeCopied ? "clipboard-check" : "copy"}
                       size="sm"
                       color={
-                        copied ? semantic.status.success.fg : semantic.icon.muted
+                        codeCopied
+                          ? semantic.status.success.fg
+                          : semantic.icon.muted
                       }
                     />
                   </Pressable>
@@ -1090,6 +1115,58 @@ export default function RegistrationsScreen() {
                   {copy.roster.registeredAt} {registeredAt}
                 </Text>
               </Pressable>
+              {/*
+                待付款列的「複製付款連結」（對應 Web `CopyLinkButton`）。
+                Web 只在 `PENDING_PAYMENT` 顯示——其他狀態的人沒有付款頁可去，
+                給一顆永遠導不到的連結比不給更糟。
+              */}
+              {item.status === "PENDING_PAYMENT" ? (
+                <Pressable
+                  onPress={() =>
+                    copyValue(
+                      item.id,
+                      "payment",
+                      buildRegistrationPaymentUrl(
+                        eventId,
+                        item.registrationCode,
+                      ),
+                    )
+                  }
+                  style={({ pressed }) => [
+                    styles.payButton,
+                    paymentCopied && styles.payButtonCopied,
+                    pressed && !paymentCopied && styles.rowPressed,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    paymentCopied
+                      ? copy.roster.paymentLinkCopied
+                      : `${copy.roster.copyPaymentLink} ${name}`
+                  }
+                >
+                  <Icon
+                    name={paymentCopied ? "clipboard-check" : "copy"}
+                    size="sm"
+                    color={
+                      paymentCopied
+                        ? semantic.status.success.fg
+                        : semantic.icon.muted
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.payButtonText,
+                      paymentCopied && styles.codeCopied,
+                    ]}
+                    numberOfLines={1}
+                    maxFontSizeMultiplier={layout.maxFontScaleFixed}
+                  >
+                    {paymentCopied
+                      ? copy.roster.paymentLinkCopied
+                      : copy.roster.copyPaymentLink}
+                  </Text>
+                </Pressable>
+              ) : null}
             </View>
           );
         }}
@@ -1485,6 +1562,25 @@ const styles = StyleSheet.create({
   },
   emailPillText: {
     ...type.badge,
+  },
+  /** 待付款列的「複製付款連結」（黃底＝待處理錢，與 Web 的 yellow 標籤同語意） */
+  payButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: space[1],
+    minHeight: layout.touchMin,
+    paddingHorizontal: space[3],
+    borderRadius: 8,
+    backgroundColor: semantic.status.warning.bg,
+  },
+  payButtonCopied: {
+    backgroundColor: semantic.status.success.bg,
+  },
+  payButtonText: {
+    ...type.caption,
+    color: semantic.status.warning.fg,
+    fontWeight: "600",
   },
   manageButton: {
     minWidth: layout.touchMin,

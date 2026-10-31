@@ -355,6 +355,12 @@ export const copy = {
     copyCode: "複製報名編號",
     codeCopied: "已複製報名編號",
     /**
+     * 待付款列的「複製付款連結」（對應 Web `CopyLinkButton`）。
+     * Web 只對 `PENDING_PAYMENT` 顯示——其他狀態的人沒有付款頁可去。
+     */
+    copyPaymentLink: "複製付款連結",
+    paymentLinkCopied: "已複製付款連結",
+    /**
      * 名單列的 email 狀態徽章。
      *
      * 文案逐字照抄 Web `public/locales/zh-Hant/event_manage.json` 的

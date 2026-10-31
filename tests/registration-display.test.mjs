@@ -9,6 +9,7 @@ import { test } from "node:test";
 
 const { copy } = await import("@/constants/copy.zh-TW");
 const {
+  buildRegistrationPaymentUrl,
   getRegistrationCheckedInAt,
   getRegistrationCode,
   getRegistrationCompany,
@@ -165,4 +166,25 @@ test("maskPhone：只留末四碼；四碼以內全遮", () => {
   assert.equal(maskPhone("1234"), "****");
   assert.equal(maskPhone(""), copy.checkIn.dash);
   assert.equal(maskPhone(null), copy.checkIn.dash);
+});
+
+/**
+ * 付款連結的**形狀**鎖定。
+ *
+ * 這一條是照抄 Web 時最容易錯的地方：Web 用 `window.location.origin`，
+ * App 只能用自己的 `WEB_BASE_URL`；路徑少一段或多一段，操作者傳給客人的連結
+ * 就打不開，而且**不會有任何錯誤訊息**——客人只會說「連結壞了」。
+ */
+test("buildRegistrationPaymentUrl：與 Web 同一條路徑（/events/{id}/payment?code=）", () => {
+  const url = buildRegistrationPaymentUrl("evt-1", "ABC123");
+  assert.match(
+    url,
+    /\/events\/evt-1\/payment\?code=ABC123$/,
+    `實際拿到：${url}`,
+  );
+});
+
+test("buildRegistrationPaymentUrl：參數會編碼，不會把 query 切壞", () => {
+  const url = buildRegistrationPaymentUrl("evt 1", "A&B");
+  assert.ok(url.includes("/events/evt%201/payment?code=A%26B"), url);
 });
