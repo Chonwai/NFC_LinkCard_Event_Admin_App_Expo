@@ -14,8 +14,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-const { canConfirmImport, importErrorText, MAX_PREVIEW_ROWS } =
-  await import("@/utils/exhibitor-import");
+const {
+  buildImportErrorReportCsv,
+  canConfirmImport,
+  escapeCsvValue,
+  flattenImportErrors,
+  importErrorText,
+  MAX_PREVIEW_ROWS,
+} = await import("@/utils/exhibitor-import");
 const { copy } = await import("@/constants/copy.zh-TW");
 
 /** 造一個 axios 形狀的錯誤（後端統一 envelope）。 */
@@ -121,4 +127,88 @@ test("一列都不能建時不給匯入（與 Web 相同）", () => {
 
 test("沒有預覽就不給匯入", () => {
   assert.equal(canConfirmImport(null), false);
+});
+
+// ---------------------------------------------------------------------------
+// 四、逐列錯誤與錯誤報表
+// ---------------------------------------------------------------------------
+
+test("攤平後每一筆都帶著自己的列號（報表才有座標可以回去修）", () => {
+  const flat = flattenImportErrors([
+    {
+      row: 3,
+      errors: [
+        {
+          field: "email",
+          code: "INVALID_EMAIL",
+          message: "格式不正確",
+          value: "x",
+        },
+        { field: "exhibitorType", code: "INVALID_TYPE", message: "類型不存在" },
+      ],
+    },
+    {
+      row: 9,
+      errors: [{ field: "companyName", code: "REQUIRED", message: "必填" }],
+    },
+  ]);
+
+  assert.deepEqual(
+    flat.map((item) => `${item.row}:${item.field}`),
+    ["3:email", "3:exhibitorType", "9:companyName"],
+  );
+});
+
+test('缺 value 時是空字串，不是 "null"／"undefined"', () => {
+  const flat = flattenImportErrors([
+    {
+      row: 1,
+      errors: [
+        { field: "email", code: "REQUIRED", message: "必填", value: null },
+      ],
+    },
+  ]);
+  assert.equal(flat[0].value, "");
+});
+
+test("CSV 開頭是 Web 的五欄表頭，欄序一致", () => {
+  const csv = buildImportErrorReportCsv([]);
+  assert.equal(csv, "row,field,code,message,value");
+});
+
+test("公式注入被中和：以 = + - @ 開頭的值加單引號前綴", () => {
+  for (const dangerous of ["=SUM(A1)", "+1", "-1", "@cmd", "\tx", "\rx"]) {
+    assert.equal(
+      escapeCsvValue(dangerous),
+      `'${dangerous}`,
+      `${JSON.stringify(dangerous)} 沒有被中和——用 Excel 打開報表會執行它`,
+    );
+  }
+});
+
+test("含逗號／雙引號／換行的值會被包起來，內部雙引號加倍", () => {
+  assert.equal(escapeCsvValue("a,b"), '"a,b"');
+  assert.equal(escapeCsvValue('say "hi"'), '"say ""hi"""');
+  assert.equal(escapeCsvValue("line\nbreak"), '"line\nbreak"');
+  assert.equal(escapeCsvValue("plain"), "plain");
+});
+
+test("報表每一列都是五欄，且列號是原始檔案的列號", () => {
+  const csv = buildImportErrorReportCsv([
+    {
+      row: 42,
+      errors: [
+        {
+          field: "email",
+          code: "INVALID_EMAIL",
+          message: "格式不正確",
+          value: "a@b",
+        },
+      ],
+    },
+  ]);
+  const [header, line] = csv.split("\n");
+  assert.equal(header.split(",").length, 5);
+  assert.equal(line.split(",").length, 5);
+  assert.equal(line.startsWith("42,"), true);
 });

@@ -67,3 +67,101 @@ export function canConfirmImport(
   if (!preview) return false;
   return preview.summary.valid > 0 && preview.summary.invalid === 0;
 }
+
+/**
+ * 把「一列多錯」攤平成「一錯一行」。
+ *
+ * 後端回的是 `invalid: [{ row, errors: [...] }]`（一列可能同時缺 email 又填錯
+ * 類型）。畫面與錯誤報表要的是逐條的形式，所以攤平一次、兩邊共用同一份。
+ *
+ * 攤平後每一筆都帶著自己的 `row`——少了它，報表就只剩一堆沒有座標的錯誤，
+ * 操作員無法回到原始檔案的第 N 列去修。
+ */
+export interface FlatImportError {
+  row: number;
+  field: string;
+  code: string;
+  message: string;
+  value: string;
+}
+
+export function flattenImportErrors(
+  invalid: readonly {
+    row: number;
+    errors: readonly {
+      field: string;
+      code: string;
+      message: string;
+      value?: string | null;
+    }[];
+  }[],
+): FlatImportError[] {
+  return invalid.flatMap((row) =>
+    row.errors.map((error) => ({
+      row: row.row,
+      field: error.field,
+      code: error.code,
+      message: error.message,
+      // `value` 可能是 null／undefined；報表要的是「沒有值」，不是 "null"。
+      value: error.value ?? "",
+    })),
+  );
+}
+
+/**
+ * 單一格 CSV 的轉義。**語意照抄 Web 的 `escapeCsvValue`**
+ * （`lib/events/exhibitorImport.ts:190-195`）。
+ *
+ * 兩件事：
+ * 1. **公式注入防護**：以 `=`、`+`、`-`、`@`（或 tab／CR）開頭的值加一個 `'`
+ *    前綴。匯入名單是外部檔案，公司名可以長成 `=cmd|...`；不擋就會在使用者
+ *    用 Excel 打開報表時被當成公式執行。
+ * 2. **引號轉義**：含雙引號、逗號或換行的值用雙引號包起來，內部雙引號加倍。
+ *
+ * ⚠️ 刻意**不用含引號字元的 regex 字面值**（`/["`　… 這種寫法）。
+ * `tests/copy-routing.test.mjs` 的字面值掃描器不認得 regex，遇到 regex 裡的
+ * 引號會把後面的程式碼誤判成字串，於是註解裡的中文被當成「使用者可見中文」。
+ * 用陣列與 `split/join` 表達同一件事，語意不變、掃描器也不會壞。
+ */
+const FORMULA_LEAD_CHARS = ["=", "+", "-", "@", "\t", "\r"];
+const CSV_QUOTE_TRIGGERS = ["\u0022", ",", "\n"];
+
+export function escapeCsvValue(value: string): string {
+  const guarded = FORMULA_LEAD_CHARS.includes(value.charAt(0))
+    ? `'${value}`
+    : value;
+  const needsQuoting = CSV_QUOTE_TRIGGERS.some((trigger) =>
+    guarded.includes(trigger),
+  );
+  if (!needsQuoting) return guarded;
+  return `"${guarded.split("\u0022").join("\u0022\u0022")}"`;
+}
+
+/**
+ * 逐列錯誤報表（CSV 文字）。
+ *
+ * 欄序與 Web 相同：`row,field,code,message,value`——操作員在這兩邊看到的報表
+ * 是同一張表，只是取得方式不同（Web 直接下載，App 交給分享面板）。
+ *
+ * 這份報表**沒有後端端點**（EXH-IMPORT 契約 §11.2 C2-4 的設計），由前端從
+ * preview 的回應自行產生。
+ */
+export function buildImportErrorReportCsv(
+  invalid: readonly {
+    row: number;
+    errors: readonly {
+      field: string;
+      code: string;
+      message: string;
+      value?: string | null;
+    }[];
+  }[],
+): string {
+  const header = "row,field,code,message,value";
+  const rows = flattenImportErrors(invalid).map((error) =>
+    [String(error.row), error.field, error.code, error.message, error.value]
+      .map(escapeCsvValue)
+      .join(","),
+  );
+  return [header, ...rows].join("\n");
+}

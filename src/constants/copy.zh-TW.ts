@@ -1082,6 +1082,19 @@ export const copy = {
         summaryDuplicate: "重複",
         /** Web `exhibitors.import.step2.validTitle` */
         validTitle: "可匯入列",
+        /** Web `exhibitors.import.step2.invalidTitle` / `duplicatesTitle` */
+        invalidTitle: "錯誤列",
+        duplicatesTitle: "重複列",
+        /**
+         * Web `exhibitors.import.step2.downloadErrors`（原字為「下載錯誤報表」）。
+         *
+         * App 改成「分享」：手機沒有「下載到資料夾」這個語意，實際發生的事是把
+         * CSV 交給系統分享面板（存到檔案、寄給自己、丟雲端硬碟）。
+         * **不改字的話，按鈕會承諾一件不會發生的事。**
+         */
+        downloadErrors: "分享錯誤報表（CSV）",
+        errorReportReady: "錯誤報表已備妥，請在分享面板選擇用途",
+        errorReportFailed: "產生錯誤報表失敗，請稍後重試",
         /** Web `exhibitors.import.step2.showingFirst` */
         showingFirst: (count: number) => `僅顯示前 ${count} 列`,
         /** Web `exhibitors.import.step2.noValid` */

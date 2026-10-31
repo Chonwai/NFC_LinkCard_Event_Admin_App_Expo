@@ -28,7 +28,9 @@ import type {
   ExhibitorImportPreview,
 } from "@/types/exhibitor.types";
 import {
+  buildImportErrorReportCsv,
   canConfirmImport,
+  flattenImportErrors,
   importErrorText,
   MAX_PREVIEW_ROWS,
 } from "@/utils/exhibitor-import";
@@ -224,6 +226,27 @@ export function ExhibitorImportModal({
     [eventId],
   );
 
+  /**
+   * 錯誤報表：從**預覽的回應**自行組出 CSV（後端沒有這個端點，契約 §11.2 C2-4
+   * 就是這樣設計的），再交給系統分享面板——手機沒有「下載到資料夾」。
+   *
+   * 為什麼不讓使用者自己抄：一列多錯時，畫面上只列前 100 列，而 500 列的
+   * 匯入常常就是「後面 400 列要一次修完」。報表是唯一能完整帶走錯誤的載體。
+   */
+  const handleShareErrorReport = useCallback(async () => {
+    if (!preview || preview.invalid.length === 0) return;
+    setError(null);
+    setNotice(null);
+    try {
+      await Share.share({
+        message: buildImportErrorReportCsv(preview.invalid),
+      });
+      setNotice(copy.exhibitors.import.step2.errorReportReady);
+    } catch {
+      setError(copy.exhibitors.import.step2.errorReportFailed);
+    }
+  }, [preview]);
+
   return (
     <Modal
       visible
@@ -265,6 +288,7 @@ export function ExhibitorImportModal({
                 busy={busy}
                 onBack={() => setStep("select")}
                 onConfirm={() => void handleConfirm()}
+                onShareErrors={() => void handleShareErrorReport()}
               />
             ) : null}
 
@@ -394,15 +418,21 @@ function PreviewStep({
   busy,
   onBack,
   onConfirm,
+  onShareErrors,
 }: {
   preview: ExhibitorImportPreview;
   busy: boolean;
   onBack: () => void;
   onConfirm: () => void;
+  onShareErrors: () => void;
 }) {
   const overCap = preview.valid.length > MAX_PREVIEW_ROWS;
   const validRows = preview.valid.slice(0, MAX_PREVIEW_ROWS);
   const confirmable = canConfirmImport(preview);
+  const errors = flattenImportErrors(preview.invalid).slice(
+    0,
+    MAX_PREVIEW_ROWS,
+  );
 
   return (
     <>
@@ -429,6 +459,68 @@ function PreviewStep({
           />
         </View>
       </View>
+
+      {/*
+       * 逐列錯誤。手機排不下 Web 那張五欄表（row / field / code / message /
+       * value），所以一條錯排成「列號 → 欄位＋訊息 → 錯誤碼」。資訊相同，
+       * 只是把欄位變成行。
+       */}
+      {errors.length > 0 ? (
+        <View style={[styles.card, styles.cardDanger]}>
+          <Text style={styles.cardTitleDanger}>
+            {copy.exhibitors.import.step2.invalidTitle}
+          </Text>
+          {errors.map((error, index) => (
+            <View
+              key={`${error.row}-${error.field}-${error.code}-${index}`}
+              style={styles.lineRow}
+            >
+              <Text style={styles.lineIndex}>{error.row}</Text>
+              <View style={styles.lineBody}>
+                <Text style={styles.lineStrong}>
+                  {error.field}：{error.message}
+                </Text>
+                <Text style={styles.lineMono}>{error.code}</Text>
+                {error.value ? (
+                  <Text style={styles.lineMono}>值：{error.value}</Text>
+                ) : null}
+              </View>
+            </View>
+          ))}
+          {preview.summary.invalid > MAX_PREVIEW_ROWS ? (
+            <Text style={styles.hint}>
+              {copy.exhibitors.import.step2.showingFirst(MAX_PREVIEW_ROWS)}
+            </Text>
+          ) : null}
+          <Button
+            label={copy.exhibitors.import.step2.downloadErrors}
+            variant="secondary"
+            disabled={busy}
+            onPress={onShareErrors}
+            testID="exhibitor-import-error-report"
+          />
+        </View>
+      ) : null}
+
+      {preview.duplicates.length > 0 ? (
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>
+            {copy.exhibitors.import.step2.duplicatesTitle}
+          </Text>
+          {preview.duplicates.slice(0, MAX_PREVIEW_ROWS).map((row) => (
+            <View key={`${row.row}-${row.reason}`} style={styles.lineRow}>
+              <Text style={styles.lineIndex}>{row.row}</Text>
+              {/* reason 是後端碼（EMAIL_EXISTS_IN_EVENT 等），照原樣顯示。 */}
+              <Text style={styles.lineMono}>{row.reason}</Text>
+            </View>
+          ))}
+          {preview.duplicates.length > MAX_PREVIEW_ROWS ? (
+            <Text style={styles.hint}>
+              {copy.exhibitors.import.step2.showingFirst(MAX_PREVIEW_ROWS)}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>
