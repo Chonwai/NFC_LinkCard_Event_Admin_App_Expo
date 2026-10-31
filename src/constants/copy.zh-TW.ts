@@ -851,6 +851,35 @@ export const copy = {
     },
   },
   /**
+   * 落地頁內容（`app/(auth)/[eventId]/content.tsx`）。
+   *
+   * 前端 counterpart：`LinkCard_Frontend/app/(event)/manage/[eventId]/content/page.tsx`
+   * ＋ `public/locales/zh-Hant/event_manage.json` 的 `content` 命名空間。
+   * **文字逐條沿用 Web 的 zh-Hant 用語**（「公開頁面內容」「新增區塊」「新卡片」），
+   * 同一個功能在兩邊不該叫不同名字。
+   *
+   * 兩條是 App 專屬（Web 沒有對應字串）：
+   * - `untitledSection`：區塊標題在後端允許 null。Web 那邊就是一個空 input，
+   *   唯讀列沒有「空 input」可以表達，只能給一句佔位文字。
+   * - `columns(n)`：Web 走 i18next 的 `{{count}} 欄` 插值，這裡改成函式，
+   *   免得把一個只有兩處在用的樣板語言搬進 App。
+   *
+   * ⚠️ `empty` 與 `loadError` 逐字照 Web；`empty` 提到的「新增區塊」按鈕在本
+   * 分支的後續 commit 才落地（先唯讀、再新增），文案不因此改寫——改了就不是
+   * Web 的那句話了。
+   */
+  content: {
+    title: "公開頁面內容",
+    subtitle: "活動公開頁上的區塊與卡片",
+    loading: "讀取中…",
+    loadError: "載入頁面內容失敗",
+    empty: "還沒有頁面內容，點擊「新增區塊」開始建立",
+    untitledSection: "（未命名區塊）",
+    columns: (count: number) => `${count} 欄`,
+    published: "已發布",
+    draft: "草稿",
+  },
+  /**
    * 活動設定（`app/(auth)/[eventId]/settings.tsx`）。
    *
    * 前端 counterpart：`LinkCard_Frontend/app/(event)/manage/[eventId]/settings/page.tsx`

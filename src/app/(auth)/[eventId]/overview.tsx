@@ -50,6 +50,7 @@ type EventRoute =
   | "nfc-exchange"
   | "badges"
   | "profile"
+  | "content"
   | "settings";
 
 interface QuickAction {
@@ -105,6 +106,19 @@ const QUICK_ACTIONS: QuickAction[] = [
     label: copy.profile.title,
     icon: "pencil",
     route: "profile",
+  },
+  /**
+   * 落地頁內容（parity `content`）。
+   *
+   * 圖示用 `eye`：這一頁改的是**訪客看到的公開頁**，與「活動資料」（`pencil`，
+   * 改的是活動本體）不是同一件事。圖示集裡沒有 file／page 類的圖形，硬加一個
+   * 就要動 `Icon.tsx` 的路徑表，不值得。
+   */
+  {
+    key: "content",
+    label: copy.content.title,
+    icon: "eye",
+    route: "content",
   },
   {
     key: "settings",
