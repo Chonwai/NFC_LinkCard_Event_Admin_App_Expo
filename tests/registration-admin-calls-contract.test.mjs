@@ -106,6 +106,16 @@ const EXPECTED = [
     method: "GET",
     path: "{eventId}/registrations/import/template",
   },
+  {
+    name: "getActivationLinkStatus",
+    method: "GET",
+    path: "{eventId}/registrations/{id}/activation-link?readonly=1",
+  },
+  {
+    name: "issueActivationLink",
+    method: "GET",
+    path: "{eventId}/registrations/{id}/activation-link?issue=1",
+  },
 ];
 
 /** 選檔在 service 層只收三個欄位；測試用一組固定值。 */
@@ -137,6 +147,10 @@ const invoke = {
     registrationService.notifyGuestImport("evt-1", ["reg-1"]),
   downloadGuestImportTemplate: () =>
     registrationService.downloadGuestImportTemplate("evt-1"),
+  getActivationLinkStatus: () =>
+    registrationService.getActivationLinkStatus("evt-1", "reg-1"),
+  issueActivationLink: () =>
+    registrationService.issueActivationLink("evt-1", "reg-1"),
 };
 
 for (const expected of EXPECTED) {
@@ -159,7 +173,7 @@ for (const expected of EXPECTED) {
   });
 }
 
-test("十一條全部只落在 /api/v1/events/ 之下（沒有漏掉版本前綴或掉了 events 段）", async () => {
+test("十三條全部只落在 /api/v1/events/ 之下（沒有漏掉版本前綴或掉了 events 段）", async () => {
   for (const expected of EXPECTED) {
     calls.length = 0;
     await invoke[expected.name]();

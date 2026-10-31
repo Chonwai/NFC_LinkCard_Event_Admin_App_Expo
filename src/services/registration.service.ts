@@ -254,6 +254,42 @@ export const registrationService = {
   },
 
   /**
+   * GET /v1/events/:eventId/registrations/:registrationId/activation-link?issue=1
+   *
+   * **簽發**一條可啟用帳號的連結（對應 Web `getRegistrationActivationLink`
+   * 的 `{ issue: true }`，呼叫端 `RegistrationDetailDrawer.tsx:121`）。
+   *
+   * ## 這是上一輪被擱置的那一項，現在照 Web 做
+   * 使用者已裁示「Web 做得到的事，App 也要做得到」，不再把它當政策問題。
+   *
+   * ## 與 `getActivationLinkStatus` 的界線（**兩者不可互換**）
+   * 上方那條帶死 `?readonly=1`、**永不鑄 token**；這一條帶 `?issue=1`、
+   * 在沒有有效 token 時**當場鑄一顆**。把兩者混用有兩個方向的災難：
+   * - 唯讀路徑少了 `readonly=1` ⇒ 批次面板開一次就把整頁的待 claim 人變成
+   *   「已有有效連結」（`AA-F-01`）。
+   * - 簽發路徑多了 `readonly=1` ⇒ 按了「簽發」什麼都不會發生，操作員拿不到
+   *   連結卻以為拿到了。
+   * 所以兩條各自寫死自己的 query，**都不開放參數**。
+   *
+   * ## 為什麼是 `issue=1` 而不是「不帶參數」
+   * BE 的 legacy 預設也會簽發，但會在 log 留一筆 warning（P2-4）。帶 `issue=1`
+   * 是顯式宣告「我就是要這顆 token」，讓那次 warning 不出現，也讓「誰依賴了這個
+   * 副作用」變成可觀測的事實。
+   *
+   * ## 權限
+   * `authMiddleware` + `getEventWriteAccess === 'ALLOWED'`（OPERATOR 以上不行）。
+   */
+  async issueActivationLink(
+    eventId: string,
+    registrationId: string,
+  ): Promise<ActivationLinkInfo> {
+    const res = await apiClient.get<ApiResponse<ActivationLinkInfo>>(
+      `/api/v1/events/${encodeURIComponent(eventId)}/registrations/${encodeURIComponent(registrationId)}/activation-link?issue=1`,
+    );
+    return res.data.data;
+  },
+
+  /**
    * POST /v1/events/:eventId/registrations/:registrationId/activation-link
    *
    * 重寄單筆的 **claim（領取）信**（BE-02）。批次面板的單筆單元。

@@ -522,6 +522,41 @@ export const copy = {
     sectionVisibility: "可見性",
     /** 押金退款追蹤（離線退款登記）。只在名單快取可用時才有值。 */
     sectionDeposit: "押金退款",
+    /**
+     * 帳號啟用／activation link（Web `registrations.detail.*`）。
+     *
+     * 「查看」與「簽發」是兩個不同的動作，文案也必須分得開：前者純讀，
+     * 後者會鑄出一顆可啟用帳號的 token。混成一句話會讓操作員不知道自己按的
+     * 是哪一個。
+     */
+    sectionAccount: "帳號啟用",
+    activationView: "查看帳號狀態",
+    activationLoading: "讀取中…",
+    activationActivated: "已啟用",
+    activationPending: "尚未啟用",
+    activationNoAccount: "尚未建立帳號",
+    activationHint: (name: string) =>
+      `${name} 還沒有啟用帳號。把下面這條連結傳給本人，他就能設定密碼並登入。`,
+    activationCopy: "複製啟用連結",
+    activationCopied: "已複製啟用連結",
+    /** 簽發前的最後一道說明：講清楚副作用，而不是只問「確定嗎」。 */
+    activationIssue: "簽發新的啟用連結",
+    activationIssueWarn:
+      "這會產生一條可啟用帳號的連結。任何拿到它的人都能設定該帳號的密碼——請只傳給本人，不要貼在群組或公開頻道。",
+    activationIssueConfirm: "確認簽發",
+    activationIssueCancel: "取消",
+    activationIssuing: "簽發中…",
+    activationIssued: "已簽發一條新的啟用連結。",
+    activationReused:
+      "這個人原本就有一條有效連結，已直接沿用（沒有重複簽發）。",
+    activationAlreadyActive: "帳號已啟用，不需要啟用連結。",
+    activationNoAccountHint: "尚未建立帳號，無法簽發啟用連結。",
+    activationEmpty: "後端沒有回傳連結，請稍後再試。",
+    activationErrClaimed: "這條連結已被使用（對方已經啟用帳號）。",
+    activationErrForbidden:
+      "沒有權限簽發啟用連結。後端要求主辦或協調員權限，請改用那類帳號。",
+    activationErrNotFound: "找不到這筆報名。",
+    activationErrFailed: "簽發失敗，請稍後再試。",
     hiddenYes: "已隱藏",
     hiddenNo: "未隱藏",
     hiddenReason: "隱藏原因",
