@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
+  Modal,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -13,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
 import { router, useLocalSearchParams } from "expo-router";
 
+import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { InlineBanner } from "@/components/ui/InlineBanner";
@@ -21,6 +24,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { copy } from "@/constants/copy.zh-TW";
 import { layout, semantic, space, spacing, type } from "@/constants/theme";
 import { eventService, listPageCount } from "@/services/event.service";
+import { registrationService } from "@/services/registration.service";
 import type { Registration } from "@/types/api.types";
 import { getApiErrorStatus } from "@/utils/api-error";
 import {
@@ -105,6 +109,25 @@ export default function RegistrationsScreen() {
   const [loadedKey, setLoadedKey] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── 名單管理（隱藏／取消隱藏）────────────────────────────────────────
+  // `manage`＝正在操作哪一筆；`pendingAction`＝已選動作、等填原因。
+  // 兩個 state 分開，是因為「先選動作、再填原因」是兩步；把它們壓成一個 union
+  // 會讓「只打開選單」與「已選動作」共用同一個 modal 而分不清楚。
+  const [manage, setManage] = useState<Registration | null>(null);
+  const [pendingAction, setPendingAction] = useState<"hide" | "unhide" | null>(
+    null,
+  );
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  /** 上一次成功的操作；有值才顯示「復原」橫幅（對應 Web 的 undo toast）。 */
+  const [undo, setUndo] = useState<{
+    reg: Registration;
+    reverse: "hide" | "unhide";
+    message: string;
+  } | null>(null);
+
   const requestKey = `${eventId ?? ""}:${status}`;
   const loading = Boolean(eventId) && loadedKey !== requestKey && !error;
 
@@ -223,6 +246,97 @@ export default function RegistrationsScreen() {
     return rows;
   }, [items, query, sort]);
 
+  /** 「原因」是否已填；`hide` 需要理由，`unhide` 不需要（與 Web 同一規則）。 */
+  const reasonMissing = pendingAction === "hide" && reason.trim() === "";
+
+  /** 打開某一筆的管理選單。 */
+  const openManage = useCallback((reg: Registration) => {
+    setManage(reg);
+    setPendingAction(null);
+    setReason("");
+    setActionError(null);
+  }, []);
+
+  const closeManage = useCallback(() => {
+    if (busy) return;
+    setManage(null);
+    setPendingAction(null);
+    setReason("");
+    setActionError(null);
+  }, [busy]);
+
+  /**
+   * 執行隱藏／取消隱藏。
+   *
+   * 成功後**重載第一頁**而不是就地改那一列：後端會回整筆 registration，但
+   * `visibility: "active"` 的篩選是後端做的，就地改狀態會讓一筆已隱藏的資料
+   * 繼續留在畫面上，看起來像沒生效。
+   */
+  const runVisibilityAction = useCallback(
+    async (
+      reg: Registration,
+      action: "hide" | "unhide",
+      reasonText: string,
+    ) => {
+      if (!eventId) return;
+      setBusy(true);
+      setActionError(null);
+      try {
+        if (action === "hide") {
+          await registrationService.hide(eventId, reg.id, reasonText.trim());
+        } else {
+          await registrationService.unhide(eventId, reg.id);
+        }
+        setUndo({
+          reg,
+          reverse: action === "hide" ? "unhide" : "hide",
+          message:
+            action === "hide"
+              ? copy.roster.manage.hideDone
+              : copy.roster.manage.unhideDone,
+        });
+        setManage(null);
+        setPendingAction(null);
+        setReason("");
+        await refresh();
+      } catch (err) {
+        setActionError(
+          getApiErrorStatus(err) === 403
+            ? copy.roster.manage.forbidden
+            : copy.roster.manage.failed,
+        );
+      } finally {
+        setBusy(false);
+      }
+    },
+    [eventId, refresh],
+  );
+
+  /** 「復原」＝呼叫相反端點。失敗只改提示，不覆蓋清單。 */
+  const runUndo = useCallback(async () => {
+    if (!eventId || !undo) return;
+    const { reg, reverse } = undo;
+    setUndo(null);
+    try {
+      if (reverse === "hide") {
+        await registrationService.hide(
+          eventId,
+          reg.id,
+          copy.roster.manage.undoReason,
+        );
+      } else {
+        await registrationService.unhide(eventId, reg.id);
+      }
+      await refresh();
+    } catch (err) {
+      setError(
+        getApiErrorStatus(err) === 403
+          ? copy.roster.manage.forbidden
+          : copy.roster.manage.failed,
+      );
+    }
+  }, [eventId, refresh, undo]);
+
   if (!eventId) {
     return (
       <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -274,6 +388,18 @@ export default function RegistrationsScreen() {
         ListHeaderComponent={
           <View style={styles.headerBlock}>
             {error ? <InlineBanner tone="danger" message={error} /> : null}
+            {undo ? (
+              <InlineBanner
+                tone="success"
+                message={undo.message}
+                actionLabel={copy.roster.manage.undo}
+                onAction={() => {
+                  void runUndo();
+                }}
+                dismissible
+                onDismiss={() => setUndo(null)}
+              />
+            ) : null}
             <TextInput
               value={query}
               onChangeText={setQuery}
@@ -424,38 +550,59 @@ export default function RegistrationsScreen() {
                   </View>
                 </View>
               </Pressable>
-              <Pressable
-                onPress={() => {
-                  copyRegistrationCode(item.id, item.registrationCode);
-                }}
-                style={({ pressed }) => [
-                  styles.codeRow,
-                  copied && styles.codeRowCopied,
-                  pressed && !copied && styles.codeRowPressed,
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  copied
-                    ? copy.roster.codeCopied
-                    : `${copy.roster.copyCode} ${item.registrationCode}`
-                }
-                hitSlop={6}
-              >
-                <Text
-                  style={[styles.code, copied && styles.codeCopied]}
-                  numberOfLines={1}
-                  maxFontSizeMultiplier={layout.maxFontScaleFixed}
-                >
-                  {item.registrationCode}
-                </Text>
-                <Icon
-                  name={copied ? "clipboard-check" : "copy"}
-                  size="sm"
-                  color={
-                    copied ? semantic.status.success.fg : semantic.icon.muted
+              <View style={styles.metaRow}>
+                <Pressable
+                  onPress={() => {
+                    copyRegistrationCode(item.id, item.registrationCode);
+                  }}
+                  style={({ pressed }) => [
+                    styles.codeRow,
+                    copied && styles.codeRowCopied,
+                    pressed && !copied && styles.codeRowPressed,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    copied
+                      ? copy.roster.codeCopied
+                      : `${copy.roster.copyCode} ${item.registrationCode}`
                   }
-                />
-              </Pressable>
+                  hitSlop={6}
+                >
+                  <Text
+                    style={[styles.code, copied && styles.codeCopied]}
+                    numberOfLines={1}
+                    maxFontSizeMultiplier={layout.maxFontScaleFixed}
+                  >
+                    {item.registrationCode}
+                  </Text>
+                  <Icon
+                    name={copied ? "clipboard-check" : "copy"}
+                    size="sm"
+                    color={
+                      copied ? semantic.status.success.fg : semantic.icon.muted
+                    }
+                  />
+                </Pressable>
+                {/* 管理入口：對應 Web 列表列的「⋯」。文字用「⋯」（非中文），
+                    讀屏標籤走 copy 模組。 */}
+                <Pressable
+                  onPress={() => openManage(item)}
+                  style={({ pressed }) => [
+                    styles.manageButton,
+                    pressed && styles.rowPressed,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${copy.roster.manage.open} ${name}`}
+                  hitSlop={6}
+                >
+                  <Text
+                    style={styles.manageDots}
+                    maxFontSizeMultiplier={layout.maxFontScaleFixed}
+                  >
+                    ⋯
+                  </Text>
+                </Pressable>
+              </View>
               <Pressable
                 onPress={openDetail}
                 style={({ pressed }) => [
@@ -484,6 +631,131 @@ export default function RegistrationsScreen() {
           );
         }}
       />
+
+      {/*
+        名單管理面板（對應 Web 的 `RegistrationActionsMenu` + `RegistrationActionModal`）。
+
+        為何用 RN 內建的 `Modal` 而不新增 overlay 套件：`expo-router` 的畫面堆疊
+        不適合這種「不改路由、原位返回」的暫時性面板，而 `Modal` 是 RN 標準元件，
+        不需新增依賴。目前 App 還沒有共用 sheet 元件，所以先寫在這裡——未來若
+        第二個畫面也需要同一模式，再抽出。
+      */}
+      <Modal
+        visible={manage !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={closeManage}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalPanel}>
+            <ScrollView
+              contentContainerStyle={styles.modalBody}
+              keyboardShouldPersistTaps="handled"
+            >
+              <Text style={type.h3}>{copy.roster.manage.title}</Text>
+              {manage ? (
+                <Text style={styles.modalSubject} numberOfLines={1}>
+                  {`${getRegistrationDisplayName(manage)} · ${manage.registrationCode}`}
+                </Text>
+              ) : null}
+
+              {actionError ? (
+                <InlineBanner tone="danger" message={actionError} compact />
+              ) : null}
+
+              {pendingAction === null ? (
+                <View style={styles.actionList}>
+                  <Pressable
+                    onPress={() => {
+                      setPendingAction(manage?.isHidden ? "unhide" : "hide");
+                      setReason("");
+                      setActionError(null);
+                    }}
+                    style={({ pressed }) => [
+                      styles.actionItem,
+                      pressed && styles.rowPressed,
+                    ]}
+                    accessibilityRole="button"
+                  >
+                    <Icon
+                      name={manage?.isHidden ? "eye" : "eye-off"}
+                      size="md"
+                      color={semantic.icon.muted}
+                    />
+                    <Text style={styles.actionLabel}>
+                      {manage?.isHidden
+                        ? copy.roster.manage.unhide
+                        : copy.roster.manage.hide}
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <View style={styles.confirmBlock}>
+                  {pendingAction === "hide" ? (
+                    <>
+                      <Text style={styles.fieldLabel}>
+                        {copy.roster.manage.reasonLabel}
+                      </Text>
+                      <TextInput
+                        value={reason}
+                        onChangeText={setReason}
+                        placeholder={copy.roster.manage.reasonPlaceholder}
+                        placeholderTextColor={semantic.text.muted}
+                        multiline
+                        maxLength={255}
+                        style={styles.reasonInput}
+                        accessibilityLabel={copy.roster.manage.reasonLabel}
+                      />
+                      {reasonMissing ? (
+                        <Text style={styles.fieldHint}>
+                          {copy.roster.manage.reasonRequired}
+                        </Text>
+                      ) : null}
+                    </>
+                  ) : null}
+                </View>
+              )}
+
+              <View style={styles.modalFooter}>
+                <Button
+                  label={copy.roster.manage.cancel}
+                  variant="secondary"
+                  onPress={
+                    pendingAction === null
+                      ? closeManage
+                      : () => {
+                          setPendingAction(null);
+                          setReason("");
+                          setActionError(null);
+                        }
+                  }
+                  disabled={busy}
+                />
+                {pendingAction !== null ? (
+                  <Button
+                    label={
+                      busy
+                        ? copy.roster.manage.processing
+                        : copy.roster.manage.confirm
+                    }
+                    variant={pendingAction === "hide" ? "dangerSolid" : "primary"}
+                    loading={busy}
+                    disabled={reasonMissing}
+                    onPress={() => {
+                      if (!manage || !pendingAction) return;
+                      void runVisibilityAction(
+                        manage,
+                        pendingAction,
+                        reason,
+                      );
+                    }}
+                  />
+                ) : null}
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -640,5 +912,85 @@ const styles = StyleSheet.create({
     ...type.micro,
     flexShrink: 0,
     color: semantic.text.muted,
+  },
+  /** 報名編號與「管理」入口同一列，兩端對齊 */
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: space[2],
+  },
+  manageButton: {
+    minWidth: layout.touchMin,
+    minHeight: layout.touchMin,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 8,
+  },
+  manageDots: {
+    ...type.h3,
+    color: semantic.text.muted,
+    lineHeight: layout.icon.lg + space[3],
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    padding: spacing.screen,
+  },
+  modalPanel: {
+    backgroundColor: semantic.bg.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: semantic.border.decorative,
+    maxHeight: "85%",
+  },
+  modalBody: {
+    padding: space[4],
+    gap: space[3],
+  },
+  modalSubject: {
+    ...type.caption,
+    color: semantic.text.muted,
+  },
+  actionList: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: semantic.border.decorative,
+  },
+  actionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space[3],
+    minHeight: layout.touchMin,
+    paddingVertical: space[2],
+  },
+  actionLabel: {
+    ...type.body,
+    color: semantic.text.primary,
+  },
+  confirmBlock: {
+    gap: space[2],
+  },
+  fieldLabel: {
+    ...type.caption,
+    color: semantic.text.secondary,
+  },
+  fieldHint: {
+    ...type.caption,
+    color: semantic.status.warning.fg,
+  },
+  reasonInput: {
+    minHeight: layout.buttonHeight + space[4],
+    borderWidth: 1,
+    borderColor: semantic.border.interactive,
+    borderRadius: 12,
+    paddingHorizontal: space[3],
+    paddingVertical: space[2],
+    color: semantic.text.primary,
+    fontSize: type.body.fontSize,
+    textAlignVertical: "top",
+  },
+  modalFooter: {
+    gap: space[2],
   },
 });

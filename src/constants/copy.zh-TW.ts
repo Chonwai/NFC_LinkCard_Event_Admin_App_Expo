@@ -356,6 +356,33 @@ export const copy = {
     /** 流水被分頁截斷時的說明；`N` 與 `M` 由呼叫端代入。 */
     tokenPagingHint: "只顯示最近一頁。",
     phone: "電話",
+    /**
+     * 名單列的「管理」入口（對應 Web `registrations/page.tsx` 的
+     * `RegistrationActionsMenu`）。Web 把它做成 row 上的「⋯」下拉，App 用
+     * 同一套動作但改以 modal 呈现——手機上沒有 hover，下拉選單的 discoverability
+     * 比原地彈出的面板差。
+     */
+    manage: {
+      open: "管理這筆報名",
+      title: "管理報名",
+      hide: "隱藏",
+      unhide: "取消隱藏",
+      /** 隱藏／封存要求填原因；後端會把它寫進稽核紀錄 */
+      reasonLabel: "原因",
+      reasonPlaceholder: "例如：重複報名、測試資料",
+      reasonRequired: "請填寫原因，後端會寫入稽核紀錄",
+      hideDone: "已隱藏這筆報名",
+      unhideDone: "已取消隱藏",
+      undo: "復原",
+      /** 復原時寫入稽核的原因（使用者看不到，屬於操作軌跡） */
+      undoReason: "復原上一次隱藏操作",
+      undoDone: "已復原",
+      failed: "操作失敗，請稍後再試",
+      forbidden: "需要主辦或協調員權限才能修改名單",
+      cancel: "取消",
+      confirm: "確定",
+      processing: "處理中…",
+    },
     statusLabels: {
       PENDING_PAYMENT: "待付款",
       CONFIRMED: "已確認",

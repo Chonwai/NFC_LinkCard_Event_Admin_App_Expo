@@ -109,8 +109,20 @@ export interface Registration {
   // 那正是 `approvedBy` 已經犯過的錯。要顯示，先換資料來源。
   /** 誰核銷／修正了報到（稽核軌跡）。 */
   checkedInBy?: string | null;
+  /**
+   * 報名是否被主辦「隱藏」（資料品質管理，不是封存）。
+   *
+   * 只有 `GET /:eventId/registrations` 的 select 有這一欄
+   * （`EventRegistrationService.listRegistrations`），`by-code` 沒有——
+   * 同上一段警告：詳情頁不得渲染它。
+   */
+  isHidden?: boolean | null;
+  /** 隱藏原因（`hide` 的 `reason`）。 */
+  hiddenReason?: string | null;
   /** 封存時間；非 null 表示已被主辦封存。 */
   archivedAt?: string | null;
+  /** 封存原因（`archive` 的 `reason`）。 */
+  archivedReason?: string | null;
   /** 保證金退款時間；非 null 即「已退」。 */
   depositRefundedAt?: string | null;
   depositRefundedBy?: string | null;

@@ -92,6 +92,51 @@ export const registrationService = {
   },
 
   /**
+   * POST /v1/events/:eventId/registrations/:registrationId/hide
+   *
+   * 主辦的「資料品質管理」：把一筆報名從預設名單中隱藏（不是刪除、不是封存）。
+   * 對應 Web `lib/events/registrations.ts` 的 `hideRegistration`。
+   *
+   * `reason` **必填**：後端 trim 後寫入稽核（`hiddenReason`）。畫面不得送出空白
+   * 字串——那會讓後端的稽核留下「有隱藏、無理由」的紀錄。
+   *
+   * 失敗語意（`error.response.data.error.code`）：
+   * - `403 INSUFFICIENT_PERMISSION` — 需 owner／SUPER_ADMIN／COORDINATOR
+   * - `404 REGISTRATION_NOT_FOUND` — 無此報名或不屬於此活動
+   */
+  async hide(
+    eventId: string,
+    registrationId: string,
+    reason: string,
+  ): Promise<{ registration: Registration }> {
+    const res = await apiClient.post<
+      ApiResponse<{ registration: Registration }>
+    >(
+      `/api/v1/events/${encodeURIComponent(eventId)}/registrations/${encodeURIComponent(registrationId)}/hide`,
+      { reason },
+    );
+    return res.data.data;
+  },
+
+  /**
+   * POST /v1/events/:eventId/registrations/:registrationId/unhide
+   *
+   * `hide` 的反向操作。**不帶 body**：後端不需要理由，送一個空物件反而會讓
+   * 「這條端點收什麼」變得含糊。
+   */
+  async unhide(
+    eventId: string,
+    registrationId: string,
+  ): Promise<{ registration: Registration }> {
+    const res = await apiClient.post<
+      ApiResponse<{ registration: Registration }>
+    >(
+      `/api/v1/events/${encodeURIComponent(eventId)}/registrations/${encodeURIComponent(registrationId)}/unhide`,
+    );
+    return res.data.data;
+  },
+
+  /**
    * GET /v1/events/:eventId/wallet/:registrationId/transactions
    *
    * 後端分頁（預設 `page=1&limit=20`）且回傳 `pagination`。**必須轉發**——
