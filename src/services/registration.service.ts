@@ -240,6 +240,27 @@ export const registrationService = {
   },
 
   /**
+   * GET /v1/events/:eventId/export/attendees
+   *
+   * 後台下載報名名單（CSV **文字**）。對應 Web `exportAttendeesCsv`。
+   *
+   * ## 為何回傳字串而不是檔案
+   * 這一層只負責拿資料；「怎麼交到使用者手上」是畫面的事。Web 交给
+   * `downloadTextFile`，App 没有檔案系統就交给 `Share`/剪貼簿——把下載行為
+   * 綁死在這裡，任何想在報表或測試裡重用這份 CSV 的呼叫端都得先欺騙環境。
+   *
+   * ## 這是大量 PII 讀取
+   * 後端有 `authMiddleware` + 寫入權限檢查，且每次匯出都寫一筆稽核
+   * （誰、哪個活動、幾筆）。呼叫端不該另外記錄。
+   */
+  async exportAttendeesCsv(eventId: string): Promise<string> {
+    const res = await apiClient.get<ApiResponse<{ csv: string }>>(
+      `/api/v1/events/${encodeURIComponent(eventId)}/export/attendees`,
+    );
+    return res.data.data.csv;
+  },
+
+  /**
    * GET /v1/events/:eventId/wallet/:registrationId/transactions
    *
    * 後端分頁（預設 `page=1&limit=20`）且回傳 `pagination`。**必須轉發**——

@@ -25,12 +25,15 @@ let nextPost = () => ({
   data: { data: { registration: { id: "reg-1" } } },
 });
 
+/** 下一次 `get` 要回什麼。 */
+let nextGet = () => ({ data: { data: {} } });
+
 mock.module("@/services/api", {
   namedExports: {
     apiClient: {
       get: async (url) => {
         calls.push({ url, body: undefined });
-        return { data: { data: {} } };
+        return nextGet();
       },
       post: async (url, body) => {
         calls.push({ url, body });
@@ -216,4 +219,16 @@ test("markDepositRefund 只帶 amount 時不硬塞空字串（BE 的 optional �
   });
 
   assert.deepEqual(calls[0].body, { amount: 0.01 });
+});
+
+test("exportAttendeesCsv GET /events/:eventId/export/attendees 並回傳 csv 字串", async () => {
+  calls.length = 0;
+  // 這支走 apiClient.get，不是 post。
+  nextGet = () => ({ data: { data: { csv: "name,email\nA,a@x.com" } } });
+
+  const csv = await registrationService.exportAttendeesCsv("evt 1/2");
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url, "/api/v1/events/evt%201%2F2/export/attendees");
+  assert.equal(csv, "name,email\nA,a@x.com");
 });

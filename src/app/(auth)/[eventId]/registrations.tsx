@@ -5,6 +5,7 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -245,13 +246,18 @@ export default function RegistrationsScreen() {
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  /** 上一次成功的操作；有值才顯示「復原」橫幅（對應 Web 的 undo toast）。 */
-  const [undo, setUndo] = useState<{
-    reg: Registration;
-    /** `null`＝這次操作沒有復原路徑（狀態修正）；橫幅只顯示文字。 */
-    reverse: ManageAction | null;
+  /**
+   * 上一次成功操作的提示。有值才顯示頂部橫幅。
+   *
+   * `undo` 有值才長出「復原」鈕：匯出這類一次性提示沒有反向操作。
+   */
+  const [notice, setNotice] = useState<{
     message: string;
+    /** 匯出失敗／無資料不是「成功」，橫幅顏色要跟隨事實。 */
+    tone: "success" | "danger";
+    undo?: { reg: Registration; reverse: ManageAction };
   } | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const requestKey = `${eventId ?? ""}:${status}`;
   const loading = Boolean(eventId) && loadedKey !== requestKey && !error;
@@ -429,10 +435,11 @@ export default function RegistrationsScreen() {
       setActionError(null);
       try {
         await performManageAction(eventId, reg, action, draft);
-        setUndo({
-          reg,
-          reverse: REVERSE_ACTION[action] ?? null,
+        const reverse = REVERSE_ACTION[action];
+        setNotice({
           message: actionCopyFor(reg, action).done,
+          tone: "success",
+          ...(reverse ? { undo: { reg, reverse } } : {}),
         });
         setManage(null);
         setPendingAction(null);
@@ -459,9 +466,10 @@ export default function RegistrationsScreen() {
    * 這裡對齊。
    */
   const runUndo = useCallback(async () => {
-    if (!eventId || !undo || undo.reverse === null) return;
-    const { reg, reverse } = undo;
-    setUndo(null);
+    const pendingUndo = notice?.undo;
+    if (!eventId || !pendingUndo) return;
+    const { reg, reverse } = pendingUndo;
+    setNotice(null);
     try {
       await performManageAction(eventId, reg, reverse, {
         reason: copy.roster.manage.undoReason,
@@ -477,7 +485,64 @@ export default function RegistrationsScreen() {
           : copy.roster.manage.failed,
       );
     }
-  }, [eventId, refresh, undo]);
+  }, [eventId, refresh, notice]);
+
+  /**
+   * 匯出報名名單（CSV）。
+   *
+   * Web 用 `downloadTextFile` 直接把檔案丟給瀏覽器；App **沒有檔案系統**，
+   * 所以改走系統分享（`Share` 是 React Native 核心元件，零新依賴）——
+   * 使用者可以把 CSV 存到檔案、寄出或丟進雲端硬碟。
+   *
+   * 分享不可用時退回剪貼簿（`expo-clipboard` 已在用）。兩條路都讓操作者
+   * **真的拿到**那份 CSV；只顯示「已匯出」而不給內容就是說謊。
+   *
+   * ⚠️ 已知限制（誠實邊界）：大檔（數千列以上）走 `Share` 的 `message`
+   * 在部分 Android 版本會被 intent 大小上限截斷或直接失敗；失敗會落到
+   * 剪貼簿那條，但剪貼簿本身也有大小限制。要真正「下載檔案」需要
+   * `expo-file-system` + `expo-sharing` 兩個新依賴，依指示沒有自行加。
+   */
+  const handleExport = useCallback(async () => {
+    if (!eventId || exporting) return;
+    setExporting(true);
+    setNotice(null);
+    try {
+      const csv = await registrationService.exportAttendeesCsv(eventId);
+
+      /*
+       * 「有沒有資料」看換行而不是看字串長度：表頭固定存在，所以只有表頭時
+       * 整份 CSV 不含任何 `\n`（表頭本身不會被引號包住）。
+       */
+      if (!csv.includes("\n")) {
+        setNotice({ message: copy.roster.manage.exportEmpty, tone: "danger" });
+        return;
+      }
+
+      try {
+        await Share.share({ message: csv });
+        setNotice({
+          message: copy.roster.manage.exportShareOpened,
+          tone: "success",
+        });
+      } catch {
+        await Clipboard.setStringAsync(csv);
+        setNotice({
+          message: copy.roster.manage.exportCopied,
+          tone: "success",
+        });
+      }
+    } catch (err) {
+      setNotice({
+        message:
+          getApiErrorStatus(err) === 403
+            ? copy.roster.manage.forbidden
+            : copy.roster.manage.exportFailed,
+        tone: "danger",
+      });
+    } finally {
+      setExporting(false);
+    }
+  }, [eventId, exporting]);
 
   if (!eventId) {
     return (
@@ -530,24 +595,55 @@ export default function RegistrationsScreen() {
         ListHeaderComponent={
           <View style={styles.headerBlock}>
             {error ? <InlineBanner tone="danger" message={error} /> : null}
-            {undo ? (
+            {notice ? (
               <InlineBanner
-                tone="success"
-                message={undo.message}
+                tone={notice.tone}
+                message={notice.message}
                 actionLabel={
-                  undo.reverse === null ? undefined : copy.roster.manage.undo
+                  notice.undo ? copy.roster.manage.undo : undefined
                 }
                 onAction={
-                  undo.reverse === null
-                    ? undefined
-                    : () => {
+                  notice.undo
+                    ? () => {
                         void runUndo();
                       }
+                    : undefined
                 }
                 dismissible
-                onDismiss={() => setUndo(null)}
+                onDismiss={() => setNotice(null)}
               />
             ) : null}
+            {/* 匯出：對應 Web 標題列的「下載名單（CSV）」 */}
+            <View style={styles.headerActions}>
+              <Pressable
+                onPress={() => {
+                  void handleExport();
+                }}
+                disabled={exporting}
+                style={({ pressed }) => [
+                  styles.headerAction,
+                  pressed && styles.rowPressed,
+                  exporting && styles.headerActionDisabled,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel={copy.roster.manage.exportOpen}
+                accessibilityState={{ disabled: exporting, busy: exporting }}
+              >
+                <Icon
+                  name="clipboard-check"
+                  size="sm"
+                  color={semantic.text.secondary}
+                />
+                <Text
+                  style={styles.headerActionText}
+                  maxFontSizeMultiplier={layout.maxFontScaleFixed}
+                >
+                  {exporting
+                    ? copy.roster.manage.exporting
+                    : copy.roster.manage.exportAction}
+                </Text>
+              </Pressable>
+            </View>
             <TextInput
               value={query}
               onChangeText={setQuery}
@@ -964,6 +1060,27 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: semantic.bg.canvas },
   emptyBody: { flex: 1, padding: spacing.screen, justifyContent: "center" },
   headerBlock: { gap: space[3], marginBottom: space[2] },
+  headerActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+  },
+  headerAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space[1],
+    minHeight: layout.touchMin,
+    paddingHorizontal: space[3],
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: semantic.border.interactive,
+    backgroundColor: semantic.bg.surface,
+  },
+  headerActionDisabled: { opacity: 0.5 },
+  headerActionText: {
+    ...type.caption,
+    color: semantic.text.secondary,
+    fontWeight: "600",
+  },
   search: {
     backgroundColor: semantic.bg.surface,
     borderWidth: 1,

@@ -391,6 +391,15 @@ export const copy = {
       refundAmountInvalid: "退款金額需大於 0",
       refundReferenceLabel: "匯款參考號（選填）",
       refundNoteLabel: "備註（選填）",
+      /** 匯出報名名單（Web `exportAttendeesCsv`）。App 沒有檔案系統，走分享／剪貼簿。 */
+      exportAction: "匯出",
+      exportOpen: "匯出報名名單",
+      exporting: "匯出中…",
+      exportShareOpened: "已開啟分享，請選擇存檔或傳送",
+      exportCopied: "無法開啟分享，CSV 已複製到剪貼簿",
+      /** 後端只匯出 CONFIRMED；沒有資料時只有表頭，不該誤報「已匯出」 */
+      exportEmpty: "沒有可匯出的報名（後端只匯出已確認者）",
+      exportFailed: "匯出失敗，請稍後再試",
       undo: "復原",
       /** 復原時寫入稽核的原因（使用者看不到，屬於操作軌跡） */
       undoReason: "復原上一次隱藏或封存操作",
