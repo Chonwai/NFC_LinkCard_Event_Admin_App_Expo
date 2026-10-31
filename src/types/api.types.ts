@@ -224,3 +224,34 @@ export interface RecordNfcExchangeResult {
   exchangeId?: string;
   contactsExchanged?: number;
 }
+
+/**
+ * 一種資源的計數（`GET /api/v1/events/:eventId/manage-stats` 每個 key 的形狀）。
+ *
+ * `byStatus` 只列**真的有資料**的狀態——BE `EventService.getManageStats`
+ * （`BE:src/events/services/EventService.ts:633`）刻意不補 0，所以呼叫端要自己
+ * 用 `?? 0` 取值。把「狀態不存在」與「該狀態 0 筆」混為一談，會讓剛開好的活動
+ * 看起來像載入失敗。
+ *
+ * 鏡射 `FE:lib/events/events.ts:130`（`ResourceCounts`），逐字同構。
+ */
+export interface ResourceCounts {
+  total: number;
+  byStatus: Record<string, number>;
+}
+
+/**
+ * 管理後台聚合計數（`GET /api/v1/events/:eventId/manage-stats`）。
+ *
+ * 一次拿齊報名／參展／轉帳的數量，取代「每個數字各打一次列表端點讀
+ * `pagination.total`」。鏡射 `FE:lib/events/events.ts:136`。
+ *
+ * 需要活動**寫入權限**（BE `EventController.getManageStats` 以
+ * `getEventWriteAccess === 'ALLOWED'` 把關）；OPERATOR 回 403——業務數字不給
+ * 操作員。這與 `my-access` 的 `canManage` 是同一條判定。
+ */
+export interface EventManageStats {
+  registrations: ResourceCounts;
+  exhibitors: ResourceCounts;
+  bankTransfers: ResourceCounts;
+}

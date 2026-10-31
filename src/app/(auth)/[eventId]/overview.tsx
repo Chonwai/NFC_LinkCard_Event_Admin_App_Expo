@@ -19,6 +19,7 @@ import { eventService } from "@/services/event.service";
 import { useEventStore } from "@/stores/event.store";
 import { formatCount, getCountUnavailableHint } from "@/utils/count-display";
 import { getEventStatusLabel, EVENT_STATUS_TONE } from "@/utils/event-status";
+import { deriveRegistrationCounts } from "@/utils/manage-stats";
 
 interface StatItem {
   key: string;
@@ -209,20 +210,16 @@ export default function EventOverviewScreen() {
           return;
         }
 
-        const [totalRes, checkedInRes] = await Promise.all([
-          eventService.getRegistrations(eventId, { limit: 1 }),
-          eventService.getRegistrations(eventId, {
-            limit: 1,
-            status: "CHECKED_IN",
-          }),
-        ]);
+        const manageStats = await eventService.getEventManageStats(eventId);
         if (!active) return;
-        setStats(
-          buildStats({
-            total: totalRes.pagination?.total ?? localTotal,
-            checkedIn: checkedInRes.pagination?.total ?? null,
-          }),
-        );
+        /**
+         * 一次請求換兩個數字（parity §G-10）。
+         *
+         * 推導規則（含「缺 key 不等於 0」）抽在 `deriveRegistrationCounts`，
+         * 因為畫面檔在這裡驗不到邊界行為。
+         */
+        const counts = deriveRegistrationCounts(manageStats, localTotal);
+        setStats(buildStats(counts));
         setTokenStats(buildTokenStats());
       } catch {
         if (!active) return;

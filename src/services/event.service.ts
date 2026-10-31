@@ -1,5 +1,6 @@
 import type {
   ApiResponse,
+  EventManageStats,
   ManagedEventItem,
   Registration,
   TicketTypeItem,
@@ -85,6 +86,25 @@ export const eventService = {
   async getMyAccess(eventId: string): Promise<EventAccess> {
     const res = await apiClient.get<ApiResponse<EventAccess>>(
       `/api/v1/events/${encodeURIComponent(eventId)}/my-access`,
+    );
+    return res.data.data;
+  },
+
+  /**
+   * GET /v1/events/:eventId/manage-stats — 一次拿齊報名／參展／轉帳的計數。
+   *
+   * 取代舊做法：每個數字各打一次列表端點讀 `pagination.total`。overview 原本
+   * 為了「報名總數」與「已報到數」各發一次 `getRegistrations({limit: 1})`，
+   * 兩支請求換兩個整數（parity §G-10 的後半）。
+   *
+   * 權限與 `my-access` 的 `canManage` 是**同一個判定**（後端
+   * `EventController.getManageStats` 用 `getEventWriteAccess === 'ALLOWED'`，
+   * 而 `my-access` 的 `canManage` 正是同一條式子的結果），所以 `canManage` 為真
+   * 時這支不會 403。OPERATOR 兩邊都被擋，不會出現「看得到入口卻撞牆」。
+   */
+  async getEventManageStats(eventId: string): Promise<EventManageStats> {
+    const res = await apiClient.get<ApiResponse<EventManageStats>>(
+      `/api/v1/events/${encodeURIComponent(eventId)}/manage-stats`,
     );
     return res.data.data;
   },
