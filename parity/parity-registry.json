@@ -122,11 +122,17 @@
       ],
       "verdict": "APP_GAP",
       "gapId": "G-6",
+      "status": "ready-to-implement",
       "decidedIn": "docs/analysis/adminapp-parity-20261028/04-gap-register.md#G-6",
       "evidence": [
-        "Web: exportAttendeesCsv／hide／unhide／archive／unarchive／退款登記／狀態更正／depositRefundFilter",
-        "App: 狀態篩選、前端搜尋、排序、分頁（只讀）",
-        "相關缺陷：G-3 錢包欄位與分頁、G-4 型別缺退款稽查欄位"
+        "已對齊（2026-11-01）：隱藏／取消隱藏／封存／取消封存／狀態更正／押金退款登記／匯出 CSV——service 逐條在 src/services/registration.service.ts:112/132/153/172/202/325/353，七條 method+path 由 tests/registration-admin-calls-contract.test.mjs 釘住；管理面板動作表在 registrations.tsx:103",
+        "已對齊（2026-11-01）：email 狀態徽章——型別 src/types/api.types.ts 的 RegistrationEmailStatus，呈現規則 src/utils/registration-email-status.ts，列表渲染 registrations.tsx:1020；缺失時顯示「未知」而不是假裝有",
+        "已對齊（2026-11-01）：複製付款連結（只在 PENDING_PAYMENT）——registrations.tsx:1198，路徑由 utils/registration-display.ts 的 buildRegistrationPaymentUrl 組裝（與 Web 同一條 /events/{id}/payment?code=）",
+        "已對齊（2026-11-01）：重寄確認信——service src/services/registration.service.ts:303；動作表 registrations.tsx:103，出現條件 utils/registration-email-status.ts 的 isConfirmationNotDelivered（逐字對齊 Web drawer）",
+        "已對齊（2026-11-01）：批次寄送 claim email——service registration.service.ts:242（唯讀探針，?readonly=1 寫死、沒有參數可以傳錯）與 :271（逐筆寄送）；面板 src/components/roster/BatchSendClaimEmailModal.tsx，入口 registrations.tsx:794",
+        "已對齊（2026-11-01）：詳情頁改以名單快取為資料來源——src/utils/registration-list-cache.ts；可見性／押金退款區塊在 src/app/(auth)/[eventId]/registrant/[registrationId].tsx:264/292，深連結退回 by-code 時以 roster.detailFallbackHint 明說缺什麼",
+        "仍未對齊（3 項，見 04 §G-6「剩下的三項」）：① VIP／貴賓名單批次匯入（Web page.tsx:307，App 無，需要新依賴）；② email 狀態篩選（Web page.tsx:435-450，App 只有徽章、沒有篩選）；③ 取得／複製 activation link（Web drawer:429-477；App 只做唯讀探針，簽發路徑刻意未開）",
+        "verdict 維持 APP_GAP 而不是 ALIGNED：ALIGNED 必須是全部對齊，上面 3 項還沒有"
       ]
     },
     {
@@ -337,8 +343,16 @@
       "severity": "P1",
       "owner": "product+finance",
       "size": "M",
-      "status": "decision-needed",
-      "fixedOn": []
+      "status": "ready-to-implement",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/04-gap-register.md#G-6",
+      "fixedOn": [
+        "19b2579",
+        "38c2e13",
+        "1cbe2f4",
+        "a918f6a",
+        "861b7ca",
+        "18e959f"
+      ]
     },
     {
       "id": "G-7",

@@ -418,6 +418,55 @@ canInviteAdmins, role}`，Web 早就在用。App 打一次，把四個布林當�
 
 ### G-6 名單的管理動作（P1，能力，需要決策）
 
+#### 2026-11-01 收尾記錄：G-6 的範圍已交付，但 `registrations` **不是** ALIGNED
+
+這一節原本的判準是「Web 能匯出 CSV、隱藏／封存、登記退款、更正狀態；App 只能查」。
+那個判準**已經沒有了**：以下七條呼叫與對應 UI 都已落在
+`feat/nfc-gate1-reader-spike` 上，逐條 commit 可回溯。
+
+| 能力                                                         | 落點                                                                                                   | commit    |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ | --------- |
+| email 狀態徽章（七態；缺失顯示「未知」）                     | `src/utils/registration-email-status.ts`、`registrations.tsx:1020`                                     | `19b2579` |
+| 複製付款連結（只在 `PENDING_PAYMENT`）                       | `registrations.tsx:1198`、`registration-display.ts` 的 `buildRegistrationPaymentUrl`                   | `38c2e13` |
+| 重寄確認信（條件逐字對齊 Web drawer）                        | `registration.service.ts:303`、`isConfirmationNotDelivered`                                            | `1cbe2f4` |
+| 批次寄送 claim email（探針 `?readonly=1` 寫死）              | `registration.service.ts:242/271`、`components/roster/BatchSendClaimEmailModal.tsx`                    | `a918f6a` |
+| 詳情頁改吃名單快取（可見性／押金退款／email 狀態／報到人員） | `utils/registration-list-cache.ts`、`src/app/(auth)/[eventId]/registrant/[registrationId].tsx:264/292` | `861b7ca` |
+| 七條呼叫的 method+path 契約鎖                                | `tests/registration-admin-calls-contract.test.mjs`                                                     | `18e959f` |
+
+`?readonly=1` 那條特別記在這裡，因為它是**最容易在下一次重構時被拿掉**的一行：
+同一條 `GET …/activation-link` 的預設行為是當場簽發 token，少了 `readonly=1`
+就會在開啟批次面板時把每個 `pending_claim` 變成 `has_token`，預設收件人於是歸零
+（`AA-F-01`）。防線放在 service：`getActivationLinkStatus(eventId, registrationId)`
+沒有第三個參數可以傳錯，`?readonly=1` 直接寫在 URL 上
+（`src/services/registration.service.ts:242`），並由
+`tests/registration-email-send-service.test.mjs` 釘住「URL 尾端必須剛好是
+`?readonly=1`」。
+
+**但 `registrations` 的 verdict 維持 `APP_GAP`。** ALIGNED 必須是全部對齊，
+而同一頁還有三項沒做：
+
+1. **VIP／貴賓名單批次匯入** —— Web
+   `LinkCard_Frontend@app/(event)/manage/[eventId]/registrations/page.tsx:307`
+   （`LC-TTE P0'`）。App 沒有，且**需要新依賴**才能做（批次匯入要檔案讀取與上傳
+   通道，App 目前沒有任何檔案系統依賴）。這是唯一「需要新依賴」的一項，不是
+   可以在這一輪順手補完的東西。
+2. **email 狀態篩選** —— Web
+   `LinkCard_Frontend@app/(event)/manage/[eventId]/registrations/page.tsx:435-450`
+   有全部／待處理／寄送失敗／已領取四段篩選。App 這一輪只做到**顯示**徽章，
+   還沒有篩選（`matchesEmailStatusFilter` 沒有 counterpart）。
+3. **取得／複製 activation link** —— Web `RegistrationDetailDrawer.tsx:429-477`
+   （`getRegistrationActivationLink(..., { issue: true })`，管理員可取得一條可轉傳的
+   連結）。App 這一輪**刻意**只做唯讀探針，沒有開簽發路徑：簽發會鑄 token，
+   在手機上沒有對應的誤用防護設計。要做，得先決定「誰能看到／轉傳一條能啟用帳號的
+   連結」，那是政策問題，不是介面問題。
+
+因此 `parity-registry.json` 的 `G-6` 從 `decision-needed` 移出（政策已定：
+全面對齊），改為 `ready-to-implement` 並保留 `fixedOn` 六個 commit，
+`status` 不再宣稱「已修完」。要把 `registrations` 標成 `ALIGNED`，上面三項得先落地
+——**不要因為六個 commit 看起來很多就提前結案**。
+
+---
+
 Web 能匯出 CSV、隱藏／封存、登記退款、更正狀態。App 只能查。
 
 2026-10-29 實測的 App 現況：`registrations.tsx`（644 行）只有篩選、複製 email、
