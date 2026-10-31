@@ -359,7 +359,7 @@ function CardRow({
             onChangeText={(title) => patch({ title })}
             maxLength={CARD_TITLE_MAX}
             required
-            testID="content-card-title"
+            testID={`content-card-title-${card.id}`}
           />
           <FieldInput
             label={copy.content.cardDescription}
@@ -367,14 +367,14 @@ function CardRow({
             onChangeText={(description) => patch({ description })}
             maxLength={CARD_DESCRIPTION_MAX}
             multiline
-            testID="content-card-description"
+            testID={`content-card-description-${card.id}`}
           />
           <FieldInput
             label={copy.content.buttonLabel}
             value={form.actionLabel}
             onChangeText={(actionLabel) => patch({ actionLabel })}
             maxLength={CARD_ACTION_LABEL_MAX}
-            testID="content-card-action-label"
+            testID={`content-card-action-label-${card.id}`}
           />
           <FieldInput
             label={copy.content.buttonUrl}
@@ -382,12 +382,12 @@ function CardRow({
             onChangeText={(actionUrl) => patch({ actionUrl })}
             keyboardType="url"
             autoCapitalize="none"
-            testID="content-card-action-url"
+            testID={`content-card-action-url-${card.id}`}
           />
           <PublishCheckbox
             value={form.isPublished}
             onToggle={() => patch({ isPublished: !form.isPublished })}
-            testID="content-card-published"
+            testID={`content-card-published-${card.id}`}
           />
 
           {error ? (
@@ -398,14 +398,14 @@ function CardRow({
             label={saving ? copy.content.saving : copy.content.save}
             loading={saving}
             onPress={() => void save()}
-            testID="content-card-save"
+            testID={`content-card-save-${card.id}`}
           />
           <Button
             label={copy.content.cancel}
             variant="secondary"
             onPress={() => setEditing(false)}
             disabled={saving}
-            testID="content-card-cancel"
+            testID={`content-card-cancel-${card.id}`}
           />
         </View>
       ) : (
@@ -569,7 +569,7 @@ function SectionBlock({
               value={form.title}
               onChangeText={(title) => patch({ title })}
               maxLength={SECTION_TITLE_MAX}
-              testID="content-section-title"
+              testID={`content-section-title-${section.id}`}
             />
             <FieldInput
               label={copy.content.sectionDescription}
@@ -577,7 +577,7 @@ function SectionBlock({
               onChangeText={(description) => patch({ description })}
               maxLength={SECTION_DESCRIPTION_MAX}
               multiline
-              testID="content-section-description"
+              testID={`content-section-description-${section.id}`}
             />
             <ChoiceChips
               label={copy.content.columnsLabel}
@@ -587,12 +587,12 @@ function SectionBlock({
               onSelect={(value) =>
                 patch({ gridColumns: Number(value) as PageSectionGridColumns })
               }
-              testID="content-section-columns"
+              testID={`content-section-columns-${section.id}`}
             />
             <PublishCheckbox
               value={form.isPublished}
               onToggle={() => patch({ isPublished: !form.isPublished })}
-              testID="content-section-published"
+              testID={`content-section-published-${section.id}`}
             />
 
             {error ? (
@@ -603,14 +603,14 @@ function SectionBlock({
               label={saving ? copy.content.saving : copy.content.save}
               loading={saving}
               onPress={() => void save()}
-              testID="content-section-save"
+              testID={`content-section-save-${section.id}`}
             />
             <Button
               label={copy.content.cancel}
               variant="secondary"
               onPress={() => setEditing(false)}
               disabled={saving}
-              testID="content-section-cancel"
+              testID={`content-section-cancel-${section.id}`}
             />
           </>
         ) : (
