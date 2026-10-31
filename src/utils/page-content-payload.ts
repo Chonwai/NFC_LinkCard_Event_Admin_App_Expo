@@ -1,5 +1,7 @@
 import type {
+  PageCardPayload,
   PageSection,
+  PageSectionCard,
   PageSectionGridColumns,
   PageSectionPayload,
 } from "@/types/api.types";
@@ -78,6 +80,71 @@ export function toSectionPayload(form: SectionFormState): PageSectionPayload {
     title: form.title || null,
     description: form.description || null,
     gridColumns: form.gridColumns,
+    isPublished: form.isPublished,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 卡片（card）
+// ---------------------------------------------------------------------------
+
+/**
+ * 卡片編輯表單。
+ *
+ * ⚠️ **只有五欄**。`PageSectionCard` 上還有 `badgeText`／`iconKey`／`imageUrl`
+ * 三個事件頁改不到的欄位，它們**不進表單**，也因此不會進 PATCH body。
+ * 理由見 `content.service.ts` 檔頭：後端 `updateCard` 逐欄 `hasOwn`，
+ * 送 `null` 就是清空——在 Web 上傳的卡片圖會被手機清掉。
+ */
+export interface CardFormState {
+  title: string;
+  description: string;
+  actionLabel: string;
+  actionUrl: string;
+  isPublished: boolean;
+}
+
+/** 卡片標題上限（後端 `@MaxLength(60)` ＋ `@IsNotEmpty`）。 */
+export const CARD_TITLE_MAX = 60;
+
+/** 卡片說明上限（後端 `@MaxLength(200)`）。 */
+export const CARD_DESCRIPTION_MAX = 200;
+
+/** 按鈕文字上限（後端 `@MaxLength(24)`）。 */
+export const CARD_ACTION_LABEL_MAX = 24;
+
+/** 伺服器回來的卡片 → 表單狀態。`title` 是必填，不會是 null。 */
+export function toCardFormState(card: PageSectionCard): CardFormState {
+  return {
+    title: card.title,
+    description: card.description ?? "",
+    actionLabel: card.actionLabel ?? "",
+    actionUrl: card.actionUrl ?? "",
+    isPublished: card.isPublished,
+  };
+}
+
+/**
+ * 卡片表單 → PATCH body。
+ *
+ * **欄位集合恰好五個，一個不多。** 這不是風格問題，是資料保全：
+ * `badgeText`／`iconKey`／`imageUrl` 一旦出現在 body 裡（哪怕是原值，
+ * 更不用說是 `null`），後端 `hasOwn` 就會把它們寫進去。`imageUrl: null`
+ * 等於把 Web 上傳的卡片圖刪掉，而且沒有任何錯誤、沒有任何提示。
+ *
+ * 注意 `title` 與其他欄的處理**不同**：
+ * - 其餘欄位 `x || null`（清空送 null，不是空字串）。
+ * - `title` 原樣送出。後端 `UpdateEventPageCardDto.title` 是
+ *   `@ValidateIf(isProvided) @IsNotEmpty`，空字串會被擋成 400
+ *   `card title cannot be empty`。Web 也是原樣送，這裡不改寫行為——
+ *   硬把它轉成 `null` 反而會**跳過**驗證變成靜默不更新。
+ */
+export function toCardPayload(form: CardFormState): PageCardPayload {
+  return {
+    title: form.title,
+    description: form.description || null,
+    actionLabel: form.actionLabel || null,
+    actionUrl: form.actionUrl || null,
     isPublished: form.isPublished,
   };
 }

@@ -37,10 +37,16 @@ import type {
 } from "@/types/api.types";
 import { getApiErrorMessage } from "@/utils/api-error";
 import {
+  CARD_ACTION_LABEL_MAX,
+  CARD_DESCRIPTION_MAX,
+  CARD_TITLE_MAX,
   SECTION_DESCRIPTION_MAX,
   SECTION_GRID_COLUMN_OPTIONS,
   SECTION_TITLE_MAX,
+  type CardFormState,
   type SectionFormState,
+  toCardFormState,
+  toCardPayload,
   toSectionFormState,
   toSectionPayload,
 } from "@/utils/page-content-payload";
@@ -265,18 +271,138 @@ function PublishBadge({ isPublished }: { isPublished: boolean }) {
   );
 }
 
-/** 一張卡片（唯讀列）。 */
-function CardRow({ card }: { card: PageSectionCard }) {
+/**
+ * 一張卡片。
+ *
+ * 唯讀時是一列（標題 + 發布狀態 + 編輯），按「編輯」展開成五個欄位。
+ *
+ * ## ⚠️ 只編輯五個欄位——這是資料保全，不是偷懶
+ * Web 的 `CardEditor.handleSave` 送的就是 `title`／`description`／
+ * `actionLabel`／`actionUrl`／`isPublished` 五個，**不含** `badgeText`／
+ * `iconKey`／`imageUrl`。後端 `updateCard` 逐欄 `hasOwn(dto, ...)`：沒送＝不動，
+ * 送 `null`＝清空。所以「把型別上有的欄位補齊」＝把 Web 上傳的卡片圖清掉。
+ * 轉換在 `utils/page-content-payload.ts` 的 `toCardPayload`，
+ * 並由 `tests/page-content-payload.test.mjs` 釘住欄位集合。
+ */
+function CardRow({
+  eventId,
+  sectionId,
+  card,
+  onChanged,
+}: {
+  eventId: string;
+  sectionId: string;
+  card: PageSectionCard;
+  onChanged: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState<CardFormState>(() => toCardFormState(card));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function startEditing() {
+    setForm(toCardFormState(card));
+    setError(null);
+    setEditing(true);
+  }
+
+  function patch(next: Partial<CardFormState>) {
+    setForm((current) => ({ ...current, ...next }));
+  }
+
+  async function save() {
+    setSaving(true);
+    setError(null);
+    try {
+      await contentService.updateCard(
+        eventId,
+        sectionId,
+        card.id,
+        toCardPayload(form),
+      );
+      setEditing(false);
+      onChanged();
+    } catch (caught) {
+      setError(getApiErrorMessage(caught, copy.content.saveFailed));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!editing) {
+    return (
+      <View style={styles.cardRow} testID={`content-card-${card.id}`}>
+        <Text
+          style={[type.body, styles.grow]}
+          numberOfLines={2}
+          maxFontSizeMultiplier={layout.maxFontScaleBody}
+        >
+          {card.title}
+        </Text>
+        <PublishBadge isPublished={card.isPublished} />
+        <TextButton
+          label={copy.content.edit}
+          onPress={startEditing}
+          testID={`content-card-edit-${card.id}`}
+        />
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.cardRow} testID={`content-card-${card.id}`}>
-      <Text
-        style={[type.body, styles.grow]}
-        numberOfLines={2}
-        maxFontSizeMultiplier={layout.maxFontScaleBody}
-      >
-        {card.title}
-      </Text>
-      <PublishBadge isPublished={card.isPublished} />
+    <View style={styles.cardEditor} testID={`content-card-editor-${card.id}`}>
+      <FieldInput
+        label={copy.content.cardTitle}
+        value={form.title}
+        onChangeText={(title) => patch({ title })}
+        maxLength={CARD_TITLE_MAX}
+        required
+        testID="content-card-title"
+      />
+      <FieldInput
+        label={copy.content.cardDescription}
+        value={form.description}
+        onChangeText={(description) => patch({ description })}
+        maxLength={CARD_DESCRIPTION_MAX}
+        multiline
+        testID="content-card-description"
+      />
+      <FieldInput
+        label={copy.content.buttonLabel}
+        value={form.actionLabel}
+        onChangeText={(actionLabel) => patch({ actionLabel })}
+        maxLength={CARD_ACTION_LABEL_MAX}
+        testID="content-card-action-label"
+      />
+      <FieldInput
+        label={copy.content.buttonUrl}
+        value={form.actionUrl}
+        onChangeText={(actionUrl) => patch({ actionUrl })}
+        keyboardType="url"
+        autoCapitalize="none"
+        testID="content-card-action-url"
+      />
+      <PublishCheckbox
+        value={form.isPublished}
+        onToggle={() => patch({ isPublished: !form.isPublished })}
+        testID="content-card-published"
+      />
+
+      {error ? <InlineBanner compact tone="danger" message={error} /> : null}
+
+      <Button
+        label={saving ? copy.content.saving : copy.content.save}
+        loading={saving}
+        onPress={() => void save()}
+        testID="content-card-save"
+      />
+      <Button
+        label={copy.content.cancel}
+        variant="secondary"
+        onPress={() => setEditing(false)}
+        disabled={saving}
+        testID="content-card-cancel"
+      />
     </View>
   );
 }
@@ -498,7 +624,13 @@ function SectionBlock({
         {section.cards.length > 0 ? (
           <View style={styles.cardList}>
             {section.cards.map((card) => (
-              <CardRow key={card.id} card={card} />
+              <CardRow
+                key={card.id}
+                eventId={eventId}
+                sectionId={section.id}
+                card={card}
+                onChanged={onChanged}
+              />
             ))}
           </View>
         ) : null}
@@ -710,6 +842,14 @@ const styles = StyleSheet.create({
     gap: space[3],
   },
   cardList: { gap: space[2] },
+  cardEditor: {
+    gap: space[2],
+    padding: space[3],
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: semantic.border.interactiveSelected,
+    backgroundColor: semantic.bg.surface,
+  },
   cardRow: {
     flexDirection: "row",
     alignItems: "center",
