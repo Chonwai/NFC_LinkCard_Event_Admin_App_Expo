@@ -107,6 +107,10 @@ export default function EventTicketTypesScreen() {
   const [formOpen, setFormOpen] = useState(false);
   /** `null` ＝ 新增；有值 ＝ 編輯該票種。 */
   const [editing, setEditing] = useState<AdminTicketType | null>(null);
+  /** 待停用的票種；非 null 時顯示確認框。 */
+  const [pendingDeactivate, setPendingDeactivate] =
+    useState<AdminTicketType | null>(null);
+  const [deactivating, setDeactivating] = useState(false);
   const [feedback, setFeedback] = useState<{
     tone: InlineBannerTone;
     message: string;
@@ -191,6 +195,39 @@ export default function EventTicketTypesScreen() {
     setReloadKey((key) => key + 1);
   }
 
+  /**
+   * 停用（後端是 DELETE，語意是軟刪除——見 `services/ticket-type.service.ts`）。
+   *
+   * 照 Web 的做法：成功後**重新載入列表**，不用回應值拼湊本地狀態。
+   * 「列表現在長什麼樣」只有後端知道（例如 `soldCount` 會被重算）。
+   */
+  async function handleDeactivate() {
+    if (!pendingDeactivate) return;
+
+    setDeactivating(true);
+    try {
+      await ticketTypeService.deactivateTicketType(
+        eventId,
+        pendingDeactivate.id,
+      );
+      setPendingDeactivate(null);
+      setFeedback({
+        tone: "success",
+        message: copy.ticketTypes.deactivateSuccess,
+      });
+      setReloadKey((key) => key + 1);
+    } catch (error) {
+      const outcome = classifyTicketMutationError(error);
+      setPendingDeactivate(null);
+      setFeedback({
+        tone: "danger",
+        message: copy.ticketTypes.mutationErrors[outcome.kind],
+      });
+    } finally {
+      setDeactivating(false);
+    }
+  }
+
   return (
     <View style={styles.screen}>
       <ScreenHeader
@@ -268,6 +305,7 @@ export default function EventTicketTypesScreen() {
                 copied={copiedTicketId === ticket.id}
                 onCopy={() => void handleCopyRegisterLink(ticket)}
                 onEdit={() => openForm(ticket)}
+                onDeactivate={() => setPendingDeactivate(ticket)}
               />
             ))}
           </View>
@@ -283,6 +321,15 @@ export default function EventTicketTypesScreen() {
             setEditing(null);
           }}
           onSaved={handleSaved}
+        />
+      ) : null}
+
+      {pendingDeactivate ? (
+        <DeactivateDialog
+          ticket={pendingDeactivate}
+          busy={deactivating}
+          onConfirm={() => void handleDeactivate()}
+          onCancel={() => setPendingDeactivate(null)}
         />
       ) : null}
     </View>
@@ -303,11 +350,13 @@ function TicketCard({
   copied,
   onCopy,
   onEdit,
+  onDeactivate,
 }: {
   ticket: AdminTicketType;
   copied: boolean;
   onCopy: () => void;
   onEdit: () => void;
+  onDeactivate: () => void;
 }) {
   return (
     <Card testID={`ticket-type-card-${ticket.id}`}>
@@ -389,6 +438,18 @@ function TicketCard({
             testID={`ticket-type-edit-${ticket.id}`}
           />
         </View>
+        {/** Web 也是 `{ticket.isActive && …}`：已停用的票不該再出現停用鈕。 */}
+        {ticket.isActive ? (
+          <View style={styles.actionButton}>
+            <Button
+              label={copy.ticketTypes.deactivate}
+              variant="danger"
+              size="md"
+              onPress={onDeactivate}
+              testID={`ticket-type-deactivate-${ticket.id}`}
+            />
+          </View>
+        ) : null}
       </View>
     </Card>
   );
@@ -684,6 +745,78 @@ function TicketTypeFormModal({
 }
 
 /**
+ * 停用的二次確認。
+ *
+ * Web 也有一個確認框（瀏覽器原生 `confirm()`），但它的文案寫「此操作不可逆」
+ * ——查證後不成立（後端只是把 `isActive` 設成 false，PATCH 可以再開回來；
+ * 而且既有報名從來不受影響）。更重要的是它**沒有說已售出的票會怎樣**，
+ * 而那正是操作員按下確認前最想知道的事。
+ *
+ * 所以這裡把四個後果分開列，一句一件事（見 `copy.ticketTypes.deactivateConfirm`
+ * 與 `services/ticket-type.service.ts` 的 `deactivateTicketType`）。
+ */
+function DeactivateDialog({
+  ticket,
+  busy,
+  onConfirm,
+  onCancel,
+}: {
+  ticket: AdminTicketType;
+  busy: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const lines = [
+    copy.ticketTypes.deactivateConfirm.registrationsUnaffected,
+    copy.ticketTypes.deactivateConfirm.newRegistrationsBlocked,
+    copy.ticketTypes.deactivateConfirm.publicPageHidden,
+    copy.ticketTypes.deactivateConfirm.adminStillVisible,
+  ];
+
+  return (
+    <Modal
+      visible
+      transparent
+      animationType="fade"
+      onRequestClose={() => {
+        if (!busy) onCancel();
+      }}
+    >
+      <View style={styles.backdrop}>
+        <View style={styles.dialog} testID="ticket-type-deactivate-confirm">
+          <Text style={type.h3}>
+            {copy.ticketTypes.deactivateConfirm.title}
+          </Text>
+          <Text style={styles.confirmName}>
+            {copy.ticketTypes.deactivateConfirm.intro(ticket.displayName)}
+          </Text>
+          {lines.map((line) => (
+            <Text key={line} style={styles.confirmBullet}>
+              {"・"}
+              {line}
+            </Text>
+          ))}
+          <Button
+            label={copy.ticketTypes.deactivateConfirm.confirm}
+            variant="dangerSolid"
+            loading={busy}
+            onPress={onConfirm}
+            testID="ticket-type-deactivate-confirm-submit"
+          />
+          <Button
+            label={copy.ticketTypes.deactivateConfirm.cancel}
+            variant="secondary"
+            disabled={busy}
+            onPress={onCancel}
+            testID="ticket-type-deactivate-confirm-cancel"
+          />
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+/**
  * 勾選列。
  *
  * 形狀照搬 `content.tsx` 的 `PublishCheckbox`（同樣是 `Pressable` +
@@ -809,6 +942,7 @@ const styles = StyleSheet.create({
    */
   actions: {
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "flex-end",
     gap: space[2],
     marginTop: space[3],
@@ -839,6 +973,7 @@ const styles = StyleSheet.create({
   confirmRow: { gap: space[1] },
   confirmLine: { ...type.label, color: semantic.text.primary },
   confirmNote: { ...type.caption, color: semantic.text.secondary },
+  confirmBullet: { ...type.body, color: semantic.text.secondary },
   checkboxRow: {
     flexDirection: "row",
     alignItems: "flex-start",

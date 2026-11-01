@@ -1407,6 +1407,37 @@ export const copy = {
       validation: "票種資料未通過後端驗證，請檢查價格、名額與 Token 數量",
       failed: "操作失敗，請稍後再試",
     },
+    /**
+     * 停用的二次確認（**Web 有確認框，但文案與事實不符**）。
+     *
+     * Web 的 `ticketTypes.deactivateConfirm` 是
+     * 「確定停用票種「{{name}}」？此操作不可逆。」
+     * 兩句都經不起查證：
+     *
+     * 1. **不是「不可逆」**——後端 `DELETE …/ticket-types/:id` 只是把
+     *    `isActive` 設成 `false`（`EventTicketTypeService.deactivate`），
+     *    而 `UpdateEventTicketTypeDto` 有 `isActive` 欄位，所以同一張票可以
+     *    用 PATCH 再開回來。Web 的 UI 沒有做那個入口，但「不可逆」是錯的。
+     * 2. **沒有說已售出的票會怎樣**——那是操作員按下確認前最想知道的一件事。
+     *
+     * 所以這一段文案是**照後端行為重寫的**（查證位置見
+     * `services/ticket-type.service.ts` 的 `deactivateTicketType`），
+     * 不是照抄 Web。
+     */
+    deactivateConfirm: {
+      title: "停用票種",
+      intro: (name: string) => `確定停用「${name}」？`,
+      /** `EventRegistrationService:347` / `:1061` 只看 `isActive`，不看歷史資料。 */
+      registrationsUnaffected: "已售出的票與既有報名不受影響，報到照常。",
+      /** 同上：`!ticketType.isActive` ⇒ `TICKET_TYPE_NOT_FOUND`。 */
+      newRegistrationsBlocked: "這個票種不能再被新報名選用。",
+      /** `listPublicTicketTypes` 的 where 有 `isActive: true`。 */
+      publicPageHidden: "公開報名頁不再顯示這個票種。",
+      /** admin 分支不過濾 `isActive`。 */
+      adminStillVisible: "後台仍看得到它，標為「已停用」。",
+      confirm: "確認停用",
+      cancel: "取消",
+    },
   },
   /**
    * 未匹配路由（`app/+not-found.tsx`）。
