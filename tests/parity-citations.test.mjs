@@ -16,6 +16,9 @@
  *   - `Repo@path` 絕對解析（App／Web／Backend 三個 repo 都支援）
  *   - 檔案頂端可宣告 `<!-- citations: Repo -->`，短路徑繼承它
  *   - 只有檔名 → 在兩個 repo 內建索引，唯一命中才算數
+ *   - 裸檔名但本 repo 沒有這個檔 → 一律算錯，必須補 `Repo@` 前綴
+ *     （它只可能存在於 sibling；本機解析成 ok、CI 解析成 ambiguous，
+ *      而紅燈只出現在 CI。2026-11-02 那 5 條就是這樣漏掉的。）
  *
  * 為什麼要有「檔案層級的預設 repo」：01 那一節整張表都是 Web 的檔案，
  * 每列都寫 `LinkCard_Frontend@…` 只會讓表格讀不下去。預設值要寫在檔案裡，
@@ -245,6 +248,37 @@ test("審計文件裡的每一個引用都能解析", () => {
     ambiguous <= 3,
     `${ambiguous} 個引用無法唯一解析，請在文件內補上目錄前綴`,
   );
+
+  // 裸檔名（沒有 `Repo@` 前綴、也不含 `/`）只有在「本 repo 就有這個檔」時才可靠。
+  // 解析器對裸檔名是在所有可用 repo 的索引裡找唯一命中，所以一個只存在於 sibling
+  // 的檔名會：本機（三個 repo 都在）解析成 ok、CI（只 checkout 本 repo）解析成
+  // ambiguous——同一份文件在兩個環境得到不同結論，而紅燈只出現在 CI。
+  // 2026-11-02 那 5 條就是這樣：本機全綠、CI 紅，擋在推 main 前。
+  //
+  // 這條斷言刻意只用「本 repo 的索引」判定，因此與 sibling 在不在無關，兩個環境
+  // 的結論必然相同——本機就能先看到 CI 會看到的問題。
+  const appIndex = buildBasenameIndex(appRoot);
+  const unprefixed = [];
+  for (const name of docs) {
+    const text = readFileSync(path.join(DOC_DIR, name), "utf8");
+    for (const match of text.matchAll(pattern)) {
+      const target = match[1];
+      if (target.startsWith("http") || target.startsWith("//")) continue;
+      const prefixed = KNOWN_REPOS.some((repo) =>
+        target.startsWith(`${repo}@`),
+      );
+      if (prefixed || target.includes("/")) continue;
+      if (!appIndex.has(target)) unprefixed.push(`${name}: ${target}`);
+    }
+  }
+  assert.deepEqual(
+    unprefixed,
+    [],
+    `\n以下引用是裸檔名，但本 repo 沒有這個檔——它只可能在 sibling repo，` +
+      `CI 沒有 sibling 時會解析失敗。請補上 \`Repo@路徑\` 前綴：\n` +
+      unprefixed.join("\n"),
+  );
+
   // 兩個 sibling 都在時，一個引用都不該被跳過；不在時 skipped 由上面的 SKIPPED 交代。
   if (siblingsPresent) {
     assert.equal(

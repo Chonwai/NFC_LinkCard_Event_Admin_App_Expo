@@ -464,7 +464,7 @@ canInviteAdmins, role}`，Web 早就在用。App 打一次，把四個布林當�
    Android 走 MIME 且部分供應商回 `application/octet-stream`——後端白名單放行該
    MIME，真正的格式由 magic byte 判定。
 3. **取得／複製 activation link** —— `49cea1b`。Web
-   `RegistrationDetailDrawer.tsx:429-477`（`getRegistrationActivationLink(...,
+   `LinkCard_Frontend@components/event/registration/RegistrationDetailDrawer.tsx:429-477`（`getRegistrationActivationLink(...,
 { issue: true })`）對應到 `registration.service.ts:282` 的
    `issueActivationLink`（`?issue=1`）；唯讀探針 `:246` 的 `?readonly=1` 維持
    寫死。UI 在 `src/app/(auth)/[eventId]/registrant/[registrationId].tsx:396`：**「查看帳號狀態」與
@@ -678,7 +678,7 @@ B 會從 `S` 回到 `M`。開工前用一次 `grep` 確認，不要沿用本節�
    （`:121` 的 `badgesOfBadgeBatch`）——散卡群組因此真的指得到人。
 2. **派展商的展商清單打四次，不是一次。** Web 的 `openClaimModal` 呼叫
    `listAllExhibitorsAdmin(eventId, { page: 1, limit: 100 })` 而**沒帶 `status`**；
-   後端在 `status` 缺席時**強制**當成 `ACTIVE`（`ExhibitorService.ts:219-222`），
+   後端在 `status` 缺席時**強制**當成 `ACTIVE`（`LinkCard_ExpressJS_Backend@src/events/services/ExhibitorService.ts:219-222`），
    所以 Web 那行的註解「含非 ACTIVE」與事實相反：待審批與已完成的展商一筆都不會
    出現，而它們正是要發手環的對象。App 沿用本 repo 已有的四狀態合併
    （`utils/exhibitor-list.ts`），沿用既有測試覆蓋。
@@ -1168,7 +1168,7 @@ Web」就不成立——是**兩個前端都落後於後端**。
    `deleteSession` 加回 service，該檔 4 條測試立刻轉紅）。
 
 2. **場次現場報到（＝`G-9` 本身）** — `POST /sessions/:sessionId/checkin`
-   存在於後端（`sessions-polls.routes.ts:40-45`），但 **Web 沒有任何 UI 呼叫它**
+   存在於後端（`LinkCard_ExpressJS_Backend@src/events/routes/sessions-polls.routes.ts:40-45`），但 **Web 沒有任何 UI 呼叫它**
    （`grep -rn 'sessions/.*checkin' app components lib hooks` 為空）。
    A2 的對齊是「Web 做得到的事，App 也要做得到」——沒有可對齊的對象，
    App 就不自行發明一個 Web 沒有的現場報到流程。**這一項不是被 blocker 卡住，
@@ -1940,7 +1940,7 @@ method 與路徑由 `87d869c` 釘住，而且不只釘「沒打錯」，同時�
 
 **三處刻意偏離 Web（皆為修缺陷，非加功能）**：
 
-1. **`accept` 用 `POST`**。後端那條路徑只掛 `router.post`（`engagement.routes.ts:45`），
+1. **`accept` 用 `POST`**。後端那條路徑只掛 `router.post`（`LinkCard_ExpressJS_Backend@src/events/routes/engagement.routes.ts:45`），
    Web 寫成 `PATCH`（`LinkCard_Frontend@lib/events/engagement.ts:157`）會 404。那支函式零
    呼叫點，所以錯誤從未被發現——死碼不會喊痛。`tests/org-role-contract.test.mjs` 釘住
    method，已做負向驗證（改回 `PATCH` 會讓 5 條斷言轉紅）。
@@ -1958,7 +1958,7 @@ Web 沒有的入口，而且沒有 token 可輸入。查證結論留在 `src/app
 檔頭，Web 日後若補上接受頁，那裡就是起點。
 
 **「最後一個 OWNER／移除自己」的保護：後端沒有。** 實測
-`EventOrgRoleService.removeOrgRole`（`EventOrgRoleService.ts:121-132`）整支只做「這列
+`EventOrgRoleService.removeOrgRole`（`LinkCard_ExpressJS_Backend@src/events/services/EventOrgRoleService.ts:121-132`）整支只做「這列
 屬於這場活動嗎 → 軟刪除」，全 `src/events/` 也搜不到 `last OWNER` / `SELF_REMOVAL` /
 `LAST_ADMIN`。因此本條的「不要提供註定失敗的按鈕」**不成立**——畫得出來的按鈕都會
 成功。畫面的工作變成「不要畫不該畫的」，照 Web 的兩個條件：
