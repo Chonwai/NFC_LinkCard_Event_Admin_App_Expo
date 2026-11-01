@@ -200,6 +200,18 @@ export function readCommand(page: number): number[] {
   return [0x30, page];
 }
 
+/**
+ * `60h` GET_VERSION（唯讀）。NTAG21x 回 8 bytes，其中 **byte 6 是 storage size**
+ * （`0x11`＝NTAG215、`0x12`＝NTAG213、`0x13`＝NTAG216），見 `variantFromStorageByte`。
+ *
+ * 為什麼上鎖路徑需要它：`lockCard()` 要 `layout` 才能算出 `configPage`／
+ * `pwdPage`／`packPage`，而寫卡走的是 NDEF 抽象層、拿不到型號。三個型號的頁碼
+ * 差很遠（41／131／227），猜錯就是寫到使用者的資料頁上。所以型號只能問卡片。
+ */
+export function getVersionCommand(): number[] {
+  return [0x60];
+}
+
 function assertPage(page: number, label: string): void {
   if (!Number.isInteger(page) || page < 0 || page > 0xff) {
     throw new Error(

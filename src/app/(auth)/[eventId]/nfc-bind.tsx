@@ -29,6 +29,7 @@ import {
   spacing,
   type,
 } from "@/constants/theme";
+import { fetchCardPassword } from "@/services/card-password.service";
 import { nfcService } from "@/services/nfc.service";
 import { registrationService } from "@/services/registration.service";
 import { resolveAttendee, type AttendeeContext } from "@/utils/desk-handoff";
@@ -37,9 +38,18 @@ import {
   type NfcBindFailureKind,
 } from "@/utils/nfc-bind-errors";
 import {
+  authenticateBeforeWrite,
+  generatePack,
+  lockAfterWrite,
+  type CardLockNote,
+} from "@/utils/nfc-lock-after-write";
+import {
   chooseCardPayloadUrl,
+  detectCardLayout,
   isNfcSupported,
+  lockCard,
   previewCardPayloadUrl,
+  pwdAuth,
   startNfc,
   writeUriToCard,
 } from "@/utils/nfc-utils";
@@ -57,7 +67,18 @@ type FlowState =
       tagUid?: string;
       payloadUrl: string;
     } & AttendeeContext)
-  | ({ phase: "done"; tagUid: string; payloadUrl: string } & AttendeeContext);
+  | ({
+      phase: "done";
+      tagUid: string;
+      payloadUrl: string;
+      /**
+       * 寫卡後的上鎖結果（`locked`／`unlocked`／`lock_failed`）。
+       *
+       * 重試綁定那條路徑回 `null`：那裡沒有再碰卡，也就無從得知卡片現在是
+       * 否上鎖。回 `null` 而不是猜一個值——成功卡不該講一件沒驗過的事。
+       */
+      lockNote: CardLockNote | null;
+    } & AttendeeContext);
 
 const BADGE_TYPES: { key: BadgeType; label: string; icon: IconName }[] = [
   { key: "CARD", label: copy.nfc.badgeTypeCard, icon: "check" },
@@ -84,6 +105,20 @@ function writeBlockedMessage(): string | null {
   if (Platform.OS === "web") return copy.nfc.webNotSupported;
   if (Platform.OS === "ios") return copy.nfc.iosWriteNotSupported;
   return null;
+}
+
+/**
+ * 取得上鎖用的卡片密碼；拿不到就是 `null`。
+ *
+ * **絕不 throw、絕不擋寫卡**（`04 §G-8` 與 Web 同一取捨：拿不到密碼 ⇒ 這次不
+ * 上鎖，寫入照樣完成）。失因不進畫面是刻意的：操作員能做的處置對五種失因而言
+ * 是同一個——照發，但知道這張卡沒上鎖。而那就是 `unlocked` 那句話。
+ */
+async function resolveCardPassword(
+  eventId: string,
+): Promise<Uint8Array | null> {
+  const result = await fetchCardPassword(eventId);
+  return result.ok ? result.password : null;
 }
 
 /**
@@ -247,14 +282,19 @@ export default function NfcBindScreen() {
   );
 
   const bindOnly = useCallback(
-    async (ctx: AttendeeContext, tagUid: string, payloadUrl: string) => {
+    async (
+      ctx: AttendeeContext,
+      tagUid: string,
+      payloadUrl: string,
+      lockNote: CardLockNote | null = null,
+    ) => {
       if (!eventId) return;
       setState({ phase: "writing", mode: "bind", ...ctx });
       try {
         await nfcService.bind(eventId, ctx.registrationId, tagUid, {
           badgeType,
         });
-        setState({ phase: "done", tagUid, payloadUrl, ...ctx });
+        setState({ phase: "done", tagUid, payloadUrl, lockNote, ...ctx });
       } catch (error) {
         fail(ctx, error, payloadUrl, tagUid);
       }
@@ -290,6 +330,13 @@ export default function NfcBindScreen() {
           return;
         }
         await startNfc();
+        // 密碼在寫卡**之前**拿：一來晚點上鎖要用，二來拿到就順便驗一次，讓
+        // 「這張卡本來就鎖著、密碼也不對」這種事在還沒動卡之前就看得出來。
+        // 拿不到 ⇒ `null` ⇒ 這次不上鎖，寫卡照樣做（絕不因密碼擋路）。
+        const cardPassword = await resolveCardPassword(eventId);
+        if (cardPassword) {
+          await authenticateBeforeWrite({ password: cardPassword, pwdAuth });
+        }
         // 卡面 URL 由 `chooseCardPayloadUrl` 決定（名片優先、解析器保底）：
         // 有公開名片 ⇒ 只寫 `/p/{slug}`，**一個參數都不帶**（2026-10-30 二次定案：
         // 實體卡無法遠端修改，所以它只能依賴「只由這個人是誰」決定的位置；帶
@@ -304,7 +351,23 @@ export default function NfcBindScreen() {
             }).url,
           { signal: controller.signal },
         );
-        await bindOnly(ctx, tagUid, writtenUri);
+        // 成功路徑上多的這一步：內容已在卡上，接著把卡鎖起來。
+        // `lockAfterWrite` 永不 throw；上鎖失敗不代表寫卡失敗。
+        //
+        // 型號必須問卡片（`detectCardLayout`）：`lockCard` 靠 `configPage`／
+        // `pwdPage` 定位，猜錯型號就是寫進使用者的資料頁。
+        const lockNote = await lockAfterWrite({
+          password: cardPassword,
+          lockCard: async (password) => {
+            const cardLayout = await detectCardLayout({
+              signal: controller.signal,
+            });
+            return lockCard(cardLayout, password, generatePack(), {
+              signal: controller.signal,
+            });
+          },
+        });
+        await bindOnly(ctx, tagUid, writtenUri, lockNote);
       } catch (error) {
         if (classifyNfcBindError(error) === "cancelled") {
           // 使用者主動取消：回確認畫面即可，不該給一張看起來像失敗的卡。
@@ -582,6 +645,33 @@ export default function NfcBindScreen() {
             <Text style={styles.url} selectable>
               {state.payloadUrl}
             </Text>
+            {/*
+              上鎖三態。`locked` 一句話就夠；另兩態都用橫幅，因為它們要說的
+              是「這張卡可以發，但沒有保護」——那是一個需要看見的註記，
+              不是一行灰字。`lock_failed` 刻意用 warning 而不是 danger：
+              內容已經在卡上，把它畫成失敗會讓操作員丟掉一張可用的卡。
+            */}
+            {state.lockNote === "locked" ? (
+              <Text style={[type.caption, styles.stepHint]}>
+                {copy.nfc.lockLocked}
+              </Text>
+            ) : null}
+            {state.lockNote === "unlocked" ? (
+              <InlineBanner
+                compact
+                tone="warning"
+                message={copy.nfc.lockUnlocked}
+                testID="nfc-lock-unlocked"
+              />
+            ) : null}
+            {state.lockNote === "lock_failed" ? (
+              <InlineBanner
+                compact
+                tone="warning"
+                message={`${copy.nfc.lockFailedTitle}。${copy.nfc.lockFailedConsequence}`}
+                testID="nfc-lock-failed"
+              />
+            ) : null}
             <Button label={copy.nfc.continueNext} onPress={reset} />
             <Button
               label={copy.settings.backToEvents}

@@ -157,7 +157,16 @@ describe("J-NFC-WRITE-QUEUE 寫卡流程狀態機 [persona:staff-onsite]", () =>
       /const \{ tagUid, writtenUri \} = await writeUriToCard\(/,
     );
     assert.match(body, /chooseCardPayloadUrl\(\{/);
-    assert.match(body, /await bindOnly\(ctx, tagUid, writtenUri\)/);
+    // 第四個參數是**寫卡後的上鎖結果**（`locked`／`unlocked`／`lock_failed`）。
+    // 它只在內容落地之後才存在，所以它出現在這裡反而是「綁定不可能早於寫入」的
+    // 第二個證據；不要為了讓這一條好維護而把它從簽章拿掉（那是成功卡唯一的來源）。
+    assert.match(body, /await bindOnly\(ctx, tagUid, writtenUri, lockNote\)/);
+    // 上鎖也只能在寫入之後：寫之前上鎖等於把一張空白卡鎖起來。
+    assert.ok(
+      body.indexOf("await writeUriToCard(") <
+        body.indexOf("await lockAfterWrite("),
+      "上鎖必須在寫入之後",
+    );
 
     // 現場看到的字：寫卡失敗 → 自己的文案，不得是成功文案。
     // ① 接線（static）：錯誤映射表把 `write-failed` 指向 `copy.nfc.writeFailed`。

@@ -6,9 +6,11 @@ import {
   NTAG_LAYOUTS,
   classifyPwdAuthResponse,
   classifyWriteAck,
+  getVersionCommand,
   planLockWrites,
   pwdAuthCommand,
   readCommand,
+  variantFromStorageByte,
   writeCommand,
   type LockWrite,
   type NtagLayout,
@@ -796,5 +798,70 @@ export async function lockCard(
 
 /** 佈局表的讀取入口（給呼叫端由 storage byte／型號取得頁碼）。 */
 export function ntagLayout(variant: NtagVariant): NtagLayout {
+  return NTAG_LAYOUTS[variant];
+}
+
+/** `GET_VERSION` 的回應長度（NTAG21x 固定 8 bytes）。 */
+const GET_VERSION_LENGTH = 8;
+
+/** `GET_VERSION` 回應裡的 storage size byte 位置（0-based）。 */
+const GET_VERSION_STORAGE_INDEX = 6;
+
+/**
+ * 問卡片「你是哪一型」，回它對應的頁碼佈局。
+ *
+ * ## 為什麼不能由呼叫端假設型號
+ *
+ * `lockCard()` 要 `layout` 才能算出 `configPage`／`pwdPage`／`packPage`：NTAG213
+ * 是 41／43／44、NTAG215 是 131／133／134、NTAG216 是 227／229／230。這三個數字
+ * 一旦猜錯，寫入不是「上鎖失敗」而是**寫進使用者的資料頁**——那張卡上剛寫好的
+ * 網址會被蓋掉，而且不會有任何錯誤回報。所以型號只能問卡片。
+ *
+ * NDEF 抽象層（`writeUriToCard`）給不出型號，因此這裡另開一個 `NfcA` session 送
+ * `GET_VERSION`（`60h`，唯讀）。它**不改動卡片任何狀態**，這是可以安全重試的。
+ */
+export async function detectCardLayout(options?: {
+  timeoutMs?: number;
+  signal?: AbortSignal;
+}): Promise<NtagLayout> {
+  const version = await withNfcASession(
+    "select",
+    options,
+    async (manager): Promise<Uint8Array> => {
+      let response: number[];
+      try {
+        response = await manager.transceive(getVersionCommand());
+      } catch {
+        throw new NfcLockError(
+          "no-response",
+          "select",
+          "The card did not answer GET_VERSION. Hold it still and try again.",
+          { message: "GET_VERSION got no response" },
+        );
+      }
+      if (!response || response.length < GET_VERSION_LENGTH) {
+        throw new NfcLockError(
+          "unsupported",
+          "select",
+          "The card did not return a version, so its page layout is unknown.",
+          {
+            message: `GET_VERSION returned ${response?.length ?? 0} bytes`,
+          },
+        );
+      }
+      return Uint8Array.from(response.slice(0, GET_VERSION_LENGTH));
+    },
+  );
+
+  const storageByte = version[GET_VERSION_STORAGE_INDEX];
+  const variant = variantFromStorageByte(storageByte);
+  if (variant === null) {
+    throw new NfcLockError(
+      "unsupported",
+      "select",
+      "This card is not a NTAG21x, so it cannot be locked by this app.",
+      { message: `unknown storage size byte 0x${storageByte.toString(16)}` },
+    );
+  }
   return NTAG_LAYOUTS[variant];
 }

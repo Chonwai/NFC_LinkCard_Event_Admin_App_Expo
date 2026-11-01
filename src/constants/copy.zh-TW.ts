@@ -885,6 +885,17 @@ export const copy = {
      */
     payloadTagUidHint: "卡片編號於感應寫入時決定（先讀 UID 再組解析器網址）",
     writtenUid: "卡片編號",
+    /**
+     * 上鎖結果的三態（詞彙照 Web `DeskLockNote`：`locked`／`unlocked`／
+     * `lock_failed`）。三句都必須讓操作員知道「這張卡現在能不能發」——
+     * `lock_failed` 尤其不能寫成「失敗」，內容已經在卡上了。
+     */
+    lockLocked: "卡片已上鎖：日後要有密碼才能改寫它",
+    lockUnlocked:
+      "未上鎖（這次沒有取得密碼）：任何能感應這張卡的裝置都能覆寫它",
+    lockFailedTitle: "卡片已寫好，但沒有上鎖",
+    lockFailedConsequence:
+      "內容正確、可以發放；但這張卡仍可被任何讀卡機覆寫，請勿當成已保護的卡",
     replaceTitle: "換卡 / 補發 / 退卡",
     replaceBlocked: "等待後端 WP-N2。作廢舊卡的端點尚未就緒，這些操作暫不可用",
     replaceCard: "換卡",
