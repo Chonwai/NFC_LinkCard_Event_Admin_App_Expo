@@ -83,7 +83,20 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: space[2] },
+  /**
+   * `minHeight` 不是保險，是唯一的保證。
+   *
+   * 這裡的高度一直是「padding 24 + `type.label` 行高 22 + 邊框 2 = 48」，
+   * 剛好等於 `layout.touchMin`——但那是**碰巧**，不是約定：行高或間距任何
+   * 一個 token 調降 1px，晶片就會無聲掉到 48 以下，而畫面上看不出來。
+   * 寫成 `minHeight` 之後，48 變成下限而不是副產品。
+   *
+   * `justifyContent: "center"` 是 `minHeight` 的必要搭檔：撐高之後多出來的
+   * 空間若留給下方，文字會貼著上緣，看起來像被裁掉。
+   */
   chip: {
+    minHeight: layout.touchMin,
+    justifyContent: "center",
     borderWidth: 1,
     borderColor: semantic.border.interactive,
     borderRadius: radius.md,

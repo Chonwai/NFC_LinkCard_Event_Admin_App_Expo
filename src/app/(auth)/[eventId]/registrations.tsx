@@ -1629,15 +1629,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[3],
     paddingBottom: space[1],
   },
+  /**
+   * 篩選列（狀態／可見性／email 狀態／押金退款共用）。
+   *
+   * 下底線是「選中態」的指示，不是分隔線，所以它算在高度裡：
+   * 20（`type.caption` 行高）+ 8×2（padding）+ 2（下底線）= 38。
+   * 38 低於 `layout.touchMin`（48），實測在 1280×800 上共 16 個同款目標
+   * 全部不達標。加 `minHeight` 把它拉回 48，多出的高度由
+   * `justifyContent: "center"` 吃掉。
+   */
   filterItem: {
     flex: 1,
     minWidth: 0,
+    minHeight: layout.touchMin,
+    justifyContent: "center",
     alignItems: "center",
     paddingVertical: space[2],
     borderBottomWidth: 2,
     borderBottomColor: "transparent",
   },
+  /**
+   * 排序選項（報名時間／姓名）。與 `filterItem` 同一個 38px 成因，但沒有
+   * `flex: 1`，寬度也是內容撐出來的——「姓名」只有 42px 寬，所以寬高都要
+   * 拉到 `layout.touchMin`。
+   */
   sortItem: {
+    minHeight: layout.touchMin,
+    minWidth: layout.touchMin,
+    justifyContent: "center",
     paddingHorizontal: space[2],
     paddingVertical: space[2],
     borderBottomWidth: 2,
