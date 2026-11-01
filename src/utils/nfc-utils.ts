@@ -624,10 +624,22 @@ async function readPage(
   }
 }
 
-/** 在既有 session 上送一次 `PWD_AUTH`。 */
+/**
+ * 在既有 session 上送一次 `PWD_AUTH`。
+ *
+ * `expectedPack` 是**可選**的，而且必須是可選的：
+ *
+ * - 卡片對**任何被接受的密碼**都會回它自己的 PACK，所以「有回應」只能證明
+ *   「這組密碼是這張卡認的」，證明不了「我們寫進去的 PACK 頁有沒有生效」。
+ * - 只有呼叫端**知道自己的 PACK 會是什麼**時才比得上（寫完 PWD/PACK 之後的
+ *   驗證步驟），所以由呼叫端決定要不要帶。
+ * - 上鎖**之前**的驗證刻意不帶：一張「上一輪就鎖好、PACK 頁已是他值」的卡，
+ *   帶了 `expectedPack` 會把一次正常的重寫判成 `pack-mismatch`。
+ */
 async function authenticate(
   manager: NfcManagerInstance,
   password: Uint8Array,
+  expectedPack?: ArrayLike<number> | null,
 ): Promise<PwdAuthOutcome> {
   let response: number[];
   try {
@@ -635,7 +647,7 @@ async function authenticate(
   } catch {
     return { kind: "no-response" };
   }
-  return classifyPwdAuthResponse(response);
+  return classifyPwdAuthResponse(response, expectedPack);
 }
 
 /** 寫入一頁並檢查應答。 */
@@ -728,7 +740,9 @@ export async function pwdAuth(
       "password, or the retry limit may already be used up.";
 
     if (outcome.kind === "pack-mismatch") {
-      // 沒有傳 `expectedPack` 時不會走到這裡；保守起見仍當成協定異常。
+      // `pwdAuth()` 不帶 `expectedPack`，所以這一段是**型別窮盡用的防禦分支**，
+      // 不是真正的失敗路徑。真正的 PACK 比對在 `lockCard()` 寫完 PWD 頁之後的
+      // 驗證步驟——那裡才知道自己期望的 PACK 是什麼。
       throw new NfcLockError("sw-error", "auth", cardState, {
         message:
           `PWD_AUTH returned PACK ${outcome.packHex}, ` +
@@ -874,7 +888,26 @@ export async function lockCard(
     }
 
     // `AUTH0` 寫完保護立即生效 ⇒ 讀回之前必須先驗證。
-    const outcome = await authenticate(manager, password);
+    //
+    // 這一發**帶著 `pack` 驗**。不帶的話只證明得了「卡片認這組密碼」，而卡片
+    // 認密碼不等於 PWD 頁寫進去了——一張 PWD 頁早已是同一組值、PACK 頁卻是
+    // 別人的卡，會一路綠燈到讀回檢查，然後回報上鎖成功。帶了 `expectedPack`，
+    // `pack-mismatch` 就是「密碼頁沒寫成功」的直接證據。
+    const outcome = await authenticate(manager, password, pack);
+    if (outcome.kind === "pack-mismatch") {
+      throw new NfcLockError(
+        "verify-failed",
+        "verify",
+        cardStateAfter(written, auth0Before),
+        {
+          message:
+            `PWD_AUTH returned PACK ${outcome.packHex}, expected ` +
+            `${outcome.expectedHex} — the PWD page write did not take effect`,
+          page: layout.configPage,
+          written,
+        },
+      );
+    }
     if (outcome.kind === "no-response" || outcome.kind === "sw-error") {
       throw new NfcLockError(
         outcome.kind,

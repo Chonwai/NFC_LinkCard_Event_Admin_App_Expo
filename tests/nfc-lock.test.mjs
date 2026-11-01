@@ -322,6 +322,41 @@ describe("lockCard — 失敗時說清楚卡片處於什麼狀態", () => {
     );
   });
 
+  it("PACK 頁沒生效 ⇒ pack-mismatch 被判成驗證失敗（密碼頁寫入才有證據）", async () => {
+    // R3：卡片對「被接受的密碼」一律回它自己的 PACK，所以只驗「有沒有回應」
+    // 會讓這張卡一路綠燈——PWD 頁寫了、PACK 頁沒寫，AUTH0 也生效了，讀回
+    // 檢查只比對 AUTH0/ACCESS，於是回報上鎖成功。帶著 `pack` 驗之後，
+    // 回應的 PACK 與期望值不符，這才是「密碼頁沒寫成功」的直接證據。
+    dropWritePages = new Set([LAYOUT.packPage]);
+
+    await assert.rejects(
+      () => lockCard(LAYOUT, PASSWORD, PACK),
+      (error) => {
+        assert.equal(error.kind, "verify-failed");
+        assert.equal(error.stage, "verify");
+        assert.match(error.message, /PACK/);
+        assert.deepEqual(error.written, ["PWD", "PACK", "ACCESS", "AUTH0"]);
+        return true;
+      },
+    );
+  });
+
+  it("PACK 相符 ⇒ 成功（同一張卡重寫一次不會被 expectedPack 誤判）", async () => {
+    // 已受保護、且 PACK 頁已經是同一組 bytes：這是「同一張卡再跑一次」的
+    // 形狀。帶 `expectedPack` 驗證時它必須仍然成功。
+    pages.set(LAYOUT.configPage, [0x11, 0x22, 0x33, 0x04]);
+    pages.set(LAYOUT.pwdPage, Array.from(PASSWORD));
+    pages.set(LAYOUT.packPage, [0xab, 0xcd, 0x00, 0x00]);
+
+    const result = await lockCard(LAYOUT, PASSWORD, PACK);
+
+    assert.equal(result.auth0, 4);
+    assert.deepEqual(
+      writes().map(([page]) => page),
+      [133, 134, 132, 131],
+    );
+  });
+
   it("讀回不符 ⇒ verify-failed（送出成功不代表寫入成功）", async () => {
     dropWritePages = new Set([LAYOUT.configPage]);
 
