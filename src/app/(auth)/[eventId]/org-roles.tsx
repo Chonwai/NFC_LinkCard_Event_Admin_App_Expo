@@ -85,6 +85,28 @@ import {
  * 這個區別在手機上更重要：App 的 `my-access` 是與名單**並行**抓的
  * （`Promise.all`），它失敗不該讓一個有權限的人失去入口。
  *
+ * ## 為什麼**沒有**「接受邀請」的畫面（查證後跳過）
+ *
+ * 後端有第四條路由 `POST …/org-roles/accept`（`engagement.routes.ts:45`），
+ * `orgRoleService.accept()` 也已經照它建模。但這一頁刻意**不做**接受介面，
+ * 理由是那條路由在整個系統裡**沒有辦法被使用**：
+ *
+ * | 環節 | 現況 |
+ * | --- | --- |
+ * | 後端寄邀請信？ | **沒有**。`inviteOrgRole` 只把 token 放在回應裡回給**邀請者**（`EventOrgRoleService.ts:84-90`），全後端沒有組 org-role 邀請信的程式碼 |
+ * | Web 有接受頁面？ | **沒有**。`acceptEventAdminInvite`（`lib/events/engagement.ts:153`）**零呼叫點**，而且 method 寫錯（`PATCH`，後端只有 `POST`） |
+ * | 被邀請者拿得到 token？ | **拿不到**——上面兩條加起來就是答案 |
+ *
+ * 也就是說：這不是「Web 有、App 沒有」的落差，而是**兩邊都沒有**的功能。
+ * 在 App 做一個接受畫面，等於發明一個 Web 沒有的入口，而且那個入口沒有 token
+ * 可以輸入。所以跳過，並把結論留在這裡——下一個人若在 Web 補了接受頁，這裡
+ * 就是「該跟著做」的起點。
+ *
+ * 附帶一個必須知道的後端行為：`inviteOrgRole` 對**已經有帳號**的 email 會直接
+ * 寫 `acceptedAt: new Date()`（`EventOrgRoleService.ts:75`），也就是「當場生效、
+ * 不需要接受」；只有「沒有帳號」的 email 會停在待接受。而那種待接受的邀請，
+ * 因為沒有寄信，會一直是待接受——這正是清單上「待接受」徽章與說明存在的原因。
+ *
  * ## 與 Web 的差異一：多顯示「狀態」
  *
  * Web 的清單只有「人名 / email / 角色徽章」三樣，**看不出這個人到底生效了
