@@ -52,6 +52,8 @@ let authed = false;
 /** 寫入這些頁時假裝成功但不真的更新（模擬「寫了但沒生效」） */
 let dropWritePages = new Set();
 let writeAck = [0x0a];
+/** 寫入這些頁時回 `0x00`（模擬單頁 NAK，其他頁照常成功） */
+let failWritePages = new Set();
 /** `true` = `requestTechnology` 永不 settle（重現讀取器卡住） */
 let holdSessionOpen = false;
 /** 這些頁的 `transceive` 會慢 `slowDelayMs` 才回應（重現「寫到一半卡片不動」） */
@@ -96,6 +98,7 @@ mock.module("react-native-nfc-manager", {
       }
 
       if (insn === 0xa2) {
+        if (failWritePages.has(page)) return [0x00];
         if (!dropWritePages.has(page)) {
           pages.set(page, data.slice(2, 6));
         }
@@ -141,6 +144,7 @@ beforeEach(() => {
   blockReadsUntilAuth = false;
   authed = false;
   dropWritePages = new Set();
+  failWritePages = new Set();
   writeAck = [0x0a];
   holdSessionOpen = false;
   slowPages = new Set();
@@ -430,6 +434,27 @@ describe("lockCard — 卡片本來就鎖著（AUTH0 ≠ 0xFF）", () => {
     assert.deepEqual(
       writes().map(([page]) => page),
       [133, 134, 132, 131],
+    );
+  });
+
+  it("已保護的卡在 AUTH0 那頁失手 ⇒ 也不能說「仍未受保護」", async () => {
+    // `AUTH0` 是最後一頁，所以 `!written.includes("AUTH0")` 那一支對**已受
+    // 保護**的卡照樣會被走到。它的舊文案無條件說「仍在出廠值、仍未受保護」
+    // ——同一個家族的第二句假話。
+    pages.set(LAYOUT.configPage, [0x11, 0x22, 0x33, 0x04]);
+    pages.set(LAYOUT.pwdPage, Array.from(PASSWORD));
+    failWritePages = new Set([LAYOUT.configPage]);
+
+    await assert.rejects(
+      () => lockCard(LAYOUT, PASSWORD, PACK),
+      (error) => {
+        assert.equal(error.stage, "write");
+        assert.deepEqual(error.written, ["PWD", "PACK", "ACCESS"]);
+        assert.ok(!/unprotected/i.test(error.cardState), error.cardState);
+        assert.ok(!/factory value/i.test(error.cardState), error.cardState);
+        assert.match(error.cardState, /already protected/i);
+        return true;
+      },
     );
   });
 });

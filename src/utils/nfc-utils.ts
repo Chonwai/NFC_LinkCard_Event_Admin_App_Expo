@@ -680,6 +680,14 @@ function cardStateAfter(
           "written by this attempt.";
   }
   if (!written.includes("AUTH0")) {
+    if (auth0Before !== AUTH0_UNPROTECTED) {
+      return (
+        "PWD/PACK/ACCESS may be written but AUTH0 was not touched, and this " +
+        `card was ALREADY protected (AUTH0=${auth0Before}) before the attempt, ` +
+        "so its write protection has not changed. Retrying with the same " +
+        "password is safe."
+      );
+    }
     return (
       "PWD/PACK/ACCESS may be written but AUTH0 is still at its factory value, " +
       "so the card is STILL unprotected: any reader can still rewrite it. " +
