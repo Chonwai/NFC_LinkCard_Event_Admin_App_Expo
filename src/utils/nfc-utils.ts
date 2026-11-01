@@ -2,6 +2,20 @@ import { Platform } from "react-native";
 
 import { WEB_BASE_URL } from "@/constants/config";
 
+import {
+  NTAG_LAYOUTS,
+  classifyPwdAuthResponse,
+  classifyWriteAck,
+  planLockWrites,
+  pwdAuthCommand,
+  readCommand,
+  writeCommand,
+  type LockWrite,
+  type NtagLayout,
+  type NtagVariant,
+  type PwdAuthOutcome,
+} from "./ntag-apdu";
+
 /**
  * ⚠️ Web-safe NFC 工具層
  *
@@ -398,4 +412,389 @@ export async function readTagUid(): Promise<string> {
       // session closing race 不阻斷主流程
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// 卡片上鎖（raw APDU）
+// ---------------------------------------------------------------------------
+
+/**
+ * 上鎖相關的錯誤。
+ *
+ * 為什麼要另立一個類別而不是複用 `NfcFlowError`：上鎖**不可逆**。失敗時光說
+ * 「寫入失敗」沒有用——操作員要知道的是**這張卡現在處於什麼狀態**：還是空白
+ * 可寫、已經有密碼但沒保護、還是可能已經鎖上了。所以錯誤一定要帶 `stage`
+ * （停在哪一步）與 `cardState`（卡片的實際狀態）。
+ *
+ * ⚠️ 訊息裡**永遠不會出現密碼**：它會進 log 與當機回報。
+ */
+export type NfcLockStage =
+  "select" | "read-config" | "auth" | "write" | "verify";
+
+export type NfcLockErrorKind =
+  | "unsupported"
+  | "timeout"
+  | "cancelled"
+  | "unreadable"
+  | "no-response"
+  | "sw-error"
+  | "verify-failed";
+
+export class NfcLockError extends Error {
+  readonly kind: NfcLockErrorKind;
+  readonly stage: NfcLockStage;
+  /** 卡片現在實際處於什麼狀態（英文；給操作員的中文走 `copy.zh-TW.ts`）。 */
+  readonly cardState: string;
+  /** 出錯的那一頁（非寫入階段為 `null`）。 */
+  readonly page: number | null;
+  /** 已經成功寫入的頁，按順序。 */
+  readonly written: readonly string[];
+
+  constructor(
+    kind: NfcLockErrorKind,
+    stage: NfcLockStage,
+    cardState: string,
+    details?: {
+      message?: string;
+      page?: number | null;
+      written?: readonly string[];
+      cause?: unknown;
+    },
+  ) {
+    super(details?.message ?? kind);
+    this.name = "NfcLockError";
+    this.kind = kind;
+    this.stage = stage;
+    this.cardState = cardState;
+    this.page = details?.page ?? null;
+    this.written = details?.written ?? [];
+    if (details?.cause !== undefined) {
+      (this as { cause?: unknown }).cause = details.cause;
+    }
+  }
+}
+
+/** 上鎖序列的總逾時。比寫卡短：這一段只送 6 個命令。 */
+export const NFC_LOCK_TIMEOUT_MS = 15000;
+
+type NfcManagerInstance = NfcManagerModuleType["default"];
+
+/**
+ * 開一個 `NfcA` session 跑 `work`，不論成敗都釋放讀取器。
+ *
+ * 與 `writeUriToCard` 同一條規則（`F-01`）：內層操作可能**永不 settle**
+ * （卡片被移走、讀卡機卡住），那時內層的 `finally` 永遠不會跑，讀取器被永久
+ * 佔住 ⇒ Android 上後續 `requestTechnology` 全部失敗，整個場次都寫不了卡。
+ * 所以 deadline 與釋放都放在**外層**。
+ */
+async function withNfcASession<T>(
+  stage: NfcLockStage,
+  options: { timeoutMs?: number; signal?: AbortSignal } | undefined,
+  work: (manager: NfcManagerInstance) => Promise<T>,
+): Promise<T> {
+  const { default: NfcManager, NfcTech } = await loadNfcManager();
+  const timeoutMs = options?.timeoutMs ?? NFC_LOCK_TIMEOUT_MS;
+
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let abortListener: (() => void) | null = null;
+
+  try {
+    const interruption = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        reject(
+          new NfcLockError(
+            "timeout",
+            stage,
+            "Unknown: the reader stopped answering. Hold the card still and try again.",
+            { message: `NFC lock timed out after ${timeoutMs}ms` },
+          ),
+        );
+      }, timeoutMs);
+
+      if (options?.signal) {
+        abortListener = () => {
+          reject(
+            new NfcLockError(
+              "cancelled",
+              stage,
+              "The operation was cancelled before the card could be locked.",
+              { message: "NFC lock cancelled" },
+            ),
+          );
+        };
+        if (options.signal.aborted) abortListener();
+        else
+          options.signal.addEventListener("abort", abortListener, {
+            once: true,
+          });
+      }
+    });
+
+    const running = (async () => {
+      await NfcManager.requestTechnology(NfcTech.NfcA);
+      return work(NfcManager as NfcManagerInstance);
+    })();
+
+    void running.catch(() => undefined);
+    return await Promise.race([running, interruption]);
+  } finally {
+    if (timer !== null) clearTimeout(timer);
+    if (options?.signal && abortListener) {
+      options.signal.removeEventListener("abort", abortListener);
+    }
+    try {
+      await NfcManager.cancelTechnologyRequest();
+    } catch {
+      // session closing race 不阻斷主流程
+    }
+  }
+}
+
+/** 讀 `page` 起的一整塊（`READ` 回 p、p+1、p+2、p+3 共 16 bytes），取第一頁。 */
+async function readPage(
+  manager: NfcManagerInstance,
+  page: number,
+): Promise<Uint8Array | null> {
+  try {
+    const data = await manager.transceive(readCommand(page));
+    if (!data || data.length < 4) return null;
+    return Uint8Array.from(data.slice(0, 4));
+  } catch {
+    return null;
+  }
+}
+
+/** 在既有 session 上送一次 `PWD_AUTH`。 */
+async function authenticate(
+  manager: NfcManagerInstance,
+  password: Uint8Array,
+): Promise<PwdAuthOutcome> {
+  let response: number[];
+  try {
+    response = await manager.transceive(pwdAuthCommand(password));
+  } catch {
+    return { kind: "no-response" };
+  }
+  return classifyPwdAuthResponse(response);
+}
+
+/** 寫入一頁並檢查應答。 */
+async function writePage(
+  manager: NfcManagerInstance,
+  write: LockWrite,
+): Promise<void> {
+  const response = await manager.transceive(
+    writeCommand(write.page, write.data),
+  );
+  const ack = classifyWriteAck(response);
+  if (ack.kind !== "ok") {
+    throw new NfcLockError(ack.kind, "write", "", {
+      message:
+        ack.kind === "no-response"
+          ? `page ${write.page} (${write.label}) did not answer`
+          : `page ${write.page} (${write.label}) answered ${ack.sw ?? ack.detail}`,
+      page: write.page,
+    });
+  }
+}
+
+/** 已經寫進去的頁 → 一句描述「卡片現在處於什麼狀態」。 */
+function cardStateAfter(written: readonly string[]): string {
+  if (written.length === 0) {
+    return "The card is unchanged and still unprotected: it can be written again.";
+  }
+  if (!written.includes("AUTH0")) {
+    return (
+      "PWD/PACK/ACCESS may be written but AUTH0 is still at its factory value, " +
+      "so the card is STILL unprotected: any reader can still rewrite it. " +
+      "Retrying with the same password is safe."
+    );
+  }
+  return (
+    "AUTH0 has been written, so the card may already require the password that " +
+    "was just written. Try reading it with that password before picking another " +
+    "card; if it does not answer, the card is locked."
+  );
+}
+
+export interface PwdAuthResult {
+  pack: Uint8Array;
+  packHex: string;
+}
+
+/**
+ * 對已經上鎖的卡送一次 `PWD_AUTH`。
+ *
+ * 卡片一開始就是鎖著的（例如上一位操作員鎖過、或本輪上鎖成功要再讀回）時，
+ * 任何寫入都要先過這一關。**成功與否看回應的形狀**：NTAG21x 驗證失敗是
+ * 「不回應」，不是回一個錯誤碼。
+ */
+export async function pwdAuth(
+  password: Uint8Array,
+  options?: { timeoutMs?: number; signal?: AbortSignal },
+): Promise<PwdAuthResult> {
+  return withNfcASession("auth", options, async (manager) => {
+    const outcome = await authenticate(manager, password);
+    if (outcome.kind === "ok") {
+      return { pack: outcome.pack, packHex: outcome.packHex };
+    }
+
+    const cardState =
+      "The card did not accept the password. It may be locked with a different " +
+      "password, or the retry limit may already be used up.";
+
+    if (outcome.kind === "pack-mismatch") {
+      // 沒有傳 `expectedPack` 時不會走到這裡；保守起見仍當成協定異常。
+      throw new NfcLockError("sw-error", "auth", cardState, {
+        message:
+          `PWD_AUTH returned PACK ${outcome.packHex}, ` +
+          `expected ${outcome.expectedHex}`,
+      });
+    }
+
+    throw new NfcLockError(outcome.kind, "auth", cardState, {
+      message:
+        outcome.kind === "no-response"
+          ? "PWD_AUTH got no response (wrong password or lockout limit reached)"
+          : `PWD_AUTH failed: ${outcome.detail}`,
+    });
+  });
+}
+
+export interface LockCardResult {
+  variant: NtagVariant;
+  /** 寫進 `configPage` byte3 的 `AUTH0`。 */
+  auth0: number;
+  written: { page: number; label: string }[];
+}
+
+/**
+ * 把一張卡寫成「只有寫入需要密碼」的 `basic` 保護。
+ *
+ * 序列（順序即安全邊界，見 `planLockWrites`）：讀現值 → `PWD` → `PACK` →
+ * `ACCESS` → `AUTH0` → 用新密碼驗證 → 讀回設定頁確認。
+ *
+ * ## 為什麼第一步是「讀設定頁」而且讀不到就**拒絕上鎖**
+ *
+ * `configPage` 的 byte0–2 是 `MIRROR`／`MIRROR_PAGE`。沒有現值就寫 0，會把卡片
+ * 的 UID ASCII mirror 清掉——那是一個**寫下去就回不來**的副作用，而它與「上鎖」
+ * 這件事完全無關。Web 的做法是照寫並留一個 warning；報到桌沒有辦法讓操作員
+ * 在幾秒內判斷那個 warning 該不該吞，所以這裡選擇拒絕。
+ *
+ * ## 卡片本來就鎖著
+ *
+ * 讀設定頁失敗時先用 `password` 試一次 `PWD_AUTH` 再重讀（一張先前被鎖過的卡
+ * 就是這個形狀）。兩者都失敗才丟錯——那時「讀不到」與「密碼不對」是同一個答案。
+ */
+export async function lockCard(
+  layout: NtagLayout,
+  password: Uint8Array,
+  pack: Uint8Array,
+  options?: { timeoutMs?: number; signal?: AbortSignal },
+): Promise<LockCardResult> {
+  const written: string[] = [];
+
+  return withNfcASession("read-config", options, async (manager) => {
+    let currentConfigPage = await readPage(manager, layout.configPage);
+
+    if (currentConfigPage === null) {
+      const outcome = await authenticate(manager, password);
+      if (outcome.kind !== "ok" && outcome.kind !== "pack-mismatch") {
+        throw new NfcLockError(
+          "unreadable",
+          "read-config",
+          "The card could not be read and the password was not accepted, so " +
+            "nothing was written. It is either a different card or locked with " +
+            "another password.",
+          {
+            message:
+              `could not read config page ${layout.configPage} of ${layout.variant} ` +
+              "and PWD_AUTH failed",
+            page: layout.configPage,
+          },
+        );
+      }
+      currentConfigPage = await readPage(manager, layout.configPage);
+      if (currentConfigPage === null) {
+        throw new NfcLockError(
+          "unreadable",
+          "read-config",
+          "The password was accepted but the config page still could not be " +
+            "read, so nothing was written.",
+          {
+            message: `config page ${layout.configPage} unreadable after PWD_AUTH`,
+          },
+        );
+      }
+    }
+
+    const plan = planLockWrites(layout, password, pack, { currentConfigPage });
+    const auth0 = plan[plan.length - 1].data[3];
+
+    for (const write of plan) {
+      try {
+        await writePage(manager, write);
+      } catch (error) {
+        const failure =
+          error instanceof NfcLockError
+            ? error
+            : new NfcLockError("sw-error", "write", "", {
+                message:
+                  error instanceof Error ? error.message : "write failed",
+                page: write.page,
+              });
+        throw new NfcLockError(failure.kind, "write", cardStateAfter(written), {
+          message: failure.message,
+          page: write.page,
+          written,
+        });
+      }
+      written.push(write.label);
+    }
+
+    // `AUTH0` 寫完保護立即生效 ⇒ 讀回之前必須先驗證。
+    const outcome = await authenticate(manager, password);
+    if (outcome.kind === "no-response" || outcome.kind === "sw-error") {
+      throw new NfcLockError(outcome.kind, "verify", cardStateAfter(written), {
+        message:
+          "AUTH0 was written but PWD_AUTH with the new password failed: " +
+          (outcome.kind === "no-response" ? "no response" : outcome.detail),
+        page: layout.configPage,
+        written,
+      });
+    }
+
+    const configReadBack = await readPage(manager, layout.configPage);
+    const accessReadBack = await readPage(manager, layout.accessPage);
+    const verified =
+      configReadBack !== null &&
+      accessReadBack !== null &&
+      configReadBack[3] === auth0 &&
+      accessReadBack[0] === plan[2].data[0];
+    if (!verified) {
+      throw new NfcLockError(
+        "verify-failed",
+        "verify",
+        cardStateAfter(written),
+        {
+          message:
+            "the config page did not read back the expected AUTH0/ACCESS " +
+            `(expected AUTH0=${auth0})`,
+          page: layout.configPage,
+          written,
+        },
+      );
+    }
+
+    return {
+      variant: layout.variant,
+      auth0,
+      written: plan.map((write) => ({ page: write.page, label: write.label })),
+    };
+  });
+}
+
+/** 佈局表的讀取入口（給呼叫端由 storage byte／型號取得頁碼）。 */
+export function ntagLayout(variant: NtagVariant): NtagLayout {
+  return NTAG_LAYOUTS[variant];
 }
