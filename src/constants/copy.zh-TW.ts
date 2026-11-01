@@ -277,6 +277,40 @@ export const copy = {
     /** 確認框裡「這個欄位沒填」的顯示字。 */
     notSpecified: "未指定",
     confirmCreate: "確認建立",
+
+    /*
+     * 完成批次（回填實體 tagUid）。Web 用一個 textarea，每行
+     * `badgeId,realTagUid`；App 照抄格式，因為現場的資料來源就是同一份表。
+     */
+    completeBatch: "完成批次",
+    completeBatchTitle: "回填實體 tagUid",
+    completeBatchIntro:
+      "每行一筆，格式：badgeId,realTagUid。貼上後按「下一步」核對筆數。",
+    completeBatchPlaceholder: "b3f1c2a4-…,04A2B3C4\nb3f1c2a5-…,04A2B3C5",
+    completeBatchHint: "多餘的欄位會被忽略；同一個 badgeId 只能出現一次。",
+    errorCompleteFormat: "格式不正確：每行必須是 badgeId,realTagUid",
+    /** 重複 badgeId 的訊息。與格式錯誤分開——處置是「挑出哪一筆才對」。 */
+    errorCompleteDuplicate:
+      "同一個 badgeId 出現多次；手環是一次性的，請先移除重複",
+    completeFailed: "回填失敗，請確認權限後重試",
+    completeSuccess: (updated: number) => `已回填 ${updated} 張`,
+    /** 部分成功（後端逐筆回報，`failures` 非空）。 */
+    completePartial: (updated: number, failed: number) =>
+      `已回填 ${updated} 張，${failed} 張失敗`,
+    confirmCompleteTitle: "確認回填 tagUid",
+    confirmCompleteIntro:
+      "送出後會把這批 badge 的假 tagUid 換成下方列出的實體 UID。",
+    /**
+     * 回填的不可逆說明。這是三個寫入動作裡最需要講清楚的一個：
+     * 手環一旦寫入就沒有第二次。
+     */
+    confirmCompleteWarning:
+      "手環是一次性的：同一個 badgeId 一旦寫入真實 UID，就無法改派給別張手環，也無法還原成原本的假 tagUid。",
+    rowCompleteCount: "筆數",
+    rowCompletePreview: "前幾筆",
+    /** 預覽只放前幾筆；剩下幾筆要在確認框裡講出來。 */
+    completePreviewMore: (remaining: number) => `…另有 ${remaining} 筆`,
+    confirmComplete: "確認回填",
   },
   checkIn: {
     scanHint: "掃描報名 QR code",

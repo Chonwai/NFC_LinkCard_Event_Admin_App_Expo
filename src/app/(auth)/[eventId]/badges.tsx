@@ -60,6 +60,7 @@ import {
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ConfirmActionDialog } from "@/components/badges/ConfirmActionDialog";
+import { CompleteBatchDialog } from "@/components/badges/CompleteBatchDialog";
 import { CreateBatchDialog } from "@/components/badges/CreateBatchDialog";
 import { copy } from "@/constants/copy.zh-TW";
 import {
@@ -77,13 +78,19 @@ import type {
   NfcBadgeInventoryItem,
   NfcLookupResult,
 } from "@/types/api.types";
-import { buildCreateBatchConfirmation } from "@/utils/badge-batch";
+import {
+  buildCompleteBatchConfirmation,
+  buildCreateBatchConfirmation,
+  type CompleteBatchLine,
+} from "@/utils/badge-batch";
 import {
   BADGE_STAT_KEYS,
   BADGE_STATUS_FILTERS,
   buildBadgeBatchSummaries,
   buildBadgeStats,
+  canCompleteBadgeBatch,
   formatBadgeTimestamp,
+  type BadgeBatchSummary,
   type BadgeStats,
 } from "@/utils/badge-inventory";
 import { getApiErrorCode, getApiErrorStatus } from "@/utils/api-error";
@@ -190,6 +197,30 @@ export default function BadgesScreen() {
     useState<CreateNfcBatchParams | null>(null);
   const [createBusy, setCreateBusy] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+
+  /**
+   * 完成批次的三個狀態（與建立批次同一個形狀）。
+   *
+   * `completeTarget` 是「哪一批正在回填」（表單開著），`pendingComplete` 是
+   * 「已通過解析、等待確認」。兩者分開是因為確認框必須顯示**批次名稱**——
+   * 上百張手環的 UID 貼錯批次是最貴的一種錯。
+   */
+  const [completeTarget, setCompleteTarget] =
+    useState<BadgeBatchSummary | null>(null);
+  const [pendingComplete, setPendingComplete] = useState<{
+    /**
+     * 真實 batchId；`null` 代表散卡群組。
+     *
+     * 型別刻意保留 `null` 而不是在呼叫端填 `""`——Web 就是把散卡的 `batchId`
+     * 寫成空字串，於是 `POST /nfc/batch//complete` 回 404。保留 `null` 讓
+     * `submitCompleteBatch` 的守衛有東西可以擋，而不是靠「按鈕不會出現」。
+     */
+    batchId: string | null;
+    label: string;
+    updated: CompleteBatchLine[];
+  } | null>(null);
+  const [completeBusy, setCompleteBusy] = useState(false);
+  const [completeError, setCompleteError] = useState<string | null>(null);
 
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -331,6 +362,46 @@ export default function BadgesScreen() {
       setCreateBusy(false);
     }
   }, [eventId, pendingCreate]);
+
+  /**
+   * 真的回填 tagUid（確認框按下確認之後）。
+   *
+   * 後端是**逐筆套用**、部分成功也回 200，所以這裡把 `failures` 當成
+   * 資訊而不是失敗：有失敗就報 `warning` 並說出張數，沒有才是 `success`。
+   * 兩種情況都重載——失敗的那幾筆在清單上就還是舊值，重載才看得到真實狀態。
+   */
+  const submitCompleteBatch = useCallback(async () => {
+    if (!eventId || !pendingComplete || !pendingComplete.batchId) return;
+    setCompleteBusy(true);
+    setCompleteError(null);
+    try {
+      const result = await nfcService.completeBatch(
+        eventId,
+        pendingComplete.batchId,
+        { updated: pendingComplete.updated },
+      );
+      setPendingComplete(null);
+      setBanner({
+        tone: result.failures.length > 0 ? "warning" : "success",
+        message:
+          result.failures.length > 0
+            ? copy.badges.completePartial(
+                result.updatedCount,
+                result.failures.length,
+              )
+            : copy.badges.completeSuccess(result.updatedCount),
+      });
+      setReloadKey((key) => key + 1);
+    } catch {
+      setCompleteError(copy.badges.completeFailed);
+    } finally {
+      setCompleteBusy(false);
+    }
+  }, [eventId, pendingComplete]);
+
+  const completeConfirmation = pendingComplete
+    ? buildCompleteBatchConfirmation(pendingComplete.updated)
+    : null;
 
   const doLookup = useCallback(async () => {
     if (!eventId || !lookupUid.trim()) return;
@@ -686,6 +757,23 @@ export default function BadgesScreen() {
                   </View>
                 ))}
               </View>
+
+              {/*
+                「完成批次」只給真的批次。
+                散卡群組（batchId 為 null）沒有批次可以完成——Web 在那一列
+                照樣畫按鈕，按下去是 404（見 utils/badge-inventory.ts 檔頭）。
+              */}
+              {canCompleteBadgeBatch(batch) ? (
+                <Button
+                  label={copy.badges.completeBatch}
+                  variant="secondary"
+                  onPress={() => {
+                    setCompleteError(null);
+                    setCompleteTarget(batch);
+                  }}
+                  testID={`badge-batch-complete-${batch.key}`}
+                />
+              ) : null}
             </View>
           ))
         )}
@@ -763,6 +851,69 @@ export default function BadgesScreen() {
             setPendingCreate(params);
           }}
           onCancel={() => setCreateOpen(false)}
+        />
+      ) : null}
+
+      {completeTarget ? (
+        <CompleteBatchDialog
+          batchLabel={
+            completeTarget.batchLabel ??
+            completeTarget.batchId ??
+            copy.badges.noBatchLabel
+          }
+          busy={completeBusy}
+          onSubmit={(updated) => {
+            const target = completeTarget;
+            setCompleteTarget(null);
+            setCompleteError(null);
+            setPendingComplete({
+              batchId: target.batchId,
+              label:
+                target.batchLabel ?? target.batchId ?? copy.badges.noBatchLabel,
+              updated,
+            });
+          }}
+          onCancel={() => setCompleteTarget(null)}
+        />
+      ) : null}
+
+      {pendingComplete && completeConfirmation ? (
+        <ConfirmActionDialog
+          title={copy.badges.confirmCompleteTitle}
+          intro={copy.badges.confirmCompleteIntro}
+          rows={[
+            { label: copy.badges.rowBatchLabel, value: pendingComplete.label },
+            {
+              label: copy.badges.rowCompleteCount,
+              value: String(completeConfirmation.count),
+            },
+            {
+              label: copy.badges.rowCompletePreview,
+              value: [
+                ...completeConfirmation.preview.map(
+                  (line) => `${line.badgeId.slice(0, 8)} → ${line.realTagUid}`,
+                ),
+                ...(completeConfirmation.remaining > 0
+                  ? [
+                      copy.badges.completePreviewMore(
+                        completeConfirmation.remaining,
+                      ),
+                    ]
+                  : []),
+              ].join("\n"),
+            },
+          ]}
+          warning={copy.badges.confirmCompleteWarning}
+          confirmLabel={copy.badges.confirmComplete}
+          busy={completeBusy}
+          error={completeError}
+          onConfirm={() => void submitCompleteBatch()}
+          onCancel={() => {
+            if (completeBusy) return;
+            setPendingComplete(null);
+            setCompleteError(null);
+          }}
+          testID="badges-complete-confirm"
         />
       ) : null}
 

@@ -141,3 +141,94 @@ export function buildCreateBatchConfirmation(
     batchLabel: params.batchLabel ?? null,
   };
 }
+
+// ---------------------------------------------------------------------------
+// 完成批次（回填實體 tagUid）
+// ---------------------------------------------------------------------------
+
+/** 完成批次失敗的原因鍵。 */
+export type CompleteBatchError = "completeFormat" | "duplicateBadgeId";
+
+/** 一筆回填。 */
+export interface CompleteBatchLine {
+  badgeId: string;
+  realTagUid: string;
+}
+
+export type CompleteBatchParseResult =
+  | { ok: true; updated: CompleteBatchLine[] }
+  | { ok: false; error: CompleteBatchError };
+
+/**
+ * 把多行文字解析成回填清單。
+ *
+ * ## 格式與 Web 完全相同
+ *
+ * 每行 `badgeId,realTagUid`，空白行忽略，兩端空白 `trim()`。
+ * Web 的 `handleComplete` 就是這樣切。
+ *
+ * ## 多出來的欄位**刻意忽略**
+ *
+ * `badgeId,realTagUid,備註` 這種從試算表貼上來的三欄資料很常見，
+ * Web 的 `const [badgeId, realTagUid] = line.split(',')` 也是取了前兩欄就
+ * 不管後面。照抄——把「多一欄」變成錯誤只會讓現場貼不上。
+ *
+ * ## 與 Web 的差異：重複的 `badgeId` **擋下來**
+ *
+ * Web 不檢查重複。同一個 `badgeId` 出現兩次時，後端會**逐筆套用**，於是
+ * 第二筆的 `realTagUid` 覆蓋第一筆——而手環是**一次性**的：第一張手環的
+ * UID 已經被寫進去了，卻從記錄上消失，現場沒有任何方式還原。
+ *
+ * 這是「照抄 Web 會造成資料遺失」的情形，所以擋。錯誤鍵分開
+ * （`duplicateBadgeId` 而不是併進 `completeFormat`），因為處置方式不同：
+ * 格式錯要重貼，重複要**挑出哪一筆才對**。
+ */
+export function parseCompleteBatchInput(
+  text: string,
+): CompleteBatchParseResult {
+  const lines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) return { ok: false, error: "completeFormat" };
+
+  const updated: CompleteBatchLine[] = [];
+  const seen = new Set<string>();
+
+  for (const line of lines) {
+    const [badgeId, realTagUid] = line.split(",").map((part) => part.trim());
+    if (!badgeId || !realTagUid) return { ok: false, error: "completeFormat" };
+    if (seen.has(badgeId)) return { ok: false, error: "duplicateBadgeId" };
+    seen.add(badgeId);
+    updated.push({ badgeId, realTagUid });
+  }
+
+  return { ok: true, updated };
+}
+
+/** 完成批次的二次確認要顯示什麼（畫面負責套文案）。 */
+export interface CompleteBatchConfirmation {
+  count: number;
+  /** 前幾筆，供人眼核對（完整清單可能上百筆，確認框放不下）。 */
+  preview: CompleteBatchLine[];
+  /** 還有幾筆沒列進 `preview`。 */
+  remaining: number;
+}
+
+/**
+ * 確認框的內容。
+ *
+ * 為什麼要顯示前幾筆而不是只顯示「共 N 筆」：貼錯整欄（例如把 `realTagUid`
+ * 貼到 `badgeId` 那一欄）時，筆數完全正常，只有內容看得出來。
+ */
+export function buildCompleteBatchConfirmation(
+  updated: readonly CompleteBatchLine[],
+  previewSize = 3,
+): CompleteBatchConfirmation {
+  return {
+    count: updated.length,
+    preview: updated.slice(0, previewSize),
+    remaining: Math.max(0, updated.length - previewSize),
+  };
+}

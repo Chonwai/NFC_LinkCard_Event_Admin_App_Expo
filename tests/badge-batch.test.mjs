@@ -21,8 +21,10 @@ import { test } from "node:test";
 const {
   CREATE_BATCH_MAX,
   CREATE_BATCH_MIN,
+  buildCompleteBatchConfirmation,
   buildCreateBatchConfirmation,
   isValidBadgeColor,
+  parseCompleteBatchInput,
   parseCreateBatchInput,
 } = await import("@/utils/badge-batch");
 
@@ -193,4 +195,111 @@ test("buildCreateBatchConfirmation: 有值的欄位原樣帶出（畫面要顯�
     colorCode: "#7C3AED",
     batchLabel: "StartupFest 第一批",
   });
+});
+
+// ---------------------------------------------------------------------------
+// 六、完成批次：多行輸入解析
+// ---------------------------------------------------------------------------
+
+test("parseCompleteBatchInput: 基本格式（每行 badgeId,realTagUid）", () => {
+  const parsed = parseCompleteBatchInput("bd-1,U1\nbd-2,U2");
+
+  assert.equal(parsed.ok, true);
+  assert.deepEqual(parsed.updated, [
+    { badgeId: "bd-1", realTagUid: "U1" },
+    { badgeId: "bd-2", realTagUid: "U2" },
+  ]);
+});
+
+test("parseCompleteBatchInput: 空行與前後空白都忽略／trim", () => {
+  const parsed = parseCompleteBatchInput("\n  bd-1 , U1  \n\n  \nbd-2,U2\n");
+
+  assert.equal(parsed.ok, true);
+  assert.deepEqual(parsed.updated, [
+    { badgeId: "bd-1", realTagUid: "U1" },
+    { badgeId: "bd-2", realTagUid: "U2" },
+  ]);
+});
+
+test("parseCompleteBatchInput: 第三欄（備註）刻意忽略 —— 從試算表貼上很常見", () => {
+  const parsed = parseCompleteBatchInput("bd-1,U1,備註欄");
+
+  assert.equal(parsed.ok, true);
+  assert.deepEqual(parsed.updated, [{ badgeId: "bd-1", realTagUid: "U1" }]);
+});
+
+test("parseCompleteBatchInput: realTagUid 原樣透傳（不轉大小寫）", () => {
+  const parsed = parseCompleteBatchInput("bd-1, 04A2B3c4 ");
+
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.updated[0].realTagUid, "04A2B3c4");
+});
+
+test("parseCompleteBatchInput: 空白輸入回 completeFormat", () => {
+  assert.deepEqual(parseCompleteBatchInput(""), {
+    ok: false,
+    error: "completeFormat",
+  });
+  assert.deepEqual(parseCompleteBatchInput("\n \n\t"), {
+    ok: false,
+    error: "completeFormat",
+  });
+});
+
+test("parseCompleteBatchInput: 缺欄位（只有 badgeId、或只有逗號）回 completeFormat", () => {
+  for (const text of ["bd-1", "bd-1,", ",U1", "bd-1,   "]) {
+    assert.deepEqual(
+      parseCompleteBatchInput(text),
+      { ok: false, error: "completeFormat" },
+      `"${text}" 應該被擋`,
+    );
+  }
+});
+
+test("parseCompleteBatchInput: 重複的 badgeId 擋下來（與 Web 的差異，見檔頭）", () => {
+  assert.deepEqual(parseCompleteBatchInput("bd-1,U1\nbd-1,U2"), {
+    ok: false,
+    error: "duplicateBadgeId",
+  });
+});
+
+test("parseCompleteBatchInput: 重複但 UID 相同也擋（手環一次性，不做例外）", () => {
+  assert.deepEqual(parseCompleteBatchInput("bd-1,U1\nbd-1,U1"), {
+    ok: false,
+    error: "duplicateBadgeId",
+  });
+});
+
+test("parseCompleteBatchInput: 不同的 badgeId 但相同 UID 不擋（由後端判定衝突）", () => {
+  const parsed = parseCompleteBatchInput("bd-1,U1\nbd-2,U1");
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.updated.length, 2);
+});
+
+// ---------------------------------------------------------------------------
+// 七、完成批次的確認內容
+// ---------------------------------------------------------------------------
+
+test("buildCompleteBatchConfirmation: 只顯示前 N 筆，其餘計入 remaining", () => {
+  const updated = Array.from({ length: 10 }, (_, i) => ({
+    badgeId: `bd-${i}`,
+    realTagUid: `U${i}`,
+  }));
+  const confirmation = buildCompleteBatchConfirmation(updated, 3);
+
+  assert.equal(confirmation.count, 10);
+  assert.equal(confirmation.preview.length, 3);
+  assert.equal(confirmation.preview[0].badgeId, "bd-0");
+  assert.equal(confirmation.remaining, 7);
+});
+
+test("buildCompleteBatchConfirmation: 筆數少於 previewSize 時 remaining 為 0（不是負數）", () => {
+  const confirmation = buildCompleteBatchConfirmation(
+    [{ badgeId: "bd-1", realTagUid: "U1" }],
+    3,
+  );
+
+  assert.equal(confirmation.count, 1);
+  assert.equal(confirmation.preview.length, 1);
+  assert.equal(confirmation.remaining, 0);
 });
