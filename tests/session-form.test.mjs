@@ -24,8 +24,10 @@ import { test } from "node:test";
 
 const {
   emptySessionForm,
+  formatLocalDateTime,
   parseLocalDateTime,
   sessionFormError,
+  sessionFormFrom,
   toSessionPayload,
 } = await import("@/utils/session-form");
 
@@ -246,4 +248,85 @@ test("標題前後空白會被 trim，但內文不改寫", () => {
 
   assert.ok(payload != null);
   assert.equal(payload.title, "開幕演講");
+});
+
+// ---------------------------------------------------------------------------
+// 四、編輯回填（sessionFormFrom / formatLocalDateTime）
+// ---------------------------------------------------------------------------
+
+/** 一個後端會回的場次（`startDate` 是 ISO）。 */
+const SESSION = {
+  id: "ses-1",
+  eventId: "evt-1",
+  title: "開幕演講",
+  description: "開場",
+  sessionType: "KEYNOTE",
+  startDate: new Date(2026, 10, 5, 10, 0, 0, 0).toISOString(),
+  endDate: new Date(2026, 10, 5, 11, 0, 0, 0).toISOString(),
+  location: "主舞台",
+  speakerName: "王小明",
+  capacity: 100,
+  currentCount: 41,
+  price: "0",
+  tokenCost: 0,
+};
+
+test("formatLocalDateTime 給本地牆上時間，不是 UTC 切片", () => {
+  // Web 的 `slice(0, 16)` 在 UTC+8 會拿到 02:00（UTC），App 必須拿到 10:00。
+  assert.equal(
+    formatLocalDateTime(new Date(2026, 10, 5, 10, 30, 0, 0)),
+    "2026-11-05 10:30",
+  );
+});
+
+test("formatLocalDateTime 對無效日期回空字串（畫面不顯示 NaN）", () => {
+  assert.equal(formatLocalDateTime(new Date("nope")), "");
+});
+
+test("sessionFormFrom 把 ISO 還原成使用者當初填的本地時間", () => {
+  const form = sessionFormFrom(SESSION);
+  assert.equal(form.startDate, "2026-11-05 10:00");
+  assert.equal(form.endDate, "2026-11-05 11:00");
+  assert.equal(form.capacity, "100");
+  assert.equal(form.title, "開幕演講");
+});
+
+test("回填 → 組 payload 往返不位移（時間與所有欄位）", () => {
+  const payload = toSessionPayload(sessionFormFrom(SESSION));
+
+  assert.ok(payload != null);
+  assert.equal(
+    new Date(payload.startDate).getTime(),
+    new Date(SESSION.startDate).getTime(),
+    "編輯後存回的時間必須與原本一模一樣",
+  );
+  assert.equal(
+    new Date(payload.endDate).getTime(),
+    new Date(SESSION.endDate).getTime(),
+  );
+  assert.equal(payload.title, SESSION.title);
+  assert.equal(payload.capacity, SESSION.capacity);
+  assert.equal(payload.sessionType, SESSION.sessionType);
+});
+
+test("空欄位回填成空字串，存回時變 null——容量可以真的被清成不限", () => {
+  const form = sessionFormFrom({
+    ...SESSION,
+    description: null,
+    location: null,
+    speakerName: null,
+    capacity: null,
+  });
+
+  assert.equal(form.capacity, "");
+  assert.equal(form.location, "");
+
+  const payload = toSessionPayload(form);
+  assert.ok(payload != null);
+  assert.equal(
+    payload.capacity,
+    null,
+    'capacity 必須回到 null，不是字串 "null"',
+  );
+  assert.equal(payload.location, null);
 });

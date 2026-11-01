@@ -38,6 +38,7 @@ import { getApiErrorMessage } from "@/utils/api-error";
 import {
   emptySessionForm,
   sessionFormError,
+  sessionFormFrom,
   toSessionPayload,
   type SessionFormErrorKey,
   type SessionFormInput,
@@ -109,8 +110,17 @@ export default function EventSessionsScreen() {
 
   const [reloadKey, setReloadKey] = useState(0);
 
-  /** 新增表單是否打開。與 Web 一樣是「按了才出現」，預設關著。 */
+  /** 新增／編輯表單是否打開。與 Web 一樣是「按了才出現」，預設關著。 */
   const [formOpen, setFormOpen] = useState(false);
+
+  /**
+   * 正在編輯的場次；`null` ＝新增。
+   *
+   * 與 Web 的 `editing` state（`sessions/page.tsx:335`）同一個角色：
+   * 開表單時一起決定「這是建立還是編輯」，關表單時一起清掉。
+   * 若只靠 `formOpen`，關掉再開會沿用上一次編輯的資料——那是一個很難查的 bug。
+   */
+  const [editing, setEditing] = useState<EventSession | null>(null);
 
   /** 寫入結果橫幅（目前只有建立成功會用到；編輯會在同一個位置報結果）。 */
   const [feedback, setFeedback] = useState<{
@@ -159,7 +169,10 @@ export default function EventSessionsScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={copy.sessions.add}
-            onPress={() => setFormOpen(true)}
+            onPress={() => {
+              setEditing(null);
+              setFormOpen(true);
+            }}
             style={styles.headerAction}
             testID="sessions-add"
           >
@@ -216,7 +229,14 @@ export default function EventSessionsScreen() {
         {!showSkeleton && sessions.length > 0 ? (
           <View style={styles.list}>
             {sessions.map((session) => (
-              <SessionCard key={session.id} session={session} />
+              <SessionCard
+                key={session.id}
+                session={session}
+                onEdit={() => {
+                  setEditing(session);
+                  setFormOpen(true);
+                }}
+              />
             ))}
           </View>
         ) : null}
@@ -225,14 +245,22 @@ export default function EventSessionsScreen() {
       {formOpen && eventId ? (
         <SessionFormModal
           eventId={eventId}
-          onClose={() => setFormOpen(false)}
-          onSaved={() => {
+          editing={editing}
+          onClose={() => {
             setFormOpen(false);
+            setEditing(null);
+          }}
+          onSaved={(mode) => {
+            setFormOpen(false);
+            setEditing(null);
             setFeedback({
               tone: "success",
-              message: copy.sessions.createSuccess,
+              message:
+                mode === "create"
+                  ? copy.sessions.createSuccess
+                  : copy.sessions.updateSuccess,
             });
-            // 整份重載，不把新場次自己拼進本地陣列：`createdAt` 與排序都在後端。
+            // 整份重載，不把變更自己拼進本地陣列：`updatedAt` 與排序都在後端。
             setReloadKey((key) => key + 1);
           }}
         />
@@ -260,7 +288,13 @@ export default function EventSessionsScreen() {
  * （`bank-transfers.tsx:443-448`、`check-in.tsx:62-67`），這裡照抄，
  * 不另外引入日期函式庫。
  */
-function SessionCard({ session }: { session: EventSession }) {
+function SessionCard({
+  session,
+  onEdit,
+}: {
+  session: EventSession;
+  onEdit: () => void;
+}) {
   const tone = semantic.status.neutral;
   const capacityLabel =
     session.capacity != null
@@ -307,12 +341,22 @@ function SessionCard({ session }: { session: EventSession }) {
       {session.location ? (
         <Text style={styles.metaText}>{session.location}</Text>
       ) : null}
+
+      <View style={styles.cardActions}>
+        <Button
+          label={copy.sessions.editAction}
+          variant="secondary"
+          onPress={onEdit}
+          fullWidth={false}
+          testID={`session-edit-${session.id}`}
+        />
+      </View>
     </Card>
   );
 }
 
 /**
- * 新增場次的表單。
+ * 新增／編輯場次的表單。
  *
  * ## 為什麼是自繪 `Modal` 而不是新開一頁
  *
@@ -336,14 +380,19 @@ function SessionCard({ session }: { session: EventSession }) {
  */
 function SessionFormModal({
   eventId,
+  editing,
   onClose,
   onSaved,
 }: {
   eventId: string;
+  /** `null` ＝新增；有值 ＝編輯該場次（回填的來源）。 */
+  editing: EventSession | null;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (mode: "create" | "update") => void;
 }) {
-  const [form, setForm] = useState<SessionFormInput>(() => emptySessionForm());
+  const [form, setForm] = useState<SessionFormInput>(() =>
+    editing ? sessionFormFrom(editing) : emptySessionForm(),
+  );
   /** 是否已經按過一次「建立」——之前不顯示任何欄位錯誤。 */
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -370,8 +419,16 @@ function SessionFormModal({
 
     setSubmitting(true);
     try {
-      await sessionService.createSession(eventId, payload);
-      onSaved();
+      if (editing) {
+        // PATCH 送的是**完整** payload（見 `SessionCreatePayload` 的 `X | null` 段）：
+        // 後端是 `!== undefined` 語意，省略的欄位不會被改，而空字串已經在
+        // `toSessionPayload` 轉成 `null`，所以「清空主講人」是真的清空。
+        await sessionService.updateSession(eventId, editing.id, payload);
+        onSaved("update");
+      } else {
+        await sessionService.createSession(eventId, payload);
+        onSaved("create");
+      }
     } catch (error) {
       setFailure(getApiErrorMessage(error, copy.sessions.actionError));
     } finally {
@@ -383,7 +440,9 @@ function SessionFormModal({
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <View style={styles.dialog} testID="session-form">
-          <Text style={type.h3}>{copy.sessions.add}</Text>
+          <Text style={type.h3}>
+            {editing ? copy.sessions.edit : copy.sessions.add}
+          </Text>
 
           <ScrollView
             style={styles.formScroll}
@@ -500,7 +559,13 @@ function SessionFormModal({
               testID="session-form-cancel"
             />
             <Button
-              label={submitting ? copy.sessions.saving : copy.sessions.create}
+              label={
+                submitting
+                  ? copy.sessions.saving
+                  : editing
+                    ? copy.sessions.saveChanges
+                    : copy.sessions.create
+              }
               onPress={() => void submit()}
               loading={submitting}
               testID="session-form-submit"
@@ -584,6 +649,21 @@ const styles = StyleSheet.create({
   formScroll: { flexGrow: 0 },
   formBody: { gap: spacing.gap, paddingBottom: space[2] },
   formHint: { ...type.caption, color: semantic.text.muted },
+  /**
+   * 卡片內的動作列。
+   *
+   * 靠右、帶上分隔線：手機上標題與按鈕之間沒有卡片邊界，不加線會看起來
+   * 像按鈕屬於標題本身（與 `polls.tsx` 的 `cardActions` 同一個理由）。
+   */
+  cardActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: space[2],
+    marginTop: space[3],
+    paddingTop: space[3],
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: semantic.border.decorative,
+  },
   formActions: {
     flexDirection: "row",
     justifyContent: "flex-end",

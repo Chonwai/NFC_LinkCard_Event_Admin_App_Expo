@@ -1474,8 +1474,16 @@ export const copy = {
     cancel: "取消",
     saving: "儲存中...",
     create: "建立",
+    /** Web `sessions.edit`（表單標題） */
+    edit: "編輯工作坊",
+    /** Web `sessions.saveChanges` */
+    saveChanges: "儲存變更",
+    /** Web `sessions.editAction`（卡片上的那顆按鈕） */
+    editAction: "編輯",
     /** App 獨有（Web 建立成功後直接關閉，沒有提示） */
     createSuccess: "工作坊已建立",
+    /** App 獨有（同上） */
+    updateSuccess: "工作坊已更新",
     /** 後端失敗的預設訊息（對應 Web 的 `errors.general`，但走 `getApiErrorMessage`） */
     actionError: "操作失敗，請稍後重試",
     /**

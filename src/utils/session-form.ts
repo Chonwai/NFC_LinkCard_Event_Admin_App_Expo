@@ -36,6 +36,7 @@
  * App 也不檢查。若哪天要加，必須兩邊一起加，否則就是 App 比 Web 嚴格。
  */
 import type {
+  EventSession,
   EventSessionType,
   SessionCreatePayload,
 } from "@/types/session.types";
@@ -143,6 +144,48 @@ function parseOptionalInt(value: string, min: number): OptionalIntResult {
   const parsed = Number(trimmed);
   if (!Number.isInteger(parsed) || parsed < min) return { ok: false };
   return { ok: true, value: parsed };
+}
+
+/**
+ * `Date` → `YYYY-MM-DD HH:mm`（本地時區）。
+ *
+ * 為什麼需要它：編輯表單要把後端回的 ISO 字串**還原成使用者當初打的那個
+ * 牆上時間**。若照 Web 的 `session.startDate.slice(0, 16)`
+ * （`sessions/page.tsx:57-58`），得到的是 **UTC** 的前 16 個字元——
+ * 在 UTC+8 的活動上，編輯一個 10:00 的場次會看到 02:00。
+ * Web 因為 `datetime-local` 會把那個字串當**本地時間**再解析，
+ * 所以「顯示 02:00、存回 02:00 本地」等於整體位移 8 小時。
+ * App 沒有 `datetime-local`，所以必須自己走正確的路：先 `Date`，再取本地欄位。
+ */
+export function formatLocalDateTime(date: Date): string {
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return [
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
+    `${pad(date.getHours())}:${pad(date.getMinutes())}`,
+  ].join(" ");
+}
+
+/**
+ * 既有場次 → 表單狀態（編輯時的回填）。
+ *
+ * `capacity` 為 `null`（不限）時給空字串——空字串在 `toSessionPayload`
+ * 裡會回到 `null`，所以「不限 → 填一個數字 → 清空 → 存檔」這條路徑
+ * 可以真的把上限清掉，而不是卡在 `"null"` 這種字串。
+ */
+export function sessionFormFrom(session: EventSession): SessionFormInput {
+  return {
+    title: session.title,
+    description: session.description ?? "",
+    sessionType: session.sessionType,
+    startDate: formatLocalDateTime(new Date(session.startDate)),
+    endDate: formatLocalDateTime(new Date(session.endDate)),
+    location: session.location ?? "",
+    speakerName: session.speakerName ?? "",
+    capacity: session.capacity != null ? String(session.capacity) : "",
+    price: session.price != null ? String(session.price) : "0",
+    tokenCost: String(session.tokenCost),
+  };
 }
 
 /**
