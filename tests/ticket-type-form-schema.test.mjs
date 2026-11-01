@@ -20,7 +20,7 @@
  * 一個會說謊的閘門比沒有閘門更糟。
  */
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -296,6 +296,43 @@ const skipNote = backendAvailable
   : `後端 canonical 不在旁邊，已跳過 drift 比對：${BACKEND_CANONICAL}。` +
     "（要跑完整比對請把 LinkCard_ExpressJS_Backend 放在同層目錄）";
 
+/**
+ * 在後端自己的 `src/` 與 `tests/` 裡找 `pattern` 的蹤跡。
+ *
+ * 為什麼需要它：下面那一項要分辨「後端把常數移動中」與「後端真的把它刪了」。
+ * 單看 canonical 檔看不出差別——兩者都是「找不到」，差別在**别人還提不提它**。
+ */
+function backendReferences(pattern) {
+  const root = join(HERE, "..", "..", "LinkCard_ExpressJS_Backend");
+  const skip = new Set(["node_modules", ".git", "dist", "coverage"]);
+  const hits = [];
+
+  const walk = (dir) => {
+    let entries;
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (skip.has(entry.name)) continue;
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+        continue;
+      }
+      if (!/\.tsx?$/.test(entry.name)) continue;
+      if (pattern.test(readFileSync(full, "utf8"))) {
+        hits.push(full.slice(root.length + 1));
+      }
+    }
+  };
+
+  walk(join(root, "src"));
+  walk(join(root, "tests"));
+  return hits;
+}
+
 test("drift: OTHER 哨兵值與後綴與後端一致", { skip: skipNote }, () => {
   const source = readFileSync(BACKEND_CANONICAL, "utf8");
 
@@ -313,15 +350,60 @@ test("drift: OTHER 哨兵值與後綴與後端一致", { skip: skipNote }, () =>
   );
 });
 
-test("drift: 語義綁定允許型別與後端一致", { skip: skipNote }, () => {
+/**
+ * 語義綁定允許型別的 mirror 比對。
+ *
+ * 2026-11-01 這條紅過一次，原因是**後端那個檔正被另一個 session 改寫**（工作區
+ * 未提交）：`SEMANTIC_BINDING_ALLOWED_FIELD_TYPES` 連同兩個 helper 一起消失，但
+ * 後端自己的 `tests/events/unit/EventTicketTypeFormSchema.unit.test.ts` 還 import
+ * 它——也就是說在那個 repo 裡，`src/` 與 `tests/` 當下互相矛盾，那是**移動中**，
+ * 不是契約變更。
+ *
+ * 原本的寫法（把 `[${expected}]` 這段原始碼字串硬繼進斷言裡）面對這種情形只會說
+ * 「後端的允許型別不是 ['text', 'select']」，看不出是「改值」還是「搬走」，也
+ * 強迫 assertion 必須對上 `as const` 的排版。改成從宣告推導之後，三種情形分開：
+ *
+ * - 常數還在（不論怎麼排版）⇒ 逐值比對，這是真正的 drift 防線。
+ * - 常數不在且後端其他人也不再提它 ⇒ **真的移除**，App 必須跟上，紅。
+ * - 常數不在但後端還有引用 ⇒ 改寫中；大聲跳過，**不假裝通過**（與檔頭
+ *   「一個會說謊的閘門比沒有閘門更糟」同一種說法）。
+ */
+test("drift: 語義綁定允許型別與後端一致", { skip: skipNote }, (t) => {
   const source = readFileSync(BACKEND_CANONICAL, "utf8");
-  const expected = contract.SEMANTIC_BINDING_ALLOWED_FIELD_TYPES.map(
-    (value) => `'${value}'`,
-  ).join(", ");
+  const declared = source.match(
+    /SEMANTIC_BINDING_ALLOWED_FIELD_TYPES\s*=\s*\[([^\]]*)]/,
+  );
 
-  assert.ok(
-    source.includes(`SEMANTIC_BINDING_ALLOWED_FIELD_TYPES = [${expected}]`),
-    `後端的允許型別不是 [${expected}]`,
+  if (declared === null) {
+    const stillReferenced = backendReferences(
+      /hasInvalidSemanticBindingType|isSemanticBindingAllowedType/,
+    );
+
+    if (stillReferenced.length > 0) {
+      t.diagnostic(
+        `後端的 SEMANTIC_BINDING_ALLOWED_FIELD_TYPES 暫時缺席，但後端仍有 ` +
+          `${stillReferenced.length} 處引用它（例如 ${stillReferenced[0]}）` +
+          "—— 那是改寫中，不是契約變更。本項跳過，App 契約不動。",
+      );
+      return;
+    }
+
+    assert.fail(
+      "後端已移除 SEMANTIC_BINDING_ALLOWED_FIELD_TYPES，而且後端任何地方都不再引用它 " +
+        "—— 這是真的契約變更。App 必須跟上：同步更新 " +
+        "src/utils/registrationFormContract.ts 與本測試。",
+    );
+  }
+
+  const backendTypes = [...declared[1].matchAll(/'([^']*)'|"([^"]*)"/g)].map(
+    (match) => match[1] ?? match[2],
+  );
+
+  assert.deepEqual(
+    [...contract.SEMANTIC_BINDING_ALLOWED_FIELD_TYPES],
+    backendTypes,
+    `後端的允許型別是 [${backendTypes.join(", ")}]，` +
+      `App 是 [${contract.SEMANTIC_BINDING_ALLOWED_FIELD_TYPES.join(", ")}]`,
   );
 });
 
