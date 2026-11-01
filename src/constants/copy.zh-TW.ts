@@ -199,6 +199,42 @@ export const copy = {
     listSectionTitle: "Badge 列表",
     emptyTitle: "尚無 Badge",
     emptyHint: "先建立批次或綁定 Badge",
+
+    /*
+     * 以下為 2026-11-01「badges 能力對齊 Web」新增。
+     * 文案全部照 Web 的 `event_manage:badges.*`（zh-TW）改寫成手機適合的長度，
+     * 不自行發明新語意——同一個欄位在兩個平台上叫不同名字，操作員會以為是
+     * 兩件不同的事。
+     */
+    /** 狀態篩選的第一顆晶片（＝ 不過濾）。Web 的 `statusFilterAll`。 */
+    statusFilterAll: "全部",
+    /** 篩選列的標籤。Web 沒有這個標籤（它是按鈕列），手機需要它來說明那排晶片。 */
+    statusFilterLabel: "依狀態篩選",
+    /** 統計卡：這張卡上的數字是「該活動全部 badge」，不是當頁。 */
+    statsHeading: "庫存總覽",
+    total: "總數",
+    totalDesc: "此活動全部 Badge",
+    unassigned: "未指派",
+    unassignedDesc: "尚未指定用途",
+    written: "已寫卡",
+    writtenDesc: "已寫入實體 tagUid",
+    bound: "已綁定",
+    boundDesc: "已綁到報名者",
+    deactivated: "已作廢",
+    deactivatedDesc: "停用或遺失",
+    /** 批次聚合區塊。 */
+    batchesHeading: "批次",
+    batchesEmpty: "尚無批次",
+    /** 沒有 batchId 的散卡群組在畫面上的名字（Web 沒有這個標籤，見 utils 檔頭）。 */
+    noBatchLabel: "未入批次",
+    countColumn: "張數",
+    writtenColumn: "已寫",
+    boundColumn: "已綁",
+    assignedColumn: "已指派",
+    /** 明細列的欄位標籤。 */
+    writtenAtLabel: "寫卡時間",
+    writtenAtEmpty: "尚未寫卡",
+    qrCodeLabel: "QR",
   },
   checkIn: {
     scanHint: "掃描報名 QR code",

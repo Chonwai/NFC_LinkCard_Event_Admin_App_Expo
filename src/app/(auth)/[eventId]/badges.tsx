@@ -1,8 +1,44 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+/**
+ * 活動的 Badge（實體手環／卡片）庫存與批次。
+ *
+ * 對齊 `FE:app/(event)/manage/[eventId]/badges/page.tsx`（Web 的徽章管理頁）。
+ * Web 做得到的讀取，這裡都要做得到；寫入面在後續 commit 逐項補上。
+ *
+ * ## 本輪（讀取）與 Web 的差異
+ *
+ * ### 一、統計與批次聚合以「全量」為基礎 —— 與 Web 相同，但值得寫下來
+ *
+ * Web 除了當頁清單之外，另外打一次 `all: true` 拿全量（`loadAll`），因為
+ * 「總數／已寫卡／已綁定」若只算當頁，就會低報，而畫面上完全看不出來。
+ * 這裡照做：`badges` 給清單，`allBadges` 給統計與批次聚合，兩個來源
+ * **刻意不同**。統計失敗不阻擋列表（照 Web）。
+ *
+ * ### 二、分頁用無限捲動，不是上下頁按鈕
+ *
+ * Web 是「上一頁／下一頁 ＋ 第 X／Y 頁」，這裡是 `onEndReached` 續接。
+ * 這是平台差異不是能力差異——兩者都能取到每一筆，只是手機上的手勢不同。
+ * `hasMore` 一律由後端 `pagination.total` 推算（**不是**本地陣列長度），
+ * 否則最後一頁會永遠以為還有下一頁。
+ *
+ * ### 三、狀態篩選是遠端查詢，不是本地過濾
+ *
+ * Web 改篩選會改變後端的 `status` 參數並重新載入第一頁。這裡相同：改篩選
+ * 就回到第 1 頁。本地過濾會讓「載入更多」拿到被前段篩選丟掉的資料，
+ * 看起來像漏頁。
+ *
+ * ### 四、明細列多了「寫卡時間」與 QR
+ *
+ * Web 的明細表有 `tagUid`／`qrCode`／`batchLabel`／`status`／`writtenAt`／
+ * `boundAt` 六欄。原本 App 只有 `tagUid`／`badgeType`／`batchLabel`／
+ * `boundAt`，少掉 `writtenAt`——而「這張卡寫過了沒」正是操作員在
+ * 「已寫卡」統計對不起來時唯一能逐筆核對的欄位。補上，不是新增功能。
+ */
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -14,6 +50,7 @@ import * as Clipboard from "expo-clipboard";
 import { useLocalSearchParams } from "expo-router";
 
 import { Button } from "@/components/ui/Button";
+import { ChoiceChips } from "@/components/ui/ChoiceChips";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import {
@@ -24,7 +61,6 @@ import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { copy } from "@/constants/copy.zh-TW";
 import {
-  hairline,
   layout,
   radius,
   semantic,
@@ -33,21 +69,36 @@ import {
   type,
 } from "@/constants/theme";
 import { nfcService } from "@/services/nfc.service";
-import type { BadgeStatus, NfcLookupResult } from "@/types/api.types";
+import type {
+  BadgeStatus,
+  NfcBadgeInventoryItem,
+  NfcLookupResult,
+} from "@/types/api.types";
+import {
+  BADGE_STAT_KEYS,
+  BADGE_STATUS_FILTERS,
+  buildBadgeBatchSummaries,
+  buildBadgeStats,
+  formatBadgeTimestamp,
+  type BadgeStats,
+} from "@/utils/badge-inventory";
 import { getApiErrorCode, getApiErrorStatus } from "@/utils/api-error";
-
-interface BadgeListItem {
-  id: string;
-  tagUid: string;
-  badgeType: string;
-  status: BadgeStatus;
-  registrationId: string | null;
-  boundAt: string | null;
-  batchLabel?: string | null;
-}
 
 /** 查詢結果：後端摘要 + 此次查詢的 tagUid */
 type LookupResultView = NfcLookupResult & { tagUid: string };
+
+/**
+ * 狀態篩選的晶片值。
+ *
+ * `BADGE_STATUS_FILTERS` 用空字串代表「全部」（那是後端「不送 status」的
+ * 表示法），但空字串當 `testID` 後綴與 `key` 都很難看，也不利讀屏，
+ * 所以畫面這一層改用 `ALL`，只在送請求時換回「不送 status」。
+ */
+type StatusFilterValue = "ALL" | BadgeStatus;
+
+const STATUS_CHOICES: readonly StatusFilterValue[] = BADGE_STATUS_FILTERS.map(
+  (value) => (value === "" ? "ALL" : value),
+);
 
 const STATUS_LABELS: Record<string, string> = {
   UNASSIGNED: copy.badgeStatus.unassigned,
@@ -65,14 +116,25 @@ const STATUS_TONE: Record<string, keyof typeof semantic.status> = {
   LOST: "danger",
 };
 
+/** 統計卡的文案。排序用 `BADGE_STAT_KEYS`，鍵的集合由 `BadgeStats` 決定。 */
+const STAT_COPY: Record<keyof BadgeStats, { label: string; desc: string }> = {
+  total: { label: copy.badges.total, desc: copy.badges.totalDesc },
+  unassigned: {
+    label: copy.badges.unassigned,
+    desc: copy.badges.unassignedDesc,
+  },
+  written: { label: copy.badges.written, desc: copy.badges.writtenDesc },
+  bound: { label: copy.badges.bound, desc: copy.badges.boundDesc },
+  deactivated: {
+    label: copy.badges.deactivated,
+    desc: copy.badges.deactivatedDesc,
+  },
+};
+
 const COPY_FEEDBACK_MS = 1600;
 
-function formatBoundAt(iso: string | null | undefined): string {
-  if (!iso) return copy.badges.boundAtEmpty;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString();
-}
+/** 一頁幾筆。與 Web 的 50 不同是因為手機一次看得到的列數較少——不是能力差異。 */
+const PAGE_SIZE = 20;
 
 export default function BadgesScreen() {
   const insets = useSafeAreaInsets();
@@ -87,14 +149,32 @@ export default function BadgesScreen() {
     message: string;
   } | null>(null);
 
-  const [badges, setBadges] = useState<BadgeListItem[]>([]);
+  const [badges, setBadges] = useState<NfcBadgeInventoryItem[]>([]);
   const [listLoading, setListLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>("ALL");
+
+  /**
+   * 全量 badge（無分頁）——統計卡與批次聚合用。
+   *
+   * 刻意與 `badges` 分開：`badges` 是「目前篩選下的當頁」，`allBadges` 是
+   * 「該活動全部」。混用會讓統計卡隨篩選跳動，而那張卡的語意是「這個活動
+   * 一共有多少張手環」。
+   */
+  const [allBadges, setAllBadges] = useState<NfcBadgeInventoryItem[]>([]);
+  const [statsReady, setStatsReady] = useState(false);
+
+  /**
+   * 重新載入的觸發計數器。
+   *
+   * 與 Web 的 `await load(1); await loadAll();` 同義，但不在 handler 內直接
+   * 呼叫載入函式——載入路徑永遠只有 effect 那一份。
+   */
+  const [reloadKey] = useState(0);
+
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const PAGE_SIZE = 20;
 
   useEffect(() => {
     return () => {
@@ -113,68 +193,97 @@ export default function BadgesScreen() {
     });
   }, []);
 
-  const loadList = useCallback(
-    async (nextPage: number, replace = false) => {
-      if (!eventId) return;
-      setListLoading(true);
-      setBanner(null);
-      try {
-        const { badges: list, pagination } = await nfcService.listBadges(
-          eventId,
-          {
-            page: nextPage,
-            pageSize: PAGE_SIZE,
-          },
-        );
-        const items = (list ?? []) as unknown as BadgeListItem[];
-        setBadges((prev) => (replace ? items : [...prev, ...items]));
-        const total = pagination?.total ?? 0;
-        setHasMore(nextPage * PAGE_SIZE < total);
-        setPage(nextPage);
-      } catch {
-        setBanner({ tone: "danger", message: copy.home.loadFailed });
-      } finally {
-        setListLoading(false);
-      }
-    },
-    [eventId],
-  );
+  const statusParam = statusFilter === "ALL" ? undefined : statusFilter;
 
+  /**
+   * 第一頁（以及換篩選、寫入後的重載）。
+   *
+   * `statusFilter` 在依賴裡是刻意的：換篩選必須回到第 1 頁，否則會出現
+   * 「第 3 頁的新篩選結果接在第 1 頁後面」這種不可能的清單。
+   */
   useEffect(() => {
     let active = true;
 
-    async function initial() {
+    async function loadFirstPage() {
       if (!eventId) return;
       setListLoading(true);
       setBanner(null);
       try {
-        const { badges: list, pagination } = await nfcService.listBadges(
-          eventId,
-          {
-            page: 1,
-            pageSize: PAGE_SIZE,
-          },
-        );
+        const res = await nfcService.listBadges(eventId, {
+          page: 1,
+          pageSize: PAGE_SIZE,
+          status: statusParam,
+        });
         if (!active) return;
-        const items = (list ?? []) as unknown as BadgeListItem[];
-        setBadges(items);
-        const total = pagination?.total ?? 0;
-        setHasMore(1 * PAGE_SIZE < total);
+        setBadges(res.badges);
         setPage(1);
+        setHasMore(PAGE_SIZE < (res.pagination?.total ?? 0));
       } catch {
         if (!active) return;
+        setBadges([]);
+        setHasMore(false);
         setBanner({ tone: "danger", message: copy.home.loadFailed });
       } finally {
         if (active) setListLoading(false);
       }
     }
 
-    void initial();
+    void loadFirstPage();
 
     return () => {
       active = false;
     };
-  }, [eventId]);
+    // statusParam 由 statusFilter 推導，兩者同值不同名——依賴列 statusFilter
+  }, [eventId, statusFilter, reloadKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** 全量（統計與批次聚合）。失敗不阻擋列表——照 Web。 */
+  useEffect(() => {
+    let active = true;
+
+    async function loadAll() {
+      if (!eventId) return;
+      try {
+        const res = await nfcService.listBadges(eventId, { all: true });
+        if (!active) return;
+        setAllBadges(res.badges);
+        setStatsReady(true);
+      } catch {
+        // 統計失敗不阻擋列表；保留上次資料（照 Web）
+      }
+    }
+
+    void loadAll();
+
+    return () => {
+      active = false;
+    };
+  }, [eventId, reloadKey]);
+
+  const loadMore = useCallback(async () => {
+    if (!eventId || listLoading || !hasMore) return;
+    const nextPage = page + 1;
+    setListLoading(true);
+    try {
+      const res = await nfcService.listBadges(eventId, {
+        page: nextPage,
+        pageSize: PAGE_SIZE,
+        status: statusParam,
+      });
+      setBadges((prev) => [...prev, ...res.badges]);
+      setPage(nextPage);
+      setHasMore(nextPage * PAGE_SIZE < (res.pagination?.total ?? 0));
+    } catch {
+      setBanner({ tone: "danger", message: copy.home.loadFailed });
+    } finally {
+      setListLoading(false);
+    }
+  }, [eventId, hasMore, listLoading, page, statusParam]);
+
+  const stats = useMemo(() => buildBadgeStats(allBadges), [allBadges]);
+  const batchSummaries = useMemo(
+    () => buildBadgeBatchSummaries(allBadges),
+    [allBadges],
+  );
 
   const doLookup = useCallback(async () => {
     if (!eventId || !lookupUid.trim()) return;
@@ -236,9 +345,11 @@ export default function BadgesScreen() {
     );
   };
 
-  const renderBadge = ({ item }: { item: BadgeListItem }) => {
+  const renderBadge = ({ item }: { item: NfcBadgeInventoryItem }) => {
     const tone = STATUS_TONE[item.status] ?? "neutral";
     const statusToken = semantic.status[tone];
+    const writtenAt = formatBadgeTimestamp(item.writtenAt);
+    const boundAt = formatBadgeTimestamp(item.boundAt);
     return (
       <View style={styles.badgeCard} testID={`badge-row-${item.id}`}>
         <View style={styles.badgeCardTop}>
@@ -266,17 +377,280 @@ export default function BadgesScreen() {
             {item.badgeType}
             {item.batchLabel ? ` · ${item.batchLabel}` : ""}
           </Text>
+          {item.qrCode ? (
+            <Text
+              style={styles.qrCode}
+              numberOfLines={1}
+              maxFontSizeMultiplier={layout.maxFontScaleBody}
+              testID={`badge-qr-${item.id}`}
+            >
+              {copy.badges.qrCodeLabel}：{item.qrCode}
+            </Text>
+          ) : null}
+        </View>
+
+        <View style={styles.badgeMetaRow}>
+          <Text
+            style={styles.badgeMeta}
+            numberOfLines={1}
+            maxFontSizeMultiplier={layout.maxFontScaleBody}
+            testID={`badge-written-${item.id}`}
+          >
+            {copy.badges.writtenAtLabel}：
+            {writtenAt ?? copy.badges.writtenAtEmpty}
+          </Text>
           <Text
             style={styles.boundAtValue}
             numberOfLines={1}
             maxFontSizeMultiplier={layout.maxFontScaleBody}
           >
-            {formatBoundAt(item.boundAt)}
+            {copy.badges.boundAtLabel}：{boundAt ?? copy.badges.boundAtEmpty}
           </Text>
         </View>
       </View>
     );
   };
+
+  const listHeader = (
+    <View style={styles.header}>
+      {banner ? (
+        <InlineBanner compact tone={banner.tone} message={banner.message} />
+      ) : null}
+
+      <View style={styles.lookupBox}>
+        <Text
+          style={styles.sectionTitle}
+          maxFontSizeMultiplier={layout.maxFontScaleFixed}
+        >
+          {copy.badges.lookupHint}
+        </Text>
+        <TextInput
+          value={lookupUid}
+          onChangeText={setLookupUid}
+          placeholder="tagUid"
+          placeholderTextColor={semantic.text.muted}
+          autoCapitalize="characters"
+          autoCorrect={false}
+          style={styles.input}
+          accessibilityLabel={copy.badges.lookupHint}
+        />
+        <Button
+          label={copy.badges.lookupButton}
+          onPress={() => void doLookup()}
+          loading={lookupLoading}
+          disabled={!lookupUid.trim()}
+        />
+        {lookupResult ? (
+          <View style={styles.lookupResultSection} testID="badge-lookup-result">
+            <View style={styles.lookupResultHeader}>
+              <Text
+                style={styles.lookupResultTitle}
+                maxFontSizeMultiplier={layout.maxFontScaleFixed}
+              >
+                {copy.badges.lookupResultTitle}
+              </Text>
+              <View
+                style={[
+                  styles.statusPill,
+                  { backgroundColor: semantic.status.success.bg },
+                ]}
+              >
+                <Text
+                  style={[type.badge, { color: semantic.status.success.fg }]}
+                  maxFontSizeMultiplier={layout.maxFontScaleFixed}
+                >
+                  {STATUS_LABELS.BOUND}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.tagUidWrap}>
+              {renderTagUidRow(
+                `lookup:${lookupResult.tagUid}`,
+                lookupResult.tagUid,
+              )}
+            </View>
+
+            <Text
+              style={styles.lookupName}
+              numberOfLines={1}
+              maxFontSizeMultiplier={layout.maxFontScaleFixed}
+            >
+              {lookupResult.displayName}
+            </Text>
+
+            {lookupResult.company || lookupResult.jobTitle ? (
+              <Text
+                style={styles.badgeMeta}
+                numberOfLines={1}
+                maxFontSizeMultiplier={layout.maxFontScaleBody}
+              >
+                {[lookupResult.company, lookupResult.jobTitle]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </Text>
+            ) : null}
+
+            <View style={styles.badgeMetaRow}>
+              <Text
+                style={styles.badgeMeta}
+                numberOfLines={1}
+                maxFontSizeMultiplier={layout.maxFontScaleBody}
+              >
+                {copy.badges.registrantTypeLabel}：{lookupResult.registrantType}
+              </Text>
+              {lookupResult.registrationId ? (
+                <Text
+                  style={styles.boundAtValue}
+                  numberOfLines={1}
+                  maxFontSizeMultiplier={layout.maxFontScaleBody}
+                >
+                  {copy.badges.boundRegistration}
+                  {lookupResult.registrationId.slice(0, 8)}…
+                </Text>
+              ) : null}
+            </View>
+
+            {lookupResult.profileUrl ? (
+              <Text
+                style={styles.profileUrl}
+                numberOfLines={1}
+                selectable
+                maxFontSizeMultiplier={layout.maxFontScaleBody}
+              >
+                {copy.badges.profileUrlLabel}：{lookupResult.profileUrl}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+      </View>
+
+      <View style={styles.section}>
+        <Text
+          style={styles.sectionTitle}
+          maxFontSizeMultiplier={layout.maxFontScaleFixed}
+        >
+          {copy.badges.statsHeading}
+        </Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.statRow}
+          testID="badge-stats"
+        >
+          {BADGE_STAT_KEYS.map((key) => {
+            const text = STAT_COPY[key];
+            return (
+              <View
+                key={key}
+                style={styles.statCard}
+                testID={`badge-stat-${key}`}
+              >
+                <Text
+                  style={styles.statLabel}
+                  maxFontSizeMultiplier={layout.maxFontScaleBody}
+                >
+                  {text.label}
+                </Text>
+                <Text
+                  style={styles.statValue}
+                  maxFontSizeMultiplier={layout.maxFontScaleFixed}
+                >
+                  {statsReady ? stats[key] : "—"}
+                </Text>
+                <Text
+                  style={styles.statDesc}
+                  numberOfLines={2}
+                  maxFontSizeMultiplier={layout.maxFontScaleBody}
+                >
+                  {text.desc}
+                </Text>
+              </View>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      <View style={styles.section}>
+        <Text
+          style={styles.sectionTitle}
+          maxFontSizeMultiplier={layout.maxFontScaleFixed}
+        >
+          {copy.badges.batchesHeading}
+        </Text>
+        {batchSummaries.length === 0 ? (
+          <Text
+            style={styles.muted}
+            maxFontSizeMultiplier={layout.maxFontScaleBody}
+          >
+            {copy.badges.batchesEmpty}
+          </Text>
+        ) : (
+          batchSummaries.map((batch) => (
+            <View
+              key={batch.key}
+              style={styles.batchCard}
+              testID={`badge-batch-${batch.key}`}
+            >
+              <Text
+                style={styles.batchLabel}
+                numberOfLines={1}
+                maxFontSizeMultiplier={layout.maxFontScaleFixed}
+              >
+                {batch.batchLabel ??
+                  (batch.batchId
+                    ? batch.batchId.slice(0, 8)
+                    : copy.badges.noBatchLabel)}
+              </Text>
+              <View style={styles.batchMetrics}>
+                {(
+                  [
+                    { key: "count", label: copy.badges.countColumn },
+                    { key: "writtenCount", label: copy.badges.writtenColumn },
+                    { key: "boundCount", label: copy.badges.boundColumn },
+                    { key: "assignedCount", label: copy.badges.assignedColumn },
+                  ] as const
+                ).map((metric) => (
+                  <View key={metric.key} style={styles.batchMetric}>
+                    <Text
+                      style={styles.batchMetricValue}
+                      maxFontSizeMultiplier={layout.maxFontScaleFixed}
+                    >
+                      {batch[metric.key]}
+                    </Text>
+                    <Text
+                      style={styles.batchMetricLabel}
+                      maxFontSizeMultiplier={layout.maxFontScaleBody}
+                    >
+                      {metric.label}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ))
+        )}
+      </View>
+
+      <ChoiceChips
+        label={copy.badges.statusFilterLabel}
+        options={STATUS_CHOICES}
+        value={statusFilter}
+        labelFor={(value) =>
+          value === "ALL" ? copy.badges.statusFilterAll : STATUS_LABELS[value]
+        }
+        onSelect={setStatusFilter}
+        testID="badge-status-filter"
+      />
+
+      <Text
+        style={styles.sectionTitle}
+        maxFontSizeMultiplier={layout.maxFontScaleFixed}
+      >
+        {copy.badges.listSectionTitle}
+      </Text>
+    </View>
+  );
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -286,179 +660,56 @@ export default function BadgesScreen() {
         backFallbackPath="/(auth)/home"
       />
 
-      <View style={styles.body}>
-        {banner ? (
-          <InlineBanner compact tone={banner.tone} message={banner.message} />
-        ) : null}
-
-        <View style={styles.lookupBox}>
-          <Text
-            style={styles.sectionTitle}
-            maxFontSizeMultiplier={layout.maxFontScaleFixed}
-          >
-            {copy.badges.lookupHint}
-          </Text>
-          <TextInput
-            value={lookupUid}
-            onChangeText={setLookupUid}
-            placeholder="tagUid"
-            placeholderTextColor={semantic.text.muted}
-            autoCapitalize="characters"
-            autoCorrect={false}
-            style={styles.input}
-            accessibilityLabel={copy.badges.lookupHint}
-          />
-          <Button
-            label={copy.badges.lookupButton}
-            onPress={() => void doLookup()}
-            loading={lookupLoading}
-            disabled={!lookupUid.trim()}
-          />
-          {lookupResult ? (
-            <View
-              style={styles.lookupResultSection}
-              testID="badge-lookup-result"
-            >
-              <View style={styles.lookupResultHeader}>
-                <Text
-                  style={styles.lookupResultTitle}
-                  maxFontSizeMultiplier={layout.maxFontScaleFixed}
-                >
-                  {copy.badges.lookupResultTitle}
-                </Text>
-                <View
-                  style={[
-                    styles.statusPill,
-                    { backgroundColor: semantic.status.success.bg },
-                  ]}
-                >
-                  <Text
-                    style={[type.badge, { color: semantic.status.success.fg }]}
-                    maxFontSizeMultiplier={layout.maxFontScaleFixed}
-                  >
-                    {STATUS_LABELS.BOUND}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.tagUidWrap}>
-                {renderTagUidRow(
-                  `lookup:${lookupResult.tagUid}`,
-                  lookupResult.tagUid,
-                )}
-              </View>
-
-              <Text
-                style={styles.lookupName}
-                numberOfLines={1}
-                maxFontSizeMultiplier={layout.maxFontScaleFixed}
-              >
-                {lookupResult.displayName}
-              </Text>
-
-              {lookupResult.company || lookupResult.jobTitle ? (
-                <Text
-                  style={styles.badgeMeta}
-                  numberOfLines={1}
-                  maxFontSizeMultiplier={layout.maxFontScaleBody}
-                >
-                  {[lookupResult.company, lookupResult.jobTitle]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </Text>
-              ) : null}
-
-              <View style={styles.badgeMetaRow}>
-                <Text
-                  style={styles.badgeMeta}
-                  numberOfLines={1}
-                  maxFontSizeMultiplier={layout.maxFontScaleBody}
-                >
-                  {copy.badges.registrantTypeLabel}：
-                  {lookupResult.registrantType}
-                </Text>
-                {lookupResult.registrationId ? (
-                  <Text
-                    style={styles.boundAtValue}
-                    numberOfLines={1}
-                    maxFontSizeMultiplier={layout.maxFontScaleBody}
-                  >
-                    {copy.badges.boundRegistration}
-                    {lookupResult.registrationId.slice(0, 8)}…
-                  </Text>
-                ) : null}
-              </View>
-
-              {lookupResult.profileUrl ? (
-                <Text
-                  style={styles.profileUrl}
-                  numberOfLines={1}
-                  selectable
-                  maxFontSizeMultiplier={layout.maxFontScaleBody}
-                >
-                  {copy.badges.profileUrlLabel}：{lookupResult.profileUrl}
-                </Text>
-              ) : null}
-            </View>
-          ) : null}
-        </View>
-
-        <View style={styles.listSection}>
-          <Text
-            style={styles.sectionTitle}
-            maxFontSizeMultiplier={layout.maxFontScaleFixed}
-          >
-            {copy.badges.listSectionTitle}
-          </Text>
-
-          {listLoading && badges.length === 0 ? (
+      <FlatList
+        data={badges}
+        keyExtractor={(item) => item.id}
+        renderItem={renderBadge}
+        ListHeaderComponent={listHeader}
+        style={styles.list}
+        contentContainerStyle={styles.listContent}
+        ItemSeparatorComponent={() => <View style={{ height: space[2] }} />}
+        onEndReached={() => {
+          if (hasMore && !listLoading) void loadMore();
+        }}
+        onEndReachedThreshold={0.4}
+        ListEmptyComponent={
+          listLoading ? (
             <View style={styles.skeletonList}>
               <Skeleton width="100%" height={88} radius={8} />
               <Skeleton width="100%" height={88} radius={8} />
             </View>
-          ) : badges.length === 0 ? (
+          ) : (
             <EmptyState
               icon="empty-card"
               title={copy.badges.emptyTitle}
               description={copy.badges.emptyHint}
             />
-          ) : (
-            <FlatList
-              data={badges}
-              keyExtractor={(item) => item.id}
-              renderItem={renderBadge}
-              style={styles.list}
-              contentContainerStyle={{ paddingBottom: spacing.safeFooter }}
-              ItemSeparatorComponent={() => (
-                <View style={{ height: space[2] }} />
-              )}
-              onEndReached={() => {
-                if (hasMore && !listLoading) void loadList(page + 1);
-              }}
-              onEndReachedThreshold={0.4}
-              ListFooterComponent={
-                listLoading ? (
-                  <View style={styles.footerLoading}>
-                    <ActivityIndicator color={semantic.icon.brand} />
-                  </View>
-                ) : null
-              }
-            />
-          )}
-        </View>
-      </View>
+          )
+        }
+        ListFooterComponent={
+          listLoading && badges.length > 0 ? (
+            <View style={styles.footerLoading}>
+              <ActivityIndicator color={semantic.icon.brand} />
+            </View>
+          ) : null
+        }
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: semantic.bg.canvas },
-  body: {
-    flex: 1,
+  list: { flex: 1 },
+  listContent: {
     paddingHorizontal: spacing.screen,
     paddingTop: space[4],
-    gap: space[5],
+    paddingBottom: spacing.safeFooter,
+    gap: space[2],
   },
+  header: { gap: space[5], paddingBottom: space[3] },
+  section: { gap: space[3] },
+  muted: { ...type.caption, color: semantic.text.muted },
   sectionTitle: {
     ...type.h3,
     color: semantic.text.primary,
@@ -502,15 +753,55 @@ const styles = StyleSheet.create({
     ...type.monoSm,
     color: semantic.text.muted,
   },
-  listSection: {
-    flex: 1,
-    minHeight: 0,
-    gap: space[3],
-    paddingTop: space[2],
-    borderTopWidth: hairline,
-    borderTopColor: semantic.border.decorative,
+  statRow: { gap: space[2], paddingRight: space[4] },
+  statCard: {
+    width: 132,
+    backgroundColor: semantic.bg.surface,
+    borderRadius: radius.md,
+    padding: space[3],
+    gap: space[1],
+    borderWidth: 1,
+    borderColor: semantic.border.decorative,
   },
-  list: { flex: 1 },
+  statLabel: {
+    ...type.caption,
+    color: semantic.text.secondary,
+    fontWeight: "600",
+  },
+  statValue: {
+    ...type.h2,
+    color: semantic.text.primary,
+  },
+  statDesc: {
+    ...type.caption,
+    color: semantic.text.muted,
+  },
+  batchCard: {
+    backgroundColor: semantic.bg.surface,
+    borderRadius: radius.md,
+    padding: space[3],
+    gap: space[2],
+    borderWidth: 1,
+    borderColor: semantic.border.decorative,
+  },
+  batchLabel: {
+    ...type.label,
+    color: semantic.text.primary,
+  },
+  batchMetrics: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: space[2],
+  },
+  batchMetric: { alignItems: "center", flex: 1, gap: 2 },
+  batchMetricValue: {
+    ...type.h3,
+    color: semantic.text.primary,
+  },
+  batchMetricLabel: {
+    ...type.caption,
+    color: semantic.text.muted,
+  },
   badgeCard: {
     backgroundColor: semantic.bg.surface,
     borderRadius: radius.md,
@@ -556,6 +847,11 @@ const styles = StyleSheet.create({
     color: semantic.text.muted,
     flex: 1,
     minWidth: 0,
+  },
+  qrCode: {
+    ...type.monoSm,
+    color: semantic.text.muted,
+    flexShrink: 0,
   },
   boundAtValue: {
     ...type.caption,
