@@ -59,6 +59,8 @@ import {
 } from "@/components/ui/InlineBanner";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ConfirmActionDialog } from "@/components/badges/ConfirmActionDialog";
+import { CreateBatchDialog } from "@/components/badges/CreateBatchDialog";
 import { copy } from "@/constants/copy.zh-TW";
 import {
   layout,
@@ -71,9 +73,11 @@ import {
 import { nfcService } from "@/services/nfc.service";
 import type {
   BadgeStatus,
+  CreateNfcBatchParams,
   NfcBadgeInventoryItem,
   NfcLookupResult,
 } from "@/types/api.types";
+import { buildCreateBatchConfirmation } from "@/utils/badge-batch";
 import {
   BADGE_STAT_KEYS,
   BADGE_STATUS_FILTERS,
@@ -171,7 +175,21 @@ export default function BadgesScreen() {
    * 與 Web 的 `await load(1); await loadAll();` 同義，但不在 handler 內直接
    * 呼叫載入函式——載入路徑永遠只有 effect 那一份。
    */
-  const [reloadKey] = useState(0);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  /**
+   * 建立批次的三個狀態：表單是否開著、表單已填好的參數（等待確認）、
+   * 以及送出中的錯誤。
+   *
+   * `pendingCreate` 是「已通過驗證但還沒送出」，它必須是 `null` 才代表不需要
+   * 確認框——這與 `bank-transfer-review.ts` 的 `intent` 同一個手法：
+   * 送出前先落到一個可被觀察的狀態，而不是按鈕裡的 `if`。
+   */
+  const [createOpen, setCreateOpen] = useState(false);
+  const [pendingCreate, setPendingCreate] =
+    useState<CreateNfcBatchParams | null>(null);
+  const [createBusy, setCreateBusy] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -284,6 +302,35 @@ export default function BadgesScreen() {
     () => buildBadgeBatchSummaries(allBadges),
     [allBadges],
   );
+
+  const createConfirmation = pendingCreate
+    ? buildCreateBatchConfirmation(pendingCreate)
+    : null;
+
+  /**
+   * 真的建立批次（確認框按下確認之後）。
+   *
+   * 失敗時**不關掉確認框**：錯誤顯示在同一個框裡，操作員可以直接取消，而
+   * 不是回到表單重填一次——重填不會讓「權限不足」變成權限足夠。
+   */
+  const submitCreateBatch = useCallback(async () => {
+    if (!eventId || !pendingCreate) return;
+    setCreateBusy(true);
+    setCreateError(null);
+    try {
+      const created = await nfcService.createBatch(eventId, pendingCreate);
+      setPendingCreate(null);
+      setBanner({
+        tone: "success",
+        message: copy.badges.createSuccess(created.count),
+      });
+      setReloadKey((key) => key + 1);
+    } catch {
+      setCreateError(copy.badges.createFailed);
+    } finally {
+      setCreateBusy(false);
+    }
+  }, [eventId, pendingCreate]);
 
   const doLookup = useCallback(async () => {
     if (!eventId || !lookupUid.trim()) return;
@@ -416,6 +463,18 @@ export default function BadgesScreen() {
       {banner ? (
         <InlineBanner compact tone={banner.tone} message={banner.message} />
       ) : null}
+
+      {/* 動作列。Web 把「匯出 CSV」「建立批次」放在頁首右側。 */}
+      <View style={styles.actions}>
+        <Button
+          label={copy.badges.createBatch}
+          onPress={() => {
+            setCreateError(null);
+            setCreateOpen(true);
+          }}
+          testID="badges-create-batch-open"
+        />
+      </View>
 
       <View style={styles.lookupBox}>
         <Text
@@ -694,6 +753,58 @@ export default function BadgesScreen() {
           ) : null
         }
       />
+
+      {createOpen ? (
+        <CreateBatchDialog
+          busy={createBusy}
+          onSubmit={(params) => {
+            setCreateOpen(false);
+            setCreateError(null);
+            setPendingCreate(params);
+          }}
+          onCancel={() => setCreateOpen(false)}
+        />
+      ) : null}
+
+      {pendingCreate && createConfirmation ? (
+        <ConfirmActionDialog
+          title={copy.badges.confirmCreateTitle}
+          intro={copy.badges.confirmCreateIntro}
+          rows={[
+            {
+              label: copy.badges.rowCount,
+              value: String(createConfirmation.count),
+            },
+            {
+              label: copy.badges.rowBadgeType,
+              value: createConfirmation.badgeType ?? copy.badges.notSpecified,
+            },
+            ...(createConfirmation.colorCode
+              ? [
+                  {
+                    label: copy.badges.rowColorCode,
+                    value: createConfirmation.colorCode,
+                  },
+                ]
+              : []),
+            {
+              label: copy.badges.rowBatchLabel,
+              value: createConfirmation.batchLabel ?? copy.badges.notSpecified,
+            },
+          ]}
+          warning={copy.badges.confirmCreateWarning}
+          confirmLabel={copy.badges.confirmCreate}
+          busy={createBusy}
+          error={createError}
+          onConfirm={() => void submitCreateBatch()}
+          onCancel={() => {
+            if (createBusy) return;
+            setPendingCreate(null);
+            setCreateError(null);
+          }}
+          testID="badges-create-confirm"
+        />
+      ) : null}
     </View>
   );
 }
@@ -708,6 +819,7 @@ const styles = StyleSheet.create({
     gap: space[2],
   },
   header: { gap: space[5], paddingBottom: space[3] },
+  actions: { gap: space[2] },
   section: { gap: space[3] },
   muted: { ...type.caption, color: semantic.text.muted },
   sectionTitle: {

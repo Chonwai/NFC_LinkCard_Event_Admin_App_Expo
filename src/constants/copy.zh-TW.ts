@@ -235,6 +235,48 @@ export const copy = {
     writtenAtLabel: "寫卡時間",
     writtenAtEmpty: "尚未寫卡",
     qrCodeLabel: "QR",
+
+    /*
+     * 建立批次（2026-11-01 對齊 Web 的 `badges.createBatch*`）。
+     * 張數上下限的來源是後端 DTO，不是這份文案——這裡只放顯示用的字。
+     */
+    createBatch: "建立批次",
+    createBatchTitle: "建立 Badge 批次",
+    createBatchIntro:
+      "一次產生整批 badge 記錄。手環寫卡後就是一次性庫存，請先確認張數。",
+    countLabel: "張數",
+    countPlaceholder: "50",
+    badgeTypeLabel: "載體類型",
+    /** 不指定 → 後端套自己的預設（`CARD`）。前端不猜。 */
+    badgeTypeAny: "不指定",
+    colorCodeLabel: "色碼（選填）",
+    colorCodePlaceholder: "#7C3AED",
+    batchLabelLabel: "批次名稱（選填）",
+    batchLabelPlaceholder: "例：StartupFest 第一批",
+    countRangeHint: (min: number, max: number) => `可建立 ${min}–${max} 張`,
+    nextStep: "下一步",
+    errorCountRange: "張數必須是 1 到 500 的整數",
+    errorColorFormat: "色碼格式不正確（例：#7C3AED）",
+    /** 建立批次的送出錯誤（權限／後端拒絕），與欄位錯誤分開。 */
+    createFailed: "建立批次失敗，請確認權限後重試",
+    createSuccess: (count: number) => `已建立 ${count} 張 badge`,
+    confirmCreateTitle: "確認建立批次",
+    confirmCreateIntro: "按下確認後會立刻建立這批 badge。",
+    /**
+     * 建立批次的不可逆說明。
+     *
+     * 必須寫明「張數無法減少」與「寫入後無法改派」——這是操作員在按下確認前
+     * 唯一會看到的地方，而這兩個動作都沒有反轉 API。
+     */
+    confirmCreateWarning:
+      "手環是一次性實體庫存：批次建立後張數無法減少；寫入真實 tagUid 之後也無法改派到別的批次。",
+    rowCount: "張數",
+    rowBadgeType: "載體類型",
+    rowColorCode: "色碼",
+    rowBatchLabel: "批次名稱",
+    /** 確認框裡「這個欄位沒填」的顯示字。 */
+    notSpecified: "未指定",
+    confirmCreate: "確認建立",
   },
   checkIn: {
     scanHint: "掃描報名 QR code",
