@@ -40,6 +40,12 @@ import {
   type OrgRoleInviteIntent,
   validateOrgRoleInvite,
 } from "@/utils/org-role-invite";
+import {
+  buildOrgRoleRemoveConfirmation,
+  buildOrgRoleRemoveRequest,
+  canRemoveOrgRole,
+  type OrgRoleRemoveConfirmation,
+} from "@/utils/org-role-remove";
 
 /**
  * 組織角色（parity `org-roles`）。
@@ -127,6 +133,13 @@ export default function EventOrgRolesScreen() {
    */
   const [pendingInvite, setPendingInvite] =
     useState<OrgRoleInviteIntent | null>(null);
+  /**
+   * 待確認的移除意圖。與邀請同一個設計：按下只建立意圖，確認才送出。
+   */
+  const [pendingRemove, setPendingRemove] = useState<{
+    role: EventOrgRole;
+    confirmation: OrgRoleRemoveConfirmation;
+  } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{
     tone: InlineBannerTone;
@@ -220,6 +233,58 @@ export default function EventOrgRolesScreen() {
       setFeedback({ tone: "danger", message: copy.orgRoles.errors[kind] });
       // 已經有人了／活動不見了 ⇒ 名單已經不是我們以為的樣子，一定要重讀。
       if (kind === "alreadyExists" || kind === "notFound") {
+        setReloadKey((key) => key + 1);
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  /** 建立移除意圖（不送出）。 */
+  function requestRemove(role: EventOrgRole) {
+    setFeedback(null);
+    setPendingRemove({
+      role,
+      confirmation: buildOrgRoleRemoveConfirmation(
+        role,
+        copy.orgRoles.roleLabels,
+      ),
+    });
+  }
+
+  /**
+   * 移除的唯一送出點。
+   *
+   * `buildOrgRoleRemoveRequest` 同時擋掉「還沒確認」與「這一列本來就不該移除」
+   * （見 `utils/org-role-remove.ts`）——所以即使畫面的條件日後漂掉，一個
+   * 移除 SUPER_ADMIN 的請求也不會被產生。
+   */
+  async function submitRemove(role: EventOrgRole) {
+    const request = buildOrgRoleRemoveRequest(role, {
+      confirmed: true,
+      gateDisabled,
+    });
+    if (request == null) {
+      setPendingRemove(null);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      // 路徑上的 id 是 EventOrgRole.id，不是 user id。
+      await orgRoleService.remove(eventId, request.orgRoleId);
+      setPendingRemove(null);
+      setFeedback({
+        tone: "success",
+        message: copy.orgRoles.removeSuccess(formatOrgRoleEmail(role)),
+      });
+      setReloadKey((key) => key + 1);
+    } catch (error) {
+      const { kind } = classifyOrgRoleError(error);
+      setPendingRemove(null);
+      setFeedback({ tone: "danger", message: copy.orgRoles.errors[kind] });
+      // 那一列已經不是我們以為的樣子（被別人移除了／活動不見了）⇒ 一定要重讀。
+      if (kind === "notFound") {
         setReloadKey((key) => key + 1);
       }
     } finally {
@@ -378,7 +443,12 @@ export default function EventOrgRolesScreen() {
         ) : (
           <View style={styles.list}>
             {roles.map((entry) => (
-              <OrgRoleCard key={entry.id} role={entry} />
+              <OrgRoleCard
+                key={entry.id}
+                role={entry}
+                gateDisabled={gateDisabled}
+                onRemove={() => requestRemove(entry)}
+              />
             ))}
           </View>
         )}
@@ -393,6 +463,15 @@ export default function EventOrgRolesScreen() {
           busy={submitting}
           onConfirm={() => void submitInvite(pendingInvite)}
           onCancel={() => setPendingInvite(null)}
+        />
+      ) : null}
+
+      {pendingRemove ? (
+        <RemoveDialog
+          confirmation={pendingRemove.confirmation}
+          busy={submitting}
+          onConfirm={() => void submitRemove(pendingRemove.role)}
+          onCancel={() => setPendingRemove(null)}
         />
       ) : null}
     </View>
@@ -496,9 +575,28 @@ function InviteDialog({
  *
  * 資訊順序照 Web：人名 → email → 角色徽章。App 多一個狀態徽章（見檔頭
  * 「與 Web 的差異一」）。
+ *
+ * 移除鈕是否出現由 `canRemoveOrgRole()` 決定（不是寫在這裡的 `if`）：那個判斷
+ * 對應後端「沒有最後一個 OWNER／自我移除保護」的查證結果，值得被測試釘住。
  */
-function OrgRoleCard({ role }: { role: EventOrgRole }) {
+function OrgRoleCard({
+  role,
+  gateDisabled,
+  onRemove,
+}: {
+  role: EventOrgRole;
+  gateDisabled: boolean;
+  onRemove: () => void;
+}) {
   const state = orgRoleState(role);
+  const removable = canRemoveOrgRole(role, { gateDisabled });
+  /**
+   * 只有「呼叫者本來有能力移除別人、但這一列被鎖住」時才解釋。
+   *
+   * `gateDisabled` 為真時整頁已經是唯讀（上方已有權限說明），再逐列重複一次
+   * 只是噪音。
+   */
+  const locked = !gateDisabled && role.role === "SUPER_ADMIN";
 
   return (
     <Card testID={`org-role-card-${role.id}`}>
@@ -514,7 +612,109 @@ function OrgRoleCard({ role }: { role: EventOrgRole }) {
           <StateBadge state={state} testID={`org-role-state-${role.id}`} />
         </View>
       </View>
+
+      {removable ? (
+        <View style={styles.actions}>
+          <View style={styles.actionButton}>
+            <Button
+              label={copy.orgRoles.remove}
+              variant="danger"
+              onPress={onRemove}
+              testID={`org-role-remove-${role.id}`}
+            />
+          </View>
+        </View>
+      ) : null}
+
+      {/* Web 是靜默地不畫按鈕（org-roles/page.tsx:295），什麼都不說。 */}
+      {locked ? (
+        <Text style={styles.locked}>{copy.orgRoles.superAdminLocked}</Text>
+      ) : null}
     </Card>
+  );
+}
+
+/**
+ * 移除的二次確認框。
+ *
+ * 形狀與 `InviteDialog` 相同（自繪 `Modal`、主動作在上）。三行內容——管理員、
+ * email、角色——是**Web 沒有的**：Web 的確認只有「確定移除此管理員？」一句，
+ * 清單一長就等於沒有確認作用。
+ */
+function RemoveDialog({
+  confirmation,
+  busy,
+  onConfirm,
+  onCancel,
+}: {
+  confirmation: OrgRoleRemoveConfirmation;
+  busy: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Modal
+      visible
+      transparent
+      animationType="fade"
+      onRequestClose={() => {
+        if (!busy) onCancel();
+      }}
+    >
+      <View style={styles.backdrop}>
+        <View style={styles.dialog} testID="org-roles-remove-confirm">
+          <Text style={styles.dialogTitle}>
+            {copy.orgRoles.removeConfirm.title}
+          </Text>
+          <Text style={styles.dialogIntro}>
+            {copy.orgRoles.removeConfirm.intro}
+          </Text>
+
+          <View style={styles.confirmRow}>
+            <Text style={styles.confirmLabel}>
+              {copy.orgRoles.removeConfirm.personLabel}
+            </Text>
+            <Text style={styles.confirmValue} testID="org-roles-remove-person">
+              {confirmation.person}
+            </Text>
+          </View>
+
+          <View style={styles.confirmRow}>
+            <Text style={styles.confirmLabel}>
+              {copy.orgRoles.removeConfirm.emailLabel}
+            </Text>
+            <Text style={styles.confirmValue} testID="org-roles-remove-email">
+              {confirmation.email}
+            </Text>
+          </View>
+
+          <View style={styles.confirmRow}>
+            <Text style={styles.confirmLabel}>
+              {copy.orgRoles.removeConfirm.roleLabel}
+            </Text>
+            <Text style={styles.confirmValue} testID="org-roles-remove-role">
+              {confirmation.role}
+            </Text>
+          </View>
+
+          <Button
+            label={copy.orgRoles.removeConfirm.confirm}
+            variant="danger"
+            onPress={onConfirm}
+            loading={busy}
+            disabled={busy}
+            testID="org-roles-remove-confirm-submit"
+          />
+          <Button
+            label={copy.common.cancel}
+            variant="secondary"
+            onPress={onCancel}
+            disabled={busy}
+            testID="org-roles-remove-confirm-cancel"
+          />
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -612,6 +812,25 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   badgeLabel: { ...type.caption },
+  /**
+   * 卡片內動作列。
+   *
+   * 與 `bank-transfers.tsx` / `ticket-types.tsx` 同一個處理：加上分隔線，否則
+   * 按鈕會看起來像屬於上面那行字。
+   */
+  actions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+    gap: space[2],
+    marginTop: space[2],
+    paddingTop: space[3],
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: semantic.border.decorative,
+  },
+  /** 動作鈕不撐滿卡片寬度（`Button` 預設 `fullWidth`），用外層限寬。 */
+  actionButton: { minWidth: layout.touchMin * 2.6 },
+  locked: { ...type.caption, color: semantic.text.muted },
 
   // ── 二次確認彈窗 ──────────────────────────────────────────
   backdrop: {

@@ -1775,6 +1775,33 @@ export const copy = {
       validation: "輸入的內容未通過後端驗證，請確認電子郵件後再試",
       failed: "操作失敗，請稍後再試",
     },
+    /** Web `orgRoles.remove` */
+    remove: "移除",
+    /** Web `orgRoles.removeSuccess`（去掉 `✅`；i18next `{{email}}` → 函式） */
+    removeSuccess: (email: string) => `已移除 ${email}`,
+    /**
+     * 移除的二次確認。
+     *
+     * Web 只有一行 `window.confirm`（`orgRoles.removeConfirm`：確定移除此管理員？），
+     * **沒有說要移除誰**。清單一長，那一句話就等於沒有確認作用——按下去才知道
+     * 按到哪一列。App 把「誰、email、什麼角色」三行都列出來。
+     */
+    removeConfirm: {
+      title: "移除這位管理員？",
+      intro: "對方會立刻失去這場活動的後台權限。",
+      personLabel: "管理員",
+      emailLabel: "電子郵件",
+      roleLabel: "角色",
+      confirm: "確認移除",
+    },
+    /**
+     * SUPER_ADMIN 那一列沒有移除鈕時的唯一說明。
+     *
+     * Web 是**靜默地不畫按鈕**（`org-roles/page.tsx:295` 的
+     * `r.role !== 'SUPER_ADMIN'`），什麼都不說。一列明明有角色卻沒有動作鈕，
+     * 在現場看起來像壞掉；一句話就能把「設計如此」與「壞掉」分開。
+     */
+    superAdminLocked: "Super Admin 不可由此頁移除",
   },
   /**
    * 未匹配路由（`app/+not-found.tsx`）。
