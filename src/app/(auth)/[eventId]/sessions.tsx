@@ -1,13 +1,26 @@
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useLocalSearchParams } from "expo-router";
 
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { ChoiceChips } from "@/components/ui/ChoiceChips";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { FieldInput } from "@/components/ui/FieldInput";
 import { Icon } from "@/components/ui/Icon";
-import { InlineBanner } from "@/components/ui/InlineBanner";
+import {
+  InlineBanner,
+  type InlineBannerTone,
+} from "@/components/ui/InlineBanner";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { copy } from "@/constants/copy.zh-TW";
@@ -20,7 +33,31 @@ import {
   type,
 } from "@/constants/theme";
 import { sessionService } from "@/services/session.service";
-import type { EventSession } from "@/types/session.types";
+import type { EventSession, EventSessionType } from "@/types/session.types";
+import { getApiErrorMessage } from "@/utils/api-error";
+import {
+  emptySessionForm,
+  sessionFormError,
+  toSessionPayload,
+  type SessionFormErrorKey,
+  type SessionFormInput,
+} from "@/utils/session-form";
+
+/**
+ * 表單的類型選項，順序照 Web 的 `SESSION_TYPES`（`sessions/page.tsx:22-30`）。
+ *
+ * 七個值全部來自 Prisma `enum EventSessionType`
+ * （`schema.prisma:917-925`）。少一個就會讓某一種場次在手機上建不出來。
+ */
+const SESSION_TYPES: readonly EventSessionType[] = [
+  "WORKSHOP",
+  "CONFERENCE",
+  "KEYNOTE",
+  "PARTY",
+  "MEDIA_DAY",
+  "PRODUCT_LAUNCH",
+  "NETWORKING",
+];
 
 /**
  * 場次管理（parity `sessions`）。
@@ -72,6 +109,15 @@ export default function EventSessionsScreen() {
 
   const [reloadKey, setReloadKey] = useState(0);
 
+  /** 新增表單是否打開。與 Web 一樣是「按了才出現」，預設關著。 */
+  const [formOpen, setFormOpen] = useState(false);
+
+  /** 寫入結果橫幅（目前只有建立成功會用到；編輯會在同一個位置報結果）。 */
+  const [feedback, setFeedback] = useState<{
+    tone: InlineBannerTone;
+    message: string;
+  } | null>(null);
+
   useEffect(() => {
     let active = true;
 
@@ -109,6 +155,17 @@ export default function EventSessionsScreen() {
         backFallbackPath="/(auth)/[eventId]/overview"
         onRefresh={() => setReloadKey((key) => key + 1)}
         isRefreshing={loading}
+        right={
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={copy.sessions.add}
+            onPress={() => setFormOpen(true)}
+            style={styles.headerAction}
+            testID="sessions-add"
+          >
+            <Icon name="plus" size="md" color={semantic.action.primary} />
+          </Pressable>
+        }
       />
       <ScrollView
         contentContainerStyle={[
@@ -121,6 +178,16 @@ export default function EventSessionsScreen() {
             compact
             tone="danger"
             message={copy.sessions.loadError}
+          />
+        ) : null}
+
+        {feedback ? (
+          <InlineBanner
+            compact
+            tone={feedback.tone}
+            message={feedback.message}
+            dismissible
+            onDismiss={() => setFeedback(null)}
           />
         ) : null}
 
@@ -154,6 +221,22 @@ export default function EventSessionsScreen() {
           </View>
         ) : null}
       </ScrollView>
+
+      {formOpen && eventId ? (
+        <SessionFormModal
+          eventId={eventId}
+          onClose={() => setFormOpen(false)}
+          onSaved={() => {
+            setFormOpen(false);
+            setFeedback({
+              tone: "success",
+              message: copy.sessions.createSuccess,
+            });
+            // 整份重載，不把新場次自己拼進本地陣列：`createdAt` 與排序都在後端。
+            setReloadKey((key) => key + 1);
+          }}
+        />
+      ) : null}
     </View>
   );
 }
@@ -229,6 +312,207 @@ function SessionCard({ session }: { session: EventSession }) {
 }
 
 /**
+ * 新增場次的表單。
+ *
+ * ## 為什麼是自繪 `Modal` 而不是新開一頁
+ *
+ * 與 `ticket-types.tsx` 的 `TicketTypeFormModal` 同一個理由：這個 repo
+ * 全案沒有用過 `Alert.alert`，既有的表單與確認面板都是自繪 `Modal`。
+ * 另一個更實際的理由是 Web 也是 modal（`sessions/page.tsx:103-320`），
+ * 而且「新增完就立刻在清單看到它」這個流程不需要離開原頁。
+ *
+ * ## 為什麼錯誤只在第一次送出後才顯示
+ *
+ * 一打開就滿江紅會讓人以為自己填錯了。`submitted` 之前不顯示錯誤，
+ * 之後每一格即時更新——這是 `ticket-types` 之後這個 repo 的既有做法。
+ *
+ * ## 為什麼時間是文字輸入而不是日期選擇器
+ *
+ * Web 的 `<input type="datetime-local">` 由瀏覽器提供日曆。RN 沒有內建
+ * date picker，而本輪**不加依賴**（Quality Contract）。所以是嚴格格式的
+ * 文字欄位，並由 `parseLocalDateTime` 明確擋掉不存在的日期
+ * （`2026-02-30` 不會靜默變成 `2026-03-02`）。
+ * 這是**輸入方式**的差異，不是能力的差異：送出的資料形狀完全相同。
+ */
+function SessionFormModal({
+  eventId,
+  onClose,
+  onSaved,
+}: {
+  eventId: string;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [form, setForm] = useState<SessionFormInput>(() => emptySessionForm());
+  /** 是否已經按過一次「建立」——之前不顯示任何欄位錯誤。 */
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
+
+  function update<K extends keyof SessionFormInput>(
+    key: K,
+    value: SessionFormInput[K],
+  ) {
+    setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  const errorKey = submitted ? sessionFormError(form) : null;
+  const errorFor = (key: SessionFormErrorKey): string | null =>
+    errorKey === key ? copy.sessions.errors[key] : null;
+
+  async function submit() {
+    setSubmitted(true);
+    setFailure(null);
+
+    const payload = toSessionPayload(form);
+    // 不合法就不送出——錯誤已由上面的 errorKey 顯示在各欄位上。
+    if (payload == null) return;
+
+    setSubmitting(true);
+    try {
+      await sessionService.createSession(eventId, payload);
+      onSaved();
+    } catch (error) {
+      setFailure(getApiErrorMessage(error, copy.sessions.actionError));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.backdrop}>
+        <View style={styles.dialog} testID="session-form">
+          <Text style={type.h3}>{copy.sessions.add}</Text>
+
+          <ScrollView
+            style={styles.formScroll}
+            contentContainerStyle={styles.formBody}
+            keyboardShouldPersistTaps="handled"
+          >
+            {failure ? (
+              <InlineBanner compact tone="danger" message={failure} />
+            ) : null}
+
+            <FieldInput
+              label={copy.sessions.titleField}
+              value={form.title}
+              onChangeText={(text) => update("title", text)}
+              required
+              error={errorFor("titleRequired")}
+              testID="session-form-title"
+            />
+
+            <ChoiceChips<EventSessionType>
+              label={copy.sessions.type}
+              options={SESSION_TYPES}
+              value={form.sessionType}
+              labelFor={(value) => copy.sessions.sessionType[value]}
+              onSelect={(value) => update("sessionType", value)}
+              testID="session-form-type"
+            />
+
+            <FieldInput
+              label={copy.sessions.startTime}
+              value={form.startDate}
+              onChangeText={(text) => update("startDate", text)}
+              placeholder={copy.sessions.dateTimePlaceholder}
+              autoCapitalize="none"
+              autoCorrect={false}
+              required
+              error={errorFor("timeRequired") ?? errorFor("timeInvalid")}
+              testID="session-form-start"
+            />
+
+            <FieldInput
+              label={copy.sessions.endTime}
+              value={form.endDate}
+              onChangeText={(text) => update("endDate", text)}
+              placeholder={copy.sessions.dateTimePlaceholder}
+              autoCapitalize="none"
+              autoCorrect={false}
+              required
+              error={errorFor("timeRequired") ?? errorFor("timeInvalid")}
+              testID="session-form-end"
+            />
+
+            <Text style={styles.formHint}>{copy.sessions.dateTimeHint}</Text>
+
+            <FieldInput
+              label={copy.sessions.location}
+              value={form.location}
+              onChangeText={(text) => update("location", text)}
+              placeholder={copy.sessions.locationPlaceholder}
+              testID="session-form-location"
+            />
+
+            <FieldInput
+              label={copy.sessions.speaker}
+              value={form.speakerName}
+              onChangeText={(text) => update("speakerName", text)}
+              testID="session-form-speaker"
+            />
+
+            <FieldInput
+              label={copy.sessions.capacity}
+              value={form.capacity}
+              onChangeText={(text) => update("capacity", text)}
+              placeholder={copy.sessions.unlimited}
+              keyboardType="number-pad"
+              error={errorFor("capacityInvalid")}
+              testID="session-form-capacity"
+            />
+
+            <FieldInput
+              label={copy.sessions.price}
+              value={form.price}
+              onChangeText={(text) => update("price", text)}
+              keyboardType="decimal-pad"
+              error={errorFor("priceInvalid")}
+              testID="session-form-price"
+            />
+
+            <FieldInput
+              label={copy.sessions.tokenCost}
+              value={form.tokenCost}
+              onChangeText={(text) => update("tokenCost", text)}
+              keyboardType="number-pad"
+              error={errorFor("tokenCostInvalid")}
+              testID="session-form-token-cost"
+            />
+
+            <FieldInput
+              label={copy.sessions.description}
+              value={form.description}
+              onChangeText={(text) => update("description", text)}
+              multiline
+              testID="session-form-description"
+            />
+          </ScrollView>
+
+          <View style={styles.formActions}>
+            <Button
+              label={copy.sessions.cancel}
+              variant="secondary"
+              onPress={onClose}
+              disabled={submitting}
+              fullWidth={false}
+              testID="session-form-cancel"
+            />
+            <Button
+              label={submitting ? copy.sessions.saving : copy.sessions.create}
+              onPress={() => void submit()}
+              loading={submitting}
+              testID="session-form-submit"
+            />
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+/**
  * ISO → 本地時間字串。
  *
  * 與 `bank-transfers.tsx` / `check-in.tsx` 的版本同一個行為：
@@ -271,5 +555,38 @@ const styles = StyleSheet.create({
     ...type.caption,
     color: semantic.text.muted,
     marginTop: space[1],
+  },
+  /**
+   * 標頭右側的新增鈕。
+   *
+   * 尺寸走 `layout.touchMin`（48）：標頭上的圖示鈕小於 44pt 就是誤觸製造機。
+   */
+  headerAction: {
+    width: layout.touchMin,
+    height: layout.touchMin,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radius.sm,
+  },
+  backdrop: {
+    flex: 1,
+    backgroundColor: semantic.bg.scrim,
+    justifyContent: "center",
+    padding: spacing.screen,
+  },
+  dialog: {
+    backgroundColor: semantic.bg.surface,
+    borderRadius: radius.lg,
+    padding: spacing.screen,
+    gap: spacing.gap,
+    maxHeight: "88%",
+  },
+  formScroll: { flexGrow: 0 },
+  formBody: { gap: spacing.gap, paddingBottom: space[2] },
+  formHint: { ...type.caption, color: semantic.text.muted },
+  formActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: space[2],
   },
 });

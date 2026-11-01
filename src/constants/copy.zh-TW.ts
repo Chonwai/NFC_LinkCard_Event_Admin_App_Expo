@@ -1439,6 +1439,65 @@ export const copy = {
     /** Web `sessions.people` 只在 Web 的別處出現，這一頁不用；App 也沒有搬。 */
     loading: "讀取中…",
     loadError: "載入工作坊列表失敗，請稍後再試",
+    /** Web `sessions.add` */
+    add: "新增工作坊",
+    /** Web `sessions.titleField`（Web 是表單的標籤，也是必填星號的宿主） */
+    titleField: "標題",
+    /** Web `sessions.type` */
+    type: "類型",
+    /** Web `sessions.startTime` / `sessions.endTime` */
+    startTime: "開始時間",
+    endTime: "結束時間",
+    /**
+     * 時間欄位的輸入提示。
+     *
+     * Web 是 `<input type="datetime-local">`，瀏覽器自己給日曆。
+     * App 沒有 date picker（`package.json` 沒有
+     * `@react-native-community/datetimepicker`，本輪不加依賴），所以是文字輸入。
+     * 這一對字串就是那個差異的可見面——不是漏抄。
+     */
+    dateTimePlaceholder: "YYYY-MM-DD HH:mm",
+    dateTimeHint: "例：2026-11-05 10:00（本地時間）",
+    /** Web `sessions.location` / `sessions.locationPlaceholder` */
+    location: "地點",
+    locationPlaceholder: "例：Hall A",
+    /** Web `sessions.speaker` */
+    speaker: "講者",
+    /** Web `sessions.capacity` */
+    capacity: "容量上限",
+    /** Web `sessions.price` / `sessions.tokenCost` */
+    price: "價格",
+    tokenCost: "Token 費用",
+    /** Web `sessions.description` */
+    description: "說明",
+    /** Web `sessions.cancel` / `sessions.saving` / `sessions.create` */
+    cancel: "取消",
+    saving: "儲存中...",
+    create: "建立",
+    /** App 獨有（Web 建立成功後直接關閉，沒有提示） */
+    createSuccess: "工作坊已建立",
+    /** 後端失敗的預設訊息（對應 Web 的 `errors.general`，但走 `getApiErrorMessage`） */
+    actionError: "操作失敗，請稍後重試",
+    /**
+     * 表單驗證訊息。
+     *
+     * 前兩條照抄 Web 的 `sessions.errors.titleRequired` / `timeRequired`。
+     * 後四條是 App 補的：Web 只把這些情況丟給後端，換來一句
+     * `errors.general`（「操作失敗」）。App 在送出前就講清楚是哪一格。
+     * ⚠️ Web 的 `errors.general` 刻意沒有搬——它對應的是「後端失敗」，
+     * 而 App 那條路徑走 `getApiErrorMessage`，不會用到這個字串。
+     */
+    errors: {
+      /** Web `sessions.errors.titleRequired` */
+      titleRequired: "標題為必填",
+      /** Web `sessions.errors.timeRequired` */
+      timeRequired: "開始與結束時間為必填",
+      timeInvalid: "時間格式請照 YYYY-MM-DD HH:mm 填寫",
+      /** 後端 `capacity` 是 `@Min(1)`，0 一定 400 */
+      capacityInvalid: "容量上限請填 1 以上的整數，或留空表示不限",
+      priceInvalid: "價格請填 0 以上的數字",
+      tokenCostInvalid: "Token 費用請填 0 以上的整數",
+    },
     /** Web `sessionType.*`——七個值逐字對齊 Prisma `enum EventSessionType`。 */
     sessionType: {
       WORKSHOP: "工作坊",
