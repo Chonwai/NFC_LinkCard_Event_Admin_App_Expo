@@ -339,6 +339,24 @@ export const copy = {
     rowClaimExhibitor: "展商",
     rowClaimCount: "張數",
     confirmClaim: "確認指派",
+
+    /*
+     * 匯出 CSV。
+     *
+     * ⚠️ 與 Web 的行為不完全相同：Web 按下就得到一個 `.csv` 檔（Blob + <a
+     * download>），App 沒有檔案系統依賴，得到的是可複製的 CSV 原文。理由與
+     * 完整說明在 `components/badges/ExportCsvDialog.tsx` 檔頭。
+     */
+    exportCsv: "匯出 CSV",
+    exporting: "匯出中…",
+    exportTitle: "Badge 匯出（CSV）",
+    exportIntro:
+      "以下是後端回傳的 CSV 原文。App 沒有檔案存取權限，請按「複製全部」後貼到試算表或存檔。",
+    copyCsv: "複製全部",
+    csvCopied: "已複製",
+    exportClose: "關閉",
+    exportFailed: "匯出失敗，請確認權限後重試",
+    exportEmpty: "沒有可匯出的資料",
   },
   checkIn: {
     scanHint: "掃描報名 QR code",

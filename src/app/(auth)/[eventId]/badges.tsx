@@ -66,6 +66,7 @@ import {
 } from "@/components/badges/ClaimBadgesDialog";
 import { CompleteBatchDialog } from "@/components/badges/CompleteBatchDialog";
 import { CreateBatchDialog } from "@/components/badges/CreateBatchDialog";
+import { ExportCsvDialog } from "@/components/badges/ExportCsvDialog";
 import { copy } from "@/constants/copy.zh-TW";
 import {
   layout,
@@ -246,6 +247,15 @@ export default function BadgesScreen() {
   } | null>(null);
   const [claimBusy, setClaimBusy] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
+
+  /**
+   * 匯出的 CSV 原文（`null` ＝ 匯出面板没開）。
+   *
+   * 不是存成檔案：App 沒有 `expo-file-system`／`expo-sharing`，本輪也明訂
+   * 不加依賴。改給可複製的文字（理由見 `ExportCsvDialog.tsx` 檔頭）。
+   */
+  const [exportCsv, setExportCsv] = useState<string | null>(null);
+  const [exportBusy, setExportBusy] = useState(false);
 
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -460,6 +470,32 @@ export default function BadgesScreen() {
     }
   }, [eventId, pendingClaim]);
 
+  /**
+   * 匯出 CSV（照 Web：只帶當前的 `status` 篩選）。
+   *
+   * 空字串的 csv 當成「沒有資料」而不是成功——換成一個空白面板只會讓人以為
+   * 匯出壞了。
+   */
+  const handleExport = useCallback(async () => {
+    if (!eventId) return;
+    setExportBusy(true);
+    setBanner(null);
+    try {
+      const { csv } = await nfcService.exportBadges(eventId, {
+        status: statusParam,
+      });
+      if (csv) {
+        setExportCsv(csv);
+      } else {
+        setBanner({ tone: "warning", message: copy.badges.exportEmpty });
+      }
+    } catch {
+      setBanner({ tone: "danger", message: copy.badges.exportFailed });
+    } finally {
+      setExportBusy(false);
+    }
+  }, [eventId, statusParam]);
+
   const doLookup = useCallback(async () => {
     if (!eventId || !lookupUid.trim()) return;
     const queriedUid = lookupUid.trim().toUpperCase();
@@ -611,6 +647,13 @@ export default function BadgesScreen() {
             setCreateOpen(true);
           }}
           testID="badges-create-batch-open"
+        />
+        <Button
+          label={exportBusy ? copy.badges.exporting : copy.badges.exportCsv}
+          variant="secondary"
+          loading={exportBusy}
+          onPress={() => void handleExport()}
+          testID="badges-export-open"
         />
       </View>
 
@@ -1053,6 +1096,10 @@ export default function BadgesScreen() {
           }}
           testID="badges-claim-confirm"
         />
+      ) : null}
+
+      {exportCsv ? (
+        <ExportCsvDialog csv={exportCsv} onClose={() => setExportCsv(null)} />
       ) : null}
 
       {pendingCreate && createConfirmation ? (
