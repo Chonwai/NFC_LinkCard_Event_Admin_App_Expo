@@ -419,7 +419,8 @@ git rev-list --left-right --count origin/feat/nfc-gate1-reader-spike...HEAD
 跑過」只能看 CI，不能從這個數字推。
 
 兩支都在樹上，不再有待驗的那一半：`npm run check:contract` 在工作分支的
-`HEAD` 上可跑（`package.json:59`：`"check:contract": "node scripts/check-backend-contract.mjs"`），
+`HEAD` 上可跑（`LinkCard_Event_Admin_App_Expo@package.json:60`：
+`"check:contract": "node scripts/check-backend-contract.mjs"`），
 CI 也有這個 step（`.github/workflows/ci.yml:57` 的 `Backend contract`）。
 本節前版寫的「`check:contract` 還不是 `package.json` 的 script、只活在
 `audit/parity-20261022` 上」**已被推翻**——那個狀態在 `1cb2b73` 合併後結束。

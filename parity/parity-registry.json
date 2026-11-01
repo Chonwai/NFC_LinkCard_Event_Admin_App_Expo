@@ -186,6 +186,8 @@
       "gapId": "G-8",
       "decidedIn": "docs/analysis/adminapp-parity-20261028/04-gap-register.md#G-8",
       "evidence": [
+        "除上鎖外全部對齊（2026-11-01）：掃碼／手動輸入、checkIn、desk-lookup（9710cee）、已報到分支、寫卡入口、walk-in 入口六項在 App 端均有可查證據",
+        "唯一缺口是卡片上鎖：三個障礙（密碼通道只走 cookie auth_token、App 無 raw APDU、寫錯即廢卡且 CI 無硬體）與兩個可選解法的代價見 04 §G-8「剩餘 1 項：卡片上鎖（2026-11-01 查證）」",
         "兩邊都有 QR 掃碼、手動輸入、防連掃門閂",
         "Web 同一畫面寫卡＋綁卡＋上鎖（WriteCardPanel 524 行、lib/checkin/nfcDesk.ts、lib/nfc/globalPassword.ts）",
         "App 寫卡在另一個畫面（nfc-bind.tsx），且無上鎖能力；iOS 硬阻擋（nfc-bind.tsx:84-85）",

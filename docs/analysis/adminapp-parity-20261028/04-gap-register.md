@@ -453,7 +453,8 @@ canInviteAdmins, role}`，Web 早就在用。App 打一次，把四個布林當�
    **與 Web 同樣只作用於已載入的列**：App 是無限捲動，`items` 會累積多頁，所以
    `registrations.tsx:1028` 以 `roster.emailStatus.filterScopeHint` 明說範圍，
    不假裝是全域篩選——否則「待處理 0」會被讀成「整份名單沒問題」。
-2. **VIP／貴賓名單批次匯入** —— `1fa0df8`。Web `page.tsx:307`（`LC-TTE P0'`）的
+2. **VIP／貴賓名單批次匯入** —— `1fa0df8`。Web
+   `LinkCard_Frontend@app/(event)/manage/[eventId]/registrations/page.tsx:307`（`LC-TTE P0'`）的
    四步全數對應：service `registration.service.ts:441`（preview）／`458`（confirm）／
    `477`（notify）／`497`（template），面板
    `src/components/roster/GuestImportModal.tsx`，入口 `registrations.tsx:824`。
@@ -820,6 +821,124 @@ Web 已經做到。App 要做到，需要回答三個問題：
 寫卡，是否可以是一個需要人記得的步驟」，B 回答的是「手機能不能在同一個畫面裡把卡
 寫完並上鎖」。前者是流程容錯問題，後者是能力問題；先回答前者，B 的範圍會自己縮小。
 
+#### 剩餘 1 項：卡片上鎖（2026-11-01 查證）
+
+上面把 G-8 拆成 (a) 操作步數與 (b) 上鎖兩項。本輪只查證 **(b)**，並且把「做不到」
+的原因寫成可複驗的障礙，而不是一句「還沒做」。**結論：上鎖不是補一段程式，是三個
+彼此獨立的障礙，其中兩個 CI 蓋不到。**
+
+**1. 密碼通道不存在。**
+
+Web 的報到桌向一支 Next.js Route Handler 要密碼：
+`LinkCard_Frontend@app/api/check-in/card-password/route.ts:212` 讀
+`process.env.NFC_CARD_PASSWORD`。這支端點**只認 cookie**——`AUTH_COOKIE = 'auth_token'`
+（`LinkCard_Frontend@app/api/check-in/card-password/route.ts:75`），由
+`request.cookies.get(AUTH_COOKIE)`（同檔 `:140`）取出，沒有 `Authorization` 分支。
+
+App 打後端則一律帶 Bearer JWT：
+`LinkCard_Event_Admin_App_Expo@src/services/api.ts:31` 是
+`` config.headers.Authorization = `Bearer ${token}` ``。
+⇒ **App 打不到那支吃 cookie 的 Next.js route**，兩邊是兩套認證體系。
+
+而後端完全沒有這個概念。實跑命令與輸出：
+
+```bash
+$ grep -rn 'NFC_CARD_PASSWORD\|cardPassword' ../LinkCard_ExpressJS_Backend/src/
+# （無輸出：後端 0 命中）
+```
+
+⇒ 密碼只存在於 Frontend 的 env。App 沒有合法途徑取得它。
+
+**2. 硬體層：沒有 raw APDU。**
+
+App 目前的寫卡只走 `Ndef` 標籤 API：
+`LinkCard_Event_Admin_App_Expo@src/utils/nfc-utils.ts:293` 是
+`await NfcManager.requestTechnology(NfcTech.Ndef)`，之後用
+`ndefHandler.writeNdefMessage` 完成寫入並讀回比對。
+
+`PWD_AUTH` 需要 raw APDU（`NfcTech.NfcA` ＋ `transceive`）。實跑：
+
+```bash
+$ grep -rn 'transceive\|PWD_AUTH\|pwdAuth' src/ tests/
+# （無輸出：0 命中）
+```
+
+**這裡必須更正一個很容易寫錯的說法：`NfcTech.NfcA` 不是沒被用過。**
+`LinkCard_Event_Admin_App_Expo@src/utils/nfc-utils.ts:381` 的 `readTagUid()` 就以
+`[NfcTech.Ndef, NfcTech.NfcA]` 一起 request 過，但那條路徑**只讀 UID**，全程沒有
+`transceive`。⇒ 缺的是 **APDU 通道**，不是 `NfcA` 這個 tech 常數。若把「App 沒用過
+NfcA」寫進文件，下一個人會以為要從零接 tech；實際要接的是 `transceive` 與指令組裝
+（`react-native-nfc-manager` 提供該 API，本 repo 未使用）。
+
+附帶一條與上鎖無關、但同樣限制寫卡的平台事實：iOS 連寫入都不行，
+`LinkCard_Event_Admin_App_Expo@src/app/(auth)/[eventId]/nfc-bind.tsx:85` 直接回阻擋
+訊息。
+
+**3. 驗證層：寫錯就是廢卡，CI 蓋不到。**
+
+`PWD` 與 `AUTH0` 一旦寫入**不可回復**——`AUTH0` 決定從哪一頁開始受保護，`PWD` 決定
+之後能不能再通過驗證。位址寫錯、或寫到一半斷線，卡片就成了現場無法自救的磚；這正
+是本節「選項 B 前置 1」所指的中斷回復問題。
+
+`npm test` 在 node 裡跑 `.mjs`，**沒有 NFC 硬體**。這一項只能真機驗證，CI 綠幾次都
+不構成證據。⇒ 完成定義必須包含「一份真機驗證記錄」，不是「程式碼寫完」。
+
+**兩個可選解法（附代價，不代人選）**
+
+**方案 A（建議）：後端新增 `GET /events/:eventId/card-password`。**
+
+- 閘門沿用既有 operator 判定：
+  `LinkCard_ExpressJS_Backend@src/events/services/EventService.ts:468` 的
+  `getEventOperatorAccess`。同一個方法已被
+  `LinkCard_ExpressJS_Backend@src/events/controllers/EventNfcController.ts:72` 等處
+  使用，屬既有慣例，不引入新抽象。
+- env 未設或格式不符回 **501 fail-closed**，與 Frontend 現行語意一致（
+  `LinkCard_Frontend@app/api/check-in/card-password/route.ts:212` 之後那段
+  `fail(501, ...)`）。刻意不用 500：501 讀作「這台沒有提供這個能力」，呼叫端據此
+  **優雅降級為不上鎖**，而不是重試。
+- 代價：**跨 repo**（改後端、部署、在後端環境設 `NFC_CARD_PASSWORD`），且多一份
+  秘密要輪替。
+- 好處：App 與 Web 共用**同一個權威來源**。若只在 Frontend 加一條分支，密碼會變成
+  兩份真相；值一漂移就出現「Web 寫的卡 App 解不開」——那比沒有上鎖更難查。
+
+**方案 B：Frontend 的 route 同時接受 `Authorization: Bearer`。**
+
+- 在既有的 cookie 讀取（
+  `LinkCard_Frontend@app/api/check-in/card-password/route.ts:140`）旁加一條 Bearer
+  分支，背後仍問後端 operator 權限。
+- 代價：App 必須打 **Frontend 的網域**，等於在後端 API base URL 之外多一個跨域
+  依賴，CORS 與部署順序要一起處理；「一支端點兩套認證」也是長期維護成本。
+- 好處：**不動後端**，秘密仍只有一份（Frontend 的 env 不變）。
+
+**為什麼兩者都不在本輪做。** 兩者都需要跨 repo 決定（A 是後端新端點，B 是改變
+Frontend 端點的認證契約），決定權不在 App 這個 repo；而且兩者都**無法在 CI 驗證**
+（一個要真機寫卡，一個要跨網域實打）。寫成「待決」比先做一半安全：做一半的結果是
+「文件說有上鎖、實際沒有」，那比明確的沒有更危險。
+
+**為什麼 `check-in` 維持 `APP_GAP`**
+
+`ALIGNED` 的定義是全部對齊；上鎖是 Web 有而 App 沒有的能力，所以不能標。
+
+留著這個 `APP_GAP` 不是為了扣分，是為了擋住下一輪最可能的誤用：其他項目都綠了，就
+順手把整列改成 `ALIGNED`。那個改動會讓「兩邊的卡受同等保護」變成一句沒有根據的宣
+稱，而它不會在任何測試裡失敗。
+
+**已對齊的部分（避免讀者以為整個模組沒做）**
+
+`check-in` 除了上鎖之外是對齊的，每一項都有位置可查：
+
+| 能力                   | App 端證據                                                                                                                                                                                               |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 掃碼／手動輸入切換     | `LinkCard_Event_Admin_App_Expo@src/app/(auth)/[eventId]/check-in.tsx:505`（`copy.checkIn.switchToManual`）                                                                                               |
+| `checkIn` 呼叫與結果卡 | `LinkCard_Event_Admin_App_Expo@src/app/(auth)/[eventId]/check-in.tsx:202`（先判定、再打 `checkIn`）                                                                                                      |
+| `desk-lookup` 唯讀查詢 | `9710cee`；純邏輯 `LinkCard_Event_Admin_App_Expo@src/utils/desk-lookup.ts:2`，接線 `LinkCard_Event_Admin_App_Expo@src/app/(auth)/[eventId]/check-in.tsx:202`，測試 `tests/check-in-desk-lookup.test.mjs` |
+| 已報到分支             | `LinkCard_Event_Admin_App_Expo@src/app/(auth)/[eventId]/check-in.tsx:222`（`copy.checkIn.alreadyCheckedIn`）                                                                                             |
+| 寫卡入口               | `LinkCard_Event_Admin_App_Expo@src/app/(auth)/[eventId]/check-in.tsx:696`（`testID="check-in-write-card"`），`:703` 帶 `code` 轉 `nfc-bind`                                                              |
+| `walk-in` 入口         | `LinkCard_Event_Admin_App_Expo@src/app/(auth)/[eventId]/check-in.tsx:753`                                                                                                                                |
+
+⇒ 剩下就是上面第 1～3 點那一項。這一節的用途不是解釋「為什麼沒做」，是讓下一個人
+不必重新查一遍才知道「為什麼做不到、以及要動哪幾個 repo」。
+
 ### G-9 場次現場報到（P2，能力）— **已決 `BY_DESIGN`（2026-10-29 上午）；同日下午改判 `APP_GAP`**
 
 > ⚠️ **2026-10-29 下午更新：下面這段結論已被推翻，`status` 現為 `ready-to-implement`。**
@@ -1077,11 +1196,11 @@ npm test                                                             # → pass 
 
 現在三件東西都在 HEAD 上，缺一項這個閘門就不成立：
 
-| 位置                                         | 內容                                                          | 怎麼確認                                            |
-| -------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------- |
-| `scripts/check-backend-contract.mjs` ＋ 快照 | 閘門本體與 `scripts/backend-routes.snapshot.json`             | `ls scripts/check-backend-contract.mjs`             |
-| `package.json:59`                            | `"check:contract": "node scripts/check-backend-contract.mjs"` | `grep -n 'check:contract' package.json`             |
-| `.github/workflows/ci.yml:57`                | `- name: Backend contract` → `run: npm run check:contract`    | `grep -n 'check:contract' .github/workflows/ci.yml` |
+| 位置                                            | 內容                                                          | 怎麼確認                                            |
+| ----------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------- |
+| `scripts/check-backend-contract.mjs` ＋ 快照    | 閘門本體與 `scripts/backend-routes.snapshot.json`             | `ls scripts/check-backend-contract.mjs`             |
+| `LinkCard_Event_Admin_App_Expo@package.json:60` | `"check:contract": "node scripts/check-backend-contract.mjs"` | `grep -n 'check:contract' package.json`             |
+| `.github/workflows/ci.yml:57`                   | `- name: Backend contract` → `run: npm run check:contract`    | `grep -n 'check:contract' .github/workflows/ci.yml` |
 
 在 HEAD 上實跑：
 
