@@ -26,7 +26,7 @@ import {
 } from "@/constants/theme";
 import { pollService } from "@/services/poll.service";
 import type { EventPoll } from "@/types/poll.types";
-import { getApiErrorMessage } from "@/utils/api-error";
+import { resolvePollActionErrorMessage } from "@/utils/poll-errors";
 import {
   canAddPollOption,
   canRemovePollOption,
@@ -56,9 +56,12 @@ import { computePollResults, votePercent } from "@/utils/poll-results";
  * 「尚未建立任何投票」的空狀態——**看起來跟真的沒有投票一模一樣**。
  * App 不接受這種把失敗偽裝成空的情形，所以分成兩條：載入失敗給橫幅
  * （`loadError`），查無資料才給 EmptyState。寫入失敗（建立／啟用／關閉）另外
- * 給一條 `feedback` 橫幅，訊息優先取後端回的 `error.message`
- * （`getApiErrorMessage`）。這是 App 唯一「比 Web 多做」的地方，
- * 理由是不講話的失敗在現場無法診斷。
+ * 給一條 `feedback` 橫幅，訊息走 `resolvePollActionErrorMessage`。這是 App
+ * 唯一「比 Web 多做」的地方，理由是不講話的失敗在現場無法診斷。
+ *
+ * 但「多說」不等於「原樣轉發」：後端只有少數幾條錯誤是寫給人看的中文，其餘
+ * 是 `Failed to create poll` 這類英文。所以那裡是**白名單**——認得的碼才顯示
+ * 後端原文，其餘落回 `copy.polls.actionError`（見 `utils/poll-errors.ts`）。
  *
  * ## 為什麼重新整理走 `reloadKey`
  *
@@ -149,7 +152,7 @@ export default function EventPollsScreen() {
     } catch (error) {
       setFeedback({
         tone: "danger",
-        message: getApiErrorMessage(error, copy.polls.actionError),
+        message: resolvePollActionErrorMessage(error),
       });
     } finally {
       setCreating(false);
@@ -180,7 +183,7 @@ export default function EventPollsScreen() {
     } catch (error) {
       setFeedback({
         tone: "danger",
-        message: getApiErrorMessage(error, copy.polls.actionError),
+        message: resolvePollActionErrorMessage(error),
       });
     } finally {
       setActingPollId(null);
@@ -206,7 +209,7 @@ export default function EventPollsScreen() {
     } catch (error) {
       setFeedback({
         tone: "danger",
-        message: getApiErrorMessage(error, copy.polls.actionError),
+        message: resolvePollActionErrorMessage(error),
       });
     } finally {
       setActingPollId(null);
