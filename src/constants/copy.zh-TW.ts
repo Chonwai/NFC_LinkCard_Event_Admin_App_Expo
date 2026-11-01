@@ -1528,6 +1528,55 @@ export const copy = {
     },
   },
   /**
+   * 匯款覆核（parity `bank-transfers`）。
+   *
+   * Web 的 i18n 在 `public/locales/zh-Hant/event_manage.json` 的
+   * `bankTransfers` 命名空間；側欄名稱是 `layout.bankTransfers`（同一句）。
+   * 這裡只收畫面上真的用得到的鍵，每一條都註記對應的 Web 鍵名。
+   *
+   * ⚠️ 刻意**沒有**搬過來的 Web 字串（不是漏抄）：
+   * - `rejectReason`（「拒絕原因（可選）：」）：它是 `window.prompt` 的提示字，
+   *   App 用自繪輸入框（見 `bank-transfers.tsx`）。
+   *
+   * Web 原文用「轉賬」（港／澳用法），這裡照抄不改成「轉帳」——兩邊共用同一批
+   * 使用者，同一筆錢在後台與手機上叫同一個名字。
+   */
+  bankTransfers: {
+    /** Web `layout.bankTransfers` / `bankTransfers.title` */
+    title: "銀行轉賬審批",
+    subtitle: "核對憑證後批准或拒絕一筆匯款",
+    loading: "讀取中…",
+    /**
+     * Web **沒有**這個字串：它的 `load()` 是靜默 `catch`，失敗時畫面會收成
+     * 「暫無待審批的轉賬記錄」——看起來跟真的一筆都沒有完全一樣（見
+     * `bank-transfers.tsx` 檔頭）。App 把失敗講出來。
+     */
+    loadError: "載入轉賬清單失敗，請稍後再試",
+    /** Web `bankTransfers.all` / `pending` / `approved` / `rejected` */
+    tabs: {
+      all: "全部",
+      pending: "待審批",
+      approved: "已批准",
+      rejected: "已拒絕",
+    },
+    /** Web `bankTransfers.total`（i18next `{{count}}` → 函式） */
+    total: (count: number) => `共 ${count} 條`,
+    /** Web `bankTransfers.emptyPending` / `emptyGeneric` */
+    emptyPending: "暫無待審批的轉賬記錄",
+    emptyGeneric: "暫無轉賬記錄",
+    /** Web `bankTransfers.registrationCode` / `submittedAt` */
+    registrationCode: "報名碼",
+    submittedAt: "提交時間",
+    /** Web `bankTransfers.amount` / `bankRef` */
+    amount: "金額",
+    bankRef: "轉賬參考號",
+    /** Web `bankTransfers.viewProof` / `noProof` */
+    viewProof: "查看轉賬憑證",
+    noProof: "無憑證",
+    /** Web 沒有：Web 是 `<a target="_blank">`，開不起來由瀏覽器自理。 */
+    proofOpenFailed: "無法開啟憑證連結，請確認網路後再試",
+  },
+  /**
    * 未匹配路由（`app/+not-found.tsx`）。
    * W-12：先前不存在此檔，無法解析的深連結會落到 expo-router 的預設畫面。
    * 「返回活動列表」沿用 `settings.backToEvents`，不另立重複字串。

@@ -54,6 +54,7 @@ type EventRoute =
   | "exhibitors"
   | "polls"
   | "ticket-types"
+  | "bank-transfers"
   | "settings";
 
 interface QuickAction {
@@ -161,6 +162,20 @@ const QUICK_ACTIONS: QuickAction[] = [
     label: copy.ticketTypes.title,
     icon: "archive",
     route: "ticket-types",
+  },
+  /**
+   * 銀行轉賬審批（parity `bank-transfers`）。
+   *
+   * 圖示用 `clock`：`Icon.tsx` 沒有鈔票／錢包類圖形，而 Web 這一頁在側欄的
+   * 圖示是 `BanknoteIcon`。這一頁的**主要內容是「待審批」佇列**（預設頁籤就是
+   * `PENDING`），`clock` 表達「有事在等」，比硬加一條新 path 進 `Icon.tsx`
+   * 的路徑表便宜。
+   */
+  {
+    key: "bank-transfers",
+    label: copy.bankTransfers.title,
+    icon: "clock",
+    route: "bank-transfers",
   },
   {
     key: "settings",
