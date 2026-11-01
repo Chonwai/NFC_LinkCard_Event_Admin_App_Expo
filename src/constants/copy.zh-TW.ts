@@ -311,6 +311,34 @@ export const copy = {
     /** 預覽只放前幾筆；剩下幾筆要在確認框裡講出來。 */
     completePreviewMore: (remaining: number) => `…另有 ${remaining} 筆`,
     confirmComplete: "確認回填",
+
+    /*
+     * 指派 badge 給展商（`POST /nfc/batch/claim`）。
+     * 展商清單由 dialog 自己載入（四狀態合併，理由見
+     * `components/badges/ClaimBadgesDialog.tsx` 檔頭）。
+     */
+    claim: "指派",
+    claimTitle: "指派 badge 給展商",
+    claimIntro: (count: number) => `將指派 ${count} 張 badge。`,
+    claimSearchPlaceholder: "搜尋展商名稱",
+    claimExhibitorsEmpty: "找不到展商",
+    claimExhibitorsLoadFailed: "展商清單載入失敗，請稍後重試",
+    claimNext: "下一步",
+    /** 後端 `BADGE_ALREADY_ASSIGNED`：有些卡已被別家拿走。 */
+    claimAlreadyAssigned: "其中有些 badge 已指派給其他展商",
+    claimFailed: "指派失敗，請確認權限後重試",
+    claimSuccess: (count: number) => `已指派 ${count} 張`,
+    confirmClaimTitle: "確認指派",
+    confirmClaimIntro: "送出後這批 badge 會歸屬給下方展商。",
+    /**
+     * 指派的不可逆說明。後端沒有「取消指派」端點，要改派只能再呼叫一次
+     * 並讓後端決定可否覆蓋——對操作員而言就是「按下去就要對」。
+     */
+    confirmClaimWarning:
+      "指派後這批手環的歸屬就記錄在該展商名下；頁面上沒有取消指派的動作，改派前請先與原展商確認。",
+    rowClaimExhibitor: "展商",
+    rowClaimCount: "張數",
+    confirmClaim: "確認指派",
   },
   checkIn: {
     scanHint: "掃描報名 QR code",

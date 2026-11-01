@@ -1,4 +1,5 @@
 import type { BadgeType, CreateNfcBatchParams } from "@/types/api.types";
+import { getApiErrorCode } from "@/utils/api-error";
 
 /**
  * 建立 badge 批次的**純規則**：輸入驗證 + 二次確認要顯示的內容。
@@ -231,4 +232,29 @@ export function buildCompleteBatchConfirmation(
     preview: updated.slice(0, previewSize),
     remaining: Math.max(0, updated.length - previewSize),
   };
+}
+
+// ---------------------------------------------------------------------------
+// 指派展商（claim）
+// ---------------------------------------------------------------------------
+
+/**
+ * 指派失敗的分類。
+ *
+ * 只有兩種，因為只有一種錯誤對操作員的**下一步**有影響：
+ *
+ * | 分類 | 後端 | 操作員該做什麼 |
+ * | --- | --- | --- |
+ * | `alreadyAssigned` | `BADGE_ALREADY_ASSIGNED` | 去查是哪張已被別家拿走 |
+ * | `failed` | 其餘（403／404／網路） | 確認權限、稍後重試 |
+ *
+ * 與 `utils/ticket-type-errors.ts` 同一條紀律：**只讀 code / status，
+ * 不回顯後端 message**（那可能帶內部路徑或別人的報名碼）。
+ */
+export type ClaimError = "alreadyAssigned" | "failed";
+
+export function classifyClaimError(error: unknown): ClaimError {
+  return getApiErrorCode(error) === "BADGE_ALREADY_ASSIGNED"
+    ? "alreadyAssigned"
+    : "failed";
 }

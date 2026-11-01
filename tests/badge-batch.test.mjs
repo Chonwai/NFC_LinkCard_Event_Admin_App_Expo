@@ -23,6 +23,7 @@ const {
   CREATE_BATCH_MIN,
   buildCompleteBatchConfirmation,
   buildCreateBatchConfirmation,
+  classifyClaimError,
   isValidBadgeColor,
   parseCompleteBatchInput,
   parseCreateBatchInput,
@@ -302,4 +303,42 @@ test("buildCompleteBatchConfirmation: 筆數少於 previewSize 時 remaining 為
   assert.equal(confirmation.count, 1);
   assert.equal(confirmation.preview.length, 1);
   assert.equal(confirmation.remaining, 0);
+});
+
+// ---------------------------------------------------------------------------
+// 八、指派失敗的分類
+// ---------------------------------------------------------------------------
+
+test("classifyClaimError: BADGE_ALREADY_ASSIGNED 單獨一類", () => {
+  const error = {
+    response: {
+      status: 409,
+      data: { error: { code: "BADGE_ALREADY_ASSIGNED" } },
+    },
+  };
+  assert.equal(classifyClaimError(error), "alreadyAssigned");
+});
+
+test("classifyClaimError: 其他錯誤一律 failed（含 403／404／網路）", () => {
+  const samples = [
+    {
+      response: {
+        status: 403,
+        data: { error: { code: "INSUFFICIENT_PERMISSION" } },
+      },
+    },
+    {
+      response: {
+        status: 404,
+        data: { error: { code: "EXHIBITOR_NOT_FOUND" } },
+      },
+    },
+    { code: "ERR_NETWORK" },
+    null,
+    undefined,
+    "boom",
+  ];
+  for (const sample of samples) {
+    assert.equal(classifyClaimError(sample), "failed", JSON.stringify(sample));
+  }
 });

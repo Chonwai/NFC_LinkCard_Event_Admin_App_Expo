@@ -60,6 +60,10 @@ import {
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ConfirmActionDialog } from "@/components/badges/ConfirmActionDialog";
+import {
+  ClaimBadgesDialog,
+  type ClaimExhibitor,
+} from "@/components/badges/ClaimBadgesDialog";
 import { CompleteBatchDialog } from "@/components/badges/CompleteBatchDialog";
 import { CreateBatchDialog } from "@/components/badges/CreateBatchDialog";
 import { copy } from "@/constants/copy.zh-TW";
@@ -81,11 +85,13 @@ import type {
 import {
   buildCompleteBatchConfirmation,
   buildCreateBatchConfirmation,
+  classifyClaimError,
   type CompleteBatchLine,
 } from "@/utils/badge-batch";
 import {
   BADGE_STAT_KEYS,
   BADGE_STATUS_FILTERS,
+  badgesOfBadgeBatch,
   buildBadgeBatchSummaries,
   buildBadgeStats,
   canCompleteBadgeBatch,
@@ -221,6 +227,25 @@ export default function BadgesScreen() {
   } | null>(null);
   const [completeBusy, setCompleteBusy] = useState(false);
   const [completeError, setCompleteError] = useState<string | null>(null);
+
+  /**
+   * 指派展商的三個狀態。`claimTarget` 是「選人」開著的那一組 badge id。
+   *
+   * 一次指派可以是單一 badge（明細列）或整批（批次卡）——兩者都收斂到
+   * `badgeIds: string[]`，所以只有一個流程要維護。
+   */
+  const [claimTarget, setClaimTarget] = useState<{
+    badgeIds: string[];
+    label: string;
+  } | null>(null);
+  const [pendingClaim, setPendingClaim] = useState<{
+    badgeIds: string[];
+    exhibitor: ClaimExhibitor;
+    /** 這批 badge 的來源名稱（tagUid 或批次名稱），給確認框核對。 */
+    label: string;
+  } | null>(null);
+  const [claimBusy, setClaimBusy] = useState(false);
+  const [claimError, setClaimError] = useState<string | null>(null);
 
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -403,6 +428,38 @@ export default function BadgesScreen() {
     ? buildCompleteBatchConfirmation(pendingComplete.updated)
     : null;
 
+  /**
+   * 真的送出指派（確認框按下確認之後）。
+   *
+   * 錯誤只給分類：`BADGE_ALREADY_ASSIGNED` 與其他失敗的**處置不同**
+   * （去查哪張被別家拿走 vs 確認權限），所以由 `classifyClaimError` 分開。
+   */
+  const submitClaim = useCallback(async () => {
+    if (!eventId || !pendingClaim) return;
+    setClaimBusy(true);
+    setClaimError(null);
+    try {
+      const result = await nfcService.claimBadges(eventId, {
+        badgeIds: pendingClaim.badgeIds,
+        exhibitorId: pendingClaim.exhibitor.id,
+      });
+      setPendingClaim(null);
+      setBanner({
+        tone: "success",
+        message: copy.badges.claimSuccess(result.claimedCount),
+      });
+      setReloadKey((key) => key + 1);
+    } catch (error) {
+      setClaimError(
+        classifyClaimError(error) === "alreadyAssigned"
+          ? copy.badges.claimAlreadyAssigned
+          : copy.badges.claimFailed,
+      );
+    } finally {
+      setClaimBusy(false);
+    }
+  }, [eventId, pendingClaim]);
+
   const doLookup = useCallback(async () => {
     if (!eventId || !lookupUid.trim()) return;
     const queriedUid = lookupUid.trim().toUpperCase();
@@ -525,6 +582,16 @@ export default function BadgesScreen() {
             {copy.badges.boundAtLabel}：{boundAt ?? copy.badges.boundAtEmpty}
           </Text>
         </View>
+
+        <Button
+          label={copy.badges.claim}
+          variant="secondary"
+          onPress={() => {
+            setClaimError(null);
+            setClaimTarget({ badgeIds: [item.id], label: item.tagUid });
+          }}
+          testID={`badge-claim-${item.id}`}
+        />
       </View>
     );
   };
@@ -774,6 +841,29 @@ export default function BadgesScreen() {
                   testID={`badge-batch-complete-${batch.key}`}
                 />
               ) : null}
+
+              {/**
+                指派用群組鍵比對（`badgesOfBadgeBatch`），散卡群組才指得到
+                人。Web 用 `batchId === ''` 比對，那一列恆為空、按下去必定
+                0 筆（見 utils/badge-inventory.ts 檔頭）。
+              */}
+              <Button
+                label={copy.badges.claim}
+                variant="secondary"
+                onPress={() => {
+                  setClaimError(null);
+                  setClaimTarget({
+                    badgeIds: badgesOfBadgeBatch(allBadges, batch.key).map(
+                      (badge) => badge.id,
+                    ),
+                    label:
+                      batch.batchLabel ??
+                      batch.batchId ??
+                      copy.badges.noBatchLabel,
+                  });
+                }}
+                testID={`badge-batch-claim-${batch.key}`}
+              />
             </View>
           ))
         )}
@@ -914,6 +1004,54 @@ export default function BadgesScreen() {
             setCompleteError(null);
           }}
           testID="badges-complete-confirm"
+        />
+      ) : null}
+
+      {claimTarget && eventId ? (
+        <ClaimBadgesDialog
+          eventId={eventId}
+          badgeCount={claimTarget.badgeIds.length}
+          busy={claimBusy}
+          onSubmit={(exhibitor) => {
+            const target = claimTarget;
+            setClaimTarget(null);
+            setClaimError(null);
+            setPendingClaim({
+              badgeIds: target.badgeIds,
+              exhibitor,
+              label: target.label,
+            });
+          }}
+          onCancel={() => setClaimTarget(null)}
+        />
+      ) : null}
+
+      {pendingClaim ? (
+        <ConfirmActionDialog
+          title={copy.badges.confirmClaimTitle}
+          intro={copy.badges.confirmClaimIntro}
+          rows={[
+            {
+              label: copy.badges.rowClaimExhibitor,
+              value: pendingClaim.exhibitor.name,
+            },
+            {
+              label: copy.badges.rowClaimCount,
+              value: String(pendingClaim.badgeIds.length),
+            },
+            { label: copy.badges.rowBatchLabel, value: pendingClaim.label },
+          ]}
+          warning={copy.badges.confirmClaimWarning}
+          confirmLabel={copy.badges.confirmClaim}
+          busy={claimBusy}
+          error={claimError}
+          onConfirm={() => void submitClaim()}
+          onCancel={() => {
+            if (claimBusy) return;
+            setPendingClaim(null);
+            setClaimError(null);
+          }}
+          testID="badges-claim-confirm"
         />
       ) : null}
 
