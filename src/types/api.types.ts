@@ -515,6 +515,90 @@ export interface NfcLookupResult {
 }
 
 /**
+ * Badge 載體類型。鏡射 `FE:lib/events/types.ts` 的 `NfcBadgeType`。
+ *
+ * `WRISTBAND` 是 StartupFest 的實體手環——**一次性寫入**：寫了 tagUid 之後那條
+ * 記錄就是「已消耗」，作廢不可回復（見 `badges.tsx` 檔頭「與 Web 的差異」）。
+ */
+export type BadgeType = "WRISTBAND" | "CARD" | "QR_ONLY";
+
+/**
+ * `GET /nfc/badges` 的單列（庫存明細）。
+ *
+ * ## 為什麼不是 `BadgeInfo`
+ * `BadgeInfo`（上面那一個）是 `POST /nfc/bind` 回應裡的 badge 物件，欄位只有
+ * 四個。列表端點回的是**完整庫存列**（`EventNfcBatchController.listBadges`），
+ * 多出 `id`／`eventId`／`badgeType`／`batchId`／`writtenAt`／`assignedExhibitorId`。
+ *
+ * 2026-11-01 之前 `badges.tsx` 用 `list as unknown as BadgeListItem[]` 把差異
+ * **藏起來**：`id` 在 `BadgeInfo` 上根本不存在，畫面卻拿它當 `keyExtractor`
+ * 與 `testID`——那種 `as unknown as` 會讓 `tsc` 對「後端少回一個欄位」完全
+ * 沉默，直到現場畫面出現一堆 `undefined`。這裡把它變成真的型別。
+ *
+ * 可選欄位的邊界照 Web 的 `BadgeInventoryItem`（`FE:lib/events/types.ts`）：
+ * `qrCode`／`batchId`／`batchLabel`／`registrationId`／`assignedExhibitorId`／
+ * `boundAt`／`writtenAt` 後端都可能回 `null`。
+ */
+export interface NfcBadgeInventoryItem {
+  id: string;
+  eventId: string;
+  tagUid: string;
+  qrCode?: string | null;
+  badgeType: BadgeType;
+  status: BadgeStatus;
+  registrationId?: string | null;
+  assignedExhibitorId?: string | null;
+  batchId?: string | null;
+  batchLabel?: string | null;
+  boundAt?: string | null;
+  writtenAt?: string | null;
+  createdAt: string;
+}
+
+/** `GET /nfc/badges` 的回應。`all=true` 時同樣是這個形狀。 */
+export interface NfcBadgeListResponse {
+  badges: NfcBadgeInventoryItem[];
+  pagination: { total: number; page: number; pageSize: number; pages?: number };
+}
+
+/** `POST /nfc/batch` 的請求。四個鍵都可選，只有 `count` 必填。 */
+export interface CreateNfcBatchParams {
+  count: number;
+  badgeType?: BadgeType;
+  colorCode?: string;
+  batchLabel?: string;
+}
+
+/** `POST /nfc/batch` 的回應：剛生成的那一批。 */
+export interface NfcBatchCreated {
+  batchId: string;
+  batchLabel?: string | null;
+  count: number;
+  badges: { id: string; tagUid: string; qrCode?: string | null }[];
+}
+
+/**
+ * `POST /nfc/batch/:batchId/complete` 的請求。
+ *
+ * `realTagUid` 是**實體手環量到的** UID；寫進去之後那張手環就綁定在這個
+ * `badgeId` 上，不能改用另一張重寫（手環一次性）。
+ */
+export interface CompleteNfcBatchParams {
+  updated: { badgeId: string; realTagUid: string }[];
+}
+
+/** `POST /nfc/batch/:batchId/complete` 的回應：部分成功是常態，逐筆回報。 */
+export interface CompleteNfcBatchResult {
+  updatedCount: number;
+  failures: { badgeId: string; reason: string }[];
+}
+
+/** `POST /nfc/batch/claim` 的回應。 */
+export interface ClaimNfcBadgesResult {
+  claimedCount: number;
+}
+
+/**
  * 交換類型。鏡射 `FE:lib/events/types.ts:93`（桌台只會用到 `PEER_TO_PEER`）。
  *
  * 註：BE enum（`BE:prisma/schema.prisma:986-991`）另有第 4 值 `QR_SCAN`，
