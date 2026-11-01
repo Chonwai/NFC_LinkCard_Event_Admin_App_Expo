@@ -120,6 +120,18 @@ export default function AuthLayout() {
             tabBarStyle: { display: "none" },
           }}
         />
+        {/*
+          建立活動（`new-event.tsx`）是從 home 推入的一頁，不該佔一個 tab。
+          與 `[eventId]` 同一個做法：`href: null` 讓它不出現在 tab bar，
+          但仍可由 `router.push` 抵達。
+        */}
+        <Tabs.Screen
+          name="new-event"
+          options={{
+            href: null,
+            tabBarStyle: { display: "none" },
+          }}
+        />
       </Tabs>
     </View>
   );

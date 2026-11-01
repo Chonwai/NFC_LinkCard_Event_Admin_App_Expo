@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { router } from "expo-router";
 
+import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { InlineBanner } from "@/components/ui/InlineBanner";
@@ -61,6 +62,13 @@ export default function HomeScreen() {
     setRefreshing(false);
   }, [loadEvents]);
 
+  /**
+   * 建立活動（Web `manage/events/page.tsx:283` 的那顆按鈕）。
+   * 這裡只負責導航；表單與送出在 `new-event.tsx`。
+   */
+  const openCreateEvent = useCallback(() => {
+    router.push("/(auth)/new-event");
+  }, []);
   const renderEvent = ({ item }: { item: (typeof events)[number] }) => {
     const tone = EVENT_STATUS_TONE[item.status] ?? "neutral";
     const label = getEventStatusLabel(item.status) || copy.event.unknownStatus;
@@ -203,6 +211,19 @@ export default function HomeScreen() {
         </Text>
       </View>
 
+      {/*
+        建立活動的入口。Web 把它放在頁首右側（`manage/events/page.tsx:283`），
+        並且在空狀態再放一次（`createFirst`）——本頁照同一個位置辦。
+      */}
+      <View style={styles.createWrapper}>
+        <Button
+          label={copy.home.createEvent}
+          onPress={openCreateEvent}
+          variant="secondary"
+          testID="home-create-event"
+        />
+      </View>
+
       {loadFailed ? (
         <View style={styles.bannerWrapper}>
           <InlineBanner
@@ -222,11 +243,19 @@ export default function HomeScreen() {
         </View>
       ) : phase === "empty" ? (
         <EmptyState
+          kind="first-use"
           icon="empty-card"
           title={copy.home.emptyTitle}
           description={copy.home.emptyHint}
-          actionLabel={copy.home.retry}
-          onAction={retry}
+          /**
+           * Web 的空狀態主打「建立第一個活動」（`page.tsx:307`），而不是
+           * 重新載入。這裡把主要動作換成建立，重整降為次要動作——兩者都還在，
+           * 不損失原本「空清單仍可手動重整」的能力。
+           */
+          actionLabel={copy.home.createFirst}
+          onAction={openCreateEvent}
+          secondaryLabel={copy.home.retry}
+          onSecondary={retry}
         />
       ) : phase === "list" ? (
         <FlatList
@@ -294,6 +323,10 @@ const styles = StyleSheet.create({
   bannerWrapper: {
     paddingHorizontal: spacing.screen,
     marginBottom: space[2],
+  },
+  createWrapper: {
+    paddingHorizontal: spacing.screen,
+    paddingBottom: space[2],
   },
   skeletonWrapper: {
     paddingHorizontal: spacing.screen,

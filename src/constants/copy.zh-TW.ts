@@ -89,6 +89,12 @@ export const copy = {
     title: "我的活動",
     emptyTitle: "沒有管理中的活動",
     emptyHint: "當你被指派為活動管理員時，活動會顯示在這裡",
+    /**
+     * 建立活動的入口（Web `manage/events/page.tsx:283` 的那顆按鈕）。
+     * 空狀態另有一個「建立第一個活動」的 CTA，與 Web 的空狀態一致。
+     */
+    createEvent: "建立活動",
+    createFirst: "建立第一個活動",
     loadFailed: "載入活動失敗，請稍後再試",
     retry: "重新載入",
     /** 重新整理鈕的文案已上移到 `common.refresh` / `common.refreshing`（ScreenHeader 也要用） */
@@ -1015,6 +1021,52 @@ export const copy = {
       BUILT_IN: "站內落地頁",
       EXTERNAL: "外部連結",
       NONE: "不使用落地頁",
+    },
+  },
+  /**
+   * 建立活動（`app/(auth)/new-event.tsx`）。
+   *
+   * 前端 counterpart：`LinkCard_Frontend/app/(event)/manage/events/page.tsx`
+   * 的 `CreateEventModal`（`:44`）＋ `public/locales/zh-Hant/event_manage.json`
+   * 的 `events` 命名空間。文字逐條沿用 Web 的 zh-Hant 用語——同一個功能在
+   * 兩邊不該叫不同名字。
+   *
+   * `errors` 九條與 Web 的 `events.errors` **一字不差**。其中 `slugConflict`
+   * 與 `createFailed` 是**伺服器**回的錯（409／其他），不是前端驗證；
+   * 但使用者在 Web 上看到的就是這兩句，所以照抄。
+   */
+  createEvent: {
+    title: "建立新活動",
+    subtitle: "填好基本資料，建立後可到活動資料頁繼續調整",
+    nameLabel: "活動名稱",
+    slugLabel: "Slug（URL 識別符）",
+    slugPrefix: "events/",
+    slugHint: "只能使用小寫英文、數字與連字號；建立後不可修改",
+    startDateLabel: "開始日期",
+    endDateLabel: "結束日期",
+    /**
+     * App 沒有 date picker（`@react-native-community/datetimepicker` 不在
+     * `package.json`），所以時間是文字輸入；Web 靠 `datetime-local` 的原生
+     * 控件，沒有也不需要格式提示。這一行是 App 專屬。
+     */
+    dateHint: "格式：2026-11-01 09:00",
+    eventTypeLabel: "活動類型",
+    timezoneLabel: "時區",
+    descriptionLabel: "活動簡介（可選）",
+    descriptionPlaceholder: "描述這個活動...",
+    create: "建立活動",
+    creating: "建立中...",
+    cancel: "取消",
+    errors: {
+      nameMin: "活動名稱至少 2 個字符",
+      nameMax: "活動名稱不超過 120 個字符",
+      slugRequired: "Slug 為必填",
+      slugFormat: "Slug 只能包含小寫英文、數字和連字號",
+      startDateRequired: "開始日期為必填",
+      endDateRequired: "結束日期為必填",
+      endDateBeforeStart: "結束日期不能早於開始日期",
+      slugConflict: "此 Slug 已被使用，請換一個",
+      createFailed: "建立失敗，請稍後重試",
     },
   },
   /**
