@@ -55,7 +55,7 @@
     "format:check": "prettier --check . --ignore-path .gitignore --ignore-path .prettierignore --ignore-path .prettierignore-baseline",
     "prepare": "husky",
     "check:tokens": "node scripts/compare-tokens.mjs",
-    "check:parity": "node scripts/check-parity-registry.mjs --web ../LinkCard_Frontend",
+    "check:parity": "node scripts/check-parity-registry.mjs --web ../LinkCard_Frontend --require-web",
     "check:parity:full": "node scripts/check-parity-registry.mjs --web ../LinkCard_Frontend --require-web",
     "check:contract": "node scripts/check-backend-contract.mjs",
     "typecheck": "tsc --noEmit",
