@@ -39,15 +39,19 @@ jobs:
       - name: Format check
         run: npm run format:check
 
-      # 能力對等登記表。Web repo 不在 CI 的 checkout 範圍內，所以這一步只驗
-      # 登記表自身的一致性、App 側檔案與缺口章節；完整掃描（會抓到 Web 新增
-      # 但未登記的頁面）需要兩個 repo 都在旁邊，用 npm run check:parity:full。
+      # 能力對等登記表（registry-only）。這一步**不宣稱 parity**：CI 只 checkout
+      # 本 repo，Web repo 不在旁邊，所以它只驗登記表自身的一致性、App 側引用的
+      # 檔案存在，以及 P0/P1 缺口都有獨立章節。
       #
-      # 誠實邊界：這支閘門只驗「登記表與檔案系統一致」，它比對頁面清單、不讀
-      # 頁面內容，所以同一頁面長出新能力時它不會叫（見
+      # 完整對齊驗證（含掃描 Web 頁面、抓「Web 新增但未登記」）需要兩個 repo 都
+      # 在旁邊，請用 npm run check:parity:full（本地或任何有 Web repo 的環境）。
+      # 因此這裡的綠燈只代表「登記表沒有自相矛盾」，不代表「App 與 Web 已對齊」。
+      #
+      # 誠實邊界：這支閘門只驗「登記表與檔案系統一致」，不讀頁面內容，所以同一
+      # 頁面長出新能力時它不會叫（見
       # docs/analysis/adminapp-parity-20261028/06-verification.md §6.4 第 5 條）。
       - name: Parity registry
-        run: npm run check:parity
+        run: npm run check:parity:registry
 
       # 2026-10-22 對等審計的結論：`tsc` + lint + 210 個測試全綠，
       # 卻有一條呼叫了數個月的路由根本不存在。這個 step 專門守那類漂移。
