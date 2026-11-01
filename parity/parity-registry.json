@@ -34,11 +34,13 @@
       "id": "events-list",
       "title": "活動清單",
       "webPages": ["app/(event)/manage/events/page.tsx"],
-      "appFiles": ["src/app/(auth)/home.tsx"],
+      "appFiles": ["src/app/(auth)/home.tsx", "src/app/(auth)/new-event.tsx"],
       "verdict": "ALIGNED",
       "evidence": [
         "App: GET /events/my-managed，_meta 內層 role/counts 由 event.service.ts:38-48 unwrap",
-        "Web: listManageableEvents，導覽入口 /manage/events"
+        "Web: listManageableEvents，導覽入口 /manage/events",
+        "createEvent 已於 2e64b03 補上（POST /api/v1/events，型別 CreateEventPayload 對齊後端 CreateEventDto）",
+        "建立表單與驗證：1490927（畫面／payload）、be50ce5（規則逐條對齊 Web validate）；契約鎖 tests/event-create-contract.test.mjs"
       ]
     },
     {
