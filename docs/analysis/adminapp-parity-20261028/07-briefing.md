@@ -36,10 +36,14 @@
 在 10-27 之後失效了。
 
 「不用離開這一頁」的實際意思是**同一個頁面、同一條藍牙連線**，不是「三個元素從頭
-同框」：讀卡機狀態條在所有狀態下常駐（`app/check-in/[eventId]/page.tsx:707`），
-寫卡面板要**掃到人之後**才出現在成功卡裡（`app/check-in/[eventId]/page.tsx:866`）。
-上鎖也不是對既有的卡另外做一次 `PWD_AUTH`，而是發卡序列的一部分——寫入 → 逐 byte
-讀回 →（上鎖）（`hooks/useNfcReader.ts:690-722`、`lib/nfc/issue.ts:179`）。
+同框」：讀卡機狀態條在所有狀態下常駐（`components/checkin/DeskReaderBar.tsx:159-163`），
+寫卡面板要**掃到人之後**才出現在成功卡裡（`components/checkin/WriteCardPanel.tsx:253`，
+`idle` 時 `return null`）。上鎖也不是對既有的卡另外做一次 `PWD_AUTH`，而是發卡序列
+的一部分——寫入 → 逐 byte 讀回 →（上鎖）（`hooks/useNfcReader.ts:690-722`、
+`lib/nfc/issue.ts:179`）。
+
+（引用座標 2026-11-01 更新：Web 當日把這兩塊抽出報到頁，報到頁由 1208 行降到 328 行
+且仍在重構中（工作區未提交）；舊引用指向該頁的行號，已失效，故改指抽出的元件。）
 
 ## 7.3 我怎麼得到這個答案（四道關卡）
 

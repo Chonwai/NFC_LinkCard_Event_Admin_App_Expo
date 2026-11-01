@@ -747,10 +747,13 @@ node scripts/check-parity-registry.mjs               # ALIGNED=12 APP_GAP=2 WEB_
 
 **⇒ 因此 G-8 的真正差距只有兩項，而且必須分開講：**
 
-- **(a) 操作步數。** Web 是**同頁**：`WriteCardPanel` 就在報到頁上
-  （`LinkCard_Frontend@app/check-in/[eventId]/page.tsx:876`，帶 `onWrite`／
-  `onRetryBind`／`onSwapCard`／`onSkip`）。App 是**兩頁**：按一下、換頁、在新頁上
+- **(a) 操作步數。** Web 是**同頁**：`WriteCardPanel` 掛在報到頁上
+  （`LinkCard_Frontend@components/checkin/WriteCardPanel.tsx:119-139` 的 props 帶
+  `onWrite`／`onRetryBind`／`onSwapCard`／`onSkip`；面板在 `idle` 時回 `null`，
+  `:253`，即掃到人之後才出現）。App 是**兩頁**：按一下、換頁、在新頁上
   完成寫卡與綁定。**這是步數的差距，不是能力的差距。**
+  （座標註記：2026-11-01 Web 重構中——報到頁由 1208 行降到 328 行、元件已抽成
+  `components/checkin/*`，頁面側的掛載點正在改寫，故本條改指元件本身而非報到頁行號。）
 - **(b) 沒有上鎖。** Web 有 `PWD_AUTH`（`lib/nfc/globalPassword`），App 沒有對應層。
   這一項才是真正的**能力**差距，而且它與 (a) 的工程量不同源——(a) 是前端資訊架構，
   (b) 是 raw APDU 與真機驗證。
@@ -1476,13 +1479,19 @@ grep -rn 'eventNfcBadge\.\(update\|updateMany\|delete\|deleteMany\|upsert\)' ../
 `GET /nfc/lookup` 是**公開端點**——沒有 `authMiddleware`，只有 IP 限流
 （`LinkCard_ExpressJS_Backend@src/events/routes/event-ops.routes.ts:77`；它同時也是
 `§G-12` 那 11 條公開路由之一）。撿到那張卡的人刷一下，拿到的是原持卡人的姓名、公司、
-職稱與 profile 連結（`LinkCard_ExpressJS_Backend@src/events/services/EventRegistrationService.ts:3753`
-的 `lookupNfcBadge`；`DEACTIVATED` 的檢查在 `:3796`，但那個狀態從來沒有人寫進去）。
+職稱與 profile 連結（`LinkCard_ExpressJS_Backend@src/events/services/EventRegistrationService.ts:3246`
+的 `lookupNfcBadge`，其 `select` 取 `firstName`／`lastName`／`company`／`jobTitle` 與
+default 公開 profile 的 `slug`；`DEACTIVATED` 的檢查在 `:3289`，但那個狀態從來沒有
+人寫進去）。
 **這是這一項裡唯一真正嚴重的部分：它不限於活動當天，也不需要用到 App。**
 
+（座標註記：後端另一 session 同日大幅改寫該檔，工作區版本 4206 → 3414 行且未提交；
+上述行號量自 2026-11-01 工作區，該 session 落版後需重新量測。）
+
 **風險二：想補發也補不了，而錯誤訊息指向錯的欄位。** 手環斷了、拿一張新的空白卡給
-同一個人 → `bindNfcBadge`（`LinkCard_ExpressJS_Backend@src/events/services/EventRegistrationService.ts:3708`）
-直接 `create({ registrationId })`（`:3738`）→ 撞上上面那條 UNIQUE → Prisma `P2002`
+同一個人 → `bindNfcBadge`（`LinkCard_ExpressJS_Backend@src/events/services/EventRegistrationService.ts:3201`）
+直接 `create({ registrationId })`（`:3231`，`registrationId` 在 `:3238`）→ 撞上上面
+那條 UNIQUE → Prisma `P2002`
 → controller 把所有 `P2002` **一律**映射成 `BADGE_ALREADY_BOUND`「**NFC badge UID
 已被使用**」（`LinkCard_ExpressJS_Backend@src/events/controllers/EventNfcController.ts:112-124`）。
 `:112` 那行註解自己寫著「Unique constraint violation on **tagUid**」——原先的假設是
@@ -1601,7 +1610,7 @@ grep -n 'model EventNfcBadge' -A 24 ../LinkCard_ExpressJS_Backend/prisma/schema.
 ```
 
 `bindNfcBadge` 是一次 `eventNfcBadge.create`
-（`LinkCard_ExpressJS_Backend@src/events/services/EventRegistrationService.ts:3738`），
+（`LinkCard_ExpressJS_Backend@src/events/services/EventRegistrationService.ts:3231`），
 所以**兩個**唯一鍵（`tag_uid`、`registration_id`）撞到的時候長得一模一樣：都是
 `P2002`。而 controller 把它們壓成同一個回應：
 
