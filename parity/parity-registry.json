@@ -108,7 +108,7 @@
         "App: 四支呼叫 GET/POST/PATCH/DELETE `/v1/events/:eventId/ticket-types` — src/services/ticket-type.service.ts:77,95,118,149；範圍由 tests/ticket-type-contract.test.mjs 鎖成恰好四條（多一條或少一條都會紅）",
         "App: 列表 — src/app/(auth)/[eventId]/ticket-types.tsx:136（Promise.all 與 Web 同形）；這條端點沒有分頁，故不帶 limit，由 tests/ticket-type-service.test.mjs 反向釘住",
         "App: 新增／修改／停用（軟刪除）— 同上 631,634,258；二次確認在送出前顯示價格舊→新與名額變動",
-        "App: capability 開關 — 活動層 eventService.updateEvent（:223）＋票種層 capabilitiesOverride 編輯器（:859）；繼承/覆寫語意由 tests/ticket-type-payload.test.mjs 釘住",
+        "App: capability 開關 — 活動層 src/services/event.service.ts:199 updateEvent（PATCH /api/v1/events/{id}）＋票種層 src/app/(auth)/[eventId]/ticket-types.tsx:855 effectiveCapabilities.includes 與 :856-859 的 onToggle／update 呼叫；繼承/覆寫語意由 tests/ticket-type-payload.test.mjs 釘住",
         "App: formFieldsJson 語意綁定驗證 — src/utils/registrationFormContract.ts（258 行，逐字抄自後端 canonical）＋ tests/ticket-type-form-schema.test.mjs（含直接讀後端檔案的 drift 比對）",
         "App: 價格單位查證 = Decimal(10,2) 的**幣別金額**（非分），全程不做元→分換算 — tests/ticket-type-payload.test.mjs 逐字釘住",
         "App: 複製報名連結 — 用 WEB_BASE_URL（不從 API_BASE_URL 推導），路徑與 query 逐字照 Web handleCopyRegisterLink",
