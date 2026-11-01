@@ -1601,6 +1601,73 @@ method 與路徑由 `87d869c` 釘住，而且不只釘「沒打錯」，同時�
 - **卡在谁**：卡在「權限設計」（`03 §3.7.8` 第一項）。這一項同時是 `11 §11.5` 的
   第二項風險。它要的是**一個答案**，不是更多分析。
 
+#### G-15c 收尾記錄（2026-11-01，`status: fixed`）
+
+兩個模組皆已落地並在 `parity/parity-registry.json` 標為 `ALIGNED`。
+逐項證據（檔案 + 行號 + commit）記在登記表的 `evidence`，此處只留結案摘要：
+
+| 模組             | 結案 commit                        | 對等內容                                                        |
+| ---------------- | ---------------------------------- | --------------------------------------------------------------- |
+| `bank-transfers` | `abf7fe3`→`9f509d2`（5 個 commit） | 待審清單／批准／拒絕（含原因）；計數走 `manage-stats` 一次請求  |
+| `org-roles`      | `77cb670`→`6f128c7`（6 個 commit） | 名單（含生效狀態）／邀請／移除；`accept` 建模但不接畫面（見下） |
+
+**「權限模型」（`03 §3.7.8` 第一項）如何處理**：**沒有另建手機端權限層**，改用後端
+既有的兩種守門加一層「送出前二次確認」：
+
+| 動作             | 後端守門                                             | App 的額外防護                                                         |
+| ---------------- | ---------------------------------------------------- | ---------------------------------------------------------------------- |
+| 讀匯款清單       | `getEventWriteAccess`                                | —                                                                      |
+| 批准／拒絕匯款   | `getEventWriteAccess`                                | 二次確認（顯示報名者／金額／報名碼）                                   |
+| 讀角色名單       | `getEventWriteAccess`（COORDINATOR 可讀）            | —                                                                      |
+| 邀請／移除管理員 | `getEventSuperAdminAccess`（僅 owner / SUPER_ADMIN） | 二次確認（顯示對誰、什麼角色）＋`canInviteAdmins === false` 時不畫按鈕 |
+
+「誰能按」因此完全由後端回答（`my-access` 的 `canInviteAdmins`），App 只是提早不顯示
+——沒有第二套權限判斷需要維護，也就沒有兩套判斷互相漂移的風險。
+
+**三處刻意偏離 Web（皆為修缺陷，非加功能）**：
+
+1. **`accept` 用 `POST`**。後端那條路徑只掛 `router.post`（`engagement.routes.ts:45`），
+   Web 寫成 `PATCH`（`LinkCard_Frontend@lib/events/engagement.ts:157`）會 404。那支函式零
+   呼叫點，所以錯誤從未被發現——死碼不會喊痛。`tests/org-role-contract.test.mjs` 釘住
+   method，已做負向驗證（改回 `PATCH` 會讓 5 條斷言轉紅）。
+2. **`org-roles` 清單多顯示「已生效／待接受」**。後端對「email 還沒有帳號」的邀請會留
+   `acceptedAt: null`，而 Web 把那種列顯示得跟已生效一模一樣。App 由 `acceptedAt`
+   推導（**不是**讀 `status`——清單上的 `status` 永遠是 `ACTIVE`）。
+3. **`user` 為 `null` 不會白屏**。Web 直接讀 `r.user.display_name`
+   （`LinkCard_Frontend@app/(event)/manage/[eventId]/org-roles/page.tsx:281-284`），
+   遇到未註冊的 email 會拋 TypeError 整頁白掉。
+
+**`accept` 為什麼建模卻不接畫面**：邀請 token 在整個系統裡**沒有送達管道**——後端
+`inviteOrgRole` 只把 token 回給邀請者、不寄信；Web 也沒有接受頁面。所以這不是
+「Web 有、App 沒有」的落差，是兩邊都沒有的功能。App 做一個接受畫面等於發明一個
+Web 沒有的入口，而且沒有 token 可輸入。查證結論留在 `src/app/(auth)/[eventId]/org-roles.tsx`
+檔頭，Web 日後若補上接受頁，那裡就是起點。
+
+**「最後一個 OWNER／移除自己」的保護：後端沒有。** 實測
+`EventOrgRoleService.removeOrgRole`（`EventOrgRoleService.ts:121-132`）整支只做「這列
+屬於這場活動嗎 → 軟刪除」，全 `src/events/` 也搜不到 `last OWNER` / `SELF_REMOVAL` /
+`LAST_ADMIN`。因此本條的「不要提供註定失敗的按鈕」**不成立**——畫得出來的按鈕都會
+成功。畫面的工作變成「不要畫不該畫的」，照 Web 的兩個條件：
+
+- `gateDisabled`（沒有 `canInviteAdmins`）⇒ 不畫。
+- `role === 'SUPER_ADMIN'` ⇒ 不畫
+  （Web `LinkCard_Frontend@app/(event)/manage/[eventId]/org-roles/page.tsx:295`）。
+
+**自我移除在結構上不可能**，理由不在後端而在誰看得到按鈕：擁有者是 `Event.ownerId`、
+不是 `EventOrgRole` 的一列（所以不在清單裡）；`SUPER_ADMIN` 自己的那一列不可移除；
+其餘角色本來就 `gateDisabled`。三者合起來，唯一能移除別人的人看不到會移除到自己的
+按鈕。`tests/org-role-remove-confirm.test.mjs` 把這個不變式釘住，並在
+`buildOrgRoleRemoveRequest` 加一道縱深防禦（就算畫面條件日後漂掉，也不會產生一個
+移除 `SUPER_ADMIN` 的請求）。
+
+**未在本條範圍內、仍開放的事**：
+
+- **`SUPER_ADMIN` 的 org role 在 Web 與 App 都無法移除**，只能由資料庫或後端處理。
+  這是 Web 既有行為，不是 App 漏做；要不要開放是產品決定，屬新增能力。
+- **「待接受」的邀請永遠不會被接受**（沒有寄信）。要解決得在後端補寄信，App 端無解。
+- `ticket-types` 的票種權益在「活動層開關關閉」時的行為（承接 `§G-15b` 的尾巴），
+  仍待決定。
+
 ## 4.3 不在這裡的東西
 
 **2026-10-29 之前的答案是：** 以下刻意不列為缺口，理由寫在 `03-capability-matrix.md`

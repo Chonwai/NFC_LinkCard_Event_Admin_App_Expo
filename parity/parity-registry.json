@@ -247,26 +247,53 @@
       "id": "bank-transfers",
       "title": "匯款覆核",
       "webPages": ["app/(event)/manage/[eventId]/bank-transfers/page.tsx"],
-      "appFiles": [],
-      "verdict": "APP_GAP",
-      "gapId": "G-15c",
-      "status": "decision-needed",
+      "appFiles": [
+        "src/app/(auth)/[eventId]/bank-transfers.tsx",
+        "src/services/bank-transfer.service.ts",
+        "src/utils/bank-transfer-display.ts",
+        "src/utils/bank-transfer-review.ts"
+      ],
+      "verdict": "ALIGNED",
+      "status": "fixed",
       "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3.1",
-      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。App 標的：在 App 上把一筆匯款由待核改為已核／退回，且按下之前有第二次確認（§11.3.1 第 7 項）。原判如下——財務覆核需要稽核軌跡、雙人核可與完整匯款憑證比對，屬於辦公室職責；門口人員不應有放行款項的能力。",
-      "evidence": ["Web: listBankTransferApprovals／reviewBankTransfer"]
+      "rationale": "2026-11-01 實作完成。兩支呼叫（清單＋覆核）逐條對應 lib/events/registrations.ts:360／:376，範圍由 tests/bank-transfer-contract.test.mjs 鎖成恰好兩條——後端第三條 `…/bank-transfers/submit` 是**報名者**送匯款證明的路徑，刻意不接（後台不替人送證明）。與 Web 唯一的行為差異是**兩個動作都多一道二次確認**：Web 的「批准」按下即送、不可逆（後端對非 PENDING 一律回 BANK_TRANSFER_ALREADY_REVIEWED），而它的「拒絕」用 window.prompt，按取消會因 null ?? undefined 而**照樣送出 REJECTED**。App 的取消就是取消。另一處刻意差異是載入失敗會講出來：Web 的 load() 是靜默 catch，失敗時畫面收成「暫無待審批」——在錢的頁面上，那等於把「讀不到」說成「沒有人匯款」。原判（2026-10-29 前的 BY_DESIGN 理由）保留於 04-gap-register.md §G-15c。",
+      "evidence": [
+        "App: 兩支呼叫 GET `/v1/events/:eventId/bank-transfers`、PATCH `…/bank-transfers/:approvalId/review` — src/services/bank-transfer.service.ts:89,125；範圍由 tests/bank-transfer-contract.test.mjs 鎖成恰好兩條（多一條或少一條都會紅）",
+        "App: 清單與計數分兩條 effect（計數走 manage-stats，一次請求）— src/app/(auth)/[eventId]/bank-transfers.tsx:159（清單）、:188（getEventManageStats）",
+        "App: 覆核意圖與送出分離（確認前不產生請求）— src/app/(auth)/[eventId]/bank-transfers.tsx:214 requestReview、:230 submitReview；規則在 src/utils/bank-transfer-review.ts:82 buildReviewRequest（confirmed === false ⇒ null）",
+        "App: 二次確認框顯示報名者／金額／報名碼 — src/app/(auth)/[eventId]/bank-transfers.tsx:556 ReviewDialog、src/utils/bank-transfer-review.ts:127 buildReviewConfirmation",
+        "App: 錯誤分類（403／404／already-reviewed／validation）— src/utils/bank-transfer-review.ts:155 classifyBankTransferReviewError",
+        "App: 金額原樣透傳（後端重算後的 Decimal 字串，不做元→分換算）— tests/bank-transfer-service.test.mjs",
+        "Web: listBankTransferApprovals／reviewBankTransfer（lib/events/registrations.ts:360／:376）",
+        "Commits: abf7fe3(service+型別) / 87f62a3(列表) / b365c53(批准) / 68e65bd(拒絕＋原因) / 9f509d2(契約鎖)"
+      ]
     },
     {
       "id": "org-roles",
       "title": "組織角色",
       "webPages": ["app/(event)/manage/[eventId]/org-roles/page.tsx"],
-      "appFiles": [],
-      "verdict": "APP_GAP",
-      "gapId": "G-15c",
-      "status": "decision-needed",
+      "appFiles": [
+        "src/app/(auth)/[eventId]/org-roles.tsx",
+        "src/services/org-role.service.ts",
+        "src/utils/org-role-display.ts",
+        "src/utils/org-role-invite.ts",
+        "src/utils/org-role-remove.ts"
+      ],
+      "verdict": "ALIGNED",
+      "status": "fixed",
       "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3.1",
-      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。App 標的：在 App 上邀請活動管理員，並移除既有的管理員（§11.3.1 第 8 項）。原判如下——授權他人是治理動作，應在有完整說明與稽核的環境完成；行動端只讀角色（透過 /my-access）即可。",
+      "rationale": "2026-11-01 實作完成。四條後端路由中 App 接了三條（1 讀 2 寫）：列表、邀請、移除，範圍由 tests/org-role-contract.test.mjs 鎖住。第四條 `POST …/org-roles/accept` **建模但不接畫面**——邀請 token 沒有任何送達管道（後端不寄信，只把 token 回給邀請者；Web 的 acceptEventAdminInvite 零呼叫點且 method 寫錯成 PATCH），所以「接受邀請」不是 Web 有而 App 沒有的落差，是兩邊都沒有的功能。三處刻意偏離 Web，都是修缺陷而非加功能：① accept 照後端用 POST（Web 的 PATCH 會 404）；② 清單多顯示「已生效／待接受」——後端對沒有帳號的 email 會留 acceptedAt: null，而 Web 把那種列顯示得跟已生效一模一樣；③ 移除的二次確認顯示「要移除誰」（Web 只有一句「確定移除此管理員？」，且 user 為 null 時整頁會拋 TypeError 白掉）。移除照 Web 不提供 SUPER_ADMIN 那一列的按鈕：後端 removeOrgRole 並**沒有**任何「最後一個 OWNER／移除自己」保護（實測 EventOrgRoleService.ts:121-132），所以不存在「註定失敗的按鈕」；自我移除在結構上也不可能（擁有者不在清單、SUPER_ADMIN 列不可移除、其他人 gateDisabled）。",
       "evidence": [
-        "Web: getMyEventAccess／inviteEventAdmin／listEventOrgRoles／removeEventAdmin"
+        "App: 三支畫面呼叫 + 一支建模不接畫面 — src/services/org-role.service.ts:85 list(GET)、:110 invite(POST)、:133 accept(POST)、:159 remove(DELETE)；範圍由 tests/org-role-contract.test.mjs 鎖成恰好四條",
+        "App: 名單（read）與 my-access 並行，my-access 失敗不弄掉名單 — src/app/(auth)/[eventId]/org-roles.tsx:184 getMyAccess；權限閘門 :318 canInviteAdmins === false",
+        "App: 邀請的二次確認（顯示 email＋角色，確認前不產生請求）— src/app/(auth)/[eventId]/org-roles.tsx:213 requestInvite、:235 submitInvite、:528 InviteDialog；規則在 src/utils/org-role-invite.ts:107 buildOrgRoleInviteRequest",
+        "App: 移除的二次確認（顯示要移除誰）＋ SUPER_ADMIN 不給移除鈕 — src/app/(auth)/[eventId]/org-roles.tsx:266 requestRemove、:284 submitRemove、:666 RemoveDialog；判斷在 src/utils/org-role-remove.ts:63 canRemoveOrgRole",
+        "App: 角色選項照 Web 恰好兩個（COORDINATOR／OPERATOR）— src/app/(auth)/[eventId]/org-roles.tsx:513 INVITE_ROLE_OPTIONS；顯示用完整六值表並對未知值退回原字串 — src/utils/org-role-display.ts:90 orgRoleLabel",
+        "App: 狀態由 acceptedAt 推導而非讀 status（清單的 status 永遠是 ACTIVE）— src/utils/org-role-display.ts:33 orgRoleState",
+        "App: user 為 null（邀請未註冊 email）不會白屏 — src/utils/org-role-display.ts:51 formatOrgRolePerson（Web LinkCard_Frontend@app/(event)/manage/[eventId]/org-roles/page.tsx:281-284 會拋 TypeError）",
+        "Web: getMyEventAccess／inviteEventAdmin／listEventOrgRoles／removeEventAdmin（lib/events/engagement.ts:139,143,153,168）；acceptEventAdminInvite 零呼叫點且為 PATCH",
+        "後端: engagement.routes.ts:43-46（GET／POST invite／POST accept／DELETE）；EventOrgRoleService.ts:121-132 removeOrgRole 無 OWNER／自我移除保護",
+        "Commits: 77cb670(型別+service) / 49c979b(名單) / 7894529(邀請) / 517cd89(移除) / 75d3a7f(記錄接受流程查證) / 6f128c7(契約鎖)"
       ]
     },
     {
@@ -530,10 +557,22 @@
       "severity": "P1",
       "owner": "product",
       "size": "XL",
-      "status": "decision-needed",
+      "status": "fixed",
       "decidedIn": "docs/analysis/adminapp-parity-20261028/04-gap-register.md#G-15c",
-      "fixedOn": [],
-      "note": "原 G-15 拆分後的三分之一，severity 由 P2 升為 P1（2026-10-29，經授權）。理由：bank-transfers／org-roles 搬上手機時會經過一層不存在的手機端權限模型（03 §3.7.8 第一項、11 §11.5 第二項，狀態 OPEN；App 目前唯一相關判斷是 overview.tsx:204 的 canManage）。status 是 decision-needed 而非 ready-to-implement：缺的決定不是「做不做」（已決：做），而是「手機上誰能按、要不要二次確認、誤按能不能撤銷」。05 §5.7 第 2 條只掃 P0/P1，把這一條留在 P2 等於把它藏起來（同 §G-12 那一課）。"
+      "fixedOn": [
+        "abf7fe3",
+        "87f62a3",
+        "b365c53",
+        "68e65bd",
+        "9f509d2",
+        "77cb670",
+        "49c979b",
+        "7894529",
+        "517cd89",
+        "75d3a7f",
+        "6f128c7"
+      ],
+      "note": "原 G-15 拆分後的三分之一，severity 由 P2 升為 P1（2026-10-29，經授權）。理由：bank-transfers／org-roles 搬上手機時會經過一層不存在的手機端權限模型（03 §3.7.8 第一項、11 §11.5 第二項，狀態 OPEN；App 目前唯一相關判斷是 overview.tsx:204 的 canManage）。status 曾是 decision-needed 而非 ready-to-implement：缺的決定不是「做不做」（已決：做），而是「手機上誰能按、要不要二次確認、誤按能不能撤銷」。05 §5.7 第 2 條只掃 P0/P1，把這一條留在 P2 等於把它藏起來（同 §G-12 那一課）。 ｜ 2026-11-01 收尾：兩個模組皆為 ALIGNED（見各自 evidence）。權限模型那一項以「後端既有的兩種守門 + 送出前二次確認」落地，沒有另建手機端權限層：bank-transfers 的兩個動作都多一道確認（Web 的批准按下即送、拒絕按取消也會送出）；org-roles 的邀請與移除都顯示「對誰、什麼角色」。org-roles 的第四條路由 accept 建模但不接畫面——邀請 token 沒有送達管道，Web 也沒有接受頁面（其 acceptEventAdminInvite 零呼叫點且 method 寫錯成 PATCH）。移除照 Web 不提供 SUPER_ADMIN 那一列的按鈕：後端 removeOrgRole 實測沒有任何「最後一個 OWNER／移除自己」保護，故不存在註定失敗的按鈕，自我移除在結構上也不可能。"
     }
   ]
 }
