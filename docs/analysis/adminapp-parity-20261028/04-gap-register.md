@@ -636,6 +636,85 @@ Cvent 只取得「OnArrival 的 badge printing 屬 Premium」這一層敘述，*
 **待驗：** 選項 B 的增量是否真的只有入口——若單張發卡在權限、庫存或稽核上還有缺口，
 B 會從 `S` 回到 `M`。開工前用一次 `grep` 確認，不要沿用本節的假設。
 
+#### 收尾記錄（2026-11-01）：G-7 全部落地，`badges` 已標 `ALIGNED`
+
+上面那兩個選項（A 把批次生命週期搬進 App／B 縮成單張發卡、批次留在 Web）**都沒有被
+選**。實際發生的事是第三條路：**把 Web 已有的批次能力整組對齊過來，不新增、也不
+縮減**。判定因此不是「A 或 B」，而是「Web 做得到的事，App 也要做得到」——這也是
+本輪所有 `ALIGNED` 標記共用的判準。
+
+**這一節開頭的判準已經沒有了。** 原文是「建立批次 → 認領 → 回填 UID → 匯出，四步都在
+後端就緒。App 只做了『查』。」以下五條呼叫與對應 UI 都落在
+`feat/nfc-gate1-reader-spike` 上，逐條 commit 可回溯。
+
+| 能力                                                           | 落點                                                                                                                                                                    | commit    |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| 五條呼叫 ＋ 型別（`NfcBadgeInventoryItem` 等）                 | `src/services/nfc.service.ts:38`（listBadges）／`:117`（createBatch）／`:143`（completeBatch）／`:162`（claimBadges）／`:186`（exportBadges）；`src/types/api.types.ts` | `18e16dd` |
+| 庫存列表（狀態篩選）／五張統計卡／批次聚合                     | `src/utils/badge-inventory.ts:98`、`:146`；`src/app/(auth)/[eventId]/badges.tsx:779`、`:833`、`:915`                                                                    | `681d953` |
+| 建立批次                                                       | `src/components/badges/CreateBatchDialog.tsx`；`src/utils/badge-batch.ts:90`；入口 `badges.tsx:649`                                                                     | `7eac6c2` |
+| 完成批次（回填實體 tagUid）                                    | `src/components/badges/CompleteBatchDialog.tsx`；`src/utils/badge-batch.ts:187`；確認框 `badges.tsx:1049`                                                               | `b0ec83d` |
+| 指派展商                                                       | `src/components/badges/ClaimBadgesDialog.tsx`；`src/utils/badge-batch.ts:256`；確認框 `badges.tsx:1097`                                                                 | `a7ce545` |
+| 匯出 CSV                                                       | `src/components/badges/ExportCsvDialog.tsx`；入口 `badges.tsx:656`                                                                                                      | `4ef3729` |
+| 五條呼叫的 method+path 契約鎖 ＋「兩邊都沒有改狀態／作廢」的鎖 | `tests/badge-contract.test.mjs`                                                                                                                                         | `bba40b2` |
+
+**兩個能力不在範圍，而且不是漏做：改狀態、作廢／刪除。** Web 的徽章管理頁兩者都沒有
+——`LinkCard_Frontend@app/(event)/manage/[eventId]/badges/page.tsx` 只有
+`listNfcBadges`／`createNfcBatch`／`claimNfcBadge`／`completeNfcBatch`／
+`exportNfcBadges` 五支，沒有任何 `PATCH` 或 `delete`。後端同理：
+`LinkCard_ExpressJS_Backend@src/events/routes/event-ops.routes.ts:84-88` 的 nfc 路由就是那五條。所以
+`ALIGNED` 的定義在這裡是「**五條對齊**」，而不是「徽章頁上每個可能的功能都有」。
+這一點由 `tests/badge-contract.test.mjs` 釘住：service 出現 `PATCH`／`DELETE` 會紅，
+後端快照多出 nfc 寫入路由也會紅。
+
+**刻意偏離 Web 的地方（三處，每一處都寫在對應檔頭）。**
+
+1. **散卡群組（沒有 `batchId` 的 badge）不顯示「完成批次」。** Web 的
+   `buildBatchSummaries` 把散卡聚成一群但 `batchId` 寫成 `''`，於是那一列的兩顆按鈕
+   都是壞的：完成批次呼叫 `completeNfcBatch(eventId, '', …)` 得到 404；指派用
+   `allBadges.filter(b => b.batchId === '')` 恆為空，必得 0 筆。App 把「群組鍵」與
+   「可完成的 batchId」分開（`src/utils/badge-inventory.ts:134` 的
+   `canCompleteBadgeBatch`），散卡群組只保留指派，且指派用群組鍵比對
+   （`:121` 的 `badgesOfBadgeBatch`）——散卡群組因此真的指得到人。
+2. **派展商的展商清單打四次，不是一次。** Web 的 `openClaimModal` 呼叫
+   `listAllExhibitorsAdmin(eventId, { page: 1, limit: 100 })` 而**沒帶 `status`**；
+   後端在 `status` 缺席時**強制**當成 `ACTIVE`（`ExhibitorService.ts:219-222`），
+   所以 Web 那行的註解「含非 ACTIVE」與事實相反：待審批與已完成的展商一筆都不會
+   出現，而它們正是要發手環的對象。App 沿用本 repo 已有的四狀態合併
+   （`utils/exhibitor-list.ts`），沿用既有測試覆蓋。
+3. **匯出不是檔案下載。** Web 收到 `{ csv }` 後用 `Blob` ＋ `<a download>` 存成
+   `.csv`。App 沒有 `expo-file-system`／`expo-sharing`，本輪也明訂不加依賴，因此
+   改為「完整 CSV 原文 ＋ 一鍵複製」。**這是行為差異，不是等價**：Web 按下得到
+   檔案，App 按下得到可複製的文字。已在此處與 `ExportCsvDialog.tsx` 檔頭同時記錄。
+
+**另外兩處與 Web 相同、但值得寫下來的決定**：完成批次的輸入格式沿用 Web 的
+`badgeId,realTagUid` 多行文字（Web 自己標為 MVP），**但重複的 `badgeId` 會被擋下**
+——Web 不檢查，而後端逐筆套用會讓第二筆覆蓋第一筆的 UID，手環是一次性的、無法還原
+（`src/utils/badge-batch.ts:187`）。色碼驗證用的是 Web 的 CSS 色集合而不是本 repo 的
+hex-only `isValidHexColor`，否則 `rgb(…)` 在 Web 可以、在 App 不行。
+
+**保留的歷史記錄（不刪，也不改寫）。**
+
+本節 §4.1 排序段落原本寫著：
+
+> 依它排，這八項幾乎都在最後；其中 **G-7（Badge 批次）的現場價值最低**（使用者的
+> 原話：手環寫入是一次性的、不會重複用），可排最末。
+
+這段話**仍然成立**，保留在原位。它判斷的是「急不急」，不是「做不做」；本輪做它是
+因為**對齊優先於排序**（Web 做得到的事，App 也要做得到），不是因為現場價值被重新
+評估過。若日後有人質疑「為什麼先做這個」，答案就是這個，而不是「它其實很急」。
+
+同樣保留的一句：**手環一次性、批次作廢幾乎用不到**——「作廢」這條能力兩邊都沒有
+端點（見上），所以它不是被延後，是根本不存在。
+
+**驗收（可重跑）：**
+
+```
+npm test                                             # 含 badge-service／-inventory／-batch／-contract 四支
+npx tsc --noEmit && npx eslint . && npm run format:check
+npm run check:contract                               # 64 條 App 呼叫全部對得上後端路由快照
+node scripts/check-parity-registry.mjs               # ALIGNED=12 APP_GAP=2 WEB_ONLY_INTERNAL=1
+```
+
 ### G-8 報到桌：同畫面寫卡＋綁卡＋上鎖（P1，能力，需要決策）
 
 #### 2026-10-29 補充：使用者的實際流程（改變了這一項的性質，不改判定）

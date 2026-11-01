@@ -121,15 +121,26 @@
       "webPages": ["app/(event)/manage/[eventId]/badges/page.tsx"],
       "appFiles": [
         "src/app/(auth)/[eventId]/badges.tsx",
-        "src/services/nfc.service.ts"
+        "src/services/nfc.service.ts",
+        "src/utils/badge-inventory.ts",
+        "src/utils/badge-batch.ts",
+        "src/components/badges/ConfirmActionDialog.tsx",
+        "src/components/badges/CreateBatchDialog.tsx",
+        "src/components/badges/CompleteBatchDialog.tsx",
+        "src/components/badges/ClaimBadgesDialog.tsx",
+        "src/components/badges/ExportCsvDialog.tsx"
       ],
-      "verdict": "APP_GAP",
-      "gapId": "G-7",
+      "verdict": "ALIGNED",
       "decidedIn": "docs/analysis/adminapp-parity-20261028/04-gap-register.md#G-7",
       "evidence": [
-        "Web 匯入 listNfcBadges／createNfcBatch／claimNfcBadge／completeNfcBatch／exportNfcBadges",
-        "App 只有 listBadges 與 lookup（nfc.service.ts:23-57），且無 boundOnly 參數",
-        "後端 7 條 nfc 端點皆存在"
+        "五條呼叫與 Web 逐條對齊：listBadges nfc.service.ts:38、createBatch :117、completeBatch :143、claimBadges :162、exportBadges :186（Web 端為 FE:app/(event)/manage/[eventId]/badges/page.tsx:13-19）",
+        "統計與批次聚合：src/utils/badge-inventory.ts:98（buildBadgeStats）、:146（buildBadgeBatchSummaries）；畫面 src/app/(auth)/[eventId]/badges.tsx:779（五張統計卡）、:833（批次聚合）——commit 681d953",
+        "建立批次：CreateBatchDialog.tsx ＋ src/utils/badge-batch.ts:90（1–500 與 CSS 色集合，與 Web 的 isValidCssColor 同集合）；入口 badges.tsx:649——commit 7eac6c2",
+        "完成批次：CompleteBatchDialog.tsx ＋ src/utils/badge-batch.ts:187（多行 badgeId,realTagUid）；確認框 badges.tsx:1049——commit b0ec83d",
+        "指派展商：ClaimBadgesDialog.tsx ＋ src/utils/badge-batch.ts:256（BADGE_ALREADY_ASSIGNED 分類）；確認框 badges.tsx:1097——commit a7ce545",
+        "匯出 CSV：ExportCsvDialog.tsx；入口 badges.tsx:656——commit 4ef3729。App 無 expo-file-system／expo-sharing，改為可複製的 CSV 原文（與 Web 的 .csv 下載不同，已寫入 04 §G-7 收尾記錄）",
+        "改狀態／作廢：Web 與後端皆無此端點（LinkCard_ExpressJS_Backend@src/events/routes/event-ops.routes.ts:84-88 僅 5 條 badge 路由），不實作；tests/badge-contract.test.mjs 釘住「沒有 PATCH／DELETE」",
+        "呼叫契約鎖：tests/badge-contract.test.mjs —— commit bba40b2"
       ]
     },
     {
@@ -430,8 +441,16 @@
       "severity": "P1",
       "owner": "product",
       "size": "M",
-      "status": "decision-needed",
-      "fixedOn": []
+      "status": "fixed",
+      "fixedOn": [
+        "18e16dd",
+        "681d953",
+        "7eac6c2",
+        "b0ec83d",
+        "a7ce545",
+        "4ef3729",
+        "bba40b2"
+      ]
     },
     {
       "id": "G-8",
