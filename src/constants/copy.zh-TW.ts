@@ -1575,6 +1575,42 @@ export const copy = {
     noProof: "無憑證",
     /** Web 沒有：Web 是 `<a target="_blank">`，開不起來由瀏覽器自理。 */
     proofOpenFailed: "無法開啟憑證連結，請確認網路後再試",
+    /** Web `bankTransfers.approve` / `bankTransfers.reject` */
+    approve: "批准",
+    reject: "拒絕",
+    cancel: "取消",
+    /**
+     * 批准的二次確認（**Web 沒有這一步**）。
+     *
+     * Web 是「按下批准 → 立刻送 `PATCH …/review`」，沒有任何確認框。這一頁
+     * 放行的是款項，而後端對非 `PENDING` 一律回 `BANK_TRANSFER_ALREADY_REVIEWED`
+     * ——換句話說**批准之後在 App 上沒有反向操作**。既然不可逆，按下之前就
+     * 必須看得見「誰、多少錢、哪一筆」。
+     */
+    approveConfirm: {
+      title: "批准這筆匯款？",
+      intro:
+        "批准後這筆報名會變成已付款，並發放該票種的初始 Token。批准在此 App 內無法復原。",
+      personLabel: "報名者",
+      amountLabel: "金額",
+      codeLabel: "報名碼",
+      confirm: "確認批准",
+    },
+    /** Web 沒有：Web 成功後靜默重載，不講話。 */
+    approveSuccess: "已批准這筆匯款",
+    /**
+     * 覆核失敗的分類文案（見 `utils/bank-transfer-review.ts`）。
+     *
+     * 刻意**不回顯後端 `error.message`**：後端訊息可能帶內部路徑、別人的報名碼
+     * 或 SQL 片段。每一句只說「哪一類」與「接下來會怎樣」。
+     */
+    reviewErrors: {
+      forbidden: "你沒有權限審批此活動的轉賬",
+      notFound: "這筆轉賬記錄不存在，可能已被其他人處理。清單已重新載入。",
+      alreadyReviewed: "這筆轉賬已經被審批過了。清單已重新載入。",
+      validation: "審批內容未通過後端驗證，請重新整理後再試",
+      failed: "操作失敗，請稍後再試",
+    },
   },
   /**
    * 未匹配路由（`app/+not-found.tsx`）。

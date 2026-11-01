@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
-import { Linking, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Linking,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useLocalSearchParams } from "expo-router";
@@ -8,15 +15,26 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ChoiceChips } from "@/components/ui/ChoiceChips";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { InlineBanner } from "@/components/ui/InlineBanner";
+import {
+  InlineBanner,
+  type InlineBannerTone,
+} from "@/components/ui/InlineBanner";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { copy } from "@/constants/copy.zh-TW";
-import { radius, semantic, space, spacing, type } from "@/constants/theme";
+import {
+  layout,
+  radius,
+  semantic,
+  space,
+  spacing,
+  type,
+} from "@/constants/theme";
 import { bankTransferService } from "@/services/bank-transfer.service";
 import { eventService } from "@/services/event.service";
 import type {
   BankTransferApproval,
+  BankTransferDecision,
   BankTransferStatusFilter,
 } from "@/types/bankTransfer.types";
 import {
@@ -24,6 +42,13 @@ import {
   bankTransferTabCounts,
   formatBankTransferPersonName,
 } from "@/utils/bank-transfer-display";
+import {
+  buildReviewConfirmation,
+  buildReviewRequest,
+  classifyBankTransferReviewError,
+  type BankTransferReviewConfirmation,
+  type BankTransferReviewIntent,
+} from "@/utils/bank-transfer-review";
 
 /**
  * 銀行轉賬審批（parity `bank-transfers`）。
@@ -40,6 +65,18 @@ import {
  * 所以**只有 `PENDING` 的資料列**會出現動作鈕——與 Web 的
  * `{approval.status === 'PENDING' && (...)}` 一致。已核過的資料列顯示狀態徽章
  * 就好，不提供註定失敗的按鈕。
+ *
+ * ### 與 Web 唯一的行為差異：兩個動作都多一道確認
+ *
+ * Web 對「批准」**沒有任何確認**（一按就送），對「拒絕」用 `window.prompt`
+ * 收原因。這一頁兩者都要二次確認，理由是這兩個動作都不可逆：後端對非
+ * `PENDING` 一律回 `BANK_TRANSFER_ALREADY_REVIEWED`，沒有任何介面能把已批的
+ * 匯款退回待核。確認框顯示「誰、多少錢、哪一筆」——那是唯一能讓人發現
+ * 「點錯列」的資訊。
+ *
+ * Web 的 `prompt` 還有一個更貴的坑：使用者按「取消」時 `prompt` 回 `null`，
+ * 而 `null ?? undefined` 之後**照樣送出 `REJECTED`**——「取消」等於「無理由
+ * 拒絕」，而且沒有任何提示。App 的取消就是取消（不建立意圖，什麼都不送）。
  *
  * ## 分頁：照 Web 不送 page／limit（一個已知的落差）
  *
@@ -93,6 +130,23 @@ export default function EventBankTransfersScreen() {
   const [loadError, setLoadError] = useState(false);
   const [proofError, setProofError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  /**
+   * 待確認的覆核意圖。
+   *
+   * 按下「批准」只會**建立意圖**，不會送出任何請求；唯一的送出點是確認框的
+   * `onConfirm`（見 `submitReview`）。這是「確認前的狀態不會被送出」的實作位置。
+   *
+   * 存的是按下當下的快照（含人名與金額）。清單在確認期間若被重新整理，
+   * 快照不會跟著變——但送出的是 `approval.id`，後端以資料庫現況為準，
+   * 過期的意圖只會換得 `BANK_TRANSFER_ALREADY_REVIEWED`，不會錯放行。
+   */
+  const [pendingReview, setPendingReview] =
+    useState<BankTransferReviewIntent | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState<{
+    tone: InlineBannerTone;
+    message: string;
+  } | null>(null);
 
   // 清單：跟著頁籤與重新整理走。
   useEffect(() => {
@@ -155,6 +209,59 @@ export default function EventBankTransfersScreen() {
     }
   }
 
+  /** 建立意圖（不送出）。批准與拒絕都經過這裡。 */
+  function requestReview(
+    approval: BankTransferApproval,
+    decision: BankTransferDecision,
+  ) {
+    setFeedback(null);
+    setPendingReview({ approval, decision, reason: "" });
+  }
+
+  /**
+   * 唯一的送出點。
+   *
+   * `buildReviewRequest(..., { confirmed })` 在 `confirmed === false` 時回
+   * `null`——所以「意圖存在但還沒確認」這個狀態**不可能**產生請求。
+   * 這裡保留 `confirmed` 參數而不是讓呼叫端自己判斷，是為了讓那條規則住在
+   * `utils/bank-transfer-review.ts`（可被 `node:test` 釘住），而不是住在畫面裡。
+   */
+  async function submitReview(intent: BankTransferReviewIntent) {
+    const request = buildReviewRequest(intent, { confirmed: true });
+    if (request == null) return;
+
+    setSubmitting(true);
+    try {
+      await bankTransferService.review(
+        eventId,
+        request.approvalId,
+        request.decision,
+        request.reviewNote,
+      );
+      setPendingReview(null);
+      setFeedback({
+        tone: "success",
+        // 目前只有「批准」會走到這裡（拒絕有自己的流程，見下一步）。
+        message: copy.bankTransfers.approveSuccess,
+      });
+      // 與 Web 一樣：成功後重新載入清單（金額是後端重算的，不能拿回應拼本地狀態）。
+      setReloadKey((key) => key + 1);
+    } catch (error) {
+      const outcome = classifyBankTransferReviewError(error);
+      setPendingReview(null);
+      setFeedback({
+        tone: "danger",
+        message: copy.bankTransfers.reviewErrors[outcome.kind],
+      });
+      // 這一列已經不是我們以為的樣子（被別人審完了／不見了）⇒ 一定要重讀。
+      if (outcome.kind === "alreadyReviewed" || outcome.kind === "notFound") {
+        setReloadKey((key) => key + 1);
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   const totalForFilter = counts?.[statusFilter] ?? approvals.length;
 
   return (
@@ -196,6 +303,16 @@ export default function EventBankTransfersScreen() {
           />
         ) : null}
 
+        {feedback ? (
+          <InlineBanner
+            compact
+            tone={feedback.tone}
+            message={feedback.message}
+            dismissible
+            onDismiss={() => setFeedback(null)}
+          />
+        ) : null}
+
         {loadError ? (
           <InlineBanner
             compact
@@ -233,11 +350,26 @@ export default function EventBankTransfersScreen() {
                 key={approval.id}
                 approval={approval}
                 onOpenProof={() => void openProof(approval)}
+                onApprove={() => requestReview(approval, "APPROVED")}
               />
             ))}
           </View>
         )}
       </ScrollView>
+
+      {pendingReview?.decision === "APPROVED" ? (
+        <ReviewDialog
+          confirmation={buildReviewConfirmation(pendingReview)}
+          title={copy.bankTransfers.approveConfirm.title}
+          intro={copy.bankTransfers.approveConfirm.intro}
+          confirmLabel={copy.bankTransfers.approveConfirm.confirm}
+          busy={submitting}
+          tone="primary"
+          onConfirm={() => void submitReview(pendingReview)}
+          onCancel={() => setPendingReview(null)}
+          testID="bank-transfer-approve-confirm"
+        />
+      ) : null}
     </View>
   );
 }
@@ -283,9 +415,11 @@ function formatDateTime(iso: string | null | undefined): string {
 function ApprovalCard({
   approval,
   onOpenProof,
+  onApprove,
 }: {
   approval: BankTransferApproval;
   onOpenProof: () => void;
+  onApprove: () => void;
 }) {
   return (
     <Card testID={`bank-transfer-card-${approval.id}`}>
@@ -339,7 +473,109 @@ function ApprovalCard({
       ) : (
         <Text style={styles.noProof}>{copy.bankTransfers.noProof}</Text>
       )}
+
+      {/* 只有 PENDING 才有動作鈕（與 Web 同一個條件）：已核過的列不提供註定失敗的按鈕。 */}
+      {approval.status === "PENDING" ? (
+        <View style={styles.actions}>
+          <View style={styles.actionButton}>
+            <Button
+              label={copy.bankTransfers.approve}
+              variant="primary"
+              onPress={onApprove}
+              testID={`bank-transfer-approve-${approval.id}`}
+            />
+          </View>
+        </View>
+      ) : null}
     </Card>
+  );
+}
+
+/**
+ * 覆核的二次確認框。
+ *
+ * 形狀照 `ticket-types.tsx` / `content.tsx` 的 `ConfirmDialog`：自繪 `Modal`、
+ * 按鈕順序「主動作在上、取消在下」。不用 RN 的 `Alert.alert`（全案沒有用過它）。
+ *
+ * 三個欄位（報名者／金額／報名碼）不是裝飾：這是**放行款項**，而唯一能在按下
+ * 確認前發現「點錯列」的資訊就是「誰、多少錢、哪一筆」。文字由
+ * `buildReviewConfirmation` 產生（可被測試），這裡只負責畫。
+ */
+function ReviewDialog({
+  confirmation,
+  title,
+  intro,
+  confirmLabel,
+  busy,
+  tone,
+  onConfirm,
+  onCancel,
+  testID,
+}: {
+  confirmation: BankTransferReviewConfirmation;
+  title: string;
+  intro: string;
+  confirmLabel: string;
+  busy: boolean;
+  tone: "danger" | "primary";
+  onConfirm: () => void;
+  onCancel: () => void;
+  testID: string;
+}) {
+  return (
+    <Modal
+      visible
+      transparent
+      animationType="fade"
+      onRequestClose={() => {
+        if (!busy) onCancel();
+      }}
+    >
+      <View style={styles.backdrop}>
+        <View style={styles.dialog} testID={testID}>
+          <Text style={type.h3}>{title}</Text>
+          <Text style={styles.confirmNote}>{intro}</Text>
+
+          <View style={styles.confirmRow}>
+            <Text style={styles.infoLabel}>
+              {copy.bankTransfers.approveConfirm.personLabel}
+            </Text>
+            <Text style={styles.confirmLine}>{confirmation.person}</Text>
+          </View>
+          <View style={styles.confirmRow}>
+            <Text style={styles.infoLabel}>
+              {copy.bankTransfers.approveConfirm.amountLabel}
+            </Text>
+            <Text style={styles.confirmLine} testID={`${testID}-amount`}>
+              {confirmation.amount}
+            </Text>
+          </View>
+          <View style={styles.confirmRow}>
+            <Text style={styles.infoLabel}>
+              {copy.bankTransfers.approveConfirm.codeLabel}
+            </Text>
+            <Text style={styles.confirmLine}>
+              {confirmation.registrationCode}
+            </Text>
+          </View>
+
+          <Button
+            label={confirmLabel}
+            variant={tone === "danger" ? "dangerSolid" : "primary"}
+            loading={busy}
+            onPress={onConfirm}
+            testID={`${testID}-confirm`}
+          />
+          <Button
+            label={copy.bankTransfers.cancel}
+            variant="secondary"
+            disabled={busy}
+            onPress={onCancel}
+            testID={`${testID}-cancel`}
+          />
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -437,4 +673,40 @@ const styles = StyleSheet.create({
   amountLabel: { ...type.caption, color: semantic.text.muted },
   amount: { ...type.label, color: semantic.text.primary },
   noProof: { ...type.caption, color: semantic.text.muted },
+  /**
+   * 卡片內動作列。
+   *
+   * 與 `ticket-types.tsx` / `polls.tsx` 同一個處理：加上分隔線，否則按鈕會
+   * 看起來像屬於上面那行字。
+   */
+  actions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+    gap: space[2],
+    marginTop: space[2],
+    paddingTop: space[3],
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: semantic.border.decorative,
+  },
+  /** 動作鈕不撐滿卡片寬度（`Button` 預設 `fullWidth`），用外層限寬。 */
+  actionButton: { minWidth: layout.touchMin * 2.6 },
+
+  // ── 二次確認彈窗 ──────────────────────────────────────────
+  backdrop: {
+    flex: 1,
+    backgroundColor: semantic.bg.scrim,
+    justifyContent: "center",
+    padding: spacing.screen,
+  },
+  dialog: {
+    backgroundColor: semantic.bg.surface,
+    borderRadius: radius.lg,
+    padding: spacing.screen,
+    gap: spacing.gap,
+    maxHeight: "88%",
+  },
+  confirmRow: { gap: space[1] },
+  confirmLine: { ...type.label, color: semantic.text.primary },
+  confirmNote: { ...type.caption, color: semantic.text.secondary },
 });
