@@ -41,6 +41,15 @@ export const copy = {
      */
     refresh: "重新整理",
     refreshing: "重新整理中",
+    /**
+     * 二次確認框的取消鈕。
+     *
+     * `bankTransfers.cancel` / `ticketTypes.cancel` 原本各自有一份（都是「取消」）。
+     * 組織角色頁的確認框是第三個消費者，字面完全相同——依本命名空間既有的原則
+     * （「已有同義字串就沿用既有鍵，不另立重複字串」），這裡新增一條共用鍵，
+     * 新程式碼一律用它；舊的兩個命名空間維持原樣，不在本次改動範圍內。
+     */
+    cancel: "取消",
     /** 可關閉橫幅（fatal/info banner）關閉鈕的讀屏標籤。消費端：`components/ui/InlineBanner` */
     dismiss: "關閉提示",
     /** 必填欄位的讀屏標籤。消費端：`components/ui/FieldInput` */
@@ -1715,6 +1724,57 @@ export const copy = {
      */
     pendingHint:
       "「待接受」代表對方還沒有帳號，或尚未接受邀請。系統目前不會寄送邀請信。",
+    /** Web `orgRoles.inviteNew` */
+    inviteNew: "邀請新管理員",
+    /** Web `orgRoles.email` */
+    email: "電子郵件",
+    emailPlaceholder: "name@example.com",
+    /** 角色欄位的標籤（Web 沒有：它的 `<select>` 只有 `aria-label`）。 */
+    roleField: "角色",
+    /** Web `orgRoles.invite` / `orgRoles.sending`（`...` → `…`） */
+    invite: "邀請",
+    sending: "發送中…",
+    /** Web `orgRoles.inviteSuccess`（去掉 `✅`；i18next `{{email}}` → 函式） */
+    inviteSuccess: (email: string) => `已邀請 ${email}`,
+    /**
+     * email 空白的本地提示。
+     *
+     * Web 靠 `<input required>` 讓瀏覽器自己擋；App 沒有那個機制，所以要有一句話。
+     * **只驗非空**——多驗格式會比 Web 嚴格（理由見 `utils/org-role-invite.ts`）。
+     */
+    emailRequired: "請輸入電子郵件",
+    /**
+     * 邀請的二次確認（**Web 沒有這一步**）。
+     *
+     * Web 是「按下邀請 → 立刻送 `POST …/org-roles/invite`」，沒有任何確認框。
+     * 這個動作給出的是**後台權限**，而確認框上的兩行（對誰、什麼角色）是唯一
+     * 能在送出前發現「貼錯 email」或「選錯角色」的資訊。
+     */
+    inviteConfirm: {
+      title: "邀請這個人管理活動？",
+      intro:
+        "對方會取得這場活動的後台權限。若該電子郵件已有帳號，權限會立即生效。",
+      emailLabel: "電子郵件",
+      roleLabel: "角色",
+      confirm: "確認邀請",
+    },
+    /**
+     * 邀請／移除失敗的分類文案（見 `utils/org-role-display.ts`）。
+     *
+     * 刻意**不回顯後端 `error.message`**：後端訊息可能帶內部路徑或別人的 email。
+     * 每一句只說「哪一類」與「接下來會怎樣」。
+     *
+     * `forbidden` 與 `failed` 必須分開：前者是永久的（這個人就是沒有權限，重試
+     * 一萬次也一樣），後者是暫時的。把兩者都講成「請稍後再試」，使用者會一直
+     * 重試一件永遠不會成功的事。
+     */
+    errors: {
+      forbidden: "你沒有權限管理此活動的管理員",
+      alreadyExists: "這個電子郵件已經是此活動的管理員",
+      notFound: "找不到這筆管理員記錄，可能已被其他人移除。名單已重新載入。",
+      validation: "輸入的內容未通過後端驗證，請確認電子郵件後再試",
+      failed: "操作失敗，請稍後再試",
+    },
   },
   /**
    * 未匹配路由（`app/+not-found.tsx`）。

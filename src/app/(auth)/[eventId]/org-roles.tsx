@@ -1,12 +1,18 @@
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Modal, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useLocalSearchParams } from "expo-router";
 
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { ChoiceChips } from "@/components/ui/ChoiceChips";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { InlineBanner } from "@/components/ui/InlineBanner";
+import { FieldInput } from "@/components/ui/FieldInput";
+import {
+  InlineBanner,
+  type InlineBannerTone,
+} from "@/components/ui/InlineBanner";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { copy } from "@/constants/copy.zh-TW";
@@ -20,7 +26,7 @@ import {
 } from "@/constants/theme";
 import { eventService, type EventAccess } from "@/services/event.service";
 import { orgRoleService } from "@/services/org-role.service";
-import type { EventOrgRole } from "@/types/orgRole.types";
+import type { EventOrgRole, EventOrgRoleType } from "@/types/orgRole.types";
 import {
   classifyOrgRoleError,
   formatOrgRoleEmail,
@@ -28,6 +34,12 @@ import {
   orgRoleLabel,
   orgRoleState,
 } from "@/utils/org-role-display";
+import {
+  buildOrgRoleInviteConfirmation,
+  buildOrgRoleInviteRequest,
+  type OrgRoleInviteIntent,
+  validateOrgRoleInvite,
+} from "@/utils/org-role-invite";
 
 /**
  * 組織角色（parity `org-roles`）。
@@ -103,6 +115,24 @@ export default function EventOrgRolesScreen() {
   const [access, setAccess] = useState<EventAccess | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
+  /** 表單欄位。Web 的預設角色也是 `COORDINATOR`（`org-roles/page.tsx:38`）。 */
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<EventOrgRoleType>("COORDINATOR");
+  const [emailError, setEmailError] = useState<string | null>(null);
+  /**
+   * 待確認的邀請意圖。
+   *
+   * 按下「邀請」只會**建立意圖**，不會送出任何請求；唯一的送出點是確認框的
+   * `onConfirm`（見 `submitInvite`）。這是「確認前的狀態不會被送出」的實作位置。
+   */
+  const [pendingInvite, setPendingInvite] =
+    useState<OrgRoleInviteIntent | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState<{
+    tone: InlineBannerTone;
+    message: string;
+  } | null>(null);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -143,6 +173,59 @@ export default function EventOrgRolesScreen() {
       cancelled = true;
     };
   }, [eventId, reloadKey]);
+
+  /** 建立意圖（不送出）。 */
+  function requestInvite() {
+    const intent: OrgRoleInviteIntent = { email, role };
+    const block = validateOrgRoleInvite(intent);
+
+    setFeedback(null);
+    if (block != null) {
+      setEmailError(copy.orgRoles.emailRequired);
+      return;
+    }
+
+    setEmailError(null);
+    setPendingInvite(intent);
+  }
+
+  /**
+   * 唯一的送出點。
+   *
+   * `buildOrgRoleInviteRequest(..., { confirmed })` 在 `confirmed === false` 時回
+   * `null`——所以「意圖存在但還沒確認」這個狀態**不可能**產生請求。這裡保留
+   * `confirmed` 參數而不是讓呼叫端自己判斷，是為了讓那條規則住在
+   * `utils/org-role-invite.ts`（可被 `node:test` 釘住），而不是住在畫面裡。
+   */
+  async function submitInvite(intent: OrgRoleInviteIntent) {
+    const payload = buildOrgRoleInviteRequest(intent, { confirmed: true });
+    if (payload == null) return;
+
+    setSubmitting(true);
+    try {
+      await orgRoleService.invite(eventId, payload);
+      setPendingInvite(null);
+      setFeedback({
+        tone: "success",
+        message: copy.orgRoles.inviteSuccess(payload.email.trim()),
+      });
+      // 與 Web 一樣：成功後清空 email 並重新載入名單
+      // （`org-roles/page.tsx:108-111`）。角色刻意**不重設**——連續邀請同一個
+      // 角色是常見操作，每次跳回預設值只是多一次點擊。
+      setEmail("");
+      setReloadKey((key) => key + 1);
+    } catch (error) {
+      const { kind } = classifyOrgRoleError(error);
+      setPendingInvite(null);
+      setFeedback({ tone: "danger", message: copy.orgRoles.errors[kind] });
+      // 已經有人了／活動不見了 ⇒ 名單已經不是我們以為的樣子，一定要重讀。
+      if (kind === "alreadyExists" || kind === "notFound") {
+        setReloadKey((key) => key + 1);
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   /** `false` 才是後端明確說「你不行」；`undefined` 不鎖。 */
   const gateDisabled = access?.canInviteAdmins === false;
@@ -210,6 +293,59 @@ export default function EventOrgRolesScreen() {
           />
         ) : null}
 
+        {feedback ? (
+          <InlineBanner
+            compact
+            tone={feedback.tone}
+            message={feedback.message}
+            dismissible
+            onDismiss={() => setFeedback(null)}
+          />
+        ) : null}
+
+        {/* 邀請表單。`gateDisabled` 時整段鎖住——不提供註定 403 的按鈕。 */}
+        <Card testID="org-roles-invite-form">
+          <View style={styles.formHead}>
+            <Text style={styles.sectionTitle}>{copy.orgRoles.inviteNew}</Text>
+            {gateDisabled ? (
+              <Text style={styles.viewOnly}>{copy.orgRoles.viewOnly}</Text>
+            ) : null}
+          </View>
+
+          <FieldInput
+            label={copy.orgRoles.email}
+            value={email}
+            onChangeText={(text) => {
+              setEmail(text);
+              if (emailError != null) setEmailError(null);
+            }}
+            placeholder={copy.orgRoles.emailPlaceholder}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            editable={!gateDisabled}
+            required
+            error={emailError ?? undefined}
+            testID="org-roles-invite-email"
+          />
+
+          <ChoiceChips
+            label={copy.orgRoles.roleField}
+            options={INVITE_ROLE_OPTIONS}
+            value={role}
+            labelFor={(value) => orgRoleLabel(value, copy.orgRoles.roleLabels)}
+            onSelect={setRole}
+            testID="org-roles-invite-role"
+          />
+
+          <Button
+            label={copy.orgRoles.invite}
+            onPress={requestInvite}
+            disabled={gateDisabled}
+            testID="org-roles-invite-submit"
+          />
+        </Card>
+
         {/* 「待接受」是什麼意思——只在真的有這種列時才佔畫面。 */}
         {!loading && loadError == null && hasPending ? (
           <InlineBanner
@@ -241,13 +377,117 @@ export default function EventOrgRolesScreen() {
           )
         ) : (
           <View style={styles.list}>
-            {roles.map((role) => (
-              <OrgRoleCard key={role.id} role={role} />
+            {roles.map((entry) => (
+              <OrgRoleCard key={entry.id} role={entry} />
             ))}
           </View>
         )}
       </ScrollView>
+
+      {pendingInvite ? (
+        <InviteDialog
+          confirmation={buildOrgRoleInviteConfirmation(
+            pendingInvite,
+            copy.orgRoles.roleLabels,
+          )}
+          busy={submitting}
+          onConfirm={() => void submitInvite(pendingInvite)}
+          onCancel={() => setPendingInvite(null)}
+        />
+      ) : null}
     </View>
+  );
+}
+
+/**
+ * 邀請的角色選項。
+ *
+ * **恰好兩個**，逐字照 Web 的 `<select>`（`org-roles/page.tsx:235-238`）：
+ * `COORDINATOR` 與 `OPERATOR`。後端 `EventOrgRoleType` 有五個值，但 Web 的
+ * 邀請介面從不提供 `SUPER_ADMIN`（那會讓人繞過「只有擁有者能授權」的設計）、
+ * 也沒有 `VOLUNTEER` / `MEDIA` 的入口。App 多給一個選項就是**新增能力**——
+ * 那正是「不增不減」要擋的事。清單仍然會顯示這三個值（既有資料可能有），
+ * 由 `orgRoleLabel()` 顯示。
+ */
+const INVITE_ROLE_OPTIONS: readonly EventOrgRoleType[] = [
+  "COORDINATOR",
+  "OPERATOR",
+];
+
+/**
+ * 邀請的二次確認框。
+ *
+ * 形狀照 `bank-transfers.tsx` 的 `ReviewDialog` / `content.tsx` 的
+ * `ConfirmDialog`：自繪 `Modal`、按鈕順序「主動作在上、取消在下」。不用 RN 的
+ * `Alert.alert`（全案沒有用過它）。
+ *
+ * 兩行內容（email／角色）不是裝飾：這是**給出後台權限**，而唯一能在按下確認前
+ * 發現「貼錯 email」或「選錯角色」的資訊就是這兩行。
+ */
+function InviteDialog({
+  confirmation,
+  busy,
+  onConfirm,
+  onCancel,
+}: {
+  confirmation: { email: string; role: string };
+  busy: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Modal
+      visible
+      transparent
+      animationType="fade"
+      onRequestClose={() => {
+        if (!busy) onCancel();
+      }}
+    >
+      <View style={styles.backdrop}>
+        <View style={styles.dialog} testID="org-roles-invite-confirm">
+          <Text style={styles.dialogTitle}>
+            {copy.orgRoles.inviteConfirm.title}
+          </Text>
+          <Text style={styles.dialogIntro}>
+            {copy.orgRoles.inviteConfirm.intro}
+          </Text>
+
+          <View style={styles.confirmRow}>
+            <Text style={styles.confirmLabel}>
+              {copy.orgRoles.inviteConfirm.emailLabel}
+            </Text>
+            <Text style={styles.confirmValue} testID="org-roles-confirm-email">
+              {confirmation.email}
+            </Text>
+          </View>
+
+          <View style={styles.confirmRow}>
+            <Text style={styles.confirmLabel}>
+              {copy.orgRoles.inviteConfirm.roleLabel}
+            </Text>
+            <Text style={styles.confirmValue} testID="org-roles-confirm-role">
+              {confirmation.role}
+            </Text>
+          </View>
+
+          <Button
+            label={copy.orgRoles.inviteConfirm.confirm}
+            onPress={onConfirm}
+            loading={busy}
+            disabled={busy}
+            testID="org-roles-invite-confirm-submit"
+          />
+          <Button
+            label={copy.common.cancel}
+            variant="secondary"
+            onPress={onCancel}
+            disabled={busy}
+            testID="org-roles-invite-confirm-cancel"
+          />
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -340,6 +580,13 @@ const styles = StyleSheet.create({
   },
   myRole: { ...type.caption, color: semantic.text.secondary },
   sectionTitle: { ...type.label, color: semantic.text.primary },
+  formHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: space[2],
+  },
+  viewOnly: { ...type.caption, color: semantic.text.muted },
   skeletonGroup: { gap: spacing.gap },
   list: { gap: spacing.gap },
   cardHead: {
@@ -365,4 +612,24 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   badgeLabel: { ...type.caption },
+
+  // ── 二次確認彈窗 ──────────────────────────────────────────
+  backdrop: {
+    flex: 1,
+    backgroundColor: semantic.bg.scrim,
+    justifyContent: "center",
+    padding: spacing.screen,
+  },
+  dialog: {
+    backgroundColor: semantic.bg.surface,
+    borderRadius: radius.lg,
+    padding: spacing.screen,
+    gap: spacing.gap,
+    maxHeight: "88%",
+  },
+  dialogTitle: { ...type.h3, color: semantic.text.primary },
+  dialogIntro: { ...type.caption, color: semantic.text.secondary },
+  confirmRow: { gap: space[1] },
+  confirmLabel: { ...type.caption, color: semantic.text.muted },
+  confirmValue: { ...type.label, color: semantic.text.primary },
 });
