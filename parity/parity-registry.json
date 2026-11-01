@@ -222,17 +222,28 @@
         "app/(event)/manage/[eventId]/sessions/page.tsx",
         "app/(event)/manage/[eventId]/sessions/[sessionId]/registrations/page.tsx"
       ],
-      "appFiles": [],
+      "appFiles": [
+        "src/services/session.service.ts",
+        "src/types/session.types.ts",
+        "src/utils/session-form.ts",
+        "src/app/(auth)/[eventId]/sessions.tsx",
+        "src/app/(auth)/[eventId]/session-roster/[sessionId].tsx"
+      ],
       "verdict": "APP_GAP",
       "gapId": "G-9",
-      "status": "ready-to-implement",
+      "status": "deferred",
       "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3",
-      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊；營運事實（沒有場次）沒有變，但「做不做」改由一致性目標決定。原判如下——營運模型沒有場次這個單位：入場簽到時即派發 NFC 手環與掛牌，之後以掛牌人工目視進出會場，不需要逐場次的出席紀錄。若未來活動改為多場次制（同一張票要選場次、每場有獨立容量），此判定應重新評估。",
+      "note": "除刪除外全部對齊；刪除受 ESC-CRA-001 阻擋（後端無 DELETE /sessions/:sessionId、Web 那顆按下去是 404）。2026-11-01 實作記錄見 04-gap-register.md §G-9〈收尾〉。status 由 ready-to-implement 改為 deferred：剩下的那一項不是「等人開工」，是跨 repo 決定未解，不該繼續掛在可開工清單上。",
+      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊；營運事實（沒有場次）沒有變，但「做不做」改由一致性目標決定。原判如下——營運模型沒有場次這個單位：入場簽到時即派發 NFC 手環與掛牌，之後以掛牌人工目視進出會場，不需要逐場次的出席記錄。若未來活動改為多場次制（同一張票要選場次、每場有獨立容量），此判定應重新評估。",
       "evidence": [
-        "Web: session CRUD＋每場次名冊",
-        "App 全庫無 session 概念",
+        "App: 四支呼叫 GET/POST `/v1/events/:eventId/sessions`、PATCH `…/sessions/:sessionId`、GET `…/sessions/:sessionId/registrations` — src/services/session.service.ts",
+        "App: 列表＋建立＋編輯 — src/app/(auth)/[eventId]/sessions.tsx；表單驗證與 payload 組裝在 src/utils/session-form.ts",
+        "App: 名冊（每頁 50 筆、三態出席與分頁）— src/app/(auth)/[eventId]/session-roster/[sessionId].tsx",
+        "App: 範圍由 tests/session-contract.test.mjs 鎖成恰好四條；checkin／register／單筆 GET 刻意不接（負向斷言已驗證會轉紅）",
+        "Web: session CRUD＋每場次名冊（lib/events/sessions.ts 的 listEventSessions／createSession／updateSession／listSessionRegistrations）",
+        "刪除：後端無 DELETE /sessions/:sessionId，Web 的 deleteSession（lib/events/sessions.ts:142）是活的呼叫點，按下去 404 ⇒ ESC-CRA-001 未解除，verdict 維持 APP_GAP",
         "產業對照：Cvent／Whova／zkipster 都把場次報到放在行動端",
-        "2026-10-29 決（營運模型）：活動不分場次，入場即簽到並派發手環＋掛牌，出入靠掛牌人工目視而非系統掃描——判定由 APP_GAP 改為 BY_DESIGN，見 04-gap-register.md §G-9 的〈已決〉段"
+        "Commits: 33c0278（service）／dccbf24（列表）／a7abe92（建立）／4035b72（編輯）／b448c5f（名冊）／232627b（契約鎖）"
       ]
     },
     {
@@ -467,10 +478,10 @@
       "severity": "P2",
       "owner": "product",
       "size": "L",
-      "status": "ready-to-implement",
-      "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3",
+      "status": "deferred",
+      "decidedIn": "docs/analysis/adminapp-parity-20261028/04-gap-register.md",
       "fixedOn": [],
-      "note": "2026-10-29 上午的判定是 by-design（營運不分場次）；同日下午的全面功能對齊決定把它改回要做的目標——營運事實沒有變，改的是目標函數。優先度仍是最後（見 11 §11.4）。"
+      "note": "2026-10-29 上午的判定是 by-design（營運不分場次）；同日下午的全面功能對齊決定把它改回要做的目標——營運事實沒有變，改的是目標函數。2026-11-01 的實作把 sessions 的列表／建立／編輯／名冊都對齊了，但 G-9 本身（逐場次現場報到）仍然沒有做：後端 POST /sessions/:sessionId/checkin 存在，Web 卻沒有任何 UI 呼叫它（grep 為空）⇒ A2 沒有可對齊的對象，App 也不自行發明。status 改為 deferred：不是被 blocker 卡住，是缺產品決定，而且與 G-8（現場寫卡）共用同一個前提。詳見 04-gap-register.md §G-9〈收尾〉。"
     },
     {
       "id": "G-10",

@@ -971,6 +971,65 @@ Web」就不成立——是**兩個前端都落後於後端**。
 > 所以 A 與 B 都沒有被選，**問題的前提先消失了**。這一節因此沒有留下任何待決項；
 > 它現在的價值只剩上面那個結構觀察。
 
+#### 收尾（2026-11-01）：App 端對齊了「場次管理」，**現場報到仍然沒有做**
+
+這一輪把 `sessions` 這個能力在 App 端做到能用的程度，`G-9` 本身
+（**逐場次現場報到**）**沒有**被實作。兩件事必須分開講，否則會以為這一節可以關了。
+
+**做了什麼**（分支 `feat/nfc-gate1-reader-spike`，六個 commit）：
+
+| commit    | 內容                                                              |
+| --------- | ----------------------------------------------------------------- |
+| `33c0278` | `sessionService` 四支呼叫 ＋ `types/session.types.ts` ＋ 語意測試 |
+| `dccbf24` | 場次列表（導覽入口、狀態、載入失敗與空狀態分開）                  |
+| `a7abe92` | 建立場次（自繪 Modal，表單邏輯抽成 `utils/session-form.ts`）      |
+| `4035b72` | 編輯場次（回填 + PATCH 送完整 payload）                           |
+| `b448c5f` | 名冊（`session-roster/[sessionId].tsx`，每頁 50 筆）              |
+| `232627b` | 契約鎖（`tests/session-contract.test.mjs`，含負向鎖）             |
+
+**沒有做什麼，以及為什麼：**
+
+1. **刪除場次** — 後端沒有 `DELETE /sessions/:sessionId`（同上一節 §12.3.2
+   `ESC-CRA-001`）。Web 有一顆活的按鈕打這條不存在的路由，按下去是 404。
+   App **不重現一個壞掉的按鈕**，也不自行發明 `PATCH status=DELETED` 假裝對齊
+   （那會直接失守 A2）。整份 `copy.sessions` 連 `delete`／`deleteConfirm`
+   兩個字串都沒有搬——不留「只是還沒接」的想像空間。
+   `tests/session-contract.test.mjs` 用負向斷言釘住這件事（實測：把一支
+   `deleteSession` 加回 service，該檔 4 條測試立刻轉紅）。
+
+2. **場次現場報到（＝`G-9` 本身）** — `POST /sessions/:sessionId/checkin`
+   存在於後端（`sessions-polls.routes.ts:40-45`），但 **Web 沒有任何 UI 呼叫它**
+   （`grep -rn 'sessions/.*checkin' app components lib hooks` 為空）。
+   A2 的對齊是「Web 做得到的事，App 也要做得到」——沒有可對齊的對象，
+   App 就不自行發明一個 Web 沒有的現場報到流程。**這一項不是被 blocker 卡住，
+   是沒有目標**；要做的話得先有產品決定（現場報到是掃 code 還是選人？報到後
+   要不要同時寫卡？——後者正是 `G-8` 的問題）。
+   後端這條端點因此在兩邊都無人使用，屬**孤兒端點**，處置方式仍照
+   `10-session-decision-20261029.md` §10.6 的既有記錄，不在本輪範圍。
+
+**⚠️ 與 `12 §12.3.2` 的牴觸，照實記在這裡：**
+
+`§12.3.2` 寫的是「決定前的硬性限制：`sessions` 不得排入任何一波實作」，
+並且明確補了一句「**不是「先做前三項、刪除留空」，是整列都不能排**」。
+本輪做的正好是被那句排除的那件事。
+
+原因不是判定改了，而是**人類明確指示本輪照做**（2026-11-01）。
+把它記下來的理由：`ESC-CRA-001` **仍然沒有解除**（它要求的是「後端補端點」
+或「Web 移除按鈕並改 registry 驗收標的」，兩者都需要跨 repo 決定，本輪都沒做）。
+所以 `sessions` 的 verdict 維持 `APP_GAP`，**不能因為「大部分做了」就標成
+`ALIGNED`**——`ALIGNED` 要求完整，不能打折。
+
+**驗收（`232627b` 上實跑）：**
+
+```
+npm test                    # → tests 854 / pass 851 / fail 0
+npx tsc --noEmit            # → 0
+npx eslint .                # → 0
+npm run format:check        # → 0
+npm run check:contract      # → ✓ 68 條 App 呼叫全部對得上後端路由快照
+node scripts/check-parity-registry.mjs   # → 0
+```
+
 ### G-10 總覽對 OPERATOR 失效（P1，缺陷）— **已修**
 
 見 `03-capability-matrix.md` §3.2。兩個獨立問題：
