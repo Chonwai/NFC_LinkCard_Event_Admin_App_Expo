@@ -54,6 +54,11 @@ let dropWritePages = new Set();
 let writeAck = [0x0a];
 /** `true` = `requestTechnology` 永不 settle（重現讀取器卡住） */
 let holdSessionOpen = false;
+/** 這些頁的 `transceive` 會慢 `slowDelayMs` 才回應（重現「寫到一半卡片不動」） */
+let slowPages = new Set();
+let slowDelayMs = 0;
+/** 事件時序：證明讀取器是在 `work` 收手之後才被撤掉。 */
+let timeline = [];
 
 function pageBlock(start) {
   const out = [];
@@ -72,10 +77,16 @@ mock.module("react-native-nfc-manager", {
     },
     cancelTechnologyRequest: async () => {
       cancelCalls += 1;
+      timeline.push("cancel");
     },
     transceive: async (data) => {
       commands.push([...data]);
       const [insn, page] = data;
+
+      if (slowPages.has(page)) {
+        await new Promise((resolve) => setTimeout(resolve, slowDelayMs));
+        timeline.push(`settled:${page}`);
+      }
 
       if (insn === 0x30) {
         if (blockReadsUntilAuth && !authed) {
@@ -132,6 +143,9 @@ beforeEach(() => {
   dropWritePages = new Set();
   writeAck = [0x0a];
   holdSessionOpen = false;
+  slowPages = new Set();
+  slowDelayMs = 0;
+  timeline = [];
 });
 
 /** 只保留寫入命令（`A2h`），形式為 `[頁碼, 4 bytes]`。 */
@@ -328,6 +342,41 @@ describe("lockCard — 失敗時說清楚卡片處於什麼狀態", () => {
       },
     );
     assert.equal(cancelCalls, 1);
+  });
+
+  it("逾時時把已確認寫入的頁一起回報，並說上鎖狀態未知", async () => {
+    // 第三頁（ACCESS）卡住 40ms，而 deadline 是 5ms ⇒ 中斷先到，寫入還在飛。
+    // 舊行為只回「Unknown: the reader stopped answering」，操作員不知道卡片
+    // 已經被寫了兩頁，也不知道該不該再碰它。
+    slowPages = new Set([LAYOUT.accessPage]);
+    slowDelayMs = 40;
+
+    await assert.rejects(
+      () => lockCard(LAYOUT, PASSWORD, PACK, { timeoutMs: 5 }),
+      (error) => {
+        assert.equal(error.kind, "timeout");
+        assert.deepEqual(
+          error.written,
+          ["PWD", "PACK"],
+          "中斷當下已經確認寫入的頁必須跟著錯誤走",
+        );
+        assert.match(error.cardState, /unknown/i, "必須明說上鎖狀態未知");
+        assert.match(error.cardState, /2 page/);
+        assert.match(error.cardState, /read it back/i);
+        return true;
+      },
+    );
+
+    // 中斷之後 `work` 還在跑（它不知道 deadline 到了）。立刻撤讀取器會把那次
+    // 寫入切成兩半，所以必須等它收手；但也不能無限等——真不回來就強制取消。
+    const settledAt = timeline.indexOf(`settled:${LAYOUT.accessPage}`);
+    const cancelAt = timeline.indexOf("cancel");
+    assert.ok(settledAt >= 0, "慢的那一頁最後必須收手");
+    assert.ok(cancelAt >= 0, "reader 仍然必須被釋放");
+    assert.ok(
+      settledAt < cancelAt,
+      `cancelTechnologyRequest 必須在 running 收手之後（${timeline.join(" → ")}）`,
+    );
   });
 });
 

@@ -479,7 +479,41 @@ export class NfcLockError extends Error {
 /** 上鎖序列的總逾時。比寫卡短：這一段只送 6 個命令。 */
 export const NFC_LOCK_TIMEOUT_MS = 15000;
 
+/** 中斷後等 `work` 自己收手的寬限；逾時就強制撤掉讀取器（見下方註解）。 */
+const INTERRUPT_SETTLE_GRACE_MS = 250;
+
 type NfcManagerInstance = NfcManagerModuleType["default"];
+
+interface NfcSessionOptions {
+  timeoutMs?: number;
+  signal?: AbortSignal;
+  /**
+   * 呼叫端的**即時**寫入進度。它必須是 `work` 正在 push 的**同一個陣列**：
+   * 中斷發生時 `work` 還在跑，區域變數看不到，但卡片可能已經寫了兩三頁——
+   * 那個進度是操作員判斷「這張卡能不能再用」的唯一線索。
+   */
+  progress?: readonly string[];
+}
+
+/** 中斷時的卡片狀態：**未知**，並把已經確認寫入的頁一起說出來。 */
+function interruptedCardState(written: readonly string[]): string {
+  const progress =
+    written.length === 0
+      ? "no page was confirmed written"
+      : `${written.length} page(s) were already confirmed written ` +
+        `(${written.join(", ")})`;
+  return (
+    `Lock state UNKNOWN: ${progress}. The card may or may not be locked — ` +
+    "read it back before using it or retrying."
+  );
+}
+
+/** 只在「中斷且 `work` 還沒收手」這條路上用到的等待。 */
+function delayMs(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
 
 /**
  * 開一個 `NfcA` session 跑 `work`，不論成敗都釋放讀取器。
@@ -491,14 +525,17 @@ type NfcManagerInstance = NfcManagerModuleType["default"];
  */
 async function withNfcASession<T>(
   stage: NfcLockStage,
-  options: { timeoutMs?: number; signal?: AbortSignal } | undefined,
+  options: NfcSessionOptions | undefined,
   work: (manager: NfcManagerInstance) => Promise<T>,
 ): Promise<T> {
   const { default: NfcManager, NfcTech } = await loadNfcManager();
   const timeoutMs = options?.timeoutMs ?? NFC_LOCK_TIMEOUT_MS;
+  const liveWritten = options?.progress ?? [];
 
   let timer: ReturnType<typeof setTimeout> | null = null;
   let abortListener: (() => void) | null = null;
+  let settled = false;
+  let runningSettled: Promise<void> = Promise.resolve();
 
   try {
     const interruption = new Promise<never>((_, reject) => {
@@ -507,8 +544,11 @@ async function withNfcASession<T>(
           new NfcLockError(
             "timeout",
             stage,
-            "Unknown: the reader stopped answering. Hold the card still and try again.",
-            { message: `NFC lock timed out after ${timeoutMs}ms` },
+            interruptedCardState(liveWritten),
+            {
+              message: `NFC lock timed out after ${timeoutMs}ms`,
+              written: [...liveWritten],
+            },
           ),
         );
       }, timeoutMs);
@@ -519,8 +559,11 @@ async function withNfcASession<T>(
             new NfcLockError(
               "cancelled",
               stage,
-              "The operation was cancelled before the card could be locked.",
-              { message: "NFC lock cancelled" },
+              interruptedCardState(liveWritten),
+              {
+                message: "NFC lock cancelled",
+                written: [...liveWritten],
+              },
             ),
           );
         };
@@ -533,9 +576,17 @@ async function withNfcASession<T>(
     });
 
     const running = (async () => {
-      await NfcManager.requestTechnology(NfcTech.NfcA);
-      return work(NfcManager as NfcManagerInstance);
+      try {
+        await NfcManager.requestTechnology(NfcTech.NfcA);
+        return await work(NfcManager as NfcManagerInstance);
+      } finally {
+        settled = true;
+      }
     })();
+    runningSettled = running.then(
+      () => undefined,
+      () => undefined,
+    );
 
     void running.catch(() => undefined);
     return await Promise.race([running, interruption]);
@@ -543,6 +594,13 @@ async function withNfcASession<T>(
     if (timer !== null) clearTimeout(timer);
     if (options?.signal && abortListener) {
       options.signal.removeEventListener("abort", abortListener);
+    }
+    // `Promise.race` 只決定誰先回，不負責讓 `work` 停手：中斷之後它可能正好
+    // 停在半個寫入指令上。立刻撤讀取器會把那次寫入切成兩半，所以先給它一個
+    // 小寬限；真的不回來才強制取消——否則讀取器被永久佔住，那正是外層
+    // deadline 要防的事。
+    if (!settled) {
+      await Promise.race([runningSettled, delayMs(INTERRUPT_SETTLE_GRACE_MS)]);
     }
     try {
       await NfcManager.cancelTechnologyRequest();
@@ -718,8 +776,9 @@ export async function lockCard(
   options?: { timeoutMs?: number; signal?: AbortSignal },
 ): Promise<LockCardResult> {
   const written: string[] = [];
+  const sessionOptions: NfcSessionOptions = { ...options, progress: written };
 
-  return withNfcASession("read-config", options, async (manager) => {
+  return withNfcASession("read-config", sessionOptions, async (manager) => {
     let currentConfigPage = await readPage(manager, layout.configPage);
 
     if (currentConfigPage === null) {
