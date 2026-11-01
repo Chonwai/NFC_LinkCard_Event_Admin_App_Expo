@@ -92,16 +92,28 @@
       "id": "ticket-types",
       "title": "票種",
       "webPages": ["app/(event)/manage/[eventId]/ticket-types/page.tsx"],
-      "appFiles": ["src/app/(auth)/[eventId]/walk-in.tsx"],
-      "verdict": "APP_GAP",
-      "gapId": "G-15b",
-      "status": "ready-to-implement",
+      "appFiles": [
+        "src/app/(auth)/[eventId]/ticket-types.tsx",
+        "src/services/ticket-type.service.ts",
+        "src/utils/ticket-type-form.ts",
+        "src/utils/registrationFormContract.ts",
+        "src/app/(auth)/[eventId]/walk-in.tsx"
+      ],
+      "verdict": "ALIGNED",
+      "status": "fixed",
       "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3.1",
-      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。App 標的：在 App 上新增／修改／刪除票種並切換 capability 開關，且 formFieldsJson 通過語意綁定驗証（§11.3.1 第 5 項）。原判如下——票種與語意綁定屬於設定層，App 只需在現場報名時讀取可用票種（已實作 listTicketTypes）。現場改價或改名額需要授權設計，目前沒有這個需求。",
       "evidence": [
-        "Web: 票種 CRUD＋語意綁定驗證",
-        "App: eventService.listTicketTypes 供 walk-in 使用"
-      ]
+        "App: 四支呼叫 GET/POST/PATCH/DELETE `/v1/events/:eventId/ticket-types` — src/services/ticket-type.service.ts:77,95,118,149；範圍由 tests/ticket-type-contract.test.mjs 鎖成恰好四條（多一條或少一條都會紅）",
+        "App: 列表 — src/app/(auth)/[eventId]/ticket-types.tsx:136（Promise.all 與 Web 同形）；這條端點沒有分頁，故不帶 limit，由 tests/ticket-type-service.test.mjs 反向釘住",
+        "App: 新增／修改／停用（軟刪除）— 同上 631,634,258；二次確認在送出前顯示價格舊→新與名額變動",
+        "App: capability 開關 — 活動層 eventService.updateEvent（:223）＋票種層 capabilitiesOverride 編輯器（:859）；繼承/覆寫語意由 tests/ticket-type-payload.test.mjs 釘住",
+        "App: formFieldsJson 語意綁定驗證 — src/utils/registrationFormContract.ts（258 行，逐字抄自後端 canonical）＋ tests/ticket-type-form-schema.test.mjs（含直接讀後端檔案的 drift 比對）",
+        "App: 價格單位查證 = Decimal(10,2) 的**幣別金額**（非分），全程不做元→分換算 — tests/ticket-type-payload.test.mjs 逐字釘住",
+        "App: 複製報名連結 — 用 WEB_BASE_URL（不從 API_BASE_URL 推導），路徑與 query 逐字照 Web handleCopyRegisterLink",
+        "Web: listAdminTicketTypes／createTicketType／updateTicketType／deactivateTicketType（lib/events/ticket-types.ts）",
+        "Commits: 63c938b(service+型別) / 204e5de(列表) / b8e5c75(新增) / 4f7c475(修改) / 3850380(停用) / c557c9f(capability) / ab6f2d1(語意驗證) / 4b583c6(契約鎖) / 50754f6(幣別收斂)"
+      ],
+      "note": "2026-11-01 對齊。**刻意差異（已揭露、非遺漏）**：Web 的報名表是用動態表單建構器（新增/刪除/排序欄位、逐欄設定、外觀與主題、表單預覽）編輯；App 沒有建構器，改以同一份 `formFieldsJson` 的 **JSON 文字入口**編輯，並套用與 Web 完全相同的語意綁定驗證（`src/utils/registrationFormContract.ts`）。存進 DB 的資料形狀完全相同，差別只在 authoring UI。Web 的 `ticketTypes.formSchema`／`formSchemaHint` 兩條 i18n 本來就寫著「P0 先提供最小 JSON authoring 入口」，這裡採用的是同一條路。"
     },
     {
       "id": "badges",
@@ -176,14 +188,20 @@
         "app/(event)/manage/[eventId]/exhibitors/page.tsx",
         "app/(event)/manage/[eventId]/exhibitors/import/page.tsx"
       ],
-      "appFiles": [],
-      "verdict": "APP_GAP",
-      "gapId": "G-15b",
-      "status": "ready-to-implement",
+      "appFiles": [
+        "src/app/(auth)/[eventId]/exhibitors.tsx",
+        "src/components/roster/ExhibitorImportModal.tsx",
+        "src/services/exhibitor.service.ts"
+      ],
+      "verdict": "ALIGNED",
+      "status": "fixed",
       "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3.1",
-      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。App 標的：在 App 上把廠商狀態由待審改為通過／退回，並完成一次 CSV 匯入（含逐列錯誤檢視）（§11.3.1 第 4 項）。原判如下——廠商審核與名單匯入是批次工作，需要檔案上傳與逐列錯誤檢視；現場不做這件事。目前也沒有攤位報到需求。",
       "evidence": [
-        "Web: listAllExhibitorsAdmin／updateExhibitorStatus／CSV import"
+        "App: 六支呼叫（列表／狀態覆核／匯入 preview・confirm・notify／範本下載）— src/services/exhibitor.service.ts",
+        "App: 列表帶滿 limit 並四個狀態各打一次再合併 — Web 不帶 limit 會被後端預設 20 靜默截斷，且不帶 status 時後端強制 ACTIVE；這兩點是 App 刻意偏離並在 service 檔頭寫明理由",
+        "App: CSV 匯入（含逐列錯誤檢視）— src/components/roster/ExhibitorImportModal.tsx",
+        "Web: listAllExhibitorsAdmin／updateExhibitorStatus／CSV import（lib/events/exhibitors.ts、exhibitorImport.ts）",
+        "Commits: ebfa1d9 系列（service／列表／匯入／契約鎖）"
       ]
     },
     {
@@ -210,13 +228,20 @@
       "id": "polls",
       "title": "投票",
       "webPages": ["app/(event)/manage/[eventId]/polls/page.tsx"],
-      "appFiles": [],
-      "verdict": "APP_GAP",
-      "gapId": "G-15b",
-      "status": "ready-to-implement",
+      "appFiles": [
+        "src/app/(auth)/[eventId]/polls.tsx",
+        "src/services/poll.service.ts"
+      ],
+      "verdict": "ALIGNED",
+      "status": "fixed",
       "decidedIn": "docs/analysis/adminapp-parity-20261028/11-full-parity-decision-20261029.md#11.3.1",
-      "rationale": "2026-10-29 產品決定推翻本理由（見 11-full-parity-decision-20261029.md）：改為全面功能對齊。App 標的：在 App 上建立投票、啟用、關閉並讀取計票結果（§11.3.1 第 6 項）。原判如下——投票的建立、啟用與計票是主持端工作，需要投影或大螢幕；操作員在門口不參與。",
-      "evidence": ["Web: createPoll／activatePoll／closePoll／getPollResults"]
+      "evidence": [
+        "App: 四支呼叫 GET/POST `/v1/events/:eventId/polls`、PATCH `…/polls/:id/activate`、PATCH `…/polls/:id/close` — src/services/poll.service.ts:48,65,82,93",
+        "App: 建立／啟用／關閉＋計票 — src/app/(auth)/[eventId]/polls.tsx；計票在 client 端數 `votes[]`，不打 `results`（避開 N+1，與 Web computeResults 同一條式子）",
+        "App: 範圍由 tests/poll-contract.test.mjs 鎖成恰好四條；post-vote／results 兩條刻意不接（後台不替人投票）",
+        "Web: createPoll／activatePoll／closePoll（lib/events/sessions.ts:65-120）",
+        "Commits: 3ef952b 系列（service／列表／建立／生命週期／契約鎖）"
+      ]
     },
     {
       "id": "bank-transfers",
@@ -482,10 +507,22 @@
       "severity": "P2",
       "owner": "product",
       "size": "XL",
-      "status": "ready-to-implement",
+      "status": "fixed",
       "decidedIn": "docs/analysis/adminapp-parity-20261028/04-gap-register.md#G-15b",
-      "fixedOn": [],
-      "note": "原 G-15 拆分後的三分之一。P2＝04 §4.1「有價值的補強，可以排隊」（改錯可改回，不像款項放行）。但 ticket-types 正好是 03 §3.7.8 第一項舉的例子「現場 app 內含改票種」，所以動工時同樣要吃那一項（OPEN）的答案。size 說明同 G-15a。"
+      "fixedOn": [
+        "3ef952b",
+        "ebfa1d9",
+        "63c938b",
+        "204e5de",
+        "b8e5c75",
+        "4f7c475",
+        "3850380",
+        "c557c9f",
+        "ab6f2d1",
+        "4b583c6",
+        "50754f6"
+      ],
+      "note": "原 G-15 拆分後的三分之一。P2＝04 §4.1「有價值的補強，可以排隊」（改錯可改回，不像款項放行）。但 ticket-types 正好是 03 §3.7.8 第一項舉的例子「現場 app 內含改票種」，所以動工時同樣要吃那一項（OPEN）的答案。size 說明同 G-15a。 ｜ 2026-11-01 收尾：三個模組皆為 ALIGNED（見各自 evidence）。ticket-types 的授權/誤觸防護以前述「價格與名額送出前二次確認」實現（App 比 Web 多這一步，已在 capability 的 evidence 與交付說明中列出）。"
     },
     {
       "id": "G-15c",
