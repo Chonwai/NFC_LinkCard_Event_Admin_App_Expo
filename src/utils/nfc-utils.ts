@@ -600,10 +600,26 @@ async function writePage(
   }
 }
 
-/** 已經寫進去的頁 → 一句描述「卡片現在處於什麼狀態」。 */
-function cardStateAfter(written: readonly string[]): string {
+/** NTAG21x：`AUTH0 = 0xFF` 表示「沒有任何頁面需要密碼」。 */
+const AUTH0_UNPROTECTED = 0xff;
+
+/**
+ * 已經寫進去的頁 → 一句描述「卡片現在處於什麼狀態」。
+ *
+ * `auth0Before` 是上鎖前**實際讀到的** `AUTH0`。`basic` 的 `PROT = 0`，所以
+ * 一張已上鎖的卡讀設定頁照樣讀得到——此時若無條件說「仍未受保護」，那就是一句
+ * 假話，而且出現在操作員最需要正確答案的時候。
+ */
+function cardStateAfter(
+  written: readonly string[],
+  auth0Before: number,
+): string {
   if (written.length === 0) {
-    return "The card is unchanged and still unprotected: it can be written again.";
+    return auth0Before === AUTH0_UNPROTECTED
+      ? "The card is unchanged and still unprotected: it can be written again."
+      : "The card is unchanged and still protected: AUTH0 was already " +
+          `${auth0Before}, so writing it needs the password. Nothing was ` +
+          "written by this attempt.";
   }
   if (!written.includes("AUTH0")) {
     return (
@@ -685,8 +701,15 @@ export interface LockCardResult {
  *
  * ## 卡片本來就鎖著
  *
- * 讀設定頁失敗時先用 `password` 試一次 `PWD_AUTH` 再重讀（一張先前被鎖過的卡
- * 就是這個形狀）。兩者都失敗才丟錯——那時「讀不到」與「密碼不對」是同一個答案。
+ * 兩種形狀都要處理：
+ *
+ * 1. 讀設定頁**失敗**：先用 `password` 試一次 `PWD_AUTH` 再重讀（`PROT = 1` 的
+ *    卡就是這個形狀）。兩者都失敗才丟錯——那時「讀不到」與「密碼不對」是同一
+ *    個答案。
+ * 2. 讀設定頁**成功，但 `AUTH0 ≠ 0xFF`**：卡已經受保護，只是 `basic` 的
+ *    `PROT = 0` 讓讀取不受限制。**寫入迴圈前必須先 `PWD_AUTH`**，否則每一頁都
+ *    會 NAK，而錯誤訊息會說「卡片仍未受保護」——那是一句假話。密碼不對時
+ *    **一頁都不寫**。
  */
 export async function lockCard(
   layout: NtagLayout,
@@ -730,6 +753,30 @@ export async function lockCard(
       }
     }
 
+    // 讀得到設定頁 ≠ 卡片沒被保護。`basic` 只擋寫入（`PROT = 0`），所以一張
+    // 先前上過鎖的卡在這裡讀得到值，`AUTH0` 卻不是 `0xFF`。不先驗證就進寫入
+    // 迴圈，四頁會全部 NAK，而錯誤訊息會堅稱「卡片仍未受保護」。
+    const auth0Before = currentConfigPage[3] & 0xff;
+    if (auth0Before !== AUTH0_UNPROTECTED) {
+      const outcome = await authenticate(manager, password);
+      if (outcome.kind !== "ok" && outcome.kind !== "pack-mismatch") {
+        throw new NfcLockError(
+          outcome.kind,
+          "auth",
+          cardStateAfter([], auth0Before),
+          {
+            message:
+              `the card is already protected (AUTH0=${auth0Before}) and ` +
+              "PWD_AUTH " +
+              (outcome.kind === "no-response"
+                ? "got no response (wrong password)"
+                : `failed: ${outcome.detail}`),
+            page: layout.configPage,
+          },
+        );
+      }
+    }
+
     const plan = planLockWrites(layout, password, pack, { currentConfigPage });
     const auth0 = plan[plan.length - 1].data[3];
 
@@ -745,11 +792,16 @@ export async function lockCard(
                   error instanceof Error ? error.message : "write failed",
                 page: write.page,
               });
-        throw new NfcLockError(failure.kind, "write", cardStateAfter(written), {
-          message: failure.message,
-          page: write.page,
-          written,
-        });
+        throw new NfcLockError(
+          failure.kind,
+          "write",
+          cardStateAfter(written, auth0Before),
+          {
+            message: failure.message,
+            page: write.page,
+            written,
+          },
+        );
       }
       written.push(write.label);
     }
@@ -757,13 +809,18 @@ export async function lockCard(
     // `AUTH0` 寫完保護立即生效 ⇒ 讀回之前必須先驗證。
     const outcome = await authenticate(manager, password);
     if (outcome.kind === "no-response" || outcome.kind === "sw-error") {
-      throw new NfcLockError(outcome.kind, "verify", cardStateAfter(written), {
-        message:
-          "AUTH0 was written but PWD_AUTH with the new password failed: " +
-          (outcome.kind === "no-response" ? "no response" : outcome.detail),
-        page: layout.configPage,
-        written,
-      });
+      throw new NfcLockError(
+        outcome.kind,
+        "verify",
+        cardStateAfter(written, auth0Before),
+        {
+          message:
+            "AUTH0 was written but PWD_AUTH with the new password failed: " +
+            (outcome.kind === "no-response" ? "no response" : outcome.detail),
+          page: layout.configPage,
+          written,
+        },
+      );
     }
 
     const configReadBack = await readPage(manager, layout.configPage);
@@ -777,7 +834,7 @@ export async function lockCard(
       throw new NfcLockError(
         "verify-failed",
         "verify",
-        cardStateAfter(written),
+        cardStateAfter(written, auth0Before),
         {
           message:
             "the config page did not read back the expected AUTH0/ACCESS " +

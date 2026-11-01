@@ -331,6 +331,60 @@ describe("lockCard — 失敗時說清楚卡片處於什麼狀態", () => {
   });
 });
 
+describe("lockCard — 卡片本來就鎖著（AUTH0 ≠ 0xFF）", () => {
+  it("已保護但密碼不對 ⇒ 先 PWD_AUTH、一頁都不寫，且不會說「仍未受保護」", async () => {
+    // `basic` 的 `PROT = 0` ⇒ 讀取不受限制，所以這是「讀得到、但已經受保護」
+    // 的那張卡。舊行為會直接進寫入迴圈：四頁全部 NAK，然後回報「卡片仍未受
+    // 保護，可以再寫一次」——對一張鎖著的卡，那是兩句假話。
+    pages.set(LAYOUT.configPage, [0x11, 0x22, 0x33, 0x04]);
+    pages.set(LAYOUT.pwdPage, [0xde, 0xad, 0xbe, 0xef]);
+
+    await assert.rejects(
+      () => lockCard(LAYOUT, PASSWORD, PACK),
+      (error) => {
+        assert.equal(error.kind, "no-response");
+        assert.equal(error.stage, "auth", "必須停在 auth，不是 write");
+        assert.deepEqual(error.written, []);
+        const text = `${error.message} ${error.cardState}`;
+        assert.ok(!/unprotected/i.test(text), `不得說未受保護：${text}`);
+        assert.ok(
+          !/can be written again/i.test(text),
+          `不得說可以再寫：${text}`,
+        );
+        assert.match(error.cardState, /still protected/i);
+        return true;
+      },
+    );
+
+    assert.deepEqual(writes(), [], "密碼不對時一頁都不准寫");
+    assert.deepEqual(
+      commands.map((command) => command[0]),
+      [0x30, 0x1b],
+      "讀設定頁 → PWD_AUTH，中間沒有任何寫入",
+    );
+    assert.equal(cancelCalls, 1);
+  });
+
+  it("已保護但密碼正確 ⇒ 先驗證再寫，四頁照常寫完", async () => {
+    pages.set(LAYOUT.configPage, [0x11, 0x22, 0x33, 0x04]);
+    pages.set(LAYOUT.pwdPage, Array.from(PASSWORD));
+
+    const result = await lockCard(LAYOUT, PASSWORD, PACK);
+
+    assert.equal(result.auth0, 4);
+    const authIndex = commands.findIndex((command) => command[0] === 0x1b);
+    const firstWriteIndex = commands.findIndex(
+      (command) => command[0] === 0xa2,
+    );
+    assert.ok(authIndex >= 0, "已保護的卡必須送 PWD_AUTH");
+    assert.ok(authIndex < firstWriteIndex, "PWD_AUTH 必須在第一個寫入命令之前");
+    assert.deepEqual(
+      writes().map(([page]) => page),
+      [133, 134, 132, 131],
+    );
+  });
+});
+
 describe("ntagLayout", () => {
   it("可由型號取得頁碼（呼叫端不必自己抄一份）", () => {
     assert.equal(ntagLayout("NTAG213").configPage, 41);
