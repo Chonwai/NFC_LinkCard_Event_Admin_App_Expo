@@ -50,6 +50,7 @@ import {
   emptyTicketTypeForm,
   payloadContextFrom,
   summarizeTicketTypeChanges,
+  ticketTypeFormFrom,
   validateTicketTypeForm,
   type TicketTypeFormErrorCode,
   type TicketTypeFormInput,
@@ -104,6 +105,8 @@ export default function EventTicketTypesScreen() {
   const [copyFailed, setCopyFailed] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [formOpen, setFormOpen] = useState(false);
+  /** `null` ＝ 新增；有值 ＝ 編輯該票種。 */
+  const [editing, setEditing] = useState<AdminTicketType | null>(null);
   const [feedback, setFeedback] = useState<{
     tone: InlineBannerTone;
     message: string;
@@ -170,9 +173,21 @@ export default function EventTicketTypesScreen() {
     }, 2000);
   }
 
-  function handleCreated() {
+  function openForm(ticket: AdminTicketType | null) {
+    setEditing(ticket);
+    setFormOpen(true);
+  }
+
+  function handleSaved(mode: "create" | "update") {
     setFormOpen(false);
-    setFeedback({ tone: "success", message: copy.ticketTypes.createSuccess });
+    setEditing(null);
+    setFeedback({
+      tone: "success",
+      message:
+        mode === "create"
+          ? copy.ticketTypes.createSuccess
+          : copy.ticketTypes.updateSuccess,
+    });
     setReloadKey((key) => key + 1);
   }
 
@@ -194,7 +209,7 @@ export default function EventTicketTypesScreen() {
       >
         <Button
           label={copy.ticketTypes.add}
-          onPress={() => setFormOpen(true)}
+          onPress={() => openForm(null)}
           testID="ticket-types-add"
         />
 
@@ -252,6 +267,7 @@ export default function EventTicketTypesScreen() {
                 ticket={ticket}
                 copied={copiedTicketId === ticket.id}
                 onCopy={() => void handleCopyRegisterLink(ticket)}
+                onEdit={() => openForm(ticket)}
               />
             ))}
           </View>
@@ -261,8 +277,12 @@ export default function EventTicketTypesScreen() {
       {formOpen ? (
         <TicketTypeFormModal
           eventId={eventId}
-          onClose={() => setFormOpen(false)}
-          onSaved={handleCreated}
+          existing={editing}
+          onClose={() => {
+            setFormOpen(false);
+            setEditing(null);
+          }}
+          onSaved={handleSaved}
         />
       ) : null}
     </View>
@@ -282,10 +302,12 @@ function TicketCard({
   ticket,
   copied,
   onCopy,
+  onEdit,
 }: {
   ticket: AdminTicketType;
   copied: boolean;
   onCopy: () => void;
+  onEdit: () => void;
 }) {
   return (
     <Card testID={`ticket-type-card-${ticket.id}`}>
@@ -358,6 +380,15 @@ function TicketCard({
             testID={`ticket-type-copy-${ticket.id}`}
           />
         </View>
+        <View style={styles.actionButton}>
+          <Button
+            label={copy.ticketTypes.editAction}
+            variant="secondary"
+            size="md"
+            onPress={onEdit}
+            testID={`ticket-type-edit-${ticket.id}`}
+          />
+        </View>
       </View>
     </Card>
   );
@@ -375,14 +406,19 @@ function TicketCard({
  */
 function TicketTypeFormModal({
   eventId,
+  existing,
   onClose,
   onSaved,
 }: {
   eventId: string;
+  /** `null` ＝ 新增；有值 ＝ 編輯該票種。 */
+  existing: AdminTicketType | null;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (mode: "create" | "update") => void;
 }) {
-  const [form, setForm] = useState<TicketTypeFormInput>(emptyTicketTypeForm);
+  const [form, setForm] = useState<TicketTypeFormInput>(() =>
+    existing ? ticketTypeFormFrom(existing) : emptyTicketTypeForm(),
+  );
   const [step, setStep] = useState<"form" | "confirm">("form");
   const [errorCodes, setErrorCodes] = useState<TicketTypeFormErrorCode[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -410,14 +446,22 @@ function TicketTypeFormModal({
     setSubmitting(true);
     setFailure(null);
     try {
-      // 新建 ⇒ context 全用預設值（`capabilities` = null ＝ 繼承；表單欄位空）。
-      // **不從任何既有票種抄值**：複製別張票的 capabilities 會讓新票種帶著
-      // 一張誰也沒選過的權益表上路。
-      await ticketTypeService.createTicketType(
-        eventId,
-        buildTicketTypePayload(form, payloadContextFrom(null)),
+      // `payloadContextFrom` 兩個分支都不一樣，而且**都不是可有可無的**：
+      // - 新增：`capabilities` = null（繼承）、`formFieldsJson` = 空表。
+      // - 編輯：帶回既有的 `capabilitiesOverride` 與 `formFieldsJson`。
+      //   傳錯任何一個，存一次檔就會把主辦方的設定默默改掉（見 util 檔頭）。
+      const payload = buildTicketTypePayload(
+        form,
+        payloadContextFrom(existing),
       );
-      onSaved();
+
+      if (existing) {
+        await ticketTypeService.updateTicketType(eventId, existing.id, payload);
+        onSaved("update");
+      } else {
+        await ticketTypeService.createTicketType(eventId, payload);
+        onSaved("create");
+      }
     } catch (error) {
       const outcome = classifyTicketMutationError(error);
       setFailure(copy.ticketTypes.mutationErrors[outcome.kind]);
@@ -428,7 +472,7 @@ function TicketTypeFormModal({
     }
   }
 
-  const changes = summarizeTicketTypeChanges(form, null);
+  const changes = summarizeTicketTypeChanges(form, existing);
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
@@ -436,7 +480,9 @@ function TicketTypeFormModal({
         <View style={styles.dialog} testID="ticket-type-form">
           {step === "form" ? (
             <>
-              <Text style={type.h3}>{copy.ticketTypes.add}</Text>
+              <Text style={type.h3}>
+                {existing ? copy.ticketTypes.edit : copy.ticketTypes.add}
+              </Text>
               <ScrollView
                 style={styles.formScroll}
                 contentContainerStyle={styles.formBody}
@@ -572,7 +618,9 @@ function TicketTypeFormModal({
           ) : (
             <>
               <Text style={type.h3}>
-                {copy.ticketTypes.confirm.createTitle}
+                {existing
+                  ? copy.ticketTypes.confirm.editTitle
+                  : copy.ticketTypes.confirm.createTitle}
               </Text>
               <Text style={styles.confirmName}>{form.displayName}</Text>
               {changes.priceChanged ? (
@@ -611,7 +659,11 @@ function TicketTypeFormModal({
                 <InlineBanner compact tone="danger" message={failure} />
               ) : null}
               <Button
-                label={copy.ticketTypes.confirm.confirmCreate}
+                label={
+                  existing
+                    ? copy.ticketTypes.confirm.confirmSave
+                    : copy.ticketTypes.confirm.confirmCreate
+                }
                 loading={submitting}
                 onPress={() => void handleSubmit()}
                 testID="ticket-type-form-confirm"
