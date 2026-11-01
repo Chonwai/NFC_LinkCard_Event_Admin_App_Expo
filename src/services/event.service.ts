@@ -1,5 +1,6 @@
 import type {
   ApiResponse,
+  CreateEventPayload,
   EventDetail,
   EventManageStats,
   ManagedEventItem,
@@ -146,6 +147,41 @@ export const eventService = {
     const res = await apiClient.get<
       ApiResponse<{ ticketTypes: TicketTypeItem[] }>
     >(`/api/v1/events/${encodeURIComponent(eventId)}/ticket-types`);
+    return res.data.data;
+  },
+
+  /**
+   * POST /v1/events — 建立活動。
+   *
+   * 前端 counterpart：`LinkCard_Frontend/lib/events/events.ts:41` 的
+   * `createEvent`：同一條路徑（相對 events 根，即 `/`）、同一個 body 形狀。
+   *
+   * ## 為什麼這一支到 2026-11-01 才存在
+   * Web 的「活動清單」頁**同時**包含清單與「建立活動」對話框
+   * （`manage/events/page.tsx:283` 的 `CreateEventModal`），而 App 的
+   * `(auth)/home.tsx` 只做了清單那一半——`src/services/event.service.ts`
+   * 在此之前有 6 個 GET + 1 個 PATCH，**零 POST `/api/v1/events`**。
+   * 對等 registry 卻把 `events-list` 標成 `ALIGNED`，於是那個標籤在說謊。
+   *
+   * ## 後端行為（決定呼叫端要處理哪些失敗）
+   * `EventController.createEvent`：先 `CreateEventDto` 驗證（400
+   * `VALIDATION_ERROR`），再檢查登入（401），成功回 **201** 與
+   * `{ event }`。兩個業務錯誤：
+   *
+   * - `EVENT_SLUG_CONFLICT`（409）：slug 撞號（Prisma P2002）
+   * - `INVALID_DATE_RANGE`（400）：`endDate` 早於 `startDate`
+   *
+   * 兩者都不是「稍後重試就會好」的錯誤，呼叫端必須各自對應到欄位
+   * （與 Web 把 `EVENT_SLUG_CONFLICT` 打在 slug 欄位、把
+   * `VALIDATION_ERROR` 的 `details` 攤回各欄位是同一套處理）。
+   */
+  async createEvent(
+    payload: CreateEventPayload,
+  ): Promise<{ event: EventDetail }> {
+    const res = await apiClient.post<ApiResponse<{ event: EventDetail }>>(
+      "/api/v1/events",
+      payload,
+    );
     return res.data.data;
   },
 

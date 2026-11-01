@@ -148,6 +148,38 @@ export interface EventDetail {
 }
 
 /**
+ * `POST /v1/events` 的請求 body（後端 `CreateEventDto`）。
+ *
+ * 前端 counterpart：`LinkCard_Frontend/lib/events/events.ts:41` 的
+ * `createEvent`。Web 的簽章是
+ * `Partial<EventBasic> & { name; slug; startDate; endDate }`，看起來可以送
+ * 整個活動物件，但它的表單實際只送得出**七個**欄位；這裡就只宣告那七個。
+ * 多宣告一個沒人送的欄位，等於多一個說謊的機會（與 `EventDetail` 同一個立場）。
+ *
+ * 四個必填不是本 App 加的，是後端 `CreateEventDto` 用 `override` 收緊的：
+ *
+ * | 欄位 | 後端規則（`events/dtos/event.dto.ts`） |
+ * | --- | --- |
+ * | `name` | `@IsNotEmpty` + `@MinLength(2)` + `@MaxLength(120)` |
+ * | `slug` | `@IsNotEmpty` + `@MaxLength(80)` |
+ * | `startDate` | `@IsDateString()` ⇒ 必須是**可解析的日期字串** |
+ * | `endDate` | `@IsDateString()`；早於 `startDate` 回 `INVALID_DATE_RANGE` |
+ *
+ * ⚠️ `timezone` 只是 `@IsString()`：後端不驗 IANA 名稱，值域由呼叫端的
+ * 選項清單收斂（與 Web 的 `TIMEZONES` 同一個做法）。
+ */
+export interface CreateEventPayload {
+  name: string;
+  slug: string;
+  /** ISO 8601（`new Date(...).toISOString()`）；後端 `@IsDateString()`。 */
+  startDate: string;
+  endDate: string;
+  description?: string;
+  eventType?: EventType;
+  timezone?: string;
+}
+
+/**
  * `PATCH /v1/events/:eventId` 的請求 body（後端 `UpdateEventDto`）。
  *
  * 後端每個欄位都是 `@IsOptional()`，所以全部可省略；`null` 同樣會被
