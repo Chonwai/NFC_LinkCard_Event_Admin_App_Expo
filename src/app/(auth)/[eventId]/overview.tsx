@@ -53,6 +53,7 @@ type EventRoute =
   | "content"
   | "exhibitors"
   | "polls"
+  | "sessions"
   | "ticket-types"
   | "bank-transfers"
   | "org-roles"
@@ -150,6 +151,20 @@ const QUICK_ACTIONS: QuickAction[] = [
     label: copy.polls.title,
     icon: "clipboard-check",
     route: "polls",
+  },
+  /**
+   * 場次管理（parity `sessions`）。
+   *
+   * 圖示用 `clock`：`Icon.tsx` 沒有 calendar 類圖形，而 Web 這一頁的側欄圖示
+   * 與場次時間有關。`clock` 在 `bank-transfers` 也被用過（那裡是「有事在等」），
+   * 這個 repo 不禁止重用同一個圖示——語意靠 label 區分，硬加一條新 path 進
+   * `Icon.tsx` 的路徑表比較貴。
+   */
+  {
+    key: "sessions",
+    label: copy.sessions.title,
+    icon: "clock",
+    route: "sessions",
   },
   /**
    * 票種管理（parity `ticket-types`）。

@@ -1409,6 +1409,48 @@ export const copy = {
     empty: "尚未建立任何投票",
   },
   /**
+   * 場次管理（parity `sessions`）。
+   *
+   * Web 的 i18n 在 `public/locales/zh-Hant/event_manage.json` 的
+   * `sessions` 命名空間。Web 這頁的標題是「工作坊管理」，儘管後端與
+   * 型別都叫 Session，而且 `sessionType` 有七種（含派對、媒體日）。
+   * **照抄 Web 的用詞**：兩邊叫不同名字，比兩邊叫錯同一個名字更難查。
+   *
+   * ⚠️ 刻意**沒有**搬過來的 Web 字串（不是漏抄）：
+   * - `delete`／`deleteConfirm`：後端沒有 `DELETE /sessions/:sessionId`，
+   *   Web 那顆按鈕按下去是 404。App 不重現壞掉的按鈕——連字串都不放進來，
+   *   否則會有人以為「只是還沒接」。
+   *   （見 `12-parity-build-plan-20261029.md` §12.3.2 `ESC-CRA-001`）
+   * - `people`（「人」）：Web 這一頁沒有任何地方用到它。
+   */
+  sessions: {
+    /** Web `sessions.title` */
+    title: "工作坊管理",
+    subtitle: "活動的場次與出席人數",
+    /** Web `sessions.empty` */
+    empty: "尚無工作坊/活動場次",
+    /** Web `sessions.unlimited` */
+    unlimited: "無限制",
+    /** Web `sessions.speakerLabel`（i18next `{{name}}` → 函式） */
+    speakerLabel: (name: string) => `講者：${name}`,
+    /** Web `sessions.registeredCount`（`{{count}}` / `{{capacity}}` → 函式） */
+    registeredCount: (count: number, capacity: string) =>
+      `已報名 ${count} / ${capacity}`,
+    /** Web `sessions.people` 只在 Web 的別處出現，這一頁不用；App 也沒有搬。 */
+    loading: "讀取中…",
+    loadError: "載入工作坊列表失敗，請稍後再試",
+    /** Web `sessionType.*`——七個值逐字對齊 Prisma `enum EventSessionType`。 */
+    sessionType: {
+      WORKSHOP: "工作坊",
+      CONFERENCE: "會議",
+      KEYNOTE: "主題演講",
+      PARTY: "派對",
+      MEDIA_DAY: "媒體日",
+      PRODUCT_LAUNCH: "產品發佈",
+      NETWORKING: "交流活動",
+    },
+  },
+  /**
    * 票種管理（parity `ticket-types`）。
    *
    * Web 的 i18n 在 `public/locales/zh-Hant/event_manage.json` 的
