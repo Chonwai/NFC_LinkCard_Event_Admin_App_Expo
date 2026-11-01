@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -232,6 +232,13 @@ export default function EventSessionsScreen() {
               <SessionCard
                 key={session.id}
                 session={session}
+                onOpenRoster={() => {
+                  router.push({
+                    pathname:
+                      "/(auth)/[eventId]/session-roster/[sessionId]" as never,
+                    params: { eventId, sessionId: session.id },
+                  });
+                }}
                 onEdit={() => {
                   setEditing(session);
                   setFormOpen(true);
@@ -290,9 +297,11 @@ export default function EventSessionsScreen() {
  */
 function SessionCard({
   session,
+  onOpenRoster,
   onEdit,
 }: {
   session: EventSession;
+  onOpenRoster: () => void;
   onEdit: () => void;
 }) {
   const tone = semantic.status.neutral;
@@ -343,6 +352,13 @@ function SessionCard({
       ) : null}
 
       <View style={styles.cardActions}>
+        <Button
+          label={copy.sessions.viewRegistrations}
+          variant="secondary"
+          onPress={onOpenRoster}
+          fullWidth={false}
+          testID={`session-roster-${session.id}`}
+        />
         <Button
           label={copy.sessions.editAction}
           variant="secondary"

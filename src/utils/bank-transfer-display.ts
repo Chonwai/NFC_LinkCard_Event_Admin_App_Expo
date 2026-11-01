@@ -5,6 +5,8 @@ import type {
   BankTransferStatusFilter,
 } from "@/types/bankTransfer.types";
 
+import { formatPersonName } from "./person-name";
+
 /**
  * 匯款覆核畫面的**顯示推導**（parity `bank-transfers`）。
  *
@@ -16,33 +18,28 @@ import type {
  * 搬到這裡，`tests/bank-transfer-display.test.mjs` 才能釘住。
  */
 
-function trimOrNull(value: string | null | undefined): string | null {
-  if (value == null) return null;
-  const trimmed = value.trim();
-  return trimmed === "" ? null : trimmed;
-}
-
 /**
  * 報名者顯示名稱。
  *
- * 逐字照 Web `lib/events/formSchema.ts:89` 的 `formatPersonName`：
- * `"${firstName} ${lastName}".trim()`，空的話退回 email，再空就回空字串。
- * 中間的空白由 `join` 保證是**一個**——`"小明"` + `""` 不會變成 `"小明 "`。
+ * 邏輯已收斂到 `utils/person-name.ts` 的 `formatPersonName`
+ * （2026-11-01：場次名冊需要第三份同樣的規則，所以收成一份）。
+ * 這裡保留一個具名包裝，是因為呼叫端拿的是 `BankTransferRegistrationSummary`
+ * 整個物件、而且 `tests/bank-transfer-display.test.mjs` 已經在釘這個名字。
+ * **只是轉呼叫，沒有任何額外行為**——要改規則請改 `person-name.ts`。
  *
  * ⚠️ 不沿用 `utils/registration-display.ts` 的 `getRegistrationDisplayName`：
  * 那一支吃的是 `Registration`（含 `profile.fullName`），而匯款審批的回應
  * （後端 `include.registration.select`）**沒有** `profile`。硬套型別就得造假
- * 欄位。
+ * 欄位。`formatPersonName` 吃的是純量參數，所以沒有這個問題。
  */
 export function formatBankTransferPersonName(
   registration: BankTransferRegistrationSummary,
 ): string {
-  const name = [registration.firstName, registration.lastName]
-    .map((part) => trimOrNull(part))
-    .filter((part): part is string => part != null)
-    .join(" ");
-
-  return name || trimOrNull(registration.email) || "";
+  return formatPersonName(
+    registration.firstName,
+    registration.lastName,
+    registration.email,
+  );
 }
 
 /**

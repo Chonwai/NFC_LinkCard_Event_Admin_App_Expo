@@ -1486,6 +1486,48 @@ export const copy = {
     updateSuccess: "工作坊已更新",
     /** 後端失敗的預設訊息（對應 Web 的 `errors.general`，但走 `getApiErrorMessage`） */
     actionError: "操作失敗，請稍後重試",
+    /** Web `sessions.viewRegistrations`（卡片上通往名冊的按鈕） */
+    viewRegistrations: "報名名單",
+    /**
+     * 名冊（`GET …/sessions/:sessionId/registrations`）。
+     *
+     * 對應 Web `sessions.registrations.*`。⚠️ Web 的表頭字串
+     * `name`／`email`／`code` 刻意沒有搬：手機上不是表格，每一列自己帶欄位語意，
+     * 沒有表頭可以放。搬過來只會是三個永遠不會亮的字串。
+     */
+    registrations: {
+      /** Web `sessions.registrations.title` */
+      title: "工作坊報名名單",
+      /** Web `sessions.registrations.empty` */
+      empty: "尚無人報名此工作坊",
+      /** Web `sessions.registrations.load_error` */
+      loadError: "載入報名名單失敗，請稍後重試",
+      /**
+       * 權限不足（後端 `403 INSUFFICIENT_PERMISSION`）。
+       *
+       * Web 沒有這條字串（它把 403 也當成泛用的載入失敗）。App 區分它，
+       * 因為「你沒有權限」與「網路壞了」對現場的人來說是完全不同的兩件事。
+       */
+      forbidden: "你沒有權限查看這場次的報名名單",
+      /** Web `sessions.registrations.ticket` */
+      ticket: "票種",
+      /** Web `sessions.registrations.registeredAt` */
+      registeredAt: "報名時間",
+      /** Web `sessions.registrations.attendance`（區塊標題用不到，列上的徽章用下面三個） */
+      attended: "已出席",
+      noShow: "未出席",
+      awaiting: "待出席",
+      /** Web `sessions.registrations.summary_attended` 等三條（`{{count}}` → 函式） */
+      summaryAttended: (count: number) => `已出席 ${count}`,
+      summaryRegistered: (count: number) => `待出席 ${count}`,
+      summaryNoShow: (count: number) => `未出席 ${count}`,
+      /** Web `sessions.registrations.page_info` */
+      pageInfo: (page: number, totalPages: number, total: number) =>
+        `第 ${page} / ${totalPages} 頁，共 ${total} 條`,
+      /** Web `sessions.registrations.prev` / `next` */
+      prev: "上一頁",
+      next: "下一頁",
+    },
     /**
      * 表單驗證訊息。
      *
