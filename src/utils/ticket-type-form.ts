@@ -6,7 +6,11 @@ import type {
   RegistrationFormSchema,
   TicketCapability,
 } from "@/types/ticketType.types";
-import { ENABLED_PAYMENT_METHODS } from "@/types/ticketType.types";
+import {
+  DEFAULT_CAPABILITIES_BY_REGISTRANT,
+  ENABLED_PAYMENT_METHODS,
+  TICKET_CAPABILITIES,
+} from "@/types/ticketType.types";
 
 /**
  * 票種表單的**純函式**：輸入清洗、驗證、payload 組裝。
@@ -75,20 +79,24 @@ export interface TicketTypeFormInput {
   accessCode: string;
   initialTokens: string;
   allowedPaymentMethods: EventPaymentMethod[];
+  /**
+   * 票種權益**覆寫值**。`null` ＝ 繼承 `registrantType` 的預設。
+   *
+   * ⚠️ 回填時必須用後端的 `capabilitiesOverride`，**不是** `capabilities`。
+   * 後者已經解析過（覆寫 ?? 預設），寫回去會把「繼承」固化成「明確覆寫」。
+   */
+  capabilities: TicketCapability[] | null;
 }
 
 /**
  * 組 payload 時需要的「表單以外的狀態」。
  *
- * 兩個欄位都不在表單上（本輪），但**都必須原值帶回去**：
- * - `capabilities`：編輯時傳入既有的 `capabilitiesOverride`。傳 `null` 會把
- *   「明確覆寫」悄悄變回「繼承」。
- * - `formFieldsJson`：編輯時傳入既有的報名表。傳 `{ fields: [] }` 會把主辦方
- *   辛苦設定的欄位**整組清空**——這是本輪唯一真正會造成資料遺失的風險點，
- *   所以它不是 optional、沒有預設值，呼叫端必須明確給。
+ * `formFieldsJson` 不在表單上（本輪改以 JSON 文字入口編輯，值仍從這裡傳），
+ * 但**必須原值帶回去**：傳 `{ fields: [] }` 會把主辦方辛苦設定的報名表欄位
+ * **整組清空**——這是本輪唯一真正會造成資料遺失的風險點，所以它不是 optional、
+ * 沒有預設值，呼叫端必須明確給。
  */
 export interface TicketTypePayloadContext {
-  capabilities: TicketCapability[] | null;
   formFieldsJson: RegistrationFormSchema;
 }
 
@@ -106,6 +114,8 @@ export function emptyTicketTypeForm(): TicketTypeFormInput {
     accessCode: "",
     initialTokens: "0",
     allowedPaymentMethods: ["FREE"],
+    // null ＝ 繼承 registrantType 的預設權益（後端語意）。
+    capabilities: null,
   };
 }
 
@@ -128,6 +138,8 @@ export function ticketTypeFormFrom(
     allowedPaymentMethods: normalizeAllowedPaymentMethods(
       existing.allowedPaymentMethods,
     ),
+    // 用 **override**，不要用解析後的 capabilities（見型別上的警告）。
+    capabilities: existing.capabilitiesOverride ?? null,
   };
 }
 
@@ -136,10 +148,7 @@ export function payloadContextFrom(
   existing: AdminTicketType | null,
 ): TicketTypePayloadContext {
   return {
-    // null ＝ 繼承（後端語意）。**不要**改成 `existing.capabilities`：
-    // 那是後端解析後的「實際生效值」，寫回去等於強制固化。
-    capabilities: existing?.capabilitiesOverride ?? null,
-    // 同上：保留原值，不要用 `{ fields: [] }` 當預設。
+    // 保留原值，不要用 `{ fields: [] }` 當預設（會清空主辦方的報名表）。
     formFieldsJson: existing?.formFieldsJson ?? { fields: [] },
   };
 }
@@ -175,6 +184,60 @@ export function normalizeAllowedPaymentMethods(
   if (unique.includes("FREE")) return ["FREE"];
 
   return [unique[0] ?? "FREE"];
+}
+
+// ---------------------------------------------------------------------------
+// 票種權益（capability）
+// ---------------------------------------------------------------------------
+
+/**
+ * 解析某張票**實際生效**的權益。鏡像後端
+ * `constants/ticketCapabilities.ts:122` 的 `resolveTicketCapabilities`。
+ *
+ * 語義是 **null-inherit，不做聯集**：
+ * - `capabilities === null` ⇒ 用 `DEFAULT_CAPABILITIES_BY_REGISTRANT[registrantType]`
+ * - `capabilities === []`   ⇒ **明確不給任何權益**（不是「繼承」）
+ *
+ * 這兩者的差別是這一整個功能最容易搞錯的地方：把空陣列當成「沒設定」，
+ * 就會讓「這張票不該有商業配對」變成「這張票跟 ATTENDEE 一樣」。
+ *
+ * 這裡只用於**顯示**（編輯器要說「目前是繼承，繼承值長這樣」）。
+ * 真正的權益判斷永遠在後端，App 不自行據此開放／封閉功能。
+ */
+export function resolveTicketCapabilities(args: {
+  registrantType: RegistrantType;
+  capabilities: readonly TicketCapability[] | null;
+}): TicketCapability[] {
+  if (args.capabilities !== null) return [...args.capabilities];
+  return [...(DEFAULT_CAPABILITIES_BY_REGISTRANT[args.registrantType] ?? [])];
+}
+
+/**
+ * 勾選／取消一項權益。鏡像 Web `page.tsx:578-595` 的 `toggleCapability`。
+ *
+ * 兩個行為必須一起成立：
+ * 1. **第一次勾選會把「繼承」實體化成「明確覆寫」**。基準值是「目前實際生效
+ *    的那一組」，所以使用者看到什麼就從什麼開始加減——不會出現「我只取消了一
+ *    項，其他五項卻跟著消失」。
+ * 2. **回傳值依 `TICKET_CAPABILITIES` 的順序排序**。後端
+ *    `normalizeCapabilities` 也這樣排；不排的話每次存檔陣列順序都可能不同，
+ *    在 diff 裡看起來像「改了什麼」但其實沒有。
+ */
+export function toggleTicketCapability(args: {
+  registrantType: RegistrantType;
+  current: readonly TicketCapability[] | null;
+  capability: TicketCapability;
+}): TicketCapability[] {
+  const base = resolveTicketCapabilities({
+    registrantType: args.registrantType,
+    capabilities: args.current,
+  });
+
+  const next = base.includes(args.capability)
+    ? base.filter((item) => item !== args.capability)
+    : [...base, args.capability];
+
+  return TICKET_CAPABILITIES.filter((item) => next.includes(item));
 }
 
 // ---------------------------------------------------------------------------
@@ -329,7 +392,7 @@ export function buildTicketTypePayload(
       form.allowedPaymentMethods,
     ),
     formFieldsJson: context.formFieldsJson,
-    capabilities: context.capabilities,
+    capabilities: form.capabilities,
   };
 }
 

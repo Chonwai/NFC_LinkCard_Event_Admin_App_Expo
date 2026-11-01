@@ -39,6 +39,7 @@ import { ticketTypeService } from "@/services/ticket-type.service";
 import {
   ENABLED_PAYMENT_METHODS,
   REGISTRANT_TYPES,
+  TICKET_CAPABILITIES,
   type AdminTicketType,
   type EnabledPaymentMethod,
   type EventPaymentMethod,
@@ -49,8 +50,10 @@ import {
   buildTicketTypePayload,
   emptyTicketTypeForm,
   payloadContextFrom,
+  resolveTicketCapabilities,
   summarizeTicketTypeChanges,
   ticketTypeFormFrom,
+  toggleTicketCapability,
   validateTicketTypeForm,
   type TicketTypeFormErrorCode,
   type TicketTypeFormInput,
@@ -111,6 +114,11 @@ export default function EventTicketTypesScreen() {
   const [pendingDeactivate, setPendingDeactivate] =
     useState<AdminTicketType | null>(null);
   const [deactivating, setDeactivating] = useState(false);
+  /** 票種權益強制開關（活動層級）。 */
+  const [capabilitiesEnabled, setCapabilitiesEnabled] = useState(false);
+  const [togglingCapabilities, setTogglingCapabilities] = useState(false);
+  /** 非 false 時顯示「啟用票種權益」的二次確認。 */
+  const [pendingCapabilityEnable, setPendingCapabilityEnable] = useState(false);
   const [feedback, setFeedback] = useState<{
     tone: InlineBannerTone;
     message: string;
@@ -131,6 +139,11 @@ export default function EventTicketTypesScreen() {
         // 與 Web `setEventSlug(event?.slug ?? eventId)` 相同：取不到 slug 時
         // 退回 eventId。後端的 `resolveEventId` 兩種都吃，所以連結仍然有效。
         setEventSlug(event?.event?.slug ?? null);
+        // 與 Web `setCapabilitiesEnabled(event?.ticketCapabilitiesEnabled === true)`
+        // 相同：嚴格比 `true`，不是 truthy。舊後端不回這個欄位時要是「未啟用」。
+        setCapabilitiesEnabled(
+          event?.event?.ticketCapabilitiesEnabled === true,
+        );
         setLoadError(false);
       } catch {
         if (cancelled) return;
@@ -196,6 +209,40 @@ export default function EventTicketTypesScreen() {
   }
 
   /**
+   * 切換活動層級的票種權益強制。
+   *
+   * 與 Web `handleToggleCapabilities` 逐條相同：只在**開啟**時要確認
+   * （關閉是放寬限制，不需要再問一次），成功後重新載入列表——因為列表上的
+   * 「已售 / 上限」與權益顯示都跟這個開關有關。
+   */
+  async function handleToggleCapabilities(next: boolean) {
+    setTogglingCapabilities(true);
+    try {
+      await eventService.updateEvent(eventId, {
+        ticketCapabilitiesEnabled: next,
+      });
+      setPendingCapabilityEnable(false);
+      setFeedback({
+        tone: "success",
+        message: next
+          ? copy.ticketTypes.capabilitiesEnabled
+          : copy.ticketTypes.capabilitiesDisabled,
+      });
+      setReloadKey((key) => key + 1);
+    } catch {
+      // 這條走的是活動而非票種的錯誤碼，所以不經 `classifyTicketMutationError`
+      // ——那支認的是票種的 code。一律回一句可執行的話，不回顯後端原文。
+      setPendingCapabilityEnable(false);
+      setFeedback({
+        tone: "danger",
+        message: copy.ticketTypes.capabilitiesToggleFailed,
+      });
+    } finally {
+      setTogglingCapabilities(false);
+    }
+  }
+
+  /**
    * 停用（後端是 DELETE，語意是軟刪除——見 `services/ticket-type.service.ts`）。
    *
    * 照 Web 的做法：成功後**重新載入列表**，不用回應值拼湊本地狀態。
@@ -249,6 +296,41 @@ export default function EventTicketTypesScreen() {
           onPress={() => openForm(null)}
           testID="ticket-types-add"
         />
+
+        <Card testID="ticket-types-capabilities-switch">
+          <Text style={styles.displayName}>
+            {capabilitiesEnabled
+              ? copy.ticketTypes.capabilitiesEnabled
+              : copy.ticketTypes.capabilitiesDisabled}
+          </Text>
+          <Text style={styles.meta}>
+            {capabilitiesEnabled
+              ? copy.ticketTypes.capabilitiesEnabledHint
+              : copy.ticketTypes.capabilitiesDisabledHint}
+          </Text>
+          <View style={styles.actions}>
+            <View style={styles.actionButton}>
+              <Button
+                label={
+                  capabilitiesEnabled
+                    ? copy.ticketTypes.capabilitiesDisable
+                    : copy.ticketTypes.capabilitiesEnable
+                }
+                variant={capabilitiesEnabled ? "secondary" : "primary"}
+                loading={togglingCapabilities}
+                // 只有「開啟」需要二次確認（Web 同一條）。
+                onPress={() => {
+                  if (capabilitiesEnabled) {
+                    void handleToggleCapabilities(false);
+                  } else {
+                    setPendingCapabilityEnable(true);
+                  }
+                }}
+                testID="ticket-types-capabilities-toggle"
+              />
+            </View>
+          </View>
+        </Card>
 
         {feedback ? (
           <InlineBanner
@@ -330,6 +412,19 @@ export default function EventTicketTypesScreen() {
           busy={deactivating}
           onConfirm={() => void handleDeactivate()}
           onCancel={() => setPendingDeactivate(null)}
+        />
+      ) : null}
+
+      {pendingCapabilityEnable ? (
+        <ConfirmDialog
+          title={copy.ticketTypes.capabilitiesEnableConfirmTitle}
+          message={copy.ticketTypes.capabilitiesEnableConfirm}
+          confirmLabel={copy.ticketTypes.capabilitiesEnable}
+          busy={togglingCapabilities}
+          tone="primary"
+          onConfirm={() => void handleToggleCapabilities(true)}
+          onCancel={() => setPendingCapabilityEnable(false)}
+          testID="ticket-types-capabilities-confirm"
         />
       ) : null}
     </View>
@@ -534,6 +629,11 @@ function TicketTypeFormModal({
   }
 
   const changes = summarizeTicketTypeChanges(form, existing);
+  /** 目前實際生效的權益（繼承或覆寫）。編輯器用它決定勾選狀態。 */
+  const effectiveCapabilities = resolveTicketCapabilities({
+    registrantType: form.registrantType,
+    capabilities: form.capabilities,
+  });
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
@@ -663,6 +763,59 @@ function TicketTypeFormModal({
                     testID="ticket-type-form-access-code"
                   />
                 ) : null}
+                {/**
+                 * 票種權益編輯（LC-TTE）。
+                 *
+                 * 三件事照 Web：
+                 * 1. 勾選狀態看的是**實際生效**的那一組（繼承時就是預設值），
+                 *    所以「我只取消一項」不會讓其他五項一起消失。
+                 * 2. 第一次勾選／取消就把「繼承」實體化成「明確覆寫」。
+                 * 3. 有「還原為預設」把覆寫改回 `null`。
+                 *
+                 * 這一段的語意在後端是 null-inherit、**不做聯集**；空陣列是
+                 * 「明確不給任何權益」。細節見 `utils/ticket-type-form.ts` 的
+                 * `resolveTicketCapabilities`。
+                 */}
+                <View style={styles.capabilityBlock}>
+                  <Text style={styles.sectionLabel}>
+                    {copy.ticketTypes.capabilities}
+                  </Text>
+                  <Text style={styles.confirmNote}>
+                    {form.capabilities === null
+                      ? copy.ticketTypes.capabilitiesInheritedHint
+                      : copy.ticketTypes.capabilitiesOverriddenHint}
+                  </Text>
+                  {TICKET_CAPABILITIES.map((capability) => (
+                    <ToggleRow
+                      key={capability}
+                      label={
+                        copy.ticketTypes.capabilityLabels[capability] ??
+                        capability
+                      }
+                      hint=""
+                      value={effectiveCapabilities.includes(capability)}
+                      onToggle={() =>
+                        update(
+                          "capabilities",
+                          toggleTicketCapability({
+                            registrantType: form.registrantType,
+                            current: form.capabilities,
+                            capability,
+                          }),
+                        )
+                      }
+                      testID={`ticket-type-form-capability-${capability}`}
+                    />
+                  ))}
+                  {form.capabilities === null ? null : (
+                    <Button
+                      label={copy.ticketTypes.capabilitiesInheritReset}
+                      variant="ghost"
+                      onPress={() => update("capabilities", null)}
+                      testID="ticket-type-form-capability-reset"
+                    />
+                  )}
+                </View>
               </ScrollView>
               <Button
                 label={copy.ticketTypes.save}
@@ -738,6 +891,64 @@ function TicketTypeFormModal({
               />
             </>
           )}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+/**
+ * 通用二次確認框（取消／確定兩顆）。
+ *
+ * 形狀照 `content.tsx` 的 `ConfirmDialog`：自繪 `Modal`、按鈕順序
+ * 「主動作在上、取消在下」。不用 RN 的 `Alert.alert`（全案沒有用過它）。
+ */
+function ConfirmDialog({
+  title,
+  message,
+  confirmLabel,
+  busy,
+  tone,
+  onConfirm,
+  onCancel,
+  testID,
+}: {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  busy: boolean;
+  tone: "danger" | "primary";
+  onConfirm: () => void;
+  onCancel: () => void;
+  testID: string;
+}) {
+  return (
+    <Modal
+      visible
+      transparent
+      animationType="fade"
+      onRequestClose={() => {
+        if (!busy) onCancel();
+      }}
+    >
+      <View style={styles.backdrop}>
+        <View style={styles.dialog} testID={testID}>
+          <Text style={type.h3}>{title}</Text>
+          <Text style={styles.confirmNote}>{message}</Text>
+          <Button
+            label={confirmLabel}
+            variant={tone === "danger" ? "dangerSolid" : "primary"}
+            loading={busy}
+            onPress={onConfirm}
+            testID={`${testID}-confirm`}
+          />
+          <Button
+            label={copy.ticketTypes.cancel}
+            variant="secondary"
+            disabled={busy}
+            onPress={onCancel}
+            testID={`${testID}-cancel`}
+          />
         </View>
       </View>
     </Modal>
@@ -974,6 +1185,13 @@ const styles = StyleSheet.create({
   confirmLine: { ...type.label, color: semantic.text.primary },
   confirmNote: { ...type.caption, color: semantic.text.secondary },
   confirmBullet: { ...type.body, color: semantic.text.secondary },
+  sectionLabel: { ...type.label, color: semantic.text.secondary },
+  capabilityBlock: {
+    gap: space[1],
+    paddingTop: space[3],
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: semantic.border.decorative,
+  },
   checkboxRow: {
     flexDirection: "row",
     alignItems: "flex-start",

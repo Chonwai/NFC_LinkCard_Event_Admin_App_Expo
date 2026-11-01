@@ -27,8 +27,10 @@ const {
   emptyTicketTypeForm,
   normalizeAllowedPaymentMethods,
   payloadContextFrom,
+  resolveTicketCapabilities,
   summarizeTicketTypeChanges,
   ticketTypeFormFrom,
+  toggleTicketCapability,
   validateTicketTypeForm,
 } = await import("@/utils/ticket-type-form");
 
@@ -37,8 +39,8 @@ function form(overrides = {}) {
   return { ...emptyTicketTypeForm(), ...overrides };
 }
 
-/** 空的表單 context：新票種（繼承權益、空報名表）。 */
-const FRESH_CONTEXT = { capabilities: null, formFieldsJson: { fields: [] } };
+/** 空的表單 context：報名表欄位空。 */
+const FRESH_CONTEXT = { formFieldsJson: { fields: [] } };
 
 // ---------------------------------------------------------------------------
 // 一、price 的單位：全程不換算
@@ -205,7 +207,7 @@ test("currency 一律大寫（後端 currency.toUpperCase()）", () => {
 
 test("新建票種：capabilities 是 null（＝繼承），不是空陣列", () => {
   assert.equal(
-    buildTicketTypePayload(form(), payloadContextFrom(null)).capabilities,
+    buildTicketTypePayload(form(), FRESH_CONTEXT).capabilities,
     null,
     "空陣列是「明確不給任何權益」，與「繼承預設」是完全不同的語意",
   );
@@ -231,11 +233,23 @@ test("編輯票種：capabilities 帶回既有的 capabilitiesOverride", () => {
     capabilitiesOverride: null,
   };
 
-  const context = payloadContextFrom(existing);
   assert.equal(
-    context.capabilities,
+    ticketTypeFormFrom(existing).capabilities,
     null,
     "override 是 null（繼承）；若拿 capabilities 寫回去，繼承會被固化成覆寫",
+  );
+  assert.equal(
+    buildTicketTypePayload(ticketTypeFormFrom(existing), FRESH_CONTEXT)
+      .capabilities,
+    null,
+  );
+
+  // override 有值時才原樣帶回。
+  const overridden = { ...existing, capabilitiesOverride: ["WALLET"] };
+  assert.deepEqual(
+    buildTicketTypePayload(ticketTypeFormFrom(overridden), FRESH_CONTEXT)
+      .capabilities,
+    ["WALLET"],
   );
 });
 
@@ -283,9 +297,117 @@ test("不在 ENABLED_PAYMENT_METHODS 裡的值被濾掉（Web 的三個 disabled
 });
 
 // ---------------------------------------------------------------------------
-// 五、驗證：與 Web 的 validate() 逐條對齊
+// 四之二、票種權益：null-inherit，不是聯集
 // ---------------------------------------------------------------------------
 
+test("resolveTicketCapabilities: null ＝ 繼承該 registrantType 的預設", () => {
+  assert.deepEqual(
+    resolveTicketCapabilities({
+      registrantType: "ATTENDEE",
+      capabilities: null,
+    }),
+    ["EXHIBITOR_DIRECTORY", "WALLET", "SESSIONS", "POLLS"],
+  );
+  assert.deepEqual(
+    resolveTicketCapabilities({
+      registrantType: "EXHIBITOR_REP",
+      capabilities: null,
+    }),
+    [
+      "NETWORKING",
+      "EXHIBITOR_DIRECTORY",
+      "LEADS",
+      "WALLET",
+      "SESSIONS",
+      "POLLS",
+    ],
+  );
+});
+
+test("resolveTicketCapabilities: 空陣列 ＝ 明確不給任何權益（不是繼承）", () => {
+  assert.deepEqual(
+    resolveTicketCapabilities({ registrantType: "ATTENDEE", capabilities: [] }),
+    [],
+    "空陣列是最容易寫錯的一格：它與 null 完全相反",
+  );
+});
+
+test("resolveTicketCapabilities: 有覆寫值時**完全取代**，不是聯集", () => {
+  assert.deepEqual(
+    resolveTicketCapabilities({
+      registrantType: "EXHIBITOR_REP",
+      capabilities: ["WALLET"],
+    }),
+    ["WALLET"],
+    "EXHIBITOR_REP 的預設有六項；覆寫只有 WALLET 時，結果就只有 WALLET",
+  );
+});
+
+test("toggleTicketCapability: 第一次勾選從「目前實際生效」開始加，不是從空集合", () => {
+  const next = toggleTicketCapability({
+    registrantType: "ATTENDEE",
+    current: null,
+    capability: "NETWORKING",
+  });
+
+  assert.deepEqual(
+    next,
+    ["NETWORKING", "EXHIBITOR_DIRECTORY", "WALLET", "SESSIONS", "POLLS"],
+    "從空集合開始的話，取消一項就會讓其他四項一起消失",
+  );
+});
+
+test("toggleTicketCapability: 取消一項只少那一項", () => {
+  const next = toggleTicketCapability({
+    registrantType: "ATTENDEE",
+    current: null,
+    capability: "WALLET",
+  });
+
+  assert.deepEqual(next, ["EXHIBITOR_DIRECTORY", "SESSIONS", "POLLS"]);
+});
+
+test("toggleTicketCapability: 回傳值依 TICKET_CAPABILITIES 的順序排序", () => {
+  const next = toggleTicketCapability({
+    registrantType: "GUEST",
+    current: [],
+    capability: "POLLS",
+  });
+  assert.deepEqual(next, ["POLLS"]);
+
+  const withEarly = toggleTicketCapability({
+    registrantType: "GUEST",
+    current: ["WALLET"],
+    capability: "NETWORKING",
+  });
+  assert.deepEqual(
+    withEarly,
+    ["NETWORKING", "WALLET"],
+    "後端 normalizeCapabilities 也照這個順序排；不排會讓 diff 看起來像改了東西",
+  );
+});
+
+test("toggleTicketCapability: 取消到一項不剩時是空陣列（明確不給），不是 null", () => {
+  let current = null;
+  for (const capability of [
+    "EXHIBITOR_DIRECTORY",
+    "WALLET",
+    "SESSIONS",
+    "POLLS",
+  ]) {
+    current = toggleTicketCapability({
+      registrantType: "ATTENDEE",
+      current,
+      capability,
+    });
+  }
+
+  assert.deepEqual(current, []);
+});
+
+// ---------------------------------------------------------------------------
+// 五、驗證：與 Web 的 validate() 逐條對齊
+// ---------------------------------------------------------------------------
 test("空的表單：名稱、顯示名稱、價格都必填", () => {
   const codes = validateTicketTypeForm(form({ price: "" }));
   assert.ok(codes.includes("name_required"));

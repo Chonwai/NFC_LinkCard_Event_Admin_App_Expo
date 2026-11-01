@@ -138,6 +138,13 @@ export interface EventDetail {
   venueAddress?: string | null;
   isPublic: boolean;
   configJson?: EventConfig | null;
+  /**
+   * 是否依票種權益限制功能（LC-TTE）。
+   *
+   * 後端 `EventService.eventAdminSelect` 一定有選這一欄；DB 預設 `false`。
+   * 舊活動不會被回溯開啟（`EventService.create` 只對**新**活動預設 `true`）。
+   */
+  ticketCapabilitiesEnabled?: boolean;
 }
 
 /**
@@ -161,6 +168,13 @@ export interface UpdateEventPayload {
   venueAddress?: string | null;
   isPublic?: boolean;
   configJson?: EventConfig;
+  /**
+   * 票種權益強制開關（後端 `UpdateEventDto.ticketCapabilitiesEnabled`）。
+   *
+   * 後端 update 用 `dto.ticketCapabilitiesEnabled !== undefined` 判斷，
+   * 所以**不送＝不動**。與 create 不同：`create` 是 `?? true`。
+   */
+  ticketCapabilitiesEnabled?: boolean;
 }
 
 /** 我的活動清單項目（GET /v1/events/my-managed） */

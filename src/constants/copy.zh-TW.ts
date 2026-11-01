@@ -1342,6 +1342,47 @@ export const copy = {
     save: "儲存",
     saving: "儲存中…",
     cancel: "取消",
+    /**
+     * 票種權益（capability）。全部對應 Web `ticketTypes.{capabilities,
+     * capabilitiesInheritedHint, capabilitiesOverriddenHint,
+     * capabilitiesInheritReset, capabilitiesEnabled…}`。
+     */
+    capabilities: "票種權益",
+    capabilitiesInheritedHint:
+      "目前依「報名者類型」自動套用預設權益；勾選任何一項即改為手動指定。",
+    capabilitiesOverriddenHint:
+      "已手動指定。未勾選的權益不會生效（此設定完全取代預設值）。",
+    capabilitiesInheritReset: "還原為預設",
+    /** Web `ticketTypes.capability.*` */
+    capabilityLabels: {
+      NETWORKING: "商業配對",
+      EXHIBITOR_DIRECTORY: "瀏覽展商名錄",
+      LEADS: "檢視收集到的 Leads",
+      WALLET: "Token 錢包",
+      SESSIONS: "報名議程場次",
+      POLLS: "現場投票",
+    } satisfies Record<string, string>,
+    /** Web `ticketTypes.capabilitiesEnabled` / `capabilitiesDisabled` */
+    capabilitiesEnabled: "票種權益已啟用",
+    capabilitiesDisabled: "票種權益尚未啟用",
+    /** Web `ticketTypes.capabilitiesEnabledHint` / `capabilitiesDisabledHint` */
+    capabilitiesEnabledHint:
+      "已依各票種的權益設定限制功能（例：不含「商業配對」的票種無法使用配對）。",
+    capabilitiesDisabledHint:
+      "目前不依票種限制功能——所有已報名者都能使用商業配對。啟用後才會依各票種權益限制。",
+    /** Web `ticketTypes.capabilitiesEnable` / `capabilitiesDisable` */
+    capabilitiesEnable: "啟用",
+    capabilitiesDisable: "停用",
+    /**
+     * Web `ticketTypes.capabilitiesEnableConfirm`。
+     *
+     * App 額外加了標題與取消鈕，因為這裡是自繪 Modal 而不是瀏覽器原生
+     * `confirm()`；文案本體逐字照抄。
+     */
+    capabilitiesEnableConfirmTitle: "啟用票種權益",
+    capabilitiesEnableConfirm:
+      "啟用後，已報名者若其票種不含某項權益，將「立即」失去對應功能（例如商業配對）。確定要啟用嗎？",
+    capabilitiesToggleFailed: "票種權益開關切換失敗，請稍後再試",
     /** 成功訊息 */
     createSuccess: "票種已建立",
     updateSuccess: "票種已更新",
