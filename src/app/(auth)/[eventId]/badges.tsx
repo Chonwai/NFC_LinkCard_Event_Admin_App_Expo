@@ -182,6 +182,14 @@ export default function BadgesScreen() {
    */
   const [allBadges, setAllBadges] = useState<NfcBadgeInventoryItem[]>([]);
   const [statsReady, setStatsReady] = useState(false);
+  /**
+   * 統計請求失敗過，而卡片上還留著上一輪的數字。
+   *
+   * 失敗時刻意**不清空**（舊數字比空白有用，Web 也是保留舊值），但也不能什麼
+   * 都不說——靜默保留會讓操作員拿過期數字下判斷，而且分不出「總數真的是 0」與
+   * 「這次讀不到」。所以只多一個旗標，由畫面低調註記，不改數字本身。
+   */
+  const [statsStale, setStatsStale] = useState(false);
 
   /**
    * 重新載入的觸發計數器。
@@ -331,8 +339,13 @@ export default function BadgesScreen() {
         if (!active) return;
         setAllBadges(res.badges);
         setStatsReady(true);
+        // 讀到了就清掉「過期」標記；否則成功一次之後註記會永遠掛在那裡。
+        setStatsStale(false);
       } catch {
-        // 統計失敗不阻擋列表；保留上次資料（照 Web）
+        if (!active) return;
+        // 統計失敗不阻擋列表；**保留上次資料**（照 Web），但標記成「不是剛剛
+        // 讀到的」。清空會讓一次網路抽動把庫存總覽變成 0，那比過期數字更糟。
+        setStatsStale(true);
       }
     }
 
@@ -772,6 +785,15 @@ export default function BadgesScreen() {
         >
           {copy.badges.statsHeading}
         </Text>
+        {statsReady && statsStale ? (
+          <Text
+            style={styles.statStaleNote}
+            maxFontSizeMultiplier={layout.maxFontScaleBody}
+            testID="badge-stats-stale"
+          >
+            {copy.badges.statsStale}
+          </Text>
+        ) : null}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -1223,6 +1245,17 @@ const styles = StyleSheet.create({
   statDesc: {
     ...type.caption,
     color: semantic.text.muted,
+  },
+  /**
+   * 過期統計的註記。
+   *
+   * 用 `semantic.status.warning.fg`（amber-700）而不是 danger：數字沒有壞，
+   * 只是不是這一刻的。紅字會讓人以為庫存出事，而 caption 大小＋白底 5.0:1
+   * 的對比已經足夠在現場瞄一眼就看到。
+   */
+  statStaleNote: {
+    ...type.caption,
+    color: semantic.status.warning.fg,
   },
   batchCard: {
     backgroundColor: semantic.bg.surface,

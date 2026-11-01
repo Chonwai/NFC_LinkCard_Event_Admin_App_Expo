@@ -288,3 +288,58 @@ test("src/components/badges/ 底下沒有任何直接打後端的程式碼", () 
     );
   }
 });
+
+// ---------------------------------------------------------------------------
+// 四、統計失敗不得靜默（R4）
+// ---------------------------------------------------------------------------
+
+/**
+ * 統計請求失敗時，`badges.tsx` 必須**保留**舊數字並標記成過期。
+ *
+ * 為什麼用原始碼切片而不是元件渲染：這個 repo 沒有 jsdom／RN renderer
+ * （同 `check-in-write-handoff.test.mjs` 檔頭），畫面行為只能靠靜態鎖。
+ *
+ * 為什麼要鎖「不可以清空」：`catch { }` 與 `catch { setAllBadges([]) }` 在畫面上
+ * 都「沒有錯誤訊息」，但後者會讓一次網路抽動把庫存總覽變成 0，而操作員分不出
+ * 「總數真的是 0」與「這次讀不到」。前者才是對的，這條測試就是釘住它。
+ *
+ * 切片用**函式錨點**（`async function loadAll` → `void loadAll();`），不靠 JSX
+ * 換行位置，所以 prettier 重排不會讓它變紅。
+ */
+test("badges.tsx：統計失敗時保留舊數字、標記過期，而不是清空或沉默", () => {
+  const source = stripBlockComments(readFileSync(SCREEN, "utf8"));
+
+  const start = source.indexOf("async function loadAll()");
+  assert.ok(start >= 0, "找不到 loadAll（錨點失效會讓這條變成空轉）");
+  const end = source.indexOf("void loadAll();", start);
+  assert.ok(end > start, "找不到 loadAll 的結束錨點");
+  const loadAll = source.slice(start, end);
+
+  assert.match(
+    loadAll,
+    /setStatsStale\(true\)/,
+    "統計失敗沒有標記過期 ⇒ 操作員拿過期數字下判斷",
+  );
+  assert.equal(
+    /setAllBadges\(\s*\[\]\s*\)/.test(loadAll),
+    false,
+    "統計失敗清空了舊資料 ⇒ 一次網路抽動就讓庫存總覽變成 0",
+  );
+  // 成功一次之後必須把標記收回去，否則註記會永遠掛在畫面上。
+  assert.match(loadAll, /setStatsStale\(false\)/, "成功後沒有清掉過期標記");
+
+  // 註記本身：有渲染、有 guard（`statsReady` 之前沒有數字可標，不該先說它過期）。
+  assert.ok(
+    source.includes('testID="badge-stats-stale"'),
+    "畫面上沒有過期註記",
+  );
+  assert.match(
+    source,
+    /statsReady\s*&&\s*statsStale/,
+    "過期註記沒有 statsReady 守衛 ⇒ 首次載入失敗時會同時顯示「—」與「以上是上次的數字」",
+  );
+  assert.ok(
+    source.includes("copy.badges.statsStale"),
+    "註記用了硬編字串而不是 copy.badges.statsStale",
+  );
+});
