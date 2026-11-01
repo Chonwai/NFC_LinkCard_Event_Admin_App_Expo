@@ -40,6 +40,7 @@ import {
   ENABLED_PAYMENT_METHODS,
   REGISTRANT_TYPES,
   TICKET_CAPABILITIES,
+  TICKET_CURRENCIES,
   type AdminTicketType,
   type EnabledPaymentMethod,
   type EventPaymentMethod,
@@ -644,6 +645,16 @@ function TicketTypeFormModal({
   }
 
   const changes = summarizeTicketTypeChanges(form, existing);
+  /**
+   * 幣別選項：Web 的四個 ＋ 這張票現有的值（若它在四個之外）。
+   *
+   * 把現有值接在前面，是為了「舊資料不被默默改掉」——而不是開放新幣別。
+   */
+  const currencyOptions: readonly string[] = TICKET_CURRENCIES.includes(
+    form.currency as (typeof TICKET_CURRENCIES)[number],
+  )
+    ? TICKET_CURRENCIES
+    : [form.currency, ...TICKET_CURRENCIES];
   /** 目前實際生效的權益（繼承或覆寫）。編輯器用它決定勾選狀態。 */
   const effectiveCapabilities = resolveTicketCapabilities({
     registrantType: form.registrantType,
@@ -700,12 +711,22 @@ function TicketTypeFormModal({
                   }
                   testID="ticket-type-form-price"
                 />
-                <FieldInput
+                {/**
+                 * 幣別。Web 是四個選項的 `<select>`（MOP／HKD／USD／CNY）。
+                 *
+                 * App 原本用自由輸入，那就比 Web 多了一种能力（可以打 TWD），
+                 * 也就是「增」。改用單選晶片，選項與 Web 逐字相同。
+                 *
+                 * 舊資料若有四個以外的幣別（後端 `currency` 只是 maxLength 8
+                 * 的字串，沒有 enum 限制），**把它接在選項前面**而不是默默改掉
+                 * ——那會是資料遺失。
+                 */}
+                <ChoiceChips
                   label={copy.ticketTypes.currency}
+                  options={currencyOptions}
                   value={form.currency}
-                  onChangeText={(text) => update("currency", text)}
-                  autoCapitalize="none"
-                  autoCorrect={false}
+                  labelFor={(value: string) => value}
+                  onSelect={(value) => update("currency", value)}
                   testID="ticket-type-form-currency"
                 />
                 <ChoiceChips

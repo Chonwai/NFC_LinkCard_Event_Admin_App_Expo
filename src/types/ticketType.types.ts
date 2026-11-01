@@ -86,6 +86,15 @@ export type EventPaymentMethod = (typeof EVENT_PAYMENT_METHODS)[number];
 /** Web 票種頁實際開放勾選的付款方式（`page.tsx:53`，逐字照抄）。 */
 export const ENABLED_PAYMENT_METHODS = ["FREE", "BANK_TRANSFER"] as const;
 
+/**
+ * Web 票種頁的幣別 `<select>`（`page.tsx:896-900`，逐字照抄四個值）。
+ *
+ * App 用自由輸入就比 Web 多了一种能力（可以打 TWD），那是「增」。
+ * 後端 `currency` 只是一偏 `String @MaxLength(8)`，沒有任何限制——
+ * 這裡的限制是為了對齊 Web，不是後端要求。
+ */
+export const TICKET_CURRENCIES = ["MOP", "HKD", "USD", "CNY"] as const;
+
 /** 上面的元素型別。刻意保留字面型別：UI 的 `labelFor` 要用它去索引標籤表，
  * 放寬成 `EventPaymentMethod` 就索引不到 `STRIPE` 等三個沒有中文名的值。 */
 export type EnabledPaymentMethod = (typeof ENABLED_PAYMENT_METHODS)[number];
