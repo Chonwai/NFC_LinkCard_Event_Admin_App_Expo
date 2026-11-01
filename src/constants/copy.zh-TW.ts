@@ -1642,6 +1642,81 @@ export const copy = {
     },
   },
   /**
+   * 組織角色（parity `org-roles`）。
+   *
+   * Web 的 i18n 在 `public/locales/zh-Hant/event_manage.json` 的 `orgRoles`
+   * 與 `role` 兩個命名空間；側欄名稱是 `layout.orgRoles`（同一句）。
+   * 這裡只收畫面上真的用得到的鍵，每一條都註記對應的 Web 鍵名。
+   *
+   * ⚠️ 刻意**沒有**搬過來的 Web 字串（不是漏抄）：
+   * - `removeConfirm`（「確定移除此管理員？」）：它是 `window.confirm` 的一行字，
+   *   App 的確認框要顯示「要移除誰」，那一句在這裡不夠用（見 `removeConfirm`）。
+   * - `noPermissionInviteToast` / `noPermissionRemoveToast`：Web 用它做 403 的
+   *   toast。App 在**按下之前**就把沒有權限的人擋住（`noPermissionHint`），
+   *   真的還是 403 時走 `errors.forbidden`——同一個意思不需要兩套字。
+   *
+   * Web 的 emoji（`✅` / `❌`）一律不搬：App 全站沒有用 emoji 表達成功／失敗，
+   * 而是靠 `InlineBanner` 的 tone 與顏色。
+   */
+  orgRoles: {
+    /** Web `layout.orgRoles` / `orgRoles.title` */
+    title: "管理員邀請",
+    /** Web `orgRoles.subtitle` */
+    subtitle: "管理活動擁有者、協調員及操作員的存取權限",
+    loading: "讀取中…",
+    /** Web `orgRoles.loadFailed`（去掉 `❌`） */
+    loadFailed: "無法載入管理員名單，請稍後再試",
+    /** Web `orgRoles.existing` */
+    existing: "現有管理員",
+    /** Web `orgRoles.empty` */
+    empty: "暫無管理員",
+    /** Web `orgRoles.yourRole` */
+    yourRole: "你的角色",
+    /** Web `orgRoles.viewOnly` */
+    viewOnly: "僅供檢視",
+    /** Web `orgRoles.noPermissionTitle` */
+    noPermissionTitle: "你沒有權限管理活動管理員",
+    /** Web `orgRoles.noPermissionHint`（i18next `{{role}}` → 函式） */
+    noPermissionHint: (role: string) =>
+      `只有活動擁有者及 SUPER_ADMIN 可以邀請或移除管理員。你目前的角色是「${role}」，但仍可查看現有管理員名單。`,
+    /**
+     * 角色名稱。**六個值全列**，含 `OWNER`。
+     *
+     * Web 的 i18n `role` 命名空間本來就有這六個（`OWNER` 也在），但它的頁面
+     * 另外手寫了一個只含三個的 `roleLabels`（`org-roles/page.tsx:274-278`），
+     * 於是清單上遇到 `VOLUNTEER` / `MEDIA` 時會渲染一個**空白徽章**——i18n 有字
+     * 卻沒有被用到。這裡直接用完整的一張表，並由
+     * `utils/org-role-display.ts` 的 `orgRoleLabel()` 對不認得的值退回原字串。
+     */
+    roleLabels: {
+      OWNER: "擁有者",
+      SUPER_ADMIN: "Super Admin",
+      COORDINATOR: "Coordinator",
+      OPERATOR: "Operator",
+      VOLUNTEER: "Volunteer",
+      MEDIA: "Media",
+    },
+    /**
+     * 一列的狀態。**這兩個不是後端 `OrgRoleStatus` 的值**
+     * （後端只有 `ACTIVE` / `REVOKED`），而是
+     * `utils/org-role-display.ts:orgRoleState()` 由 `acceptedAt` 推導出來的。
+     */
+    stateLabels: {
+      active: "已生效",
+      pending: "待接受",
+    },
+    /**
+     * 「待接受」是什麼意思——只在真的有這種列出現時才顯示。
+     *
+     * 為什麼要解釋：後端對「email 還沒有帳號」的邀請會留下 `acceptedAt: null`，
+     * 而**系統沒有任何管道把邀請 token 送給對方**（後端不寄信、Web 也沒有接受
+     * 頁面）。所以這一列會一直是「待接受」。只寫「待接受」會讓人以為對方漏看信，
+     * 實際上那封信從來沒有寄出。
+     */
+    pendingHint:
+      "「待接受」代表對方還沒有帳號，或尚未接受邀請。系統目前不會寄送邀請信。",
+  },
+  /**
    * 未匹配路由（`app/+not-found.tsx`）。
    * W-12：先前不存在此檔，無法解析的深連結會落到 expo-router 的預設畫面。
    * 「返回活動列表」沿用 `settings.backToEvents`，不另立重複字串。

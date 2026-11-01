@@ -26,6 +26,7 @@ export default function EventLayout() {
       <Stack.Screen name="polls" />
       <Stack.Screen name="ticket-types" />
       <Stack.Screen name="bank-transfers" />
+      <Stack.Screen name="org-roles" />
       <Stack.Screen name="settings" />
     </Stack>
   );

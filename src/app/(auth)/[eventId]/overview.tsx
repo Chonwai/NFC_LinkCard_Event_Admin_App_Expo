@@ -55,6 +55,7 @@ type EventRoute =
   | "polls"
   | "ticket-types"
   | "bank-transfers"
+  | "org-roles"
   | "settings";
 
 interface QuickAction {
@@ -176,6 +177,20 @@ const QUICK_ACTIONS: QuickAction[] = [
     label: copy.bankTransfers.title,
     icon: "clock",
     route: "bank-transfers",
+  },
+  /**
+   * 組織角色（parity `org-roles`）。
+   *
+   * 圖示用 `users`：Web 這一頁在側欄的圖示是 `UserPlus`
+   * （`manage/[eventId]/layout.tsx:189`），`Icon.tsx` 沒有「加一個人」的圖形，
+   * 硬加一條新 path 就要動整張路徑表。`users` 已經是「一群人／名單」的既有
+   * 語意（名單頁與展商頁都用它），與「誰能管理這場活動」相符。
+   */
+  {
+    key: "org-roles",
+    label: copy.orgRoles.title,
+    icon: "users",
+    route: "org-roles",
   },
   {
     key: "settings",
