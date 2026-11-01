@@ -12,6 +12,13 @@
  * 文案的真相在 `copy.zh-TW.ts`（`copy-routing.test.mjs` 已守門），這裡只確認
  * 三個詞在那個 namespace 裡真的存在——少一個 key 會是 `undefined`，而
  * `undefined` 在 RN 的 `<Text>` 裡不會報錯，只會靜靜地空白。
+ *
+ * ## 原始碼斷言不再鎖排版（R6）
+ *
+ * 原本 `writeAndBind.includes("if (cardPassword) {")` 這種寫法鎖到的是**空白**：
+ * prettier 一折行就假紅，而程式語意沒變。現在走
+ * `support/source-assertions.mjs`，只忽略邊界字元與換行造成的空白差異；
+ * 識別字之間的空白仍然有意義（見 helper 檔頭）。
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -26,6 +33,8 @@ import {
   isLockablePassword,
   lockAfterWrite,
 } from "@/utils/nfc-lock-after-write";
+
+import { matchesIgnoringWhitespace as matches } from "./support/source-assertions.mjs";
 
 const REPO_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -182,30 +191,31 @@ describe("nfc-bind.tsx — 接線", () => {
   it("密碼拿不到不會擋住寫卡", () => {
     // 取得密碼走 `resolveCardPassword`（永不 throw），而驗證被 `if (cardPassword)`
     // 包住——沒有任何一條 `return` 或 `throw` 因為密碼的事提前結束流程。
-    assert.ok(writeAndBind.includes("resolveCardPassword(eventId)"));
-    assert.ok(writeAndBind.includes("if (cardPassword) {"));
+    assert.ok(matches(writeAndBind, "resolveCardPassword(eventId)"));
+    assert.ok(matches(writeAndBind, "if (cardPassword) {"));
     assert.ok(
-      writeAndBind.includes("await resolveCardPassword(eventId)"),
+      matches(writeAndBind, "await resolveCardPassword(eventId)"),
       "沒有 await 就會拿到 Promise，`if` 恆真",
     );
   });
 
   it("上鎖結果一路傳到成功卡（三態才有地方顯示）", () => {
     assert.ok(
-      writeAndBind.includes(
+      matches(
+        writeAndBind,
         "await bindOnly(ctx, tagUid, writtenUri, lockNote)",
       ),
       "lockNote 沒有傳進 bindOnly ⇒ 成功卡永遠顯示不出上鎖結果",
     );
     const bindOnly = block("const bindOnly", "const writeAndBind");
-    assert.ok(bindOnly.includes("lockNote"));
+    assert.ok(matches(bindOnly, "lockNote"));
   });
 
   it("三態各有專屬 UI 分支", () => {
     const done = block('state.phase === "done"', "</ScrollView>");
     for (const note of ["locked", "unlocked", "lock_failed"]) {
       assert.ok(
-        done.includes(`state.lockNote === "${note}"`),
+        matches(done, `state.lockNote === "${note}"`),
         `成功卡缺少 ${note} 的分支`,
       );
     }

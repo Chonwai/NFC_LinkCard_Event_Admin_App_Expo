@@ -16,12 +16,23 @@
  * 已知界線：本檔不證明「自動重置前按得到 CTA」——那是裝置上的時間行為，屬
  * 交付報告 §8 的殘留風險，不是靜態掃描能斷言的東西。（`INC-2`／Loop AF：
  * 等待已由 3 秒延長為 15 秒並加「繼續掃碼」出口，見 `check-in-valid-hold.test.mjs`。）
+ *
+ * ## 為什麼存在性斷言要走 `support/source-assertions.mjs`（R6）
+ *
+ * 這個檔原本用 `assert.match(source, /label=\{x\}/)` 與 `source.indexOf(
+ * "label={x}")` 鎖程式碼。那種斷言真正鎖到的是**排版**：prettier 把
+ * `label={x}` 寫成 `label={ x }`（行寬一變就會）就紅，而語意一字未改。
+ * 現在改成 `matchesIgnoringWhitespace(source, "label={x}")`——它只忽略
+ * 「邊界字元與換行造成的空白」，識別字之間的空白仍然有意義（避免 `a b` 命中
+ * `ab` 這種假通過）。helper 檔頭有完整說明與尚未套用的檔案清單。
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+
+import { matchesIgnoringWhitespace as matches } from "./support/source-assertions.mjs";
 
 const REPO_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -36,88 +47,97 @@ const COPY = read("src/constants/copy.zh-TW.ts");
 test("WP-18：報到結果卡顯示公開檔案路徑，沒有 profile 時說的是原因而不是破折號", () => {
   // `INC-2`：import 改為多行（同時引入 mergeCheckInProfileUrl），
   // 以「符號＋來源」鎖定，不再要求單行形狀。
-  assert.match(
-    CHECK_IN,
-    /profilePathLabel,?\s*\} from "@\/utils\/desk-handoff";/,
+  // R6：改走 helper。原本的 `,?\s*\}` 少了「`}` 與 `from` 之間可能是換行」這一
+  // 種 prettier 斷行，一重排就假紅。
+  assert.ok(
+    matches(CHECK_IN, 'profilePathLabel, } from "@/utils/desk-handoff";') ||
+      matches(CHECK_IN, 'profilePathLabel } from "@/utils/desk-handoff";'),
     "缺 profilePathLabel：無法把絕對 profileUrl 收斂成 /p/{slug}",
   );
-  assert.match(
-    CHECK_IN,
-    /label=\{copy\.checkIn\.profileLabel\}/,
+  assert.ok(
+    matches(CHECK_IN, "label={copy.checkIn.profileLabel}"),
     "結果卡沒有 Profile 列",
   );
-  assert.match(
-    CHECK_IN,
-    /profilePathLabel\(outcome\.registration\.profileUrl\)/,
+  assert.ok(
+    matches(CHECK_IN, "profilePathLabel(outcome.registration.profileUrl)"),
     "Profile 列沒有讀後端回傳的 profileUrl",
   );
-  assert.match(
-    CHECK_IN,
-    /copy\.checkIn\.noPublicProfile/,
+  assert.ok(
+    matches(CHECK_IN, "copy.checkIn.noPublicProfile"),
     "孤兒報名（profileUrl === null）沒有顯示原因",
   );
 });
 
 test("WP-18：主 CTA 帶著報名碼推進 nfc-bind（不必再手輸一次）", () => {
-  assert.match(CHECK_IN, /label=\{copy\.checkIn\.gotoWriteCard\}/);
+  assert.ok(
+    matches(CHECK_IN, "label={copy.checkIn.gotoWriteCard}"),
+    "找不到主 CTA 的 label",
+  );
 
   // 取 CTA 自己的區塊（label → 下一個 Button 的 label）再斷言。
   // 對整個檔案做 regex 會把 prettier 的斷行誤判成「沒指向寫卡頁」；
   // 用固定字元數切片則會在行寬改變時切到句子中間——兩種都真的踩過（見交付報告 §6）。
-  const ctaStart = CHECK_IN.indexOf("label={copy.checkIn.gotoWriteCard}");
-  const ctaEnd = CHECK_IN.indexOf("label={copy.roster.viewDetail}");
+  //
+  // R6：錨點改用**單一識別字**（`copy.checkIn.gotoWriteCard`）而不是整段
+  // `label={...}`，因為後者本身就是排版。切出來的區塊再用 helper 比對，
+  // 兩邊都不再對空白敏感。
+  const ctaStart = CHECK_IN.indexOf("copy.checkIn.gotoWriteCard");
+  const ctaEnd = CHECK_IN.indexOf("copy.roster.viewDetail");
   assert.ok(ctaStart >= 0, "找不到主 CTA");
   assert.ok(ctaEnd > ctaStart, "寫卡 CTA 必須是主動作（排在 viewDetail 之前）");
   const ctaBlock = CHECK_IN.slice(ctaStart, ctaEnd);
-  assert.match(
-    ctaBlock,
-    /"\/\(auth\)\/\[eventId\]\/nfc-bind"/,
+  assert.ok(
+    matches(ctaBlock, '"/(auth)/[eventId]/nfc-bind"'),
     "CTA 沒有指向寫卡頁",
   );
-  assert.match(
-    ctaBlock,
-    /params: \{ eventId, code \}/,
+  assert.ok(
+    matches(ctaBlock, "params: { eventId, code }"),
     "CTA 沒有把報名碼帶過去（那正是本包要解的重輸痛點）",
   );
 });
 
 test("WP-18：nfc-bind 以 ?code= 作欄位初值，且只自動查一次、不自動送出", () => {
-  assert.match(
-    NFC_BIND,
-    /const \{ eventId, code: codeParam \} = useLocalSearchParams</,
+  assert.ok(
+    matches(
+      NFC_BIND,
+      "const { eventId, code: codeParam } = useLocalSearchParams<",
+    ),
     "nfc-bind 沒有讀 ?code=",
   );
-  assert.match(
-    NFC_BIND,
-    /const prefilledCode = \(codeParam \?\? ""\)\.trim\(\)\.toUpperCase\(\);/,
+  assert.ok(
+    matches(
+      NFC_BIND,
+      'const prefilledCode = (codeParam ?? "").trim().toUpperCase();',
+    ),
   );
-  assert.match(
-    NFC_BIND,
-    /const \[code, setCode\] = useState\(prefilledCode\)/,
+  assert.ok(
+    matches(NFC_BIND, "const [code, setCode] = useState(prefilledCode)"),
     "欄位初值不是帶進來的報名碼 ⇒ prefill 沒生效",
   );
-  assert.match(
-    NFC_BIND,
-    /if \(!eventId \|\| !prefilledCode\) return;/,
+  assert.ok(
+    matches(NFC_BIND, "if (!eventId || !prefilledCode) return;"),
     "參數尚未到齊就消費掉自動查詢名額（會靜默不查）",
   );
-  assert.match(
-    NFC_BIND,
-    /if \(prefilledLookupDone\.current === prefilledCode\) return;/,
+  assert.ok(
+    matches(
+      NFC_BIND,
+      "if (prefilledLookupDone.current === prefilledCode) return;",
+    ),
     "自動查詢沒有一次性守衛：操作者每次打字都會重查一次",
   );
   // L-05：守衛存的是「已消費的那個 code」，不是 `true`。存 `true` 的話，同一個畫面
   // 實例再收到新的 `?code=` 時永遠不會重查，欄位也停在舊值（動態行為見
   // `tests/desk-handoff.test.mjs`；這裡只鎖住「形狀沒有退回 true」）。
-  assert.match(
-    NFC_BIND,
-    /const prefilledLookupDone = useRef<string \| null>\(null\);/,
+  assert.ok(
+    matches(
+      NFC_BIND,
+      "const prefilledLookupDone = useRef<string | null>(null);",
+    ),
     "一次性守衛退回 boolean ⇒ 新 ?code= 不會被查、欄位停在舊值（L-05）",
   );
   // 一次性查詢不得順手寫卡／綁卡：進場語意是「查這個人是誰」，不是「開始寫」。
-  const effectStart = NFC_BIND.indexOf(
-    "const prefilledLookupDone = useRef<string | null>(null);",
-  );
+  // R6：起始錨點改成單一識別字，避免宣告被 prettier 折行後切片起點失準。
+  const effectStart = NFC_BIND.indexOf("const prefilledLookupDone");
   const effectEnd = NFC_BIND.indexOf("const fail = useCallback(");
   assert.ok(
     effectStart >= 0 && effectEnd > effectStart,
@@ -148,5 +168,5 @@ test("WP-18：三個新文案 key 存在且有值（不得硬編中文，見 cop
   }
   // `INC-2`（Loop AF）：標籤由 "Profile" 改為「名片」（PM 心智模型；
   // 同值同步於 `check-in-valid-hold.test.mjs`）。
-  assert.match(COPY, /profileLabel: "名片"/);
+  assert.ok(matches(COPY, 'profileLabel: "名片"'));
 });
