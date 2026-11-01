@@ -122,7 +122,34 @@ test("退回：未確認時也不送出（取消≠無理由退回）", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 二、確認框顯示什麼
+// 二、拒絕：原因原樣，空白不 trim（照 Web 的 prompt）
+// ---------------------------------------------------------------------------
+
+test("拒絕：只有空白的「原因」也原樣送出，不 trim（Web 的 prompt 也不 trim）", () => {
+  const request = buildReviewRequest(
+    { approval: APPROVAL, decision: "REJECTED", reason: "   " },
+    { confirmed: true },
+  );
+
+  assert.equal(
+    request.reviewNote,
+    "   ",
+    "App 不該自作主張 trim：那會讓「操作員打了兩個空白」變成「沒填」，兩種狀態在後端存下來的值不一樣",
+  );
+});
+
+test("拒絕：原因不影響 approvalId 與 decision", () => {
+  const request = buildReviewRequest(
+    { approval: APPROVAL, decision: "REJECTED", reason: "金額不符" },
+    { confirmed: true },
+  );
+
+  assert.equal(request.approvalId, "ap-1");
+  assert.equal(request.decision, "REJECTED");
+});
+
+// ---------------------------------------------------------------------------
+// 三、確認框顯示什麼
 // ---------------------------------------------------------------------------
 
 test("確認框：誰、多少錢、哪一筆，全部是原樣資料", () => {
@@ -177,7 +204,7 @@ test("確認框：退回時原因原樣顯示（空字串照實回空，placehol
 });
 
 // ---------------------------------------------------------------------------
-// 三、錯誤分類（只讀 code / status，不看 message）
+// 四、錯誤分類（只讀 code / status，不看 message）
 // ---------------------------------------------------------------------------
 
 /** 造一個 axios 風格的錯誤（與 `utils/api-error` 的讀法一致）。 */

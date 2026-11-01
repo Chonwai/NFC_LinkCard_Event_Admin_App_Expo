@@ -1599,6 +1599,35 @@ export const copy = {
     /** Web 沒有：Web 成功後靜默重載，不講話。 */
     approveSuccess: "已批准這筆匯款",
     /**
+     * 拒絕的二次確認。
+     *
+     * Web 的流程是 `window.prompt('拒絕原因（可選）：')`，然後直接送出
+     * `REJECTED`——**按「取消」也一樣送**（`prompt` 回 `null`，`null ?? undefined`
+     * 之後照送）。App 把「填原因」與「再確認」合成同一個對話框：取消就是取消，
+     * 什麼都不送。
+     *
+     * 原因**不是必填**：後端 `ReviewBankTransferDto.reviewNote` 是
+     * `@IsOptional()`，Web 的提示字也寫著「（可選）」。強制必填會是 App 多了
+     * 一條 Web 沒有的規則。
+     */
+    rejectConfirm: {
+      title: "拒絕這筆匯款？",
+      intro:
+        "拒絕後這筆報名會變成已拒絕，且在此 App 內無法復原。原因可以不填，但填了才看得出為什麼。",
+      reasonLabel: "拒絕原因（可選）",
+      reasonPlaceholder: "例如：匯款金額與報名金額不符",
+      /**
+       * 原因留空時顯示的最後一行。
+       *
+       * 為什麼要講出來：空白輸入在畫面上「什麼都沒有」，操作員無從知道自己
+       * 剛剛是不是漏打字了。明說「不會留下理由」，是按確認前該知道的事。
+       */
+      noReason: "（未填寫原因——這筆拒絕不會留下理由）",
+      confirm: "確認拒絕",
+    },
+    /** Web 沒有：Web 成功後靜默重載，不講話。 */
+    rejectSuccess: "已拒絕這筆匯款",
+    /**
      * 覆核失敗的分類文案（見 `utils/bank-transfer-review.ts`）。
      *
      * 刻意**不回顯後端 `error.message`**：後端訊息可能帶內部路徑、別人的報名碼

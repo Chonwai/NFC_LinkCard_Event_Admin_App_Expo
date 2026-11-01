@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import {
   Linking,
   Modal,
@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ChoiceChips } from "@/components/ui/ChoiceChips";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { FieldInput } from "@/components/ui/FieldInput";
 import {
   InlineBanner,
   type InlineBannerTone,
@@ -241,8 +242,10 @@ export default function EventBankTransfersScreen() {
       setPendingReview(null);
       setFeedback({
         tone: "success",
-        // 目前只有「批准」會走到這裡（拒絕有自己的流程，見下一步）。
-        message: copy.bankTransfers.approveSuccess,
+        message:
+          request.decision === "APPROVED"
+            ? copy.bankTransfers.approveSuccess
+            : copy.bankTransfers.rejectSuccess,
       });
       // 與 Web 一樣：成功後重新載入清單（金額是後端重算的，不能拿回應拼本地狀態）。
       setReloadKey((key) => key + 1);
@@ -263,6 +266,9 @@ export default function EventBankTransfersScreen() {
   }
 
   const totalForFilter = counts?.[statusFilter] ?? approvals.length;
+  /** 確認框要顯示的內容；沒有待確認的意圖時是 `null`。 */
+  const confirmation =
+    pendingReview == null ? null : buildReviewConfirmation(pendingReview);
 
   return (
     <View style={styles.screen}>
@@ -351,24 +357,60 @@ export default function EventBankTransfersScreen() {
                 approval={approval}
                 onOpenProof={() => void openProof(approval)}
                 onApprove={() => requestReview(approval, "APPROVED")}
+                onReject={() => requestReview(approval, "REJECTED")}
               />
             ))}
           </View>
         )}
       </ScrollView>
 
-      {pendingReview?.decision === "APPROVED" ? (
+      {pendingReview && confirmation ? (
         <ReviewDialog
-          confirmation={buildReviewConfirmation(pendingReview)}
-          title={copy.bankTransfers.approveConfirm.title}
-          intro={copy.bankTransfers.approveConfirm.intro}
-          confirmLabel={copy.bankTransfers.approveConfirm.confirm}
+          confirmation={confirmation}
+          title={
+            pendingReview.decision === "APPROVED"
+              ? copy.bankTransfers.approveConfirm.title
+              : copy.bankTransfers.rejectConfirm.title
+          }
+          intro={
+            pendingReview.decision === "APPROVED"
+              ? copy.bankTransfers.approveConfirm.intro
+              : copy.bankTransfers.rejectConfirm.intro
+          }
+          confirmLabel={
+            pendingReview.decision === "APPROVED"
+              ? copy.bankTransfers.approveConfirm.confirm
+              : copy.bankTransfers.rejectConfirm.confirm
+          }
           busy={submitting}
-          tone="primary"
+          tone={pendingReview.decision === "APPROVED" ? "primary" : "danger"}
           onConfirm={() => void submitReview(pendingReview)}
           onCancel={() => setPendingReview(null)}
-          testID="bank-transfer-approve-confirm"
-        />
+          testID={`bank-transfer-${pendingReview.decision === "APPROVED" ? "approve" : "reject"}-confirm`}
+        >
+          {pendingReview.decision === "REJECTED" ? (
+            <View style={styles.reasonBlock}>
+              <FieldInput
+                label={copy.bankTransfers.rejectConfirm.reasonLabel}
+                value={pendingReview.reason}
+                onChangeText={(text) =>
+                  setPendingReview((current) =>
+                    current == null ? null : { ...current, reason: text },
+                  )
+                }
+                placeholder={copy.bankTransfers.rejectConfirm.reasonPlaceholder}
+                multiline
+                editable={!submitting}
+                testID="bank-transfer-reject-reason"
+              />
+              {confirmation.reason === "" ? (
+                <Text style={styles.confirmNote}>
+                  {copy.bankTransfers.rejectConfirm.noReason}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+        </ReviewDialog>
       ) : null}
     </View>
   );
@@ -416,10 +458,12 @@ function ApprovalCard({
   approval,
   onOpenProof,
   onApprove,
+  onReject,
 }: {
   approval: BankTransferApproval;
   onOpenProof: () => void;
   onApprove: () => void;
+  onReject: () => void;
 }) {
   return (
     <Card testID={`bank-transfer-card-${approval.id}`}>
@@ -479,6 +523,14 @@ function ApprovalCard({
         <View style={styles.actions}>
           <View style={styles.actionButton}>
             <Button
+              label={copy.bankTransfers.reject}
+              variant="danger"
+              onPress={onReject}
+              testID={`bank-transfer-reject-${approval.id}`}
+            />
+          </View>
+          <View style={styles.actionButton}>
+            <Button
               label={copy.bankTransfers.approve}
               variant="primary"
               onPress={onApprove}
@@ -511,6 +563,7 @@ function ReviewDialog({
   onConfirm,
   onCancel,
   testID,
+  children,
 }: {
   confirmation: BankTransferReviewConfirmation;
   title: string;
@@ -521,6 +574,8 @@ function ReviewDialog({
   onConfirm: () => void;
   onCancel: () => void;
   testID: string;
+  /** 決定相關的額外欄位（拒絕時的原因輸入框）。 */
+  children?: ReactNode;
 }) {
   return (
     <Modal
@@ -558,6 +613,8 @@ function ReviewDialog({
               {confirmation.registrationCode}
             </Text>
           </View>
+
+          {children}
 
           <Button
             label={confirmLabel}
@@ -709,4 +766,5 @@ const styles = StyleSheet.create({
   confirmRow: { gap: space[1] },
   confirmLine: { ...type.label, color: semantic.text.primary },
   confirmNote: { ...type.caption, color: semantic.text.secondary },
+  reasonBlock: { gap: space[1] },
 });
