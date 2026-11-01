@@ -20,7 +20,9 @@ import {
   CREATE_EVENT_DEFAULT_TYPE,
   CREATE_EVENT_TIMEZONES,
   CREATE_EVENT_TYPES,
+  createEventFormErrors,
   emptyCreateEventForm,
+  hasCreateEventErrors,
   slugFromName,
   toCreateEventPayload,
 } from "@/utils/event-create-form";
@@ -204,4 +206,202 @@ test("回傳的 body 不含表單才有的欄位（沒有夾帶 state 進請求�
   assert.equal(payload.startDateInput, undefined);
   assert.equal(payload.descriptionInput, undefined);
   assert.equal(Object.keys(payload).length, 7);
+});
+
+// ---------------------------------------------------------------------------
+// 四、驗證（逐條對齊 Web `CreateEventModal.validate`，page.tsx:64-75）
+// ---------------------------------------------------------------------------
+
+test("填好的表單零錯誤", () => {
+  assert.deepEqual(createEventFormErrors(filledForm()), {});
+  assert.equal(
+    hasCreateEventErrors(createEventFormErrors(filledForm())),
+    false,
+  );
+});
+
+test("空表單四欄全中，且 slug 顯示的是「格式」不是「必填」（照抄 Web 的覆蓋行為）", () => {
+  // Web 的兩個 slug 判斷都是獨立 `if`，空字串兩條都成立，後面的
+  // `slugFormat` 覆蓋前面的 `slugRequired`。所以 `slugRequired` 在兩邊
+  // 都是走不到的分支。這條測試把「刻意保留」釘住，避免有人單邊改成 else if。
+  assert.deepEqual(createEventFormErrors(emptyCreateEventForm()), {
+    name: "nameMin",
+    slug: "slugFormat",
+    startDate: "startDateRequired",
+    endDate: "endDateRequired",
+  });
+});
+
+test("name：1 個字太短、2 個字剛好", () => {
+  assert.equal(
+    createEventFormErrors({ ...filledForm(), name: "A" }).name,
+    "nameMin",
+  );
+  assert.equal(
+    createEventFormErrors({ ...filledForm(), name: "AB" }).name,
+    undefined,
+  );
+});
+
+test("name：121 字報 nameMax（不是 nameMin——兩個獨立 if，後者覆蓋前者）", () => {
+  assert.equal(
+    createEventFormErrors({ ...filledForm(), name: "a".repeat(121) }).name,
+    "nameMax",
+  );
+  assert.equal(
+    createEventFormErrors({ ...filledForm(), name: "a".repeat(120) }).name,
+    undefined,
+    "120 字是後端 @MaxLength(120) 的上限，應該放行",
+  );
+});
+
+test("slug：大寫、底線、空白、中文都不合法（/^[a-z0-9-]+$/）", () => {
+  for (const slug of [
+    "StartupFest",
+    "startup_fest",
+    "startup fest",
+    "startupfest!",
+    "活動",
+    "-ñ",
+  ]) {
+    assert.equal(
+      createEventFormErrors({ ...filledForm(), slug }).slug,
+      "slugFormat",
+      `應該擋下 slug=${JSON.stringify(slug)}`,
+    );
+  }
+});
+
+test("slug：小寫英文、數字、連字號的組合放行", () => {
+  for (const slug of ["a", "startup-fest-2027", "abc123", "123"]) {
+    assert.equal(
+      createEventFormErrors({ ...filledForm(), slug }).slug,
+      undefined,
+      `應該放行 slug=${JSON.stringify(slug)}`,
+    );
+  }
+});
+
+test("時間必填：缺哪一個就報哪一個", () => {
+  const noStart = createEventFormErrors({ ...filledForm(), startDate: "" });
+  assert.equal(noStart.startDate, "startDateRequired");
+  assert.equal(noStart.endDate, undefined, "endDate 有填，不該被連坐");
+
+  const noEnd = createEventFormErrors({ ...filledForm(), endDate: "" });
+  assert.equal(noEnd.endDate, "endDateRequired");
+  assert.equal(noEnd.startDate, undefined);
+});
+
+test("時間格式：填了但解析不了 → dateFormat（App 專屬，Web 的 datetime-local 不可能產生）", () => {
+  for (const bad of ["2026-13-45 09:00", "2026-02-30 09:00", "明天", "09:00"]) {
+    assert.equal(
+      createEventFormErrors({ ...filledForm(), startDate: bad }).startDate,
+      "dateFormat",
+      `應該擋下 startDate=${JSON.stringify(bad)}`,
+    );
+  }
+
+  assert.equal(
+    createEventFormErrors({ ...filledForm(), endDate: "2026-11-40 10:00" })
+      .endDate,
+    "dateFormat",
+  );
+});
+
+test("結束早於開始 → endDateBeforeStart", () => {
+  assert.equal(
+    createEventFormErrors({
+      ...filledForm(),
+      startDate: "2027-11-02 10:00",
+      endDate: "2027-11-02 09:59",
+    }).endDate,
+    "endDateBeforeStart",
+  );
+});
+
+test("同時開始與結束是合法的（Web 用嚴格小於，不是 <=）", () => {
+  assert.deepEqual(
+    createEventFormErrors({
+      ...filledForm(),
+      startDate: "2027-11-02 10:00",
+      endDate: "2027-11-02 10:00",
+    }),
+    {},
+  );
+});
+
+test("順序比較用解析後的時間，不是字串字典序（空白與 T 混用時字典序會錯）", () => {
+  // 若照 Web 的字串比較，"2027-11-02T09:00" < "2027-11-02 10:00" 會因為
+  // `T`(0x54) > ' '(0x20) 而得到「不早於」—— 也就是漏擋。這裡先解析再比。
+  assert.equal(
+    createEventFormErrors({
+      ...filledForm(),
+      startDate: "2027-11-02 10:00",
+      endDate: "2027-11-02T09:00",
+    }).endDate,
+    "endDateBeforeStart",
+    "混用空白與 T 時仍要正確判定先後",
+  );
+});
+
+test("description / timezone / eventType 不參與驗證（與 Web 相同）", () => {
+  const errors = createEventFormErrors({
+    ...filledForm(),
+    description: "",
+    timezone: "Asia/Macau",
+    eventType: "OTHER",
+  });
+
+  assert.deepEqual(Object.keys(errors).sort(), []);
+});
+
+test("Web 對等表：同一批輸入在 App 得到同一組 accept/reject 判定", () => {
+  // 這張表是從 Web `validate()`（page.tsx:64-75）的七條判斷逐條推出來的。
+  // `accepted` 只問「會不會被擋」，不問顯示哪一句。
+  const cases = [
+    { label: "全部合法", patch: {}, accepted: true },
+    { label: "名稱空白", patch: { name: "" }, accepted: false },
+    { label: "名稱 1 字", patch: { name: "A" }, accepted: false },
+    { label: "名稱 121 字", patch: { name: "a".repeat(121) }, accepted: false },
+    { label: "slug 空白", patch: { slug: "" }, accepted: false },
+    { label: "slug 大寫", patch: { slug: "Startup" }, accepted: false },
+    { label: "缺開始", patch: { startDate: "" }, accepted: false },
+    { label: "缺結束", patch: { endDate: "" }, accepted: false },
+    {
+      label: "結束早於開始",
+      patch: { startDate: "2027-11-02 10:00", endDate: "2027-11-01 10:00" },
+      accepted: false,
+    },
+    {
+      label: "結束等於開始",
+      patch: { startDate: "2027-11-02 10:00", endDate: "2027-11-02 10:00" },
+      accepted: true,
+    },
+    {
+      label: "跨年跨月",
+      patch: { startDate: "2027-12-31 23:00", endDate: "2028-01-01 01:00" },
+      accepted: true,
+    },
+  ];
+
+  for (const c of cases) {
+    const errors = createEventFormErrors({ ...filledForm(), ...c.patch });
+    assert.equal(
+      !hasCreateEventErrors(errors),
+      c.accepted,
+      `${c.label}：預期 ${c.accepted ? "放行" : "擋下"}，得到 ${JSON.stringify(errors)}`,
+    );
+  }
+});
+
+test("通過驗證的表單一定組得出 body（兩者不會互相矛盾）", () => {
+  // 驗證與 payload 組裝是兩個函式，最怕的是「驗證說可以、組裝卻回 null」。
+  for (const startDate of ["2027-11-01 09:00", "2027-11-01T09:00"]) {
+    const form = { ...filledForm(), startDate };
+    assert.equal(hasCreateEventErrors(createEventFormErrors(form)), false);
+    assert.ok(
+      toCreateEventPayload(form) != null,
+      `驗證通過卻組不出 body：startDate=${startDate}`,
+    );
+  }
 });

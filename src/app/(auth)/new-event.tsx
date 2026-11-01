@@ -20,17 +20,38 @@ import { copy } from "@/constants/copy.zh-TW";
 import { layout, semantic, space, spacing, type } from "@/constants/theme";
 import { eventService } from "@/services/event.service";
 import { useEventStore } from "@/stores/event.store";
-import { getApiErrorMessage } from "@/utils/api-error";
+import { getApiErrorCode, getApiErrorMessage } from "@/utils/api-error";
 import {
   CREATE_EVENT_DESCRIPTION_MAX,
   CREATE_EVENT_NAME_MAX,
   CREATE_EVENT_TIMEZONES,
   CREATE_EVENT_TYPES,
+  createEventFormErrors,
   emptyCreateEventForm,
+  hasCreateEventErrors,
   slugFromName,
   toCreateEventPayload,
+  type CreateEventErrorKey,
+  type CreateEventField,
+  type CreateEventFormErrors,
   type CreateEventFormInput,
 } from "@/utils/event-create-form";
+
+/**
+ * 錯誤鍵 → 文案。Web 走 i18next，App 走 `copy`；指到的都是同一批句子。
+ * 放在模組層級：它只依賴 `copy`，每次 render 重建一份沒有意義。
+ */
+const ERROR_COPY: Record<CreateEventErrorKey, string> = {
+  nameMin: copy.createEvent.errors.nameMin,
+  nameMax: copy.createEvent.errors.nameMax,
+  slugRequired: copy.createEvent.errors.slugRequired,
+  slugFormat: copy.createEvent.errors.slugFormat,
+  startDateRequired: copy.createEvent.errors.startDateRequired,
+  endDateRequired: copy.createEvent.errors.endDateRequired,
+  endDateBeforeStart: copy.createEvent.errors.endDateBeforeStart,
+  dateFormat: copy.createEvent.errors.dateFormat,
+  slugConflict: copy.createEvent.errors.slugConflict,
+};
 
 /**
  * 建立活動（parity `events-list` 的另一半）。
@@ -55,8 +76,27 @@ import {
 export default function NewEventScreen() {
   const insets = useSafeAreaInsets();
   const [form, setForm] = useState<CreateEventFormInput>(emptyCreateEventForm);
+  const [fieldErrors, setFieldErrors] = useState<CreateEventFormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  /**
+   * 改某一格就抹掉那一格的舊錯誤（與 Web 每次 submit 重算 `errors` 等價，
+   * 但使用者一改就看到紅字消失，不必再按一次）。
+   */
+  function patch(next: Partial<CreateEventFormInput>) {
+    setForm((current) => ({ ...current, ...next }));
+    setSubmitError(null);
+    setFieldErrors((current) => {
+      const touched = Object.keys(next).filter(
+        (key) => key in current,
+      ) as CreateEventField[];
+      if (touched.length === 0) return current;
+      const nextErrors = { ...current };
+      for (const key of touched) delete nextErrors[key];
+      return nextErrors;
+    });
+  }
 
   /**
    * 改名稱時同步重算 slug——照 Web `handleNameChange`
@@ -64,16 +104,27 @@ export default function NewEventScreen() {
    * 會被下一次改名覆蓋，Web 也是這個行為。
    */
   function handleNameChange(name: string) {
-    setForm((current) => ({ ...current, name, slug: slugFromName(name) }));
-    setSubmitError(null);
+    patch({ name, slug: slugFromName(name) });
   }
 
   async function submit() {
+    /**
+     * 先跑與 Web 同一組規則（`page.tsx:64-75`）；有任何一格沒過就不送出。
+     * Web 靠這段自己算完再 `return`，App 照同一個順序。
+     */
+    const errors = createEventFormErrors(form);
+    setFieldErrors(errors);
+    if (hasCreateEventErrors(errors)) {
+      setSubmitError(null);
+      return;
+    }
+
     const payload = toCreateEventPayload(form);
     if (payload == null) {
-      // 時間欄位還不能解析。1c 會把這裡換成逐欄位訊息；此刻只確保
-      // **不會送出一個後端必定 400 的請求**。
-      setSubmitError(copy.createEvent.errors.createFailed);
+      // 理論上到不了：上方驗證已經把解析失敗的情況標成 `dateFormat`。
+      // 留著是因為 `toCreateEventPayload` 的簽章允許 null，而「送一個
+      // 必定 400 的請求」比「不送出」糟得多。
+      setSubmitError(copy.createEvent.errors.dateFormat);
       return;
     }
 
@@ -90,13 +141,23 @@ export default function NewEventScreen() {
       });
     } catch (error) {
       /**
-       * 與 Web 一致：伺服器訊息優先。後端會回中文
-       * （例如 `活動標識符已存在，請使用其他 slug`），照樣端給使用者；
-       * 沒有訊息才用 Web 的泛用文案 `建立失敗，請稍後重試`。
+       * 與 Web 一致：slug 撞號打在 slug 欄位上（Web 把
+       * `EVENT_SLUG_CONFLICT` 轉成 `errors.slug`），其餘用伺服器訊息當橫幅。
+       *
+       * 刻意不複製 Web 對 `VALIDATION_ERROR` 的處理：Web 寫的是
+       * `Object.entries(err.details ?? {})`，假設 `details` 是物件；而後端
+       * `ApiResponse.validationError`（`ApiResponse.ts:129-156`，422）回的是
+       * `{ property, message }[]`。照抄會把陣列索引當欄位名（`errors["0"]`），
+       * 畫面上一個字都不會出現。這裡改成直接把伺服器訊息顯示在橫幅。
        */
-      setSubmitError(
-        getApiErrorMessage(error, copy.createEvent.errors.createFailed),
-      );
+      if (getApiErrorCode(error) === "EVENT_SLUG_CONFLICT") {
+        setFieldErrors({ slug: "slugConflict" });
+        setSubmitError(null);
+      } else {
+        setSubmitError(
+          getApiErrorMessage(error, copy.createEvent.errors.createFailed),
+        );
+      }
     } finally {
       setSubmitting(false);
     }
@@ -130,6 +191,7 @@ export default function NewEventScreen() {
             value={form.name}
             onChangeText={handleNameChange}
             placeholder="StartupFest 2026"
+            error={fieldErrors.name ? ERROR_COPY[fieldErrors.name] : null}
             maxLength={CREATE_EVENT_NAME_MAX}
             required
             testID="new-event-name"
@@ -139,12 +201,8 @@ export default function NewEventScreen() {
             <FieldInput
               label={copy.createEvent.slugLabel}
               value={form.slug}
-              onChangeText={(slug) =>
-                setForm((current) => ({
-                  ...current,
-                  slug: slug.toLowerCase(),
-                }))
-              }
+              onChangeText={(slug) => patch({ slug: slug.toLowerCase() })}
+              error={fieldErrors.slug ? ERROR_COPY[fieldErrors.slug] : null}
               autoCapitalize="none"
               autoCorrect={false}
               required
@@ -168,10 +226,11 @@ export default function NewEventScreen() {
           <FieldInput
             label={copy.createEvent.startDateLabel}
             value={form.startDate}
-            onChangeText={(startDate) =>
-              setForm((current) => ({ ...current, startDate }))
-            }
+            onChangeText={(startDate) => patch({ startDate })}
             placeholder="2026-11-01 09:00"
+            error={
+              fieldErrors.startDate ? ERROR_COPY[fieldErrors.startDate] : null
+            }
             autoCapitalize="none"
             autoCorrect={false}
             required
@@ -181,10 +240,9 @@ export default function NewEventScreen() {
           <FieldInput
             label={copy.createEvent.endDateLabel}
             value={form.endDate}
-            onChangeText={(endDate) =>
-              setForm((current) => ({ ...current, endDate }))
-            }
+            onChangeText={(endDate) => patch({ endDate })}
             placeholder="2026-11-02 18:00"
+            error={fieldErrors.endDate ? ERROR_COPY[fieldErrors.endDate] : null}
             autoCapitalize="none"
             autoCorrect={false}
             required
@@ -203,9 +261,7 @@ export default function NewEventScreen() {
             options={CREATE_EVENT_TYPES}
             value={form.eventType}
             labelFor={(value) => copy.profile.eventType[value] ?? value}
-            onSelect={(eventType) =>
-              setForm((current) => ({ ...current, eventType }))
-            }
+            onSelect={(eventType) => patch({ eventType })}
             testID="new-event-type"
           />
 
@@ -214,18 +270,14 @@ export default function NewEventScreen() {
             options={CREATE_EVENT_TIMEZONES}
             value={form.timezone}
             labelFor={(value) => value}
-            onSelect={(timezone) =>
-              setForm((current) => ({ ...current, timezone }))
-            }
+            onSelect={(timezone) => patch({ timezone })}
             testID="new-event-timezone"
           />
 
           <FieldInput
             label={copy.createEvent.descriptionLabel}
             value={form.description}
-            onChangeText={(description) =>
-              setForm((current) => ({ ...current, description }))
-            }
+            onChangeText={(description) => patch({ description })}
             placeholder={copy.createEvent.descriptionPlaceholder}
             maxLength={CREATE_EVENT_DESCRIPTION_MAX}
             multiline

@@ -1067,6 +1067,14 @@ export const copy = {
       endDateBeforeStart: "結束日期不能早於開始日期",
       slugConflict: "此 Slug 已被使用，請換一個",
       createFailed: "建立失敗，請稍後重試",
+      /**
+       * App 專屬，Web 沒有這一句（也不需要）：Web 用
+       * `<input type="datetime-local">`，瀏覽器保證值合法；App 是文字輸入，
+       * 使用者可能打成 `2026-13-45`。這種值後端 `@IsDateString()` 必定 400，
+       * 所以提前擋下來不是「App 比較嚴」。文案與 `createEvent.dateHint`
+       * 的格式一致，讓使用者知道要改成什麼樣子。
+       */
+      dateFormat: "時間格式不正確，請用 2026-11-01 09:00 這種格式",
     },
   },
   /**

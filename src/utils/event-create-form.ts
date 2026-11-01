@@ -137,7 +137,7 @@ export function slugFromName(name: string): string {
  * 表單 → `POST /api/v1/events` 的 body。
  *
  * 兩個時間欄位解析不了就回 `null`（呼叫端據此不送出）。這不是「驗證」——
- * 驗證（哪一格錯、錯在哪句話）在 `createEventFormError`；這裡只回答
+ * 驗證（哪一格錯、錯在哪句話）在 `createEventFormErrors`；這裡只回答
  * 「這個表單現在能不能組出一個合法 body」。
  *
  * 欄位順序與 Web 的 `createEvent({...})` 呼叫（`page.tsx:79-87`）一致，
@@ -160,4 +160,114 @@ export function toCreateEventPayload(
     timezone: form.timezone,
     eventType: form.eventType,
   };
+}
+
+// ---------------------------------------------------------------------------
+// 驗證（逐條對齊 Web `CreateEventModal.validate`，`page.tsx:64-75`）
+// ---------------------------------------------------------------------------
+
+/** 有錯誤時要標紅的欄位。`description` / `timezone` / `eventType` 不在其中。 */
+export type CreateEventField = "name" | "slug" | "startDate" | "endDate";
+
+/**
+ * 錯誤鍵 → `copy.createEvent.errors.*`。
+ *
+ * `slugConflict` 不是前端驗證產生的（那只可能來自後端 409），但 Web 也把它
+ * 打在 slug 欄位上，所以共用同一張表。
+ */
+export type CreateEventErrorKey =
+  | "nameMin"
+  | "nameMax"
+  | "slugRequired"
+  | "slugFormat"
+  | "startDateRequired"
+  | "endDateRequired"
+  | "endDateBeforeStart"
+  | "dateFormat"
+  | "slugConflict";
+
+/** 欄位 → 錯誤鍵。空物件＝通過。 */
+export type CreateEventFormErrors = Partial<
+  Record<CreateEventField, CreateEventErrorKey>
+>;
+
+/** Web `validate()` 的 `/^[a-z0-9-]+$/`。 */
+const SLUG_PATTERN = /^[a-z0-9-]+$/;
+
+/**
+ * 驗證建立表單；回傳「欄位 → 錯誤鍵」。空物件＝通過。
+ *
+ * ## 與 Web 的對應（逐條）
+ *
+ * | Web `validate()`（`page.tsx:64-75`） | 這裡 |
+ * | --- | --- |
+ * | `!form.name \|\| name.length < 2` → `nameMin` | 同 |
+ * | `name.length > 120` → `nameMax` | 同 |
+ * | `!form.slug` → `slugRequired` | 同 |
+ * | `!/^[a-z0-9-]+$/.test(slug)` → `slugFormat` | 同 |
+ * | `!form.startDate` → `startDateRequired` | 同 |
+ * | `!form.endDate` → `endDateRequired` | 同 |
+ * | `endDate < startDate` → `endDateBeforeStart` | 同（見下） |
+ *
+ * **沒有增減任何一條會擋人的規則。**
+ *
+ * ## 三個刻意保留的 Web 行為
+ *
+ * 1. **`nameMin` 與 `nameMax` 是兩個獨立 `if`，不是 `else if`**。所以 121 字的
+ *    名稱會先被判 `nameMin` 不了（長度 ≥ 2），再被 `nameMax` 蓋掉——結果是
+ *    `nameMax`。照抄，不改成 `else if`。
+ * 2. **`slugRequired` 在 Web 是走不到的分支**。slug 為空時兩個 `if` 都成立，
+ *    後面的 `slugFormat` 覆蓋前面的 `slugRequired`。這裡**照樣保留這個覆蓋**
+ *    （也因此保留一條走不到的鍵），理由：若 App 單邊改成 `else if`，同一個
+ *    輸入在兩邊會顯示不同句子，對等審查時就是一條新的分岔。要修必須兩邊一起修。
+ * 3. **順序比較用解析後的時間，不是字串比較**。Web 比的是
+ *    `form.endDate < form.startDate`（兩個 `datetime-local` 的字串），
+ *    那種字典序只在 `YYYY-MM-DDTHH:mm` 這個格式下才會剛好等於時間順序。
+ *    App 的輸入允許空白分隔（`YYYY-MM-DD HH:mm`），`T`（0x54）與空白（0x20）
+ *    混用時字典序會錯，所以先解析再比 `getTime()`。**擋下來的輸入集合相同**
+ *    （`<` 而非 `<=`，所以「同時結束」仍然放行，與 Web 一致）。
+ *
+ * ## 一條 App 專屬、Web 不可能產生的規則
+ *
+ * `dateFormat`：時間字串解析不了。Web 用 `<input type="datetime-local">`，
+ * 瀏覽器保證值一定是合法時間，所以 Web 沒有、也不需要這條。App 是文字輸入，
+ * 使用者可以打 `2026-13-45`。這種值後端 `@IsDateString()` 必定 400，
+ * 提前擋下來不是「App 比 Web 嚴」，而是把一個必然失敗的請求換成一句看得懂的話
+ * （與 `session-form.ts` 的 `timeInvalid` 同一個立場）。
+ */
+export function createEventFormErrors(
+  form: CreateEventFormInput,
+): CreateEventFormErrors {
+  const errors: CreateEventFormErrors = {};
+
+  // 名稱：兩個獨立 if，順序決定覆蓋（照 Web）。
+  if (form.name === "" || form.name.length < 2) errors.name = "nameMin";
+  if (form.name.length > CREATE_EVENT_NAME_MAX) errors.name = "nameMax";
+
+  // slug：同上。空字串會被下一行覆蓋成 slugFormat，這是 Web 的既有行為。
+  if (form.slug === "") errors.slug = "slugRequired";
+  if (!SLUG_PATTERN.test(form.slug)) errors.slug = "slugFormat";
+
+  // 兩個時間欄位的必填（照 Web 的兩條獨立 if）。
+  if (form.startDate === "") errors.startDate = "startDateRequired";
+  if (form.endDate === "") errors.endDate = "endDateRequired";
+
+  // App 專屬：有填但解析不了。
+  const start =
+    form.startDate === "" ? null : parseLocalDateTime(form.startDate);
+  const end = form.endDate === "" ? null : parseLocalDateTime(form.endDate);
+  if (form.startDate !== "" && start == null) errors.startDate = "dateFormat";
+  if (form.endDate !== "" && end == null) errors.endDate = "dateFormat";
+
+  // 先後順序：兩邊都解析得出來才比。嚴格小於——同時結束是合法的。
+  if (start != null && end != null && end.getTime() < start.getTime()) {
+    errors.endDate = "endDateBeforeStart";
+  }
+
+  return errors;
+}
+
+/** 是否有任何欄位未通過。 */
+export function hasCreateEventErrors(errors: CreateEventFormErrors): boolean {
+  return Object.keys(errors).length > 0;
 }
