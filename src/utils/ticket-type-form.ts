@@ -1,8 +1,17 @@
+import {
+  findMissingRequiredSemantics,
+  hasInvalidAllowOtherType,
+  hasInvalidSemanticBindingType,
+  hasOtherSentinelCollision,
+  hasOtherSiblingKeyCollision,
+  type RegistrantSemanticKey,
+} from "@/utils/registrationFormContract";
 import type {
   AdminTicketType,
   CreateTicketTypePayload,
   EventPaymentMethod,
   RegistrantType,
+  RegistrationDynamicField,
   RegistrationFormSchema,
   TicketCapability,
 } from "@/types/ticketType.types";
@@ -86,6 +95,15 @@ export interface TicketTypeFormInput {
    * 後者已經解析過（覆寫 ?? 預設），寫回去會把「繼承」固化成「明確覆寫」。
    */
   capabilities: TicketCapability[] | null;
+  /**
+   * `formFieldsJson` 的**原始 JSON 文字**。
+   *
+   * 為什麼是文字而不是解析後的物件：使用者打字打到一半必然是壞 JSON
+   * （例如只打了 `{"fields": [`）。若把它存成物件，每次按鍵都要嘗試解析、
+   * 失敗就丟掉使用者正在打的內容。Web 也是這樣存的（`formFieldsJsonText`
+   * 與 `formFieldsJson` 兩個狀態並存，物件那份由文字派生）。
+   */
+  formFieldsJsonText: string;
 }
 
 /**
@@ -116,6 +134,7 @@ export function emptyTicketTypeForm(): TicketTypeFormInput {
     allowedPaymentMethods: ["FREE"],
     // null ＝ 繼承 registrantType 的預設權益（後端語意）。
     capabilities: null,
+    formFieldsJsonText: JSON.stringify({ fields: [] }, null, 2),
   };
 }
 
@@ -140,16 +159,13 @@ export function ticketTypeFormFrom(
     ),
     // 用 **override**，不要用解析後的 capabilities（見型別上的警告）。
     capabilities: existing.capabilitiesOverride ?? null,
-  };
-}
-
-/** 編輯時要帶回去的 context。 */
-export function payloadContextFrom(
-  existing: AdminTicketType | null,
-): TicketTypePayloadContext {
-  return {
-    // 保留原值，不要用 `{ fields: [] }` 當預設（會清空主辦方的報名表）。
-    formFieldsJson: existing?.formFieldsJson ?? { fields: [] },
+    // 原樣 pretty-print：不化縮排的語意，只改變顯示。使用者的設定不會因為
+    // 「App 幫他排版」而變成別的值（值域仍是同一個 JSON）。
+    formFieldsJsonText: JSON.stringify(
+      existing.formFieldsJson ?? { fields: [] },
+      null,
+      2,
+    ),
   };
 }
 
@@ -330,6 +346,163 @@ export function validateTicketTypeForm(
   }
 
   return errors;
+}
+
+// ---------------------------------------------------------------------------
+// 報名表 JSON 的語意驗證（逐條對齊 Web `validate()`）
+// ---------------------------------------------------------------------------
+
+/** `formFieldsJson` 的驗證錯誤。 */
+export type FormSchemaError =
+  /** 不是合法 JSON，或不是物件，或是陣列。 */
+  | { code: "form_schema_invalid" }
+  /** 欄位 key 重複。 */
+  | { code: "form_schema_duplicate_keys" }
+  /** 欄位 key 不合法（只允許 `[a-zA-Z0-9_-]`）。 */
+  | { code: "form_schema_invalid_key" }
+  /** `pricing-select` 的 price／deposit 有非數字值。 */
+  | { code: "form_schema_bad_price" }
+  /** 缺少該報名者類型的必填語義。 */
+  | { code: "form_schema_missing_semantic"; missing: RegistrantSemanticKey[] }
+  /** `allowOther` 用在 select / multi-select 以外的型別。 */
+  | { code: "form_schema_invalid_allow_other_type" }
+  /** `allowOther` 欄位的選項用了哨兵值 `__other__`。 */
+  | { code: "form_schema_invalid_other_collision" }
+  /** 欄位 key 撞到某個 `allowOther` 欄位的 sibling key。 */
+  | { code: "form_schema_invalid_sibling_collision" }
+  /** `semanticKey` 綁在不允許的型別（只允許 text / select）。 */
+  | { code: "form_schema_invalid_semantic_type" };
+
+export type FormSchemaParseResult =
+  | { ok: true; schema: RegistrationFormSchema }
+  | { ok: false; error: FormSchemaError };
+
+/** 欄位 key 的合法字元集（與 Web／後端同一個 regex）。 */
+const FIELD_KEY_PATTERN = /^[a-zA-Z0-9_-]+$/;
+
+/**
+ * 解析並驗證 `formFieldsJsonText`。
+ *
+ * 逐條對齊 Web `ticket-types/page.tsx:606-758` 的 `validate()`；順序也相同
+ * （**先失敗的先回報**，因為 Web 也是一連串 `else if` / `if (!errs.x)`）：
+ *
+ * 1. 能 `JSON.parse`、不是 null、不是陣列
+ * 2. key 不重複
+ * 3. key 符合 `^[a-zA-Z0-9_-]+$`
+ * 4. `pricing-select` 的 price／deposit 若是非空值必須是數字
+ * 5. 該 `registrantType` 的必填語義都要被某個 `required: true` 的欄位綁定
+ * 6. `allowOther` 只能用於 select / multi-select
+ * 7. `allowOther` 的選項不得含哨兵值 `__other__`
+ * 8. 任何 key 不得等於某個 `allowOther` 欄位的 sibling key
+ * 9. `semanticKey` 只能綁 text / select
+ *
+ * ## 為什麼 `fields` 不是陣列時**不算錯**
+ *
+ * Web 是 `Array.isArray(parsed.fields) ? parsed.fields : []`——`fields` 不見了
+ * 就當空表，然後繼續往下驗。照抄這個行為：後端 `parseDynamicFormSchema` 也
+ * 容忍缺 `fields`。若這裡改成報錯，App 就會拒繪 Web 願意存的東西。
+ */
+export function validateFormFieldsJson(
+  text: string,
+  registrantType: RegistrantType,
+): FormSchemaParseResult {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return { ok: false, error: { code: "form_schema_invalid" } };
+  }
+
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return { ok: false, error: { code: "form_schema_invalid" } };
+  }
+
+  const record = parsed as { fields?: unknown; style?: unknown };
+  const fields = Array.isArray(record.fields)
+    ? (record.fields as RegistrationDynamicField[])
+    : [];
+
+  // 2. key 重複
+  const keys = fields.map((field) => String(field.key ?? "")).filter(Boolean);
+  if (new Set(keys).size !== keys.length) {
+    return { ok: false, error: { code: "form_schema_duplicate_keys" } };
+  }
+
+  // 3. key 格式
+  if (
+    fields.some(
+      (field) => !field.key || !FIELD_KEY_PATTERN.test(String(field.key)),
+    )
+  ) {
+    return { ok: false, error: { code: "form_schema_invalid_key" } };
+  }
+
+  // 4. pricing-select 的價格／按金
+  const hasBadPricingOption = fields.some(
+    (field) =>
+      field.type === "pricing-select" &&
+      Array.isArray(field.options) &&
+      field.options.some(
+        (option) =>
+          (option.price !== undefined &&
+            option.price !== null &&
+            (option.price as unknown) !== "" &&
+            Number.isNaN(Number(option.price))) ||
+          (option.deposit !== undefined &&
+            option.deposit !== null &&
+            (option.deposit as unknown) !== "" &&
+            Number.isNaN(Number(option.deposit))),
+      ),
+  );
+  if (hasBadPricingOption) {
+    return { ok: false, error: { code: "form_schema_bad_price" } };
+  }
+
+  // 5. 必填語義
+  const missing = findMissingRequiredSemantics(fields, registrantType);
+  if (missing.length > 0) {
+    return {
+      ok: false,
+      error: { code: "form_schema_missing_semantic", missing },
+    };
+  }
+
+  // 6-9. Other 選項與語義綁定
+  if (hasInvalidAllowOtherType(fields)) {
+    return {
+      ok: false,
+      error: { code: "form_schema_invalid_allow_other_type" },
+    };
+  }
+  if (hasOtherSentinelCollision(fields)) {
+    return {
+      ok: false,
+      error: { code: "form_schema_invalid_other_collision" },
+    };
+  }
+  if (hasOtherSiblingKeyCollision(fields)) {
+    return {
+      ok: false,
+      error: { code: "form_schema_invalid_sibling_collision" },
+    };
+  }
+  if (hasInvalidSemanticBindingType(fields)) {
+    return {
+      ok: false,
+      error: { code: "form_schema_invalid_semantic_type" },
+    };
+  }
+
+  // 原樣回傳解析結果（含 `style`），不做任何清洗——後端存的就是這份。
+  return {
+    ok: true,
+    schema: {
+      ...(record.style === undefined
+        ? {}
+        : { style: record.style as Record<string, unknown> }),
+      fields,
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------

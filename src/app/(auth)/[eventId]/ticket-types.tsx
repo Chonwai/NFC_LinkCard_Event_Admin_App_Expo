@@ -49,12 +49,13 @@ import { classifyTicketMutationError } from "@/utils/ticket-type-errors";
 import {
   buildTicketTypePayload,
   emptyTicketTypeForm,
-  payloadContextFrom,
   resolveTicketCapabilities,
   summarizeTicketTypeChanges,
   ticketTypeFormFrom,
   toggleTicketCapability,
+  validateFormFieldsJson,
   validateTicketTypeForm,
+  type FormSchemaError,
   type TicketTypeFormErrorCode,
   type TicketTypeFormInput,
 } from "@/utils/ticket-type-form";
@@ -577,6 +578,7 @@ function TicketTypeFormModal({
   );
   const [step, setStep] = useState<"form" | "confirm">("form");
   const [errorCodes, setErrorCodes] = useState<TicketTypeFormErrorCode[]>([]);
+  const [schemaError, setSchemaError] = useState<FormSchemaError | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
 
@@ -592,9 +594,14 @@ function TicketTypeFormModal({
 
   function handleNext() {
     const codes = validateTicketTypeForm(form);
+    const schema = validateFormFieldsJson(
+      form.formFieldsJsonText,
+      form.registrantType,
+    );
     setErrorCodes(codes);
+    setSchemaError(schema.ok ? null : schema.error);
     setFailure(null);
-    if (codes.length > 0) return;
+    if (codes.length > 0 || !schema.ok) return;
     setStep("confirm");
   }
 
@@ -602,14 +609,22 @@ function TicketTypeFormModal({
     setSubmitting(true);
     setFailure(null);
     try {
-      // `payloadContextFrom` 兩個分支都不一樣，而且**都不是可有可無的**：
-      // - 新增：`capabilities` = null（繼承）、`formFieldsJson` = 空表。
-      // - 編輯：帶回既有的 `capabilitiesOverride` 與 `formFieldsJson`。
-      //   傳錯任何一個，存一次檔就會把主辦方的設定默默改掉（見 util 檔頭）。
-      const payload = buildTicketTypePayload(
-        form,
-        payloadContextFrom(existing),
+      // 二次驗證：使用者可能在確認頁按「再檢查一下」回去改了東西，
+      // 而 `handleSubmit` 是唯一會送出的路徑。寧可重驗一次，
+      // 也不要送出一份沒驗過的 `formFieldsJson`。
+      const schema = validateFormFieldsJson(
+        form.formFieldsJsonText,
+        form.registrantType,
       );
+      if (!schema.ok) {
+        setSchemaError(schema.error);
+        setStep("form");
+        return;
+      }
+
+      const payload = buildTicketTypePayload(form, {
+        formFieldsJson: schema.schema,
+      });
 
       if (existing) {
         await ticketTypeService.updateTicketType(eventId, existing.id, payload);
@@ -763,6 +778,29 @@ function TicketTypeFormModal({
                     testID="ticket-type-form-access-code"
                   />
                 ) : null}
+                {/**
+                 * 報名表 JSON。Web 用完整的動態表單建構器編輯同一份資料；
+                 * App 沒有建構器（那是一大塊獨立 UI），改用文字入口。
+                 * 語意完全相同：存進 DB 的都是這個 JSON。
+                 *
+                 * 驗證照 Web `validate()` 逐條對齊（見
+                 * `utils/ticket-type-form.ts` 的 `validateFormFieldsJson`）。
+                 */}
+                <FieldInput
+                  label={copy.ticketTypes.formSchema}
+                  value={form.formFieldsJsonText}
+                  onChangeText={(text) => update("formFieldsJsonText", text)}
+                  placeholder={copy.ticketTypes.formSchemaHint}
+                  multiline
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  error={
+                    schemaError == null
+                      ? null
+                      : formSchemaErrorMessage(schemaError)
+                  }
+                  testID="ticket-type-form-schema"
+                />
                 {/**
                  * 票種權益編輯（LC-TTE）。
                  *
@@ -1109,6 +1147,42 @@ function formErrorMessage(code: TicketTypeFormErrorCode): string {
       return copy.ticketTypes.formErrors.accessCodeRequired;
     case "payment_method_required":
       return copy.ticketTypes.formErrors.paymentMethodRequired;
+  }
+}
+
+/**
+ * `formFieldsJson` 的驗證錯誤 → 文案。
+ *
+ * 每一條都對應 Web `errors.*` 的同名訊息（見 `copy.ticketTypes.formErrors`）。
+ * `missing` 會列出缺少的語義（例如「公司」），因為「缺少必備語義」這句話
+ * 本身沒有指出是哪一項——而那正是使用者要改的地方。
+ */
+function formSchemaErrorMessage(error: FormSchemaError): string {
+  switch (error.code) {
+    case "form_schema_invalid":
+      return copy.ticketTypes.formErrors.formSchemaInvalid;
+    case "form_schema_duplicate_keys":
+      return copy.ticketTypes.formErrors.formSchemaDuplicateKeys;
+    case "form_schema_invalid_key":
+      return copy.ticketTypes.formErrors.formSchemaInvalidKey;
+    case "form_schema_bad_price":
+      return copy.ticketTypes.formErrors.formSchemaBadPrice;
+    case "form_schema_missing_semantic":
+      return copy.ticketTypes.formErrors.formSchemaMissingSemantic(
+        error.missing
+          .map(
+            (semantic) => copy.ticketTypes.semanticLabels[semantic] ?? semantic,
+          )
+          .join("、"),
+      );
+    case "form_schema_invalid_allow_other_type":
+      return copy.ticketTypes.formErrors.formSchemaInvalidAllowOtherType;
+    case "form_schema_invalid_other_collision":
+      return copy.ticketTypes.formErrors.formSchemaInvalidOtherCollision;
+    case "form_schema_invalid_sibling_collision":
+      return copy.ticketTypes.formErrors.formSchemaInvalidSiblingCollision;
+    case "form_schema_invalid_semantic_type":
+      return copy.ticketTypes.formErrors.formSchemaInvalidSemanticType;
   }
 }
 

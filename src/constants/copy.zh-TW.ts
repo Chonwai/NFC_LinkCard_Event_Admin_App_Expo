@@ -1408,7 +1408,54 @@ export const copy = {
       accessCodeRequired: "隱藏票種必須設置訪問碼",
       /** Web `errors.paymentMethodRequired` */
       paymentMethodRequired: "請至少選一種付款方式",
+      /**
+       * 報名表 JSON 的語意驗證錯誤。全部逐條對應 Web `errors.*`
+       * （Web 的這些訊息是給**建構器 UI** 用的；App 沒有建構器，用文字入口，
+       * 所以同一組訊息在這裡是「JSON 哪裡不對」）。
+       */
+      /** Web `errors.formSchemaInvalid` */
+      formSchemaInvalid: "請輸入有效的 JSON schema 物件",
+      /** Web `errors.formSchemaDuplicateKeys` */
+      formSchemaDuplicateKeys: "表單欄位含重複 key，每個 key 必須唯一",
+      /** Web `errors.formSchemaInvalidKey` */
+      formSchemaInvalidKey: "欄位 key 只能包含字母、數字、_ 和 -",
+      /** Web `errors.formSchemaBadPrice` */
+      formSchemaBadPrice: "定價選項包含無效的價格或按金數值",
+      /** Web `formEditor.missingRequiredSemantic`（`{{missing}}` → 函式） */
+      formSchemaMissingSemantic: (missing: string) =>
+        `缺少必備語義：${missing}`,
+      /** Web `errors.formSchemaInvalidAllowOtherType` */
+      formSchemaInvalidAllowOtherType: "「其他」僅適用於單選/多選欄位",
+      /** Web `errors.formSchemaInvalidOtherCollision` */
+      formSchemaInvalidOtherCollision:
+        "選項值不可與「其他」哨兵值 __other__ 衝突",
+      /** Web `errors.formSchemaInvalidSiblingCollision` */
+      formSchemaInvalidSiblingCollision:
+        "欄位 key 不可與「其他」欄位的 sibling key 衝突",
+      /** Web `errors.formSchemaInvalidSemanticType` */
+      formSchemaInvalidSemanticType:
+        "語義綁定僅支援 text / select 型別（其他型別會導致報名驗證失敗）",
     },
+    /**
+     * 報名表 JSON 入口。
+     *
+     * Web 有完整的動態表單建構器；App 沒有（建構器本身就是一大塊 UI）。
+     * 這裡改用直接編輯同一份 JSON，語義與存進 DB 的資料完全相同。
+     * Web 的 i18n 早就預留了這個入口（`ticketTypes.formSchema` /
+     * `formSchemaHint`：「P0 先提供最小 JSON authoring 入口」），文案照抄。
+     */
+    formSchema: "報名表單設定（JSON）",
+    formSchemaHint:
+      '選填。留空等同 { "fields": [] }。欄位格式與網頁版相同，存檔前會做語意綁定驗證。',
+    /** Web `formEditor.semantic.*`（缺少必填語義時列出用） */
+    semanticLabels: {
+      email: "Email",
+      firstName: "名字",
+      lastName: "姓氏",
+      phone: "電話",
+      company: "公司",
+      website: "官網",
+    } satisfies Record<string, string>,
     /**
      * 二次確認（**Web 沒有**，App 新增）。
      *

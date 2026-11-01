@@ -26,11 +26,11 @@ const {
   buildTicketTypePayload,
   emptyTicketTypeForm,
   normalizeAllowedPaymentMethods,
-  payloadContextFrom,
   resolveTicketCapabilities,
   summarizeTicketTypeChanges,
   ticketTypeFormFrom,
   toggleTicketCapability,
+  validateFormFieldsJson,
   validateTicketTypeForm,
 } = await import("@/utils/ticket-type-form");
 
@@ -269,7 +269,17 @@ test("編輯票種：formFieldsJson 原值帶回，不會被清成空表", () =>
     formFieldsJson: { fields: [{ key: "company", type: "text" }] },
   };
 
-  const payload = buildTicketTypePayload(form(), payloadContextFrom(existing));
+  // 表單裡的 JSON 文字由既有值 pretty-print 而來。
+  const filled = ticketTypeFormFrom(existing);
+  const parsed = validateFormFieldsJson(
+    filled.formFieldsJsonText,
+    filled.registrantType,
+  );
+  assert.equal(parsed.ok, true, "使用者沒改的話，回填的文字必須能解析");
+
+  const payload = buildTicketTypePayload(filled, {
+    formFieldsJson: parsed.schema,
+  });
   assert.deepEqual(payload.formFieldsJson, existing.formFieldsJson);
 });
 
