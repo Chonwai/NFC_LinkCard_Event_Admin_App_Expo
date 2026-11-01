@@ -74,6 +74,13 @@ Web 現在是：掃碼 → 不換頁直接寫卡 → 自動綁卡 → 寫入時�
 
 ## 1.2 卡片上鎖與讀卡機電源：Web 獨有，App 沒有對應層
 
+> ⚠️ **2026-11-01 晚間：這個標題的「App 沒有對應層」已經不成立了。** App 已經有
+> `PWD_AUTH`／`lockCard`（`src/utils/nfc-utils.ts` ＋ `src/utils/ntag-apdu.ts`，
+> `933add1`／`795bdf4`，接線 `4265916`），下面「全檔沒有 lock／pwd／protect 字樣」
+> 那句是**當時**的描述。**讀卡機電源（`powerSettings.ts`）那半仍然 Web 獨有。**
+> 標題保留是為了維持引用座標；現況判定見 `03-capability-matrix.md` 同一節的
+> 2026-11-01 註與 `04 §G-8` 末段（上鎖未經真機驗證）。
+
 `lib/nfc/` 在區間內長出這些模組：
 
 - `globalPassword.ts`（195 行）／`globalPasswordClient.ts`：NTAG21x 的 `PWD_AUTH`

@@ -188,11 +188,12 @@
       "gapId": "G-8",
       "decidedIn": "docs/analysis/adminapp-parity-20261028/04-gap-register.md#G-8",
       "evidence": [
-        "除上鎖外全部對齊（2026-11-01）：掃碼／手動輸入、checkIn、desk-lookup（9710cee）、已報到分支、寫卡入口、walk-in 入口六項在 App 端均有可查證據",
-        "唯一缺口是卡片上鎖：三個障礙（密碼通道只走 cookie auth_token、App 無 raw APDU、寫錯即廢卡且 CI 無硬體）與兩個可選解法的代價見 04 §G-8「剩餘 1 項：卡片上鎖（2026-11-01 查證）」",
+        "除下列兩項外全部對齊（2026-11-01）：掃碼／手動輸入、checkIn、desk-lookup（9710cee）、已報到分支、寫卡入口、walk-in 入口六項在 App 端均有可查證據",
+        "缺口一（a）操作步數（仍未決）：Web 是同一畫面（WriteCardPanel），App 是兩頁（check-in → nfc-bind，需人按 CTA），而漏按那一步沒有提示。判定與兩個選項見 04 §G-8",
+        "缺口二（b）真機未驗：卡片上鎖已實作（933add1／795bdf4／806f78a／4265916；tests/ntag-apdu.test.mjs、tests/nfc-lock.test.mjs、tests/nfc-lock-after-write.test.mjs、tests/card-password-service.test.mjs），但 CI 無硬體，AUTH0／ACCESS 的位元組、頁址與寫入順序只有純函式與 mock 背書；寫錯的後果是廢卡，不是錯誤訊息",
+        "上鎖三態照 Web 的 DeskLockNote（lib/checkin/nfcDesk.ts:57）locked／unlocked／lock_failed；取不到密碼仍完成寫卡（D-4）。密碼通道借用 Web 的 route（App 自送 Cookie: auth_token），後端仍無等價端點",
         "兩邊都有 QR 掃碼、手動輸入、防連掃門閂",
-        "Web 同一畫面寫卡＋綁卡＋上鎖（WriteCardPanel 524 行、lib/checkin/nfcDesk.ts、lib/nfc/globalPassword.ts）",
-        "App 寫卡在另一個畫面（nfc-bind.tsx），且無上鎖能力；iOS 硬阻擋（nfc-bind.tsx:84-85）"
+        "Web 同一畫面寫卡＋綁卡＋上鎖（WriteCardPanel、lib/checkin/nfcDesk.ts、lib/nfc/globalPassword.ts）"
       ]
     },
     {
@@ -473,6 +474,8 @@
       "owner": "product+ops",
       "size": "L",
       "status": "decision-needed",
+      "implementedOn": ["933add1", "795bdf4", "806f78a", "4265916"],
+      "note": "上鎖（b）已於 2026-11-01 實作並接線，但未經真機驗證（CI 無硬體，AUTH0／ACCESS 只有純函式與 mock 背書）。status 仍是 decision-needed：剩下的（a）同頁流程沒有人裁定。fixedOn 維持空的一——沒有任何一項被完全關閉。改判 ALIGNED 的條件寫在 04 §G-8 末段。",
       "fixedOn": []
     },
     {

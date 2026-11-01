@@ -913,34 +913,82 @@ NfcA」寫進文件，下一個人會以為要從零接 tech；實際要接的�
   依賴，CORS 與部署順序要一起處理；「一支端點兩套認證」也是長期維護成本。
 - 好處：**不動後端**，秘密仍只有一份（Frontend 的 env 不變）。
 
-**為什麼兩者都不在本輪做。** 兩者都需要跨 repo 決定（A 是後端新端點，B 是改變
-Frontend 端點的認證契約），決定權不在 App 這個 repo；而且兩者都**無法在 CI 驗證**
-（一個要真機寫卡，一個要跨網域實打）。寫成「待決」比先做一半安全：做一半的結果是
-「文件說有上鎖、實際沒有」，那比明確的沒有更危險。
+**為什麼兩者都不在本輪做（2026-11-01 上午的結論）。** 兩者都需要跨 repo 決定（A 是
+後端新端點，B 是改變 Frontend 端點的認證契約），決定權不在 App 這個 repo；而且兩者
+都**無法在 CI 驗證**（一個要真機寫卡，一個要跨網域實打）。寫成「待決」比先做一半安
+全：做一半的結果是「文件說有上鎖、實際沒有」，那比明確的沒有更危險。
 
-**為什麼 `check-in` 維持 `APP_GAP`**
+> ⚠️ **上面那兩段已被 2026-11-01 晚間的工作推翻，保留是為了留下推理痕跡。** 實際走
+> 的是**第三條路**，兩條都選項都不是；詳見下一節。其中只有一句話沒有被推翻，而且它
+> 正是這一節最後仍然成立的風險評估：**沒有任何東西在真機上驗過**。
 
-`ALIGNED` 的定義是全部對齊；上鎖是 Web 有而 App 沒有的能力，所以不能標。
+#### 2026-11-01 晚間：上鎖已實作（三個障礙解除兩個，第三個沒有被抵銷）
 
-留著這個 `APP_GAP` 不是為了扣分，是為了擋住下一輪最可能的誤用：其他項目都綠了，就
-順手把整列改成 `ALIGNED`。那個改動會讓「兩邊的卡受同等保護」變成一句沒有根據的宣
-稱，而它不會在任何測試裡失敗。
+**障礙 1（密碼通道）解除，走的不是 §G-8 的方案 A 也不是方案 B。** 真正可行的是第三
+條：**App 自己把 `Cookie: auth_token=<jwt>` 送上那支既有的 Frontend route**。那支
+route 本來就認這個 cookie（`LinkCard_Frontend@app/api/check-in/card-password/route.ts:75`／
+`:140`），
+所以 **Frontend 一個字都不用改**——方案 B 假設要替它加一條 Bearer 分支，但既然
+React Native 的 `fetch` 沒有瀏覽器的 CORS 限制、可以直接寫 cookie header，那條分支
+就不需要存在。代價是這個 header 由 App 手動拼（`src/services/card-password.service.ts`），
+而它是一份**有期限的借用**：後端一旦有 `GET /events/:eventId/card-password`（方案 A），
+只需要換掉該檔 `endpointUrl()` 的那一行。
+
+**障礙 2（raw APDU）解除。** `933add1` 把鎖定命令寫成純資料（`src/utils/ntag-apdu.ts`），
+`795bdf4` 用 `transceive` 實作 `pwdAuth()`／`lockCard()`。上鎖序列是「先寫 `ACCESS`
+頁、再寫 `configPage`」，`AUTH0 = firstUserPage`——順序與位址由
+`tests/ntag-apdu.test.mjs` 與 `tests/nfc-lock.test.mjs` 釘住。
+
+**接線。** `4265916` 把三步接進既有成功路徑（驗 → 寫 → 鎖），三態
+（`locked`／`unlocked`／`lock_failed`）走 Web 的 `DeskLockNote` 同一組詞彙。實作時
+多了一支不在原計畫裡的前置：`detectCardLayout()`（`GET_VERSION`，唯讀）。原因是
+`lockCard()` 需要 `layout` 才知道 `configPage`／`pwdPage`／`packPage`，而寫卡走的是
+NDEF 抽象層、拿不到型號；三個型號的頁碼是 41／131／227，猜錯就是寫進使用者的資料頁。
+
+**障礙 3（驗證層）仍在，而且沒有任何東西抵銷它。** 明確寫在這裡，因為這是最容易被
+誤讀的一格：
+
+> **卡片上鎖已實作，但未經真機驗證。** CI 無硬體，`AUTH0`／`ACCESS` 的位元組、頁址
+> 與寫入順序只有**純函式與 mock** 背書（`tests/ntag-apdu.test.mjs`、
+> `tests/nfc-lock.test.mjs`、`tests/nfc-lock-after-write.test.mjs`）。mock 能證明
+> 「送出去的指令長這樣」，不能證明「真卡收到這些指令後變成那樣」。而這條路徑的失敗
+> 模式是**廢卡**，不是錯誤訊息。
+
+**⇒ 剩下的兩件事，都不是程式問題：**
+
+1. **（a）同頁流程仍未決。** 上鎖做完之後，Web 與 App 在「卡受什麼保護」上終於同一
+   條線，但「掃 QR → 派手帶」中間仍然隔著一次換頁，而**漏按沒有任何提示**。
+2. **（b）真機驗證。** 需要一份真卡（213／215／216 各一，至少 215）跑過
+   `PWD_AUTH` → 寫 `PWD`／`PACK`／`ACCESS`／`AUTH0` → 用新密碼再驗 → 讀回設定頁，
+   並記下實測結果。CI 綠幾次都不構成這份記錄。
+
+**為什麼 `check-in` 維持 `APP_GAP`（2026-11-01 晚間的判定，理由已改）**
+
+`ALIGNED` 的定義是全部對齊。上鎖的**程式**現在在了，但上面那兩件事都還在，所以不能
+標。留著這個 `APP_GAP` 不是為了扣分，是為了擋住下一輪最可能的誤用：其他項目都綠了，
+就順手把整列改成 `ALIGNED`。那個改動會讓「兩邊的卡受同等保護」變成一句沒有根據的宣
+稱——**此刻它只被 mock 支撐，而 mock 沒有感應線圈**——而它不會在任何測試裡失敗。
+
+**這一條什麼時候才可以改判 `ALIGNED`**：真機驗證記錄存在（兩三張卡、記錄頁碼與最終
+`ACCESS`／`AUTH0` 值），並且（a）有明確裁定（做或明確不做）。在那之前，`APP_GAP`
+的描述只收斂成上面那兩項，不再包含「沒有上鎖」。
 
 **已對齊的部分（避免讀者以為整個模組沒做）**
 
-`check-in` 除了上鎖之外是對齊的，每一項都有位置可查：
+`check-in` 除了上面那兩項（同頁流程、真機驗證）之外是對齊的，每一項都有位置可查：
 
-| 能力                   | App 端證據                                                                                                                                                                                               |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 掃碼／手動輸入切換     | `LinkCard_Event_Admin_App_Expo@src/app/(auth)/[eventId]/check-in.tsx:505`（`copy.checkIn.switchToManual`）                                                                                               |
-| `checkIn` 呼叫與結果卡 | `LinkCard_Event_Admin_App_Expo@src/app/(auth)/[eventId]/check-in.tsx:202`（先判定、再打 `checkIn`）                                                                                                      |
-| `desk-lookup` 唯讀查詢 | `9710cee`；純邏輯 `LinkCard_Event_Admin_App_Expo@src/utils/desk-lookup.ts:2`，接線 `LinkCard_Event_Admin_App_Expo@src/app/(auth)/[eventId]/check-in.tsx:202`，測試 `tests/check-in-desk-lookup.test.mjs` |
-| 已報到分支             | `LinkCard_Event_Admin_App_Expo@src/app/(auth)/[eventId]/check-in.tsx:222`（`copy.checkIn.alreadyCheckedIn`）                                                                                             |
-| 寫卡入口               | `LinkCard_Event_Admin_App_Expo@src/app/(auth)/[eventId]/check-in.tsx:696`（`testID="check-in-write-card"`），`:703` 帶 `code` 轉 `nfc-bind`                                                              |
-| `walk-in` 入口         | `LinkCard_Event_Admin_App_Expo@src/app/(auth)/[eventId]/check-in.tsx:753`                                                                                                                                |
+| 能力                   | App 端證據                                                                                                                                                                                                                                                                                                                       |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 掃碼／手動輸入切換     | `LinkCard_Event_Admin_App_Expo@src/app/(auth)/[eventId]/check-in.tsx:505`（`copy.checkIn.switchToManual`）                                                                                                                                                                                                                       |
+| `checkIn` 呼叫與結果卡 | `LinkCard_Event_Admin_App_Expo@src/app/(auth)/[eventId]/check-in.tsx:202`（先判定、再打 `checkIn`）                                                                                                                                                                                                                              |
+| `desk-lookup` 唯讀查詢 | `9710cee`；純邏輯 `LinkCard_Event_Admin_App_Expo@src/utils/desk-lookup.ts:2`，接線 `LinkCard_Event_Admin_App_Expo@src/app/(auth)/[eventId]/check-in.tsx:202`，測試 `tests/check-in-desk-lookup.test.mjs`                                                                                                                         |
+| 已報到分支             | `LinkCard_Event_Admin_App_Expo@src/app/(auth)/[eventId]/check-in.tsx:222`（`copy.checkIn.alreadyCheckedIn`）                                                                                                                                                                                                                     |
+| 寫卡入口               | `LinkCard_Event_Admin_App_Expo@src/app/(auth)/[eventId]/check-in.tsx:696`（`testID="check-in-write-card"`），`:703` 帶 `code` 轉 `nfc-bind`                                                                                                                                                                                      |
+| 卡片上鎖（2026-11-01） | `933add1`（`src/utils/ntag-apdu.ts`）＋`795bdf4`（`pwdAuth`／`lockCard`）＋`806f78a`（`src/services/card-password.service.ts`）＋`4265916`（接線）；測試 `tests/ntag-apdu.test.mjs`、`tests/nfc-lock.test.mjs`、`tests/nfc-lock-after-write.test.mjs`、`tests/card-password-service.test.mjs`。⚠️ **僅 mock 背書，未經真機驗證** |
+| `walk-in` 入口         | `LinkCard_Event_Admin_App_Expo@src/app/(auth)/[eventId]/check-in.tsx:753`                                                                                                                                                                                                                                                        |
 
-⇒ 剩下就是上面第 1～3 點那一項。這一節的用途不是解釋「為什麼沒做」，是讓下一個人
-不必重新查一遍才知道「為什麼做不到、以及要動哪幾個 repo」。
+⇒ 剩下就是上面那兩項。這一節的用途不是解釋「為什麼沒做」，是讓下一個人
+不必重新查一遍才知道「還差什麼、以及要動哪幾個 repo」。
 
 ### G-9 場次現場報到（P2，能力）— **已決 `BY_DESIGN`（2026-10-29 上午）；同日下午改判 `APP_GAP`**
 
