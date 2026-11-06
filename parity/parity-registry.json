@@ -360,7 +360,7 @@
       ],
       "verdict": "APP_ONLY",
       "status": "fixed",
-      "rationale": "2026-11-07 實作完成，判定 APP_ONLY：已完成決策「排行榜只給主辦方看」，Web 端不建管理端排行榜頁（設計 §1.3 Out of Scope 的 ESC-VPW-007）。Web 側唯一相關的是參加者自查頁（app/(personal)/(shell)/my-card/[eventId]），那是完全不同的一頁、只回自己的數字且契約層不回 rank，不構成同一能力的對等面，因此 webPages 為空是判定結果而非漏登。設計來源：docs/analysis/nfc-tap-attribution/20261107_Leaderboard_Design.md §7.1（API 契約）與 §8（Expo Admin 頁規格）；本 repo 內沒有該文件的副本，故 decidedIn 從缺（此欄位只驗 App repo 內的相對路徑）。一處與設計文件的有意偏離：文件 §7.1 寫 /api/v1/events/:eventId/leaderboard，後端實作為 /taps/leaderboard，App 以實作為準並由 check:contract 的後端路由快照釘住。另一處偏離：文件 §8.2 的 keyExtractor 用 profileId，實作改用 profileId#序號——同一使用者可有兩筆有效報名（event_registrations 沒有 (eventId,userId) 唯一鍵），沿用 profileId 會產生重複 key。",
+      "rationale": "2026-11-07 實作完成，判定 APP_ONLY：已完成決策「排行榜只給主辦方看」，Web 端不建管理端排行榜頁（設計 §1.3 Out of Scope 的 ESC-VPW-007）。Web 側唯一相關的是參加者自查頁（app/(personal)/(shell)/my-card/page.tsx），那是完全不同的一頁、只回自己的數字且契約層不回 rank，不構成同一能力的對等面，因此 webPages 為空是判定結果而非漏登。設計來源：docs/analysis/nfc-tap-attribution/20261107_Leaderboard_Design.md §7.1（API 契約）與 §8（Expo Admin 頁規格）；本 repo 內沒有該文件的副本，故 decidedIn 從缺（此欄位只驗 App repo 內的相對路徑）。一處與設計文件的有意偏離：文件 §7.1 寫 /api/v1/events/:eventId/leaderboard，後端實作為 /taps/leaderboard，App 以實作為準並由 check:contract 的後端路由快照釘住。另一處偏離：文件 §8.2 的 keyExtractor 用 profileId，實作改用 profileId#序號——同一使用者可有兩筆有效報名（event_registrations 沒有 (eventId,userId) 唯一鍵），沿用 profileId 會產生重複 key。",
       "evidence": [
         "App: 一支呼叫 GET `/v1/events/:eventId/taps/leaderboard`，查詢參數走 axios params（不拼網址，否則契約閘門抽到的路徑會多一段）— src/services/leaderboard.service.ts:61-68；由 tests/leaderboard-contract.test.mjs 對 scripts/backend-routes.snapshot.json 的 `GET */taps/leaderboard` 釘住",
         "App: 型別逐字對齊後端 LeaderboardService 的回應（entries／belowThreshold／excluded／totals／methodology），rank 為 number|null — src/types/leaderboard.types.ts",
@@ -370,7 +370,7 @@
         "App: 進入點單一方案（overview 快速動作）＋ 路由註冊 — src/app/(auth)/[eventId]/overview.tsx（QUICK_ACTIONS 的 leaderboard 項）、src/app/(auth)/[eventId]/_layout.tsx（<Stack.Screen name=\"leaderboard\" />）",
         "App: 不顯示 subjectHash／ipPrefix／uaHash，且 excluded.items[].email 型別保留但 UI 不讀 — tests/leaderboard-contract.test.mjs（含註解剝除後的字面掃描）",
         "App: 文案禁令（不得出現「被 N 人拍過」與評價性字眼）由 tests/leaderboard-display.test.mjs 斷言；主指標定義句為「N 位不同訪客開啟過名片（同日同裝置算一位）」— src/constants/copy.zh-TW.ts 的 copy.leaderboard.visitorDefinition",
-        "Web: 無管理端排行榜頁；參加者自查頁（app/(personal)/(shell)/my-card/[eventId]）屬另一能力，本次不在範圍內"
+        "Web: 無管理端排行榜頁；參加者自查頁（app/(personal)/(shell)/my-card/page.tsx）屬另一能力，已於本輪交付（Web commit 38c8158..eacac9e），只回自己的數字且契約層不回 rank"
       ]
     }
   ],
