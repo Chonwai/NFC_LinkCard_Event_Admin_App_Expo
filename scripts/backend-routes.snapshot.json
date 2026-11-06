@@ -2,8 +2,8 @@
   "_comment": "由 scripts/check-backend-contract.mjs --refresh 產生。不要手改；改後端就重跑。",
   "generatedFrom": {
     "repo": "LinkCard_ExpressJS_Backend",
-    "commit": "6759bbf",
-    "generatedAt": "2026-10-31T20:03:06.216Z"
+    "commit": "a96e981",
+    "generatedAt": "2026-11-06T23:05:42.770Z"
   },
   "eventRoutes": [
     {
@@ -64,6 +64,11 @@
     {
       "method": "PATCH",
       "path": "/:eventId/connection-requests/:requestId/decline",
+      "file": "connection-requests.routes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/:eventId/connection-requests/:requestId/resend",
       "file": "connection-requests.routes.ts"
     },
     {
@@ -545,6 +550,11 @@
       "method": "GET",
       "path": "/:eventId/sessions/:sessionId/registrations",
       "file": "sessions-polls.routes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/:eventId/taps/leaderboard",
+      "file": "event-ops.routes.ts"
     },
     {
       "method": "GET",
