@@ -1488,6 +1488,130 @@ export const copy = {
     empty: "尚未建立任何投票",
   },
   /**
+   * 活動社交排行榜（`app/(auth)/[eventId]/leaderboard.tsx`）。
+   *
+   * 設計來源：`docs/analysis/nfc-tap-attribution/20261107_Leaderboard_Design.md`
+   * §10.3。**Web 沒有管理端排行榜頁**（已凍結決策「Expo Admin 為主」），所以
+   * 這裡每一條都是「Web 無對應 key，不是漏抄」——沿用同一份文件的 `polls` 區塊
+   * 與 `removeOption` 的註記慣例。
+   *
+   * ## 兩條硬禁令（設計 §10.1）
+   *
+   * 1. **不得出現「被 N 人拍過」**。「拍」是訪客的動作，寫成當事人的成就就是
+   *    語意錯置；而且它把 `tap` 這個內部機制名詞暴露給使用者。對外一律用
+   *    `visitorDefinition(n)` 的那句話。
+   * 2. **不得出現「影響力」「人氣」「打敗」「後段班」「作弊」**（`riskBannerHint`
+   *    的「不代表作弊」是唯一例外，那是**否認句**）。
+   *
+   * ## 兩處刻意的偏離（不是抄錯）
+   *
+   * - `belowThresholdHint` 與 `emptyBelowThreshold` 在文件裡把門檻寫死成「5 位」；
+   *   這裡改成吃參數。`minUniqueVisitors` 是查詢參數（可 1–50），後端也會在
+   *   `methodology.threshold.applied` 回報實際值——寫死 5 會在門檻被調整時說謊。
+   * - `sampleAsteriskNote` 是 App 專屬：`*` 這個符號本身不解釋就沒有意義。
+   */
+  leaderboard: {
+    title: "排行榜",
+    subtitle: "依活動期間的名片瀏覽人次排序",
+    loading: "讀取中…",
+    loadError: "載入排行榜失敗，請稍後再試",
+    /** S5：403（非 owner 且非 SUPER_ADMIN／COORDINATOR）。**不給重試**。 */
+    forbidden: "你沒有權限查看此活動的排行榜",
+    retry: "重試",
+    /** 主指標（`unique_visitors`） */
+    metricLabel: "看過名片的人次",
+    /** 次指標（`leads_captured`） */
+    secondaryMetricLabel: "已收集聯絡資料",
+    /**
+     * 主指標的白話定義（派發硬約束指定的措辭）。
+     *
+     * 每一個數字都要能被這句話解釋：`N` 是**不同訪客**、且**同日同裝置算一位**。
+     * 少了「同日同裝置算一位」，主辦方會把它當成「開啟次數」去跟別的平台比。
+     */
+    visitorDefinition: (count: number) =>
+      `${count} 位不同訪客開啟過名片（同日同裝置算一位）`,
+    columnRank: "名次",
+    columnName: "姓名",
+    columnVisitors: "訪客",
+    columnLeads: "聯絡",
+    /** `rank === null` 的唯一顯示值（U+2014 em dash，不是 hyphen）。 */
+    rankPlaceholder: "—",
+    rankLabel: (rank: number) => `第 ${rank} 名`,
+    /** 並列時讀屏要唸「並列第 N 名」，否則同一個數字會被誤讀成不同名次。 */
+    tiedLabel: (rank: number) => `並列第 ${rank} 名`,
+    tieBreakLabel: (order: number) => `裁決序 ${order}`,
+    /** 無名次列的讀屏說明：不唸「第 null 名」。 */
+    rankBelowThresholdA11y: "樣本不足，未列入名次",
+    /** 身分口徑（設計 §8.2：僅與會者／全部身分，7 值全列不引入 ALL sentinel）。 */
+    scopeLabel: "身分口徑",
+    scopeAttendees: "僅與會者",
+    scopeAll: "全部身分",
+    /** `sampleQuality` 為 `small`／`accumulating` 時的標籤。 */
+    sampleAccumulating: "資料累積中",
+    /** 主指標旁的 `*` 需要一句解釋（App 專屬）。 */
+    sampleAsteriskNote: "* 樣本較小，達 10 位後才顯示完整統計",
+    summaryCohort: (count: number) => `可排名對象 ${count} 位`,
+    summaryRanked: (count: number) => `已上榜 ${count} 位`,
+    summaryBelowThreshold: (count: number) => `樣本不足 ${count} 位`,
+    belowThresholdHeading: (count: number) => `樣本不足（${count} 人）`,
+    belowThresholdHint: (threshold: number) =>
+      `未達 ${threshold} 位瀏覽人次，僅供參考，不列入名次`,
+    /** 截斷時必須講出來：`totals.belowThreshold` 才是真值。 */
+    belowThresholdTruncated: (shown: number, total: number) =>
+      `僅顯示前 ${shown} 人，共 ${total} 人`,
+    excludedHeading: (count: number) => `未列入計算（${count} 人）`,
+    excludedInactive: "報名未完成或已取消／封存",
+    excludedRoleExcluded: "身分類別不列入（參展商／贊助商／講者／義工）",
+    excludedNoAccount: "未註冊帳號，沒有名片可被瀏覽",
+    excludedNoProfile: "沒有預設且公開的名片",
+    excludedTruncated: (shown: number) =>
+      `名單只顯示前 ${shown} 筆，其餘同類未列出`,
+    riskBanner: (count: number) => `本榜有 ${count} 列含需複核的事件`,
+    riskBannerHint: "標記不代表作弊，請人工複核後再發獎",
+    dataQualityNote: "此列數字可能因訪客封鎖 cookie 而偏高",
+    staleInfo: (time: string) => `資料更新於 ${time}，每 15 分鐘更新一次`,
+    staleWarning: "資料已超過 1 小時未更新，請確認聚合排程",
+    trackingDisabled: "本活動未啟用名片統計，排行榜無法計算",
+    /**
+     * S12：`attributionScope === 'time_window_cohort'` 的常駐揭露。
+     *
+     * Phase 1 的 `TapEvent.eventId` 恆為 NULL，所以這是「活動時間窗 ∩ 報名者」
+     * 的數字，不是「活動歸因」的數字。兩場活動時間重疊且參加者重疊時數字會混，
+     * 這條是唯一的誠實揭露（設計 §12.1 R-03）。
+     */
+    attributionTimeWindow:
+      "本期數字以活動時間窗計算（以 UTC 日為單位，含活動首日 00:00 UTC 起），尚未做活動歸因",
+    riskFlagsInactive: "異常標記尚未啟用",
+    emptyNoCohort: "本活動尚無可列入排名的參加者",
+    emptyBelowThreshold: (threshold: number, count: number) =>
+      `目前沒有人達到 ${threshold} 位瀏覽人次（共 ${count} 位參加者）`,
+    cohortTooLarge: (count: number) =>
+      `本活動有 ${count} 位參加者，超過本版上限（10,000）`,
+    /** 後端有回 `details.cohort` 時用上一條；沒有的話至少不要說「0 位」。 */
+    cohortTooLargeUnknown:
+      "本活動的參加者人數超過本版上限（10,000），請聯絡技術支援",
+    methodologyTitle: "這個數字怎麼算的",
+    methodologyBody:
+      "名次依「看過名片的人次」排序；同分時依序比較：已收集聯絡資料數 → 最早達成的日期 → 最早收集到聯絡資料的時間。",
+    methodologyDedupe:
+      "同一訪客同一天對同一張名片最多計算 1 次（UTC 日）。多日活動為每日分別去重後加總，同一人隔天再訪會再計算 1 次。",
+    methodologyLead:
+      "聯絡資料以電子郵件正規化後去重；同一位訪客重複送出只計算 1 次。若多人共用同一電子郵件，會合併計為 1 筆。",
+    methodologyExcluded:
+      "不含：參展商代表、贊助商、講者、義工；未註冊帳號或沒有公開名片者。",
+    /** 單列的展開區（主辦方複核用）。 */
+    detailHeading: "複核資訊",
+    detailEarliestDay: "最早達成日",
+    detailFirstLeadAt: "首筆聯絡資料",
+    detailFlaggedTaps: "被標記的次數",
+    detailDataQuality: "量測品質訊號",
+    detailNone: "無",
+    expandDetails: (name: string) => `展開 ${name} 的複核資訊`,
+    collapseDetails: (name: string) => `收合 ${name} 的複核資訊`,
+    sectionExpand: (title: string) => `展開「${title}」`,
+    sectionCollapse: (title: string) => `收合「${title}」`,
+  },
+  /**
    * 場次管理（parity `sessions`）。
    *
    * Web 的 i18n 在 `public/locales/zh-Hant/event_manage.json` 的
