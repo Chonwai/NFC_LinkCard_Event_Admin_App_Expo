@@ -155,6 +155,17 @@ export interface LeaderboardWindow {
   source: string;
 }
 
+/**
+ * 一個名次的並列人數（後端在 `limit` 截斷**前**算好）。
+ *
+ * 為什麼不是讓前端自己數 `entries`：`entries` 已被 `?limit=` 截斷，並列群組
+ * 跨過截斷邊界時會被低估，於是「並列 N 位」會說出一個確定錯誤的事實。
+ */
+export interface LeaderboardRankGroupSize {
+  rank: number;
+  size: number;
+}
+
 /** `GET /api/v1/events/:eventId/taps/leaderboard` 的 `data`。 */
 export interface LeaderboardResponse {
   scope: string;
@@ -168,6 +179,13 @@ export interface LeaderboardResponse {
   attributionScope: string;
   window: LeaderboardWindow;
   entries: LeaderboardEntry[];
+  /**
+   * 每個名次的並列人數，依 rank 遞增、**不受 `limit` 截斷影響**。
+   *
+   * 選用（optional）是為了相容於「後端還沒升版」的回應；缺少時顯示層退回自行
+   * 從 `entries` 數，那是**已知會低估**的降級行為，不是等價替代。
+   */
+  rankGroupSizes?: LeaderboardRankGroupSize[];
   belowThreshold: LeaderboardEntry[];
   belowThresholdTruncated: boolean;
   excluded: LeaderboardExcluded;

@@ -223,6 +223,45 @@ test("並列的讀屏標籤唸「並列第 N 名」", () => {
   assert.equal(rows[0].rankAccessibilityLabel, copy.leaderboard.tiedLabel(2));
 });
 
+// ---------------------------------------------------------------------------
+// 二之二、並列群組大小必須取「截斷前」的計數（L-06）
+// ---------------------------------------------------------------------------
+
+/**
+ * `?limit=` 會切掉 `entries` 的尾巴。若前端從 `entries` 自己數群組大小，一個
+ * 跨過截斷邊界的並列群組就會被低估——名次是對的（後端決定），但畫面會說
+ * 「並列 2 位」而實際上是 5 位。那是一個**確定錯誤的事實**。
+ *
+ * 因此後端在回應裡帶 `rankGroupSizes`（截斷前算好），顯示層必須優先採用。
+ */
+test("後端帶 rankGroupSizes 時，群組大小以它為準（不是數 entries）", () => {
+  // `?limit=1` 之後 `entries` 只剩一列，但後端說第 1 名其實有 5 人。
+  // 只數 entries 會得到 1 ⇒ 不會出現並列標籤，那就是一個錯的事實。
+  const rows = buildLeaderboardRows(
+    response({
+      entries: [entry({ rank: 1, profileId: "a", tieBreakOrder: 1 })],
+      rankGroupSizes: [{ rank: 1, size: 5 }],
+    }),
+  );
+
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].tieBreakLabel, copy.leaderboard.tieBreakLabel(1));
+  assert.equal(rows[0].rankAccessibilityLabel, copy.leaderboard.tiedLabel(1));
+});
+
+test("沒有 rankGroupSizes 時退回數 entries（已知會低估的降級路徑）", () => {
+  // 同樣的截斷後輸入、少了後端計數 ⇒ 只能得到「不是並列」。這條測試把降級行為
+  // 明寫下來，避免有人以為兩條路徑等價。
+  const rows = buildLeaderboardRows(
+    response({
+      entries: [entry({ rank: 1, profileId: "a", tieBreakOrder: 1 })],
+    }),
+  );
+
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].tieBreakLabel, null);
+});
+
 test("前 3 名走強調色階，其餘走一般色階", () => {
   const rows = buildLeaderboardRows(
     response({

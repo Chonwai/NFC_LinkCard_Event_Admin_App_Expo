@@ -167,7 +167,7 @@ export function buildLeaderboardRows(
   response: LeaderboardResponse,
 ): LeaderboardRowView[] {
   const top = response.entries[0]?.uniqueVisitors ?? 0;
-  const groupSizes = rankGroupSizes(response.entries);
+  const groupSizes = resolveRankGroupSizes(response);
 
   return response.entries.map((entry, index) =>
     toRow(entry, {
@@ -177,6 +177,37 @@ export function buildLeaderboardRows(
       belowThreshold: isBelowThreshold(entry),
     }),
   );
+}
+
+/**
+ * 並列群組大小：**優先**用後端在 `limit` 截斷前算好的 `rankGroupSizes`。
+ *
+ * 舊版直接從 `response.entries` 自己數，於是當某個並列群組跨過 `?limit=` 的截斷
+ * 邊界時，群組大小會被低估——名次不會錯（後端決定），但畫面會說「並列 2 位」而
+ * 實際上是 5 位。那是一個**確定錯誤的事實**，不是顯示偏好。
+ *
+ * 沒有 `rankGroupSizes`（後端尚未升版）時退回自行計算：那是**已知會低估**的降級
+ * 路徑，不是等價替代，所以只在缺欄位時走。
+ */
+function resolveRankGroupSizes(
+  response: LeaderboardResponse,
+): Map<number, number> {
+  const fromServer = response.rankGroupSizes;
+  if (Array.isArray(fromServer) && fromServer.length > 0) {
+    const sizes = new Map<number, number>();
+    for (const group of fromServer) {
+      if (
+        typeof group?.rank === "number" &&
+        typeof group?.size === "number" &&
+        group.size > 0
+      ) {
+        sizes.set(group.rank, group.size);
+      }
+    }
+    if (sizes.size > 0) return sizes;
+  }
+
+  return rankGroupSizes(response.entries);
 }
 
 /**
