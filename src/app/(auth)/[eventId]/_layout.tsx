@@ -24,6 +24,7 @@ export default function EventLayout() {
       <Stack.Screen name="content" />
       <Stack.Screen name="exhibitors" />
       <Stack.Screen name="polls" />
+      <Stack.Screen name="leaderboard" />
       <Stack.Screen name="sessions" />
       <Stack.Screen name="session-roster/[sessionId]" />
       <Stack.Screen name="ticket-types" />

@@ -53,6 +53,7 @@ type EventRoute =
   | "content"
   | "exhibitors"
   | "polls"
+  | "leaderboard"
   | "sessions"
   | "ticket-types"
   | "bank-transfers"
@@ -151,6 +152,20 @@ const QUICK_ACTIONS: QuickAction[] = [
     label: copy.polls.title,
     icon: "clipboard-check",
     route: "polls",
+  },
+  /**
+   * 排行榜（App 獨有，設計 §8.1 指定的**唯一**進入點）。
+   *
+   * 圖示用 `sort`：`Icon.tsx` 沒有 bar-chart／trophy 類圖形，而這一頁的內容是
+   * 一份有順序的名次表——`sort`（長短不一的排序線）是既有圖示集裡最接近的
+   * 語意。Web 沒有管理端排行榜頁（已凍結決策「Expo Admin 為主」），所以這一項
+   * 在 Web 側沒有對應項，屬 `APP_ONLY`。
+   */
+  {
+    key: "leaderboard",
+    label: copy.leaderboard.title,
+    icon: "sort",
+    route: "leaderboard",
   },
   /**
    * 場次管理（parity `sessions`）。
