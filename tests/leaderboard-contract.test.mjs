@@ -258,6 +258,43 @@ test("excluded 的 email 不會被渲染（型別保留、UI 不讀）", () => {
 });
 
 // ---------------------------------------------------------------------------
+// 四之二、次指標的標籤必須黏著自己的數字（L-05）
+// ---------------------------------------------------------------------------
+
+/**
+ * 舊版把 `聯絡` 放在「訪客數」與「聯絡數」兩個數字之間，於是它讀起來像在標註
+ * **上面那個**數字（訪客）。兩個指標的去重單位不同（設計 §2.5 明文不得合成一個
+ * 「互動數」），貼錯標籤等於讓主辦方用錯的口徑解釋名次。
+ *
+ * 這條斷言要求：`columnLeads` 與 `row.leadsCaptured` 必須在**同一個**
+ * `metricSecondaryLine` 容器裡，且標籤不得出現在該容器之外。
+ */
+test("次指標標籤與次指標數字綁在同一個容器裡", () => {
+  const screenCode = stripComments(SCREEN);
+
+  const open = screenCode.indexOf("<View style={styles.metricSecondaryLine}>");
+  assert.ok(open > -1, "缺少 metricSecondaryLine 容器");
+
+  const close = screenCode.indexOf("</View>", open);
+  assert.ok(close > open, "metricSecondaryLine 容器沒有閉合");
+
+  const group = screenCode.slice(open, close + "</View>".length);
+  assert.ok(
+    group.includes("copy.leaderboard.columnLeads"),
+    "標籤不在次指標容器內 ⇒ 會退回「夾在兩數字中間」的舊排版",
+  );
+  assert.ok(
+    group.includes("row.leadsCaptured"),
+    "次指標數字不在同一個容器內 ⇒ 標籤無法黏著自己的數字",
+  );
+
+  // 標籤不得另外出現在容器外（否則會出現兩個「聯絡」標籤）。
+  const occurrences =
+    screenCode.split("copy.leaderboard.columnLeads").length - 1;
+  assert.equal(occurrences, 1, "columnLeads 只允許出現在次指標容器內一次");
+});
+
+// ---------------------------------------------------------------------------
 // 五、狀態矩陣的接線（布林都要真的接到元件上）
 // ---------------------------------------------------------------------------
 

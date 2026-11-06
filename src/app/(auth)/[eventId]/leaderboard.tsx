@@ -693,18 +693,27 @@ function LeaderboardRow({
             {row.uniqueVisitors}
             {row.visitorAsterisk ? "*" : null}
           </Text>
-          <Text
-            style={styles.metricCaption}
-            maxFontSizeMultiplier={layout.maxFontScaleFixed}
-          >
-            {copy.leaderboard.columnLeads}
-          </Text>
-          <Text
-            style={styles.metricSecondary}
-            maxFontSizeMultiplier={layout.maxFontScaleFixed}
-          >
-            {row.leadsCaptured}
-          </Text>
+          {/*
+            標籤必須是**次指標的前綴**，不能夾在兩個數字中間。
+
+            舊版把 `聯絡` 放在 uv 與 leads 兩個數字之間，視覺上會被讀成「在標註上面
+            那個數字」——也就是把 leads 的標籤貼在訪客數上。兩個指標去重單位不同（設計
+            §2.5 明文不得合成一個「互動數」），貼錯標籤等於讓主辦方拿錯的口徑去解釋名次。
+          */}
+          <View style={styles.metricSecondaryLine}>
+            <Text
+              style={styles.metricCaption}
+              maxFontSizeMultiplier={layout.maxFontScaleFixed}
+            >
+              {copy.leaderboard.columnLeads}
+            </Text>
+            <Text
+              style={styles.metricSecondary}
+              maxFontSizeMultiplier={layout.maxFontScaleFixed}
+            >
+              {row.leadsCaptured}
+            </Text>
+          </View>
         </View>
       </View>
 
@@ -871,6 +880,12 @@ const styles = StyleSheet.create({
   tieBreak: { ...type.micro, color: semantic.text.muted },
   sampleLabel: { ...type.micro, color: semantic.text.muted },
   metrics: { alignItems: "flex-end", minWidth: 56 },
+  /** 次指標一行：`聯絡 12`。標籤與數字必須黏在一起，中間不得夾主指標。 */
+  metricSecondaryLine: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: space[1],
+  },
   metricValue: { ...type.h2, color: semantic.text.primary },
   metricCaption: { ...type.micro, color: semantic.text.muted },
   metricSecondary: { ...type.label, color: semantic.text.secondary },
