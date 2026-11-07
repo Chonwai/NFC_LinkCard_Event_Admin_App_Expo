@@ -370,7 +370,7 @@
         "App: 進入點單一方案（overview 快速動作）＋ 路由註冊 — src/app/(auth)/[eventId]/overview.tsx（QUICK_ACTIONS 的 leaderboard 項）、src/app/(auth)/[eventId]/_layout.tsx（<Stack.Screen name=\"leaderboard\" />）",
         "App: 不顯示 subjectHash／ipPrefix／uaHash，且 excluded.items[].email 型別保留但 UI 不讀 — tests/leaderboard-contract.test.mjs（含註解剝除後的字面掃描）",
         "App: 文案禁令（不得出現「被 N 人拍過」與評價性字眼）由 tests/leaderboard-display.test.mjs 斷言；主指標定義句為「N 位不同訪客開啟過名片（同日同裝置算一位）」— src/constants/copy.zh-TW.ts 的 copy.leaderboard.visitorDefinition",
-        "Web: 無管理端排行榜頁；參加者自查頁（app/(personal)/(shell)/my-card/page.tsx）屬另一能力，已於本輪交付（Web commit 03d8982^..5431355，含 api client、頁面、i18n、測試與 L-07），只回自己的數字且契約層不回 rank"
+        "Web: 無管理端排行榜頁；參加者自查頁（app/(personal)/(shell)/my-card/page.tsx）屬另一能力，已於本輪交付（Web commit 03d8982^..c9b8739，含 api client、頁面、i18n、測試與 L-07；c9b8739 為 N-03 的揭露修正），只回自己的數字且契約層不回 rank"
       ]
     }
   ],
