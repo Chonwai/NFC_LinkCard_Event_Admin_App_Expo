@@ -1539,12 +1539,14 @@ export const copy = {
     rankLabel: (rank: number) => `第 ${rank} 名`,
     /** 並列時讀屏要唸「並列第 N 名」，否則同一個數字會被誤讀成不同名次。 */
     tiedLabel: (rank: number) => `並列第 ${rank} 名`,
-    tieBreakLabel: (order: number) => `裁決序 ${order}`,
+    /** 並列時「同分」二字要自己說出來（讀屏另有 `tiedLabel`）；裁決序不是名次。 */
+    tieBreakLabel: (order: number) => `同分・裁決序 ${order}`,
     /** 無名次列的讀屏說明：不唸「第 null 名」。 */
     rankBelowThresholdA11y: "樣本不足，未列入名次",
-    /** 身分口徑（設計 §8.2：僅與會者／全部身分，7 值全列不引入 ALL sentinel）。 */
+    /** 身分口徑（設計 §8.2：三個口徑，7 值全列不引入 ALL sentinel）。 */
     scopeLabel: "身分口徑",
     scopeAttendees: "僅與會者",
+    scopeExhibitors: "展商",
     scopeAll: "全部身分",
     /** `sampleQuality` 為 `small`／`accumulating` 時的標籤。 */
     sampleAccumulating: "資料累積中",
@@ -1561,7 +1563,8 @@ export const copy = {
       `僅顯示前 ${shown} 人，共 ${total} 人`,
     excludedHeading: (count: number) => `未列入計算（${count} 人）`,
     excludedInactive: "報名未完成或已取消／封存",
-    excludedRoleExcluded: "身分類別不列入（參展商／贊助商／講者／義工）",
+    excludedRoleExcluded: (excludedLabels: string) =>
+      `身分類別不列入（${excludedLabels}）`,
     excludedNoAccount: "未註冊帳號，沒有名片可被瀏覽",
     excludedNoProfile: "沒有預設且公開的名片",
     excludedTruncated: (shown: number) =>
@@ -1583,6 +1586,8 @@ export const copy = {
       "本期數字以活動時間窗計算（以 UTC 日為單位，含活動首日 00:00 UTC 起），尚未做活動歸因",
     riskFlagsInactive: "異常標記尚未啟用",
     emptyNoCohort: "本活動尚無可列入排名的參加者",
+    /** 展商口徑的 cohort 為 0 時，「尚無參加者」是錯誤診斷（活動有上千位參加者）。 */
+    emptyNoCohortExhibitors: "此口徑（展商）目前沒有可列入排名的人",
     emptyBelowThreshold: (threshold: number, count: number) =>
       `目前沒有人達到 ${threshold} 位瀏覽人次（共 ${count} 位參加者）`,
     cohortTooLarge: (count: number) =>
@@ -1597,8 +1602,11 @@ export const copy = {
       "同一訪客同一天對同一張名片最多計算 1 次（UTC 日）。多日活動為每日分別去重後加總，同一人隔天再訪會再計算 1 次。",
     methodologyLead:
       "聯絡資料以電子郵件正規化後去重；同一位訪客重複送出只計算 1 次。若多人共用同一電子郵件，會合併計為 1 筆。",
-    methodologyExcluded:
-      "不含：參展商代表、贊助商、講者、義工；未註冊帳號或沒有公開名片者。",
+    /** 排除句由 `methodology.registrantTypesIncluded` 推導；空字串＝全 7 類都納入。 */
+    methodologyExcluded: (excludedLabels: string) =>
+      excludedLabels === ""
+        ? "未排除任何身分類別；未註冊帳號或沒有公開名片者仍不列入。"
+        : `不含：${excludedLabels}；未註冊帳號或沒有公開名片者。`,
     /** 單列的展開區（主辦方複核用）。 */
     detailHeading: "複核資訊",
     detailEarliestDay: "最早達成日",

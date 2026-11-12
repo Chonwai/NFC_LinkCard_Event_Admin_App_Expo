@@ -428,6 +428,39 @@ export function resolveLeaderboardScreen(
   };
 }
 
+/**
+ * 後端 `RegistrantType` 的 7 個值（`BE@prisma/schema.prisma`）。
+ *
+ * 陣列順序就是「不含：…」句的顯示順序，用 copy 的鍵做 `satisfies`：
+ * 少一個標籤就編譯紅，不會在畫面上顯示原始 enum。
+ */
+const ALL_REGISTRANT_TYPES = [
+  "ATTENDEE",
+  "EXHIBITOR_REP",
+  "SPEAKER",
+  "SPONSOR",
+  "MEDIA",
+  "GUEST",
+  "VOLUNTEER",
+] as const satisfies readonly (keyof typeof copy.ticketTypes.registrantTypeLabels)[];
+
+/**
+ * `methodology.registrantTypesIncluded`（後端實際套用的口徑）→「不含」的標籤列表。
+ *
+ * 為什麼要推導而不是寫死：同一頁有三個口徑，寫死的那一句在「展商」與
+ * 「全部身分」都是錯的（榜上明明有展商）。空字串＝7 類全部納入。
+ * 用 `copy.ticketTypes.registrantTypeLabels`：全 copy 檔只有這一組逐值對應
+ * 後端 enum（`roster`／`event` 兩組的鍵不是後端值）。
+ */
+export function excludedRegistrantTypeLabels(
+  includedRegistrantTypes: readonly string[],
+): string {
+  const included = new Set(includedRegistrantTypes);
+  return ALL_REGISTRANT_TYPES.filter((type) => !included.has(type))
+    .map((type) => copy.ticketTypes.registrantTypeLabels[type])
+    .join("、");
+}
+
 export interface LeaderboardExcludedGroupView {
   reason: LeaderboardExclusionReason;
   label: string;
@@ -450,7 +483,11 @@ export function excludedGroups(
 
   const labels: Record<LeaderboardExclusionReason, string> = {
     REGISTRATION_INACTIVE: copy.leaderboard.excludedInactive,
-    ROLE_EXCLUDED: copy.leaderboard.excludedRoleExcluded,
+    ROLE_EXCLUDED: copy.leaderboard.excludedRoleExcluded(
+      excludedRegistrantTypeLabels(
+        response.methodology.registrantTypesIncluded,
+      ),
+    ),
     NO_ACCOUNT: copy.leaderboard.excludedNoAccount,
     NO_PUBLIC_DEFAULT_PROFILE: copy.leaderboard.excludedNoProfile,
   };
@@ -506,18 +543,24 @@ export function excludedItemViews(
  * - `methodologyDedupe` 必須寫多日活動「按日去重加總」（`subjectHash` 的 salt
  *   是日粒度，跨日不重複訪客在數學上不可得）。
  * - `methodologyLead` 必須寫「多人共用同一 email 會合併成 1 筆」（去重的偽陰性）。
+ * - `methodologyExcluded` 必須由後端回報的 `registrantTypesIncluded` 推導：
+ *   同一句寫死在「展商」口徑會說出與榜面相反的事實。
  * - `attributionTimeWindow` 由 S12 橫幅承擔，這裡不重複。
  *
  * ⚠️ 「異常標記尚未啟用」（S13）**不在這裡**：它由
  * `resolveLeaderboardScreen().showRiskFlagsInactive` 驅動，畫面在方法論區塊
  * 尾端單獨渲染。放進這個陣列會讓同一個開關有兩個真相來源（陣列內容 vs 旗標）。
  */
-export function methodologyNotes(): string[] {
+export function methodologyNotes(
+  includedRegistrantTypes: readonly string[],
+): string[] {
   return [
     copy.leaderboard.methodologyBody,
     copy.leaderboard.methodologyDedupe,
     copy.leaderboard.methodologyLead,
-    copy.leaderboard.methodologyExcluded,
+    copy.leaderboard.methodologyExcluded(
+      excludedRegistrantTypeLabels(includedRegistrantTypes),
+    ),
   ];
 }
 

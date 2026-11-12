@@ -212,6 +212,68 @@ test("below-threshold 列不得使用 danger 色票（低於門檻不是錯誤�
 });
 
 // ---------------------------------------------------------------------------
+// 三、身分口徑：三選一（CR-20261112-01）
+// ---------------------------------------------------------------------------
+
+test("身分口徑恰好三個：預設、展商、全部；展商恰好是 EXHIBITOR_REP", () => {
+  const code = stripComments(SCREEN);
+
+  assert.ok(
+    code.includes('type ScopeValue = "attendees" | "exhibitors" | "all";'),
+    "ScopeValue 必須是三個字面值的 union",
+  );
+  assert.ok(
+    code.includes(
+      'const SCOPE_OPTIONS = ["attendees", "exhibitors", "all"] as const;',
+    ),
+    "chip 選項順序＝預設、展商、全部",
+  );
+
+  const mapping = code.match(/const REGISTRANT_TYPES[^=]*= \{[\s\S]*?\};/);
+  assert.ok(mapping, "缺少 REGISTRANT_TYPES 映射");
+  assert.equal(
+    (mapping[0].match(/exhibitors: "EXHIBITOR_REP",/g) ?? []).length,
+    1,
+    "展商口徑必須恰好映射到 EXHIBITOR_REP 一個值",
+  );
+});
+
+test("口徑標籤走 3 鍵 Record，不得退回二選一三元", () => {
+  const code = stripComments(SCREEN);
+
+  assert.ok(code.includes("const SCOPE_LABELS: Record<ScopeValue, string>"));
+  assert.ok(code.includes("labelFor={(value) => SCOPE_LABELS[value]}"));
+  assert.ok(
+    !code.includes('value === "attendees"'),
+    "三元鏈會把第三個口徑的標籤吞掉，改用 Record",
+  );
+  assert.ok(code.includes("copy.leaderboard.scopeExhibitors"));
+});
+
+test("只有展商口徑放寬 limit 100／minUniqueVisitors 1，方法論吃後端回報的口徑", () => {
+  const code = stripComments(SCREEN);
+
+  assert.ok(
+    code.includes('limit: scope === "exhibitors" ? 100 : undefined'),
+    "60 位展商會被預設 limit 20 截斷，而後端沒有 truncated 旗標",
+  );
+  assert.ok(
+    code.includes('minUniqueVisitors: scope === "exhibitors" ? 1 : undefined'),
+    "預設門檻 5 會把大部分展商丟進 belowThreshold",
+  );
+  assert.ok(
+    code.includes(
+      "methodologyNotes(response.methodology.registrantTypesIncluded)",
+    ),
+    "排除句必須由後端實際套用的口徑推導，不是 chip 的請求意圖",
+  );
+  assert.ok(
+    code.includes("copy.leaderboard.emptyNoCohortExhibitors"),
+    "展商口徑的空狀態不得說「本活動尚無可列入排名的參加者」",
+  );
+});
+
+// ---------------------------------------------------------------------------
 // 三、進入點與路由
 // ---------------------------------------------------------------------------
 

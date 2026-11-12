@@ -26,6 +26,7 @@ import {
   buildLeaderboardRows,
   excludedGroups,
   excludedItemViews,
+  excludedRegistrantTypeLabels,
   formatAsOf,
   methodologyNotes,
   rankAccessibilityLabel,
@@ -356,21 +357,78 @@ test("excluded.items 的顯示列不含 email（刻意不顯示敏感資料）",
   );
 
   assert.equal(views[0].displayName, "Someone");
-  assert.equal(views[0].reasonLabel, copy.leaderboard.excludedRoleExcluded);
+  assert.equal(
+    views[0].reasonLabel,
+    copy.leaderboard.excludedRoleExcluded(
+      excludedRegistrantTypeLabels(["ATTENDEE", "GUEST", "MEDIA"]),
+    ),
+  );
+  assert.ok(
+    views[0].reasonLabel.includes("參展代表"),
+    "預設口徑下被排除的身分類別是展商代表等，不是「參展商」",
+  );
   assert.equal(views[0].email, undefined, "不得把 email 帶進可渲染的列");
   assert.ok(!JSON.stringify(views).includes("@"));
 });
 
 test("方法論註記含「按日去重加總」與「共用 email 合併」，且 S13 不重複放在陣列裡", () => {
-  const notes = methodologyNotes();
+  const notes = methodologyNotes(["ATTENDEE", "GUEST", "MEDIA"]);
   const joined = notes.join("\n");
 
   assert.ok(joined.includes(copy.leaderboard.methodologyDedupe));
   assert.ok(joined.includes(copy.leaderboard.methodologyLead));
-  assert.ok(joined.includes(copy.leaderboard.methodologyExcluded));
+  assert.ok(
+    joined.includes(
+      copy.leaderboard.methodologyExcluded("參展代表、講者、贊助商、志工"),
+    ),
+  );
   assert.ok(
     !notes.includes(copy.leaderboard.riskFlagsInactive),
     "riskFlagsInactive 只由 showRiskFlagsInactive 驅動，不得同時放在陣列裡",
+  );
+});
+
+test("方法論排除句由後端回報的 registrantTypesIncluded 推導（展商口徑不得說「不含參展代表」）", () => {
+  const exhibitorNotes = methodologyNotes(["EXHIBITOR_REP"]).join("\n");
+
+  assert.ok(!exhibitorNotes.includes("參展代表"), "展商口徑自己就在榜上");
+  assert.ok(exhibitorNotes.includes("不含："));
+  assert.ok(exhibitorNotes.includes("參加者"));
+
+  const allNotes = methodologyNotes([
+    "ATTENDEE",
+    "EXHIBITOR_REP",
+    "SPEAKER",
+    "SPONSOR",
+    "MEDIA",
+    "GUEST",
+    "VOLUNTEER",
+  ]).join("\n");
+
+  assert.ok(allNotes.includes("未排除任何身分類別"));
+  assert.ok(!allNotes.includes("不含："), "全 7 類納入時不得再說「不含」");
+});
+
+test("excludedRegistrantTypeLabels 依後端 enum 順序翻中文；全包時回空字串", () => {
+  assert.equal(
+    excludedRegistrantTypeLabels(["ATTENDEE", "GUEST", "MEDIA"]),
+    "參展代表、講者、贊助商、志工",
+  );
+  assert.equal(
+    excludedRegistrantTypeLabels([]),
+    "參加者、參展代表、講者、贊助商、媒體、貴賓、志工",
+  );
+  assert.equal(
+    excludedRegistrantTypeLabels([
+      "ATTENDEE",
+      "EXHIBITOR_REP",
+      "SPEAKER",
+      "SPONSOR",
+      "MEDIA",
+      "GUEST",
+      "VOLUNTEER",
+    ]),
+    "",
   );
 });
 

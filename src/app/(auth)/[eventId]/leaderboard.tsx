@@ -77,14 +77,22 @@ import {
  * `tests/leaderboard-contract.test.mjs` 會從原始碼掃這件事，因為那是設計 §8.3
  * 點名的頭號實作陷阱（直接渲染會得到空白或字串 `null`）。
  */
-type ScopeValue = "attendees" | "all";
+type ScopeValue = "attendees" | "exhibitors" | "all";
 
 /** 身分口徑（設計 §8.2）。7 值全列，不引入 `ALL` sentinel。 */
-const SCOPE_OPTIONS = ["attendees", "all"] as const;
+const SCOPE_OPTIONS = ["attendees", "exhibitors", "all"] as const;
 
 const REGISTRANT_TYPES: Record<ScopeValue, string> = {
   attendees: "ATTENDEE,GUEST,MEDIA",
+  exhibitors: "EXHIBITOR_REP",
   all: "ATTENDEE,EXHIBITOR_REP,SPEAKER,SPONSOR,MEDIA,GUEST,VOLUNTEER",
+};
+
+/** chip 標籤：三個口徑各一個 copy key（`Record` 缺一鍵就編譯紅，不用三元）。 */
+const SCOPE_LABELS: Record<ScopeValue, string> = {
+  attendees: copy.leaderboard.scopeAttendees,
+  exhibitors: copy.leaderboard.scopeExhibitors,
+  all: copy.leaderboard.scopeAll,
 };
 
 export default function EventLeaderboardScreen() {
@@ -136,6 +144,9 @@ export default function EventLeaderboardScreen() {
       try {
         const data = await leaderboardService.getLeaderboard(eventId, {
           registrantTypes: REGISTRANT_TYPES[scope],
+          // 展商 60 位會被預設 limit 20／門檻 5 藏掉大半：這個口徑一次取齊（上限 100）並把門檻降到 1。
+          limit: scope === "exhibitors" ? 100 : undefined,
+          minUniqueVisitors: scope === "exhibitors" ? 1 : undefined,
         });
         if (!active) return;
         setResponse(data);
@@ -174,7 +185,13 @@ export default function EventLeaderboardScreen() {
     () => (response ? excludedItemViews(response) : []),
     [response],
   );
-  const notes = useMemo(() => (response ? methodologyNotes() : []), [response]);
+  const notes = useMemo(
+    () =>
+      response
+        ? methodologyNotes(response.methodology.registrantTypesIncluded)
+        : [],
+    [response],
+  );
   const screen = useMemo(
     () =>
       resolveLeaderboardScreen({
@@ -339,11 +356,7 @@ export default function EventLeaderboardScreen() {
         label={copy.leaderboard.scopeLabel}
         options={SCOPE_OPTIONS}
         value={scope}
-        labelFor={(value) =>
-          value === "attendees"
-            ? copy.leaderboard.scopeAttendees
-            : copy.leaderboard.scopeAll
-        }
+        labelFor={(value) => SCOPE_LABELS[value]}
         onSelect={setScope}
         testID="leaderboard-scope"
       />
@@ -383,7 +396,11 @@ export default function EventLeaderboardScreen() {
   ) : screen.emptyKind === "noCohort" ? (
     <EmptyState
       kind="first-use"
-      title={copy.leaderboard.emptyNoCohort}
+      title={
+        scope === "exhibitors"
+          ? copy.leaderboard.emptyNoCohortExhibitors
+          : copy.leaderboard.emptyNoCohort
+      }
       headingLevel={2}
       testID="leaderboard-empty"
     />
