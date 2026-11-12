@@ -92,6 +92,25 @@ const SCOPE_LABELS: Record<ScopeValue, string> = {
   all: copy.leaderboard.scopeAll,
 };
 
+/**
+ * chips 下面的標題＋一句說明（`Record<ScopeValue, …>`：少一個口徑就編譯紅）。
+ * 純標示，不影響任何請求參數。
+ */
+const SCOPE_GUIDANCE: Record<ScopeValue, { title: string; hint: string }> = {
+  attendees: {
+    title: copy.leaderboard.scopeAttendeesTitle,
+    hint: copy.leaderboard.scopeAttendeesHint,
+  },
+  exhibitors: {
+    title: copy.leaderboard.scopeExhibitorsTitle,
+    hint: copy.leaderboard.scopeExhibitorsHint,
+  },
+  all: {
+    title: copy.leaderboard.scopeAllTitle,
+    hint: copy.leaderboard.scopeAllHint,
+  },
+};
+
 export default function EventLeaderboardScreen() {
   const insets = useSafeAreaInsets();
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
@@ -355,6 +374,11 @@ export default function EventLeaderboardScreen() {
         onSelect={setScope}
         testID="leaderboard-scope"
       />
+
+      <View style={styles.scopeGuidance}>
+        <Text style={styles.sectionTitle}>{SCOPE_GUIDANCE[scope].title}</Text>
+        <Text style={styles.sectionHint}>{SCOPE_GUIDANCE[scope].hint}</Text>
+      </View>
 
       {rows.length > 0 ? (
         <View style={styles.columnHeader}>
@@ -846,6 +870,9 @@ const styles = StyleSheet.create({
     borderTopColor: semantic.border.decorative,
   },
   summaryCount: { ...type.micro, color: semantic.text.muted },
+
+  /** chips 下面的榜單標題＋說明；文字樣式沿用 sectionTitle／sectionHint。 */
+  scopeGuidance: { gap: space[1] },
 
   columnHeader: {
     flexDirection: "row",

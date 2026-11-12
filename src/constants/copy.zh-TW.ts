@@ -1543,11 +1543,18 @@ export const copy = {
     tieBreakLabel: (order: number) => `同分・裁決序 ${order}`,
     /** 無名次列的讀屏說明：不唸「第 null 名」。 */
     rankBelowThresholdA11y: "樣本不足，未列入名次",
-    /** 身分口徑（設計 §8.2：三個口徑，7 值全列不引入 ALL sentinel）。 */
-    scopeLabel: "身分口徑",
-    scopeAttendees: "僅與會者",
-    scopeExhibitors: "展商",
+    /** 榜單口徑（設計 §8.2：三個口徑，7 值全列不引入 ALL sentinel）。 */
+    scopeLabel: "榜單",
+    scopeAttendees: "參加者榜",
+    scopeExhibitors: "展商榜",
     scopeAll: "全部身分",
+    /** 每個口徑的標題＋一句說明，直接畫在 chips 下面（頒獎者要一眼知道在看哪張榜）。 */
+    scopeAttendeesTitle: "參加者排行榜",
+    scopeAttendeesHint: "不含參展商、講者、贊助商、義工",
+    scopeExhibitorsTitle: "展商排行榜",
+    scopeExhibitorsHint: "只含參展商代表；一攤位一列",
+    scopeAllTitle: "全部身分（行政用）",
+    scopeAllHint: "七種身分同榜，不建議頒獎使用",
     /** `sampleQuality` 為 `small`／`accumulating` 時的標籤。 */
     sampleAccumulating: "資料累積中",
     /** 主指標旁的 `*` 需要一句解釋（App 專屬）。 */

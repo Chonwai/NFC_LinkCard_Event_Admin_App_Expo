@@ -28,6 +28,8 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { copy } from "@/constants/copy.zh-TW";
+
 const { describeAppCall, extractAppCalls, pathShape } =
   await import("../scripts/check-backend-contract.mjs");
 
@@ -215,7 +217,7 @@ test("below-threshold 列不得使用 danger 色票（低於門檻不是錯誤�
 // 二之二、身分口徑：三選一（CR-20261112-01）
 // ---------------------------------------------------------------------------
 
-test("chip 上的身分口徑恰好三個：預設、展商、全部", () => {
+test("榜單口徑恰好三個，標籤不再使用舊字（僅與會者／展商）", () => {
   const code = stripComments(SCREEN);
 
   assert.ok(
@@ -224,18 +226,85 @@ test("chip 上的身分口徑恰好三個：預設、展商、全部", () => {
     ),
     "chip 選項順序＝預設、展商、全部",
   );
+  assert.equal(copy.leaderboard.scopeLabel, "榜單");
+  assert.equal(copy.leaderboard.scopeAttendees, "參加者榜");
+  assert.equal(copy.leaderboard.scopeExhibitors, "展商榜");
+  assert.equal(copy.leaderboard.scopeAll, "全部身分");
+  assert.ok(
+    !JSON.stringify(copy.leaderboard).includes("僅與會者"),
+    "舊標籤「僅與會者」不得殘留",
+  );
 });
 
-test("口徑標籤走 3 鍵 Record，不得退回二選一三元", () => {
+test("三個口徑的 label／title／hint 一一對應，且導引畫在 chips 下面", () => {
   const code = stripComments(SCREEN);
 
   assert.ok(code.includes("const SCOPE_LABELS: Record<ScopeValue, string>"));
+  assert.ok(
+    code.includes(
+      "const SCOPE_GUIDANCE: Record<ScopeValue, { title: string; hint: string }>",
+    ),
+    "缺少 title/hint 的 3 鍵 Record（少一個口徑要編譯紅）",
+  );
   assert.ok(code.includes("labelFor={(value) => SCOPE_LABELS[value]}"));
   assert.ok(
     !code.includes('value === "attendees"'),
     "三元鏈會把第三個口徑的標籤吞掉，改用 Record",
   );
-  assert.ok(code.includes("copy.leaderboard.scopeExhibitors"));
+
+  const labels = code.match(/const SCOPE_LABELS[\s\S]*?\};/);
+  const guidance = code.match(/const SCOPE_GUIDANCE[\s\S]*?\};/);
+  assert.ok(labels, "缺少 SCOPE_LABELS");
+  assert.ok(guidance, "缺少 SCOPE_GUIDANCE");
+
+  const mapping = [
+    [
+      "attendees",
+      "scopeAttendees",
+      "scopeAttendeesTitle",
+      "scopeAttendeesHint",
+    ],
+    [
+      "exhibitors",
+      "scopeExhibitors",
+      "scopeExhibitorsTitle",
+      "scopeExhibitorsHint",
+    ],
+    ["all", "scopeAll", "scopeAllTitle", "scopeAllHint"],
+  ];
+  for (const [scope, labelKey, titleKey, hintKey] of mapping) {
+    assert.ok(
+      labels[0].includes(`${scope}: copy.leaderboard.${labelKey},`),
+      `${scope} 的 chip 標籤映射不對`,
+    );
+    assert.ok(
+      guidance[0].includes(`copy.leaderboard.${titleKey}`) &&
+        guidance[0].includes(`copy.leaderboard.${hintKey}`),
+      `${scope} 的 title/hint 映射不完整`,
+    );
+  }
+
+  // 導引要緊接在 chips 之後（同一頁、既有 Text 樣式、不另開元件）。
+  const chipsIndex = code.indexOf('testID="leaderboard-scope"');
+  const titleIndex = code.indexOf("SCOPE_GUIDANCE[scope].title");
+  const hintIndex = code.indexOf("SCOPE_GUIDANCE[scope].hint");
+  assert.ok(
+    chipsIndex > -1 && titleIndex > chipsIndex && hintIndex > titleIndex,
+    "title＋hint 必須畫在 scope chips 下面",
+  );
+
+  assert.equal(copy.leaderboard.scopeAttendeesTitle, "參加者排行榜");
+  assert.equal(
+    copy.leaderboard.scopeAttendeesHint,
+    "不含參展商、講者、贊助商、義工",
+  );
+  assert.equal(copy.leaderboard.scopeExhibitorsTitle, "展商排行榜");
+  assert.equal(
+    copy.leaderboard.scopeExhibitorsHint,
+    "只含參展商代表；一攤位一列",
+  );
+  assert.equal(copy.leaderboard.scopeAllTitle, "全部身分（行政用）");
+  assert.equal(copy.leaderboard.scopeAllHint, "七種身分同榜，不建議頒獎使用");
 });
 
 test("畫面只從 buildLeaderboardQuery 取查詢；展商空狀態走專屬文案", () => {
