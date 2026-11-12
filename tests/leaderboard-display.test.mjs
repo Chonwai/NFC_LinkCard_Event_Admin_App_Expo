@@ -23,6 +23,7 @@ import { copy } from "@/constants/copy.zh-TW";
 import {
   barPercent,
   buildBelowThresholdRows,
+  buildLeaderboardQuery,
   buildLeaderboardRows,
   excludedGroups,
   excludedItemViews,
@@ -430,6 +431,67 @@ test("excludedRegistrantTypeLabels 依後端 enum 順序翻中文；全包時回
     ]),
     "",
   );
+});
+
+test("registrantTypesIncluded 缺失或非陣列時回 null，不得把 7 類全列為排除", () => {
+  assert.equal(excludedRegistrantTypeLabels(undefined), null);
+  assert.equal(excludedRegistrantTypeLabels(null), null);
+  assert.equal(excludedRegistrantTypeLabels("ATTENDEE,GUEST,MEDIA"), null);
+
+  const notes = methodologyNotes(undefined).join("\n");
+  assert.ok(notes.includes(copy.leaderboard.methodologyExcluded(null)));
+  assert.ok(notes.includes("未取得本次的身分類別口徑"));
+  assert.ok(!notes.includes("未排除任何身分類別"), "未知不等於「全包」");
+  assert.ok(!notes.includes("參加者、參展代表、講者"), "未知不得捏造排除名單");
+
+  const malformed = response();
+  malformed.methodology.registrantTypesIncluded = undefined;
+  malformed.excluded.byReason.ROLE_EXCLUDED = 1;
+  const label = excludedGroups(malformed)[0].label;
+  assert.equal(label, copy.leaderboard.excludedRoleExcluded(null));
+  assert.ok(!label.includes("null"));
+  assert.ok(!label.includes("參加者、參展代表"));
+});
+
+test("buildLeaderboardQuery：只有展商口徑放寬 limit 100／minUniqueVisitors 1", () => {
+  const cases = [
+    {
+      scope: "attendees",
+      registrantTypes: "ATTENDEE,GUEST,MEDIA",
+      limit: undefined,
+      minUniqueVisitors: undefined,
+    },
+    {
+      scope: "all",
+      registrantTypes:
+        "ATTENDEE,EXHIBITOR_REP,SPEAKER,SPONSOR,MEDIA,GUEST,VOLUNTEER",
+      limit: undefined,
+      minUniqueVisitors: undefined,
+    },
+    {
+      scope: "exhibitors",
+      registrantTypes: "EXHIBITOR_REP",
+      limit: 100,
+      minUniqueVisitors: 1,
+    },
+  ];
+
+  for (const { scope, ...expected } of cases) {
+    const query = buildLeaderboardQuery(scope);
+    assert.deepEqual(
+      query,
+      {
+        registrantTypes: expected.registrantTypes,
+        ...(expected.limit === undefined
+          ? {}
+          : {
+              limit: expected.limit,
+              minUniqueVisitors: expected.minUniqueVisitors,
+            }),
+      },
+      `口徑 ${scope} 的查詢參數不對`,
+    );
+  }
 });
 
 test("formatAsOf 一律以 UTC 呈現；無法解析回 null（交由呼叫端落回 staleWarning）", () => {

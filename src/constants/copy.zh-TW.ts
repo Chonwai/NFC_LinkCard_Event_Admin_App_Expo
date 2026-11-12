@@ -1563,8 +1563,11 @@ export const copy = {
       `僅顯示前 ${shown} 人，共 ${total} 人`,
     excludedHeading: (count: number) => `未列入計算（${count} 人）`,
     excludedInactive: "報名未完成或已取消／封存",
-    excludedRoleExcluded: (excludedLabels: string) =>
-      `身分類別不列入（${excludedLabels}）`,
+    /** `null`＝後端沒回報口徑（未知），不可捏造排除名單。 */
+    excludedRoleExcluded: (excludedLabels: string | null) =>
+      excludedLabels === null
+        ? "身分類別不列入"
+        : `身分類別不列入（${excludedLabels}）`,
     excludedNoAccount: "未註冊帳號，沒有名片可被瀏覽",
     excludedNoProfile: "沒有預設且公開的名片",
     excludedTruncated: (shown: number) =>
@@ -1590,6 +1593,9 @@ export const copy = {
     emptyNoCohortExhibitors: "此口徑（展商）目前沒有可列入排名的人",
     emptyBelowThreshold: (threshold: number, count: number) =>
       `目前沒有人達到 ${threshold} 位瀏覽人次（共 ${count} 位參加者）`,
+    /** 展商口徑的 cohort 全是展商，不能叫他們「參加者」。 */
+    emptyBelowThresholdExhibitors: (threshold: number, count: number) =>
+      `目前沒有展商達到 ${threshold} 位瀏覽人次（共 ${count} 位展商）`,
     cohortTooLarge: (count: number) =>
       `本活動有 ${count} 位參加者，超過本版上限（10,000）`,
     /** 後端有回 `details.cohort` 時用上一條；沒有的話至少不要說「0 位」。 */
@@ -1602,11 +1608,16 @@ export const copy = {
       "同一訪客同一天對同一張名片最多計算 1 次（UTC 日）。多日活動為每日分別去重後加總，同一人隔天再訪會再計算 1 次。",
     methodologyLead:
       "聯絡資料以電子郵件正規化後去重；同一位訪客重複送出只計算 1 次。若多人共用同一電子郵件，會合併計為 1 筆。",
-    /** 排除句由 `methodology.registrantTypesIncluded` 推導；空字串＝全 7 類都納入。 */
-    methodologyExcluded: (excludedLabels: string) =>
-      excludedLabels === ""
-        ? "未排除任何身分類別；未註冊帳號或沒有公開名片者仍不列入。"
-        : `不含：${excludedLabels}；未註冊帳號或沒有公開名片者。`,
+    /**
+     * 排除句由 `methodology.registrantTypesIncluded` 推導；空字串＝全 7 類都納入，
+     * `null`＝後端沒回報口徑（未知，不可說成「未排除任何身分類別」）。
+     */
+    methodologyExcluded: (excludedLabels: string | null) =>
+      excludedLabels === null
+        ? "未取得本次的身分類別口徑；未註冊帳號或沒有公開名片者仍不列入。"
+        : excludedLabels === ""
+          ? "未排除任何身分類別；未註冊帳號或沒有公開名片者仍不列入。"
+          : `不含：${excludedLabels}；未註冊帳號或沒有公開名片者。`,
     /** 單列的展開區（主辦方複核用）。 */
     detailHeading: "複核資訊",
     detailEarliestDay: "最早達成日",

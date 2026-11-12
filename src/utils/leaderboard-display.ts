@@ -428,6 +428,41 @@ export function resolveLeaderboardScreen(
   };
 }
 
+/** 排行榜的三個身分口徑（設計 §8.2；7 值全列，不引入 `ALL` sentinel）。 */
+export type LeaderboardScope = "attendees" | "exhibitors" | "all";
+
+export interface LeaderboardQueryPreset {
+  registrantTypes: string;
+  limit?: number;
+  minUniqueVisitors?: number;
+}
+
+/** 口徑 → 後端 `registrantTypes` CSV。 */
+const SCOPE_REGISTRANT_TYPES: Record<LeaderboardScope, string> = {
+  attendees: "ATTENDEE,GUEST,MEDIA",
+  exhibitors: "EXHIBITOR_REP",
+  all: "ATTENDEE,EXHIBITOR_REP,SPEAKER,SPONSOR,MEDIA,GUEST,VOLUNTEER",
+};
+
+/**
+ * 口徑 → 查詢參數：畫面唯一的口徑→API 映射（表格測試釘住三個口徑）。
+ *
+ * 展商口徑一次取齊：預設 `limit=20` 會靜默截斷 60 位展商（BE 沒有 truncated
+ * 旗標），而預設門檻 5 會把大部分只有 1–4 位訪客的展商丟進 belowThreshold。
+ */
+export function buildLeaderboardQuery(
+  scope: LeaderboardScope,
+): LeaderboardQueryPreset {
+  const query: LeaderboardQueryPreset = {
+    registrantTypes: SCOPE_REGISTRANT_TYPES[scope],
+  };
+  if (scope === "exhibitors") {
+    query.limit = 100;
+    query.minUniqueVisitors = 1;
+  }
+  return query;
+}
+
 /**
  * 後端 `RegistrantType` 的 7 個值（`BE@prisma/schema.prisma`）。
  *
@@ -451,11 +486,19 @@ const ALL_REGISTRANT_TYPES = [
  * 「全部身分」都是錯的（榜上明明有展商）。空字串＝7 類全部納入。
  * 用 `copy.ticketTypes.registrantTypeLabels`：全 copy 檔只有這一組逐值對應
  * 後端 enum（`roster`／`event` 兩組的鍵不是後端值）。
+ *
+ * 回 `null` 代表**未知**（欄位缺失或不是字串陣列）：呼叫端必須用中性句，
+ * 不可把「未知」當成「7 類全部排除」而說出相反的事實。
  */
 export function excludedRegistrantTypeLabels(
-  includedRegistrantTypes: readonly string[],
-): string {
-  const included = new Set(includedRegistrantTypes);
+  includedRegistrantTypes: unknown,
+): string | null {
+  if (!Array.isArray(includedRegistrantTypes)) return null;
+  const included = new Set(
+    includedRegistrantTypes.filter(
+      (type): type is string => typeof type === "string",
+    ),
+  );
   return ALL_REGISTRANT_TYPES.filter((type) => !included.has(type))
     .map((type) => copy.ticketTypes.registrantTypeLabels[type])
     .join("、");
@@ -544,16 +587,14 @@ export function excludedItemViews(
  *   是日粒度，跨日不重複訪客在數學上不可得）。
  * - `methodologyLead` 必須寫「多人共用同一 email 會合併成 1 筆」（去重的偽陰性）。
  * - `methodologyExcluded` 必須由後端回報的 `registrantTypesIncluded` 推導：
- *   同一句寫死在「展商」口徑會說出與榜面相反的事實。
+ *   同一句寫死在「展商」口徑會說出與榜面相反的事實。口徑未知時走中性句。
  * - `attributionTimeWindow` 由 S12 橫幅承擔，這裡不重複。
  *
  * ⚠️ 「異常標記尚未啟用」（S13）**不在這裡**：它由
  * `resolveLeaderboardScreen().showRiskFlagsInactive` 驅動，畫面在方法論區塊
  * 尾端單獨渲染。放進這個陣列會讓同一個開關有兩個真相來源（陣列內容 vs 旗標）。
  */
-export function methodologyNotes(
-  includedRegistrantTypes: readonly string[],
-): string[] {
+export function methodologyNotes(includedRegistrantTypes: unknown): string[] {
   return [
     copy.leaderboard.methodologyBody,
     copy.leaderboard.methodologyDedupe,

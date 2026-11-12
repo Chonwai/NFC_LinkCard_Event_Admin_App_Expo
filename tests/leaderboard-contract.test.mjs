@@ -212,29 +212,17 @@ test("below-threshold 列不得使用 danger 色票（低於門檻不是錯誤�
 });
 
 // ---------------------------------------------------------------------------
-// 三、身分口徑：三選一（CR-20261112-01）
+// 二之二、身分口徑：三選一（CR-20261112-01）
 // ---------------------------------------------------------------------------
 
-test("身分口徑恰好三個：預設、展商、全部；展商恰好是 EXHIBITOR_REP", () => {
+test("chip 上的身分口徑恰好三個：預設、展商、全部", () => {
   const code = stripComments(SCREEN);
 
-  assert.ok(
-    code.includes('type ScopeValue = "attendees" | "exhibitors" | "all";'),
-    "ScopeValue 必須是三個字面值的 union",
-  );
   assert.ok(
     code.includes(
       'const SCOPE_OPTIONS = ["attendees", "exhibitors", "all"] as const;',
     ),
     "chip 選項順序＝預設、展商、全部",
-  );
-
-  const mapping = code.match(/const REGISTRANT_TYPES[^=]*= \{[\s\S]*?\};/);
-  assert.ok(mapping, "缺少 REGISTRANT_TYPES 映射");
-  assert.equal(
-    (mapping[0].match(/exhibitors: "EXHIBITOR_REP",/g) ?? []).length,
-    1,
-    "展商口徑必須恰好映射到 EXHIBITOR_REP 一個值",
   );
 });
 
@@ -250,16 +238,18 @@ test("口徑標籤走 3 鍵 Record，不得退回二選一三元", () => {
   assert.ok(code.includes("copy.leaderboard.scopeExhibitors"));
 });
 
-test("只有展商口徑放寬 limit 100／minUniqueVisitors 1，方法論吃後端回報的口徑", () => {
+test("畫面只從 buildLeaderboardQuery 取查詢；展商空狀態走專屬文案", () => {
+  // 口徑→參數的語意由 `tests/leaderboard-display.test.mjs` 的表格測試釘住，
+  // 這裡只驗接線：畫面不得自己再寫一份映射或 query 例外。
   const code = stripComments(SCREEN);
 
   assert.ok(
-    code.includes('limit: scope === "exhibitors" ? 100 : undefined'),
-    "60 位展商會被預設 limit 20 截斷，而後端沒有 truncated 旗標",
+    code.includes("buildLeaderboardQuery(scope)"),
+    "查詢必須走純函式，不能在畫面重複寫口徑規則",
   );
   assert.ok(
-    code.includes('minUniqueVisitors: scope === "exhibitors" ? 1 : undefined'),
-    "預設門檻 5 會把大部分展商丟進 belowThreshold",
+    !code.includes("REGISTRANT_TYPES"),
+    "口徑→參數映射只能有一個真相來源（display 層）",
   );
   assert.ok(
     code.includes(
@@ -269,7 +259,11 @@ test("只有展商口徑放寬 limit 100／minUniqueVisitors 1，方法論吃後
   );
   assert.ok(
     code.includes("copy.leaderboard.emptyNoCohortExhibitors"),
-    "展商口徑的空狀態不得說「本活動尚無可列入排名的參加者」",
+    "展商口徑的 cohort=0 空狀態不得說「本活動尚無可列入排名的參加者」",
+  );
+  assert.ok(
+    code.includes("copy.leaderboard.emptyBelowThresholdExhibitors"),
+    "展商口徑的 below-threshold 空狀態不得把展商叫成「參加者」",
   );
 });
 
